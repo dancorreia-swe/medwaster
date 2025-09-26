@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { expo } from "@better-auth/expo";
 import { db } from "../db";
+import { admin } from "better-auth/plugins";
 import * as schema from "../db/schema/auth";
 import Elysia from "elysia";
 
@@ -23,7 +24,13 @@ export const auth = betterAuth({
       httpOnly: true,
     },
   },
-  plugins: [expo()],
+  plugins: [
+    expo(),
+    admin({
+      defaultRole: "user",
+      adminRoles: ["admin", "super-admin"],
+    }),
+  ],
 });
 
 export const betterAuthMacro = new Elysia({

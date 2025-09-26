@@ -1,73 +1,39 @@
-# Repository agents guide
+# Repository Guidelines
 
-## Purpose
+## Project Structure & Module Organization
 
-This file gives a quick orientation for automated agents (or new contributors) that need to run, build, or interact with the monorepo.
+- Bun + Turbo monorepo; active workspaces live in `apps/*`; `packages/` is reserved for shared libraries.
+- `apps/server/src` runs the Elysia API with domain folders in `modules/`, `routers/`, `emails/`, plus Drizzle config in `db/`.
+- `apps/web/src` hosts the Vite React client: primitives in `components/`, features in `features/`, routes generated under `routes/` and `routeTree.gen.ts`.
+- `apps/native` contains the Expo client; screens live in `app/`, shared helpers in `lib/`, assets in `assets/`.
 
-## Layout
+## Build, Test, and Development Commands
 
-- Root: monorepo configured with Bun as the package manager (packageManager: "bun@1.2.20"). Workspaces are apps/_ and packages/_.
-- apps/
-  - server -> backend (Node/Bun, Elysia, Drizzle, Docker-compose for DB)
-  - web -> frontend web app (Vite + React)
-  - native -> mobile app (Expo / React Native)
-- packages/ -> (currently not present in the repo). Add shared packages here when needed.
+- `bun run dev` starts the Turbo graph, launching server, web, and native targets together.
+- `bun run dev:web`, `dev:server`, or `dev:native` scope work to one app; the same scripts run inside each workspace.
+- `bun run build` executes Turbo builds; run the command from a workspace for a focused build only.
+- `bun run check-types` aggregates TypeScript checks across apps and should pass before pushing.
+- Database scripts: `bun run db:start` for Docker, `db:migrate` for schema changes, `db:down` to clean up containers.
 
-## Root scripts (package.json)
+## Coding Style & Naming Conventions
 
-The root package.json exposes a set of turbo-powered convenience scripts. These orchestrate workspace-level tasks.
+- TypeScript everywhere; add explicit types at API boundaries and reuse shared schemas like `auth-schema.ts`.
+- Match local formatting: backend files use two-space indentation, web/native sources keep their tab-based defaults.
+- Apply PascalCase to React components, camelCase to variables and functions, and kebab-case to files and directories.
 
-- dev : turbo dev (starts all dev targets according to turbo configuration)
-- build : turbo build
-- check-types : turbo check-types
-- dev:native : turbo -F native dev (run dev only for the native app)
-- dev:web : turbo -F web dev (run dev only for the web app)
-- dev:server : turbo -F server dev (run dev only for the server)
+## Testing Guidelines
 
-## Database-related scripts (delegated to server workspace)
+- No automated tests ship yet; rely on `bun run check-types` and manual verification in the running apps.
+- Smoke-test the API with `curl http://localhost:3000` (server running) before submitting backend changes.
+- Colocate new tests beside source files using `.test.ts` or `.test.tsx` naming so Turbo can discover them later.
 
-These root scripts forward to the server workspace, which contains the database/docker compose and drizzle tooling:
+## Commit & Pull Request Guidelines
 
-- db:push : turbo -F server db:push
-- db:studio : turbo -F server db:studio
-- db:generate : turbo -F server db:generate
-- db:migrate : turbo -F server db:migrate
-- db:start : turbo -F server db:start (runs docker compose up -d in apps/server)
-- db:watch : turbo -F server db:watch
-- db:stop : turbo -F server db:stop
-- db:down : turbo -F server db:down
+- Follow Conventional Commits (`feat: add waste audit form`, `fix: correct db url`) as in current history.
+- Keep commits focused and include generated artifacts (such as Drizzle output) when they are required.
+- Describe PR intent, list verification steps (`dev`, `check-types`, migrations), and include UI evidence when relevant; note environment prerequisites for reviewers.
 
-## Per-app quick commands
+## Environment & Configuration
 
-From the project root you can use the root scripts above, or run scripts directly inside each app by changing into the app directory.
-
-Examples (using Bun):
-
-- Start everything (recommended for local development):
-  bun run dev
-
-- Start only the web app:
-  bun run dev:web
-  or
-  cd apps/web && bun run dev
-
-- Start only the native app (Expo):
-  bun run dev:native
-  or
-  cd apps/native && bun run dev
-
-- Start only the server (backend):
-  bun run dev:server
-  or
-  cd apps/server && bun run dev
-
-- Start DB for local development:
-  bun run db:start
-
-## Notes and conventions
-
-- The repo uses Turbo for workspace orchestration. The root scripts invoke turbo and target workspaces by name.
-- packageManager is Bun; commands above show Bun usage but npm/yarn/pnpm users can run equivalent npm run <script> from the root or the specific workspace.
-- The apps folder contains three primary apps: server (backend), web (frontend), native (mobile). The packages folder is reserved for shared packages but is currently not present.
-
-When editing or running tasks, prefer running the scoped turbo tasks from the root so cached and parallel behavior is preserved.
+- Backend expects `DATABASE_URL` and `CORS_ORIGIN` in a local `.env`; keep secrets out of git.
+- Manage database containers with `bun run db:start` and shut them down via `bun run db:down` when finished.
