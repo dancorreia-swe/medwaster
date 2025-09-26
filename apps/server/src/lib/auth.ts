@@ -53,3 +53,12 @@ export const betterAuthMacro = new Elysia({
       },
     },
   });
+
+// const newUser = await auth.api.createUser({
+//   body: {
+//     email: "daniel.correia@dev.com", // required
+//     password: "password", // required
+//     name: "Daniel Correia", // required
+//     role: "user",
+//   },
+// });

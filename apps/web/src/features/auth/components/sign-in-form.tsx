@@ -1,23 +1,27 @@
 import { authClient } from "@/lib/auth-client";
 import { useForm } from "@tanstack/react-form";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import z from "zod";
-import Loader from "../components/loader";
+import Loader from "../../../components/loader";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Input, PasswordInput } from "../components/ui/input";
-import { Label } from "../components/ui/label";
+} from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Input, PasswordInput } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
 
 export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
   const navigate = useNavigate({
+    from: "/login",
+  });
+
+  const search = useSearch({
     from: "/login",
   });
 
@@ -36,8 +40,10 @@ export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
         },
         {
           onSuccess: () => {
+            const redirectTo = search.redirect || "/dashboard";
+
             navigate({
-              to: "/dashboard",
+              to: redirectTo,
               replace: true,
             });
 

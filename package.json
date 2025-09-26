@@ -21,7 +21,9 @@
 		"db:stop": "turbo -F server db:stop",
 		"db:down": "turbo -F server db:down"
 	},
-	"dependencies": {},
+	"dependencies": {
+		"@tanstack/zod-adapter": "^1.132.7"
+	},
 	"devDependencies": {
 		"turbo": "^2.5.4"
 	},

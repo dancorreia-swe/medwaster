@@ -1,9 +1,25 @@
-import SignInForm from "@/components/sign-in-form";
-import { createFileRoute } from "@tanstack/react-router";
+import SignInForm from "@/features/auth/components/sign-in-form";
+import { authClient } from "@/lib/auth-client";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PillBottleIcon } from "lucide-react";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { z } from "zod";
+
+const loginSearch = z.object({
+  redirect: z.string().optional(),
+});
 
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
+  validateSearch: zodValidator(loginSearch),
+
+  beforeLoad: async () => {
+    const { data: session } = await authClient.getSession();
+
+    if (session) {
+      throw redirect({ to: "/dashboard" });
+    }
+  },
 });
 
 function RouteComponent() {

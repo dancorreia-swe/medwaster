@@ -1,47 +1,50 @@
 import { authClient } from "@/lib/auth-client";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { toast } from "sonner";
 import z from "zod";
-import Loader from "../components/loader";
+import Loader from "../../../components/loader";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Input, PasswordInput } from "../components/ui/input";
-import { Label } from "../components/ui/label";
+} from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Input, PasswordInput } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
 
-export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
+export default function SignUpForm({
+  onSwitchToSignIn,
+}: {
+  onSwitchToSignIn: () => void;
+}) {
   const navigate = useNavigate({
-    from: "/login",
+    from: "/",
   });
-
-  const { data: session, isPending } = authClient.useSession();
+  const { isPending } = authClient.useSession();
 
   const form = useForm({
     defaultValues: {
       email: "",
       password: "",
+      name: "",
     },
     onSubmit: async ({ value }) => {
-      await authClient.signIn.email(
+      await authClient.signUp.email(
         {
           email: value.email,
           password: value.password,
+          name: value.name,
         },
         {
           onSuccess: () => {
             navigate({
               to: "/dashboard",
-              replace: true,
             });
-
-            toast.success("Login realizado com sucesso");
+            toast.success("Cadastro realizado com sucesso");
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
@@ -51,6 +54,7 @@ export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
     },
     validators: {
       onSubmit: z.object({
+        name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres"),
         email: z.email("E-mail inválido"),
         password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres"),
       }),
@@ -65,10 +69,11 @@ export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
     <Card className="w-full max-w-md border-slate-200 bg-white/95 shadow-md">
       <CardHeader>
         <CardTitle className="text-2xl font-semibold text-slate-900">
-          Bem-vindo de volta
+          Crie sua conta
         </CardTitle>
         <CardDescription>
-          Entre para acessar o painel do MedWaster.
+          Junte-se ao MedWaster para simplificar o acompanhamento e a
+          conformidade dos resíduos.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -80,6 +85,31 @@ export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
           }}
           className="flex flex-col gap-5"
         >
+          <form.Field name="name">
+            {(field) => (
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor={field.name}
+                  className="text-sm font-medium text-slate-900"
+                >
+                  Nome completo
+                </Label>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-sm text-destructive">
+                    {error?.message}
+                  </p>
+                ))}
+              </div>
+            )}
+          </form.Field>
+
           <form.Field name="email">
             {(field) => (
               <div className="flex flex-col gap-2">
@@ -119,7 +149,7 @@ export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
                   id={field.name}
                   name={field.name}
                   value={field.state.value}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
@@ -132,19 +162,6 @@ export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
             )}
           </form.Field>
 
-          <div className="flex items-center justify-start">
-            <Button
-              type="button"
-              variant="link"
-              onClick={() =>
-                toast.info("A recuperação de senha estará disponível em breve.")
-              }
-              className="px-0 text-sm font-medium"
-            >
-              Esqueceu sua senha?
-            </Button>
-          </div>
-
           <form.Subscribe>
             {(state) => (
               <Button
@@ -152,12 +169,22 @@ export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
                 className="h-11 w-full text-base font-semibold"
                 disabled={!state.canSubmit || state.isSubmitting}
               >
-                {state.isSubmitting ? "Entrando..." : "Entrar"}
+                {state.isSubmitting ? "Criando conta..." : "Criar conta"}
               </Button>
             )}
           </form.Subscribe>
         </form>
       </CardContent>
+      <CardFooter className="justify-center text-sm text-slate-600">
+        <span>Já tem uma conta?</span>
+        <Button
+          variant="link"
+          onClick={onSwitchToSignIn}
+          className="font-semibold"
+        >
+          Entrar
+        </Button>
+      </CardFooter>
     </Card>
   );
 }

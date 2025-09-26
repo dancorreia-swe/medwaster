@@ -10,20 +10,15 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
 import { Route as AuthQuestionsIndexRouteImport } from './routes/_auth/questions/index'
 import { Route as AuthWikiTopicsRouteImport } from './routes/_auth/wiki/topics'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -34,6 +29,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthDashboardRoute = AuthDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthQuestionsIndexRoute = AuthQuestionsIndexRouteImport.update({
   id: '/questions/',
@@ -48,15 +48,15 @@ const AuthWikiTopicsRoute = AuthWikiTopicsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/dashboard': typeof AuthDashboardRoute
   '/wiki/topics': typeof AuthWikiTopicsRoute
   '/questions': typeof AuthQuestionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/dashboard': typeof AuthDashboardRoute
   '/wiki/topics': typeof AuthWikiTopicsRoute
   '/questions': typeof AuthQuestionsIndexRoute
 }
@@ -64,22 +64,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteWithChildren
-  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/wiki/topics': typeof AuthWikiTopicsRoute
   '/_auth/questions/': typeof AuthQuestionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login' | '/wiki/topics' | '/questions'
+  fullPaths: '/' | '/login' | '/dashboard' | '/wiki/topics' | '/questions'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/wiki/topics' | '/questions'
+  to: '/' | '/login' | '/dashboard' | '/wiki/topics' | '/questions'
   id:
     | '__root__'
     | '/'
     | '/_auth'
-    | '/dashboard'
     | '/login'
+    | '/_auth/dashboard'
     | '/_auth/wiki/topics'
     | '/_auth/questions/'
   fileRoutesById: FileRoutesById
@@ -87,7 +87,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
-  DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
 }
 
@@ -98,13 +97,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth': {
@@ -120,6 +112,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_auth/dashboard': {
+      id: '/_auth/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthDashboardRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_auth/questions/': {
       id: '/_auth/questions/'
@@ -139,11 +138,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthRouteChildren {
+  AuthDashboardRoute: typeof AuthDashboardRoute
   AuthWikiTopicsRoute: typeof AuthWikiTopicsRoute
   AuthQuestionsIndexRoute: typeof AuthQuestionsIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthDashboardRoute: AuthDashboardRoute,
   AuthWikiTopicsRoute: AuthWikiTopicsRoute,
   AuthQuestionsIndexRoute: AuthQuestionsIndexRoute,
 }
@@ -153,7 +154,6 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
-  DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

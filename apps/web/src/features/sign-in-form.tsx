@@ -4,17 +4,17 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import z from "zod";
-import Loader from "../components/loader";
+import Loader from "../../../components/loader";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Input, PasswordInput } from "../components/ui/input";
-import { Label } from "../components/ui/label";
+} from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Input, PasswordInput } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
 
 export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
   const navigate = useNavigate({

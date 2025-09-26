@@ -3,7 +3,7 @@ import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import z from "zod";
-import Loader from "./loader";
+import Loader from "../components/loader";
 import {
 	Card,
 	CardContent,
@@ -11,10 +11,10 @@ import {
 	CardFooter,
 	CardHeader,
 	CardTitle,
-} from "./ui/card";
-import { Button } from "./ui/button";
-import { Input, PasswordInput } from "./ui/input";
-import { Label } from "./ui/label";
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input, PasswordInput } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 
 export default function SignUpForm({
 	onSwitchToSignIn,
