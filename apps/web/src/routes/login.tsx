@@ -1,4 +1,4 @@
-import SignInForm from "@/features/auth/components/sign-in-form";
+import { SignInForm } from "@/features/auth/components/sign-in-form";
 import { authClient } from "@/lib/auth-client";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PillBottleIcon } from "lucide-react";

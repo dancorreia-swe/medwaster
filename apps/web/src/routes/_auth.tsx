@@ -1,4 +1,7 @@
+import { AppSidebar } from "@/components/layout/sidebar/app-sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import type { AuthenticatedUser } from "@/types/user";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth")({
@@ -13,10 +16,28 @@ export const Route = createFileRoute("/_auth")({
         },
       });
     }
+
+    return { session };
+  },
+  loader: ({ context: { session } }) => {
+    return {
+      session,
+      user: session.user as AuthenticatedUser,
+    };
   },
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  return <Outlet />;
+  const { user } = Route.useLoaderData();
+
+  return (
+    <SidebarProvider>
+      <AppSidebar user={user} />
+      <main>
+        <SidebarTrigger />
+        <Outlet />
+      </main>
+    </SidebarProvider>
+  );
 }

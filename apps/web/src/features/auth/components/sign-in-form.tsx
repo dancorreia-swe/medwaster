@@ -1,7 +1,6 @@
 import { authClient } from "@/lib/auth-client";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { toast } from "sonner";
 import z from "zod";
 import Loader from "../../../components/loader";
@@ -12,11 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
-import { Button } from "../../../components/ui/button";
-import { Input, PasswordInput } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
+import { Input, PasswordInput } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
-export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
+export function SignInForm({}: { onSwitchToSignUp?: () => void }) {
   const navigate = useNavigate({
     from: "/login",
   });
@@ -46,8 +45,6 @@ export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
               to: redirectTo,
               replace: true,
             });
-
-            toast.success("Login realizado com sucesso");
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
@@ -82,6 +79,7 @@ export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
           onSubmit={(e) => {
             e.preventDefault();
             e.stopPropagation();
+
             form.handleSubmit();
           }}
           className="flex flex-col gap-5"
