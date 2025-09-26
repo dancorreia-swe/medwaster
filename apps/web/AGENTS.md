@@ -11,6 +11,7 @@ Quick facts
 - Router: TanStack Router (file/folder mixed approach with routeTree.gen.ts)
 - UI: shadcn-ui (components under src/components/ui)
 - Auth: better-auth (client helpers in src/lib/auth-client.ts)
+  - Documentation Reference: https://www.better-auth.com/docs
 - Data fetching: React Query (@tanstack/react-query)
 - Server bridge: @elysiajs/eden treaty client (src/lib/client.ts)
 

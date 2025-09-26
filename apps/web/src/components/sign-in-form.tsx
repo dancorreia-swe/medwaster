@@ -1,139 +1,167 @@
 import { authClient } from "@/lib/auth-client";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import z from "zod";
 import Loader from "./loader";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Input, PasswordInput } from "./ui/input";
 import { Label } from "./ui/label";
 
-export default function SignInForm({
-	onSwitchToSignUp,
-}: {
-	onSwitchToSignUp: () => void;
-}) {
-	const navigate = useNavigate({
-		from: "/",
-	});
-	const { isPending } = authClient.useSession();
+export default function SignInForm({}: { onSwitchToSignUp?: () => void }) {
+  const navigate = useNavigate({
+    from: "/login",
+  });
 
-	const form = useForm({
-		defaultValues: {
-			email: "",
-			password: "",
-		},
-		onSubmit: async ({ value }) => {
-			await authClient.signIn.email(
-				{
-					email: value.email,
-					password: value.password,
-				},
-				{
-					onSuccess: () => {
-						navigate({
-							to: "/dashboard",
-						});
-						toast.success("Sign in successful");
-					},
-					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
-					},
-				},
-			);
-		},
-		validators: {
-			onSubmit: z.object({
-				email: z.email("Invalid email address"),
-				password: z.string().min(8, "Password must be at least 8 characters"),
-			}),
-		},
-	});
+  const { data: session, isPending } = authClient.useSession();
 
-	if (isPending) {
-		return <Loader />;
-	}
+  useEffect(() => {
+    if (session) {
+      navigate({
+        to: "/dashboard",
+        replace: true,
+      });
+    }
+  }, [navigate, session]);
 
-	return (
-		<div className="mx-auto w-full mt-10 max-w-md p-6">
-			<h1 className="mb-6 text-center text-3xl font-bold">Welcome Back</h1>
+  const form = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    onSubmit: async ({ value }) => {
+      await authClient.signIn.email(
+        {
+          email: value.email,
+          password: value.password,
+        },
+        {
+          onSuccess: () => {
+            toast.success("Login realizado com sucesso");
+          },
+          onError: (error) => {
+            toast.error(error.error.message || error.error.statusText);
+          },
+        },
+      );
+    },
+    validators: {
+      onSubmit: z.object({
+        email: z.email("E-mail inválido"),
+        password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres"),
+      }),
+    },
+  });
 
-			<form
-				onSubmit={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					form.handleSubmit();
-				}}
-				className="space-y-4"
-			>
-				<div>
-					<form.Field name="email">
-						{(field) => (
-							<div className="space-y-2">
-								<Label htmlFor={field.name}>Email</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									type="email"
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
-							</div>
-						)}
-					</form.Field>
-				</div>
+  if (isPending) {
+    return <Loader />;
+  }
 
-				<div>
-					<form.Field name="password">
-						{(field) => (
-							<div className="space-y-2">
-								<Label htmlFor={field.name}>Password</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									type="password"
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
-							</div>
-						)}
-					</form.Field>
-				</div>
+  return (
+    <Card className="w-full max-w-md border-slate-200 bg-white/95 shadow-md">
+      <CardHeader>
+        <CardTitle className="text-2xl font-semibold text-slate-900">
+          Bem-vindo de volta
+        </CardTitle>
+        <CardDescription>
+          Entre para acessar o painel do MedWaster.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            form.handleSubmit();
+          }}
+          className="flex flex-col gap-5"
+        >
+          <form.Field name="email">
+            {(field) => (
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor={field.name}
+                  className="text-sm font-medium text-slate-900"
+                >
+                  E-mail
+                </Label>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  type="email"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-sm text-destructive">
+                    {error?.message}
+                  </p>
+                ))}
+              </div>
+            )}
+          </form.Field>
 
-				<form.Subscribe>
-					{(state) => (
-						<Button
-							type="submit"
-							className="w-full"
-							disabled={!state.canSubmit || state.isSubmitting}
-						>
-							{state.isSubmitting ? "Submitting..." : "Sign In"}
-						</Button>
-					)}
-				</form.Subscribe>
-			</form>
+          <form.Field name="password">
+            {(field) => (
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor={field.name}
+                  className="text-sm font-medium text-slate-900"
+                >
+                  Senha
+                </Label>
+                <PasswordInput
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value}
+                  autoComplete="current-password"
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+                {field.state.meta.errors.map((error) => (
+                  <p key={error?.message} className="text-sm text-destructive">
+                    {error?.message}
+                  </p>
+                ))}
+              </div>
+            )}
+          </form.Field>
 
-			<div className="mt-4 text-center">
-				<Button
-					variant="link"
-					onClick={onSwitchToSignUp}
-					className="text-indigo-600 hover:text-indigo-800"
-				>
-					Need an account? Sign Up
-				</Button>
-			</div>
-		</div>
-	);
+          <div className="flex items-center justify-start">
+            <Button
+              type="button"
+              variant="link"
+              onClick={() =>
+                toast.info("A recuperação de senha estará disponível em breve.")
+              }
+              className="px-0 text-sm font-medium"
+            >
+              Esqueceu sua senha?
+            </Button>
+          </div>
+
+          <form.Subscribe>
+            {(state) => (
+              <Button
+                type="submit"
+                className="h-11 w-full text-base font-semibold"
+                disabled={!state.canSubmit || state.isSubmitting}
+              >
+                {state.isSubmitting ? "Entrando..." : "Entrar"}
+              </Button>
+            )}
+          </form.Subscribe>
+        </form>
+      </CardContent>
+    </Card>
+  );
 }
