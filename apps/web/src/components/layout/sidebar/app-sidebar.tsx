@@ -48,12 +48,12 @@ const items: SidebarItem[] = [
   },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation();
   const { data } = authClient.useSession();
 
   return (
-    <Sidebar>
+    <Sidebar variant="inset" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
