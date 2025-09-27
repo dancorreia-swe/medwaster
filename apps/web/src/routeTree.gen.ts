@@ -11,8 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/_auth'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
+import { Route as AuthIndexRouteImport } from './routes/_auth/index'
 import { Route as AuthQuestionsIndexRouteImport } from './routes/_auth/questions/index'
 import { Route as AuthWikiTopicsRouteImport } from './routes/_auth/wiki/topics'
 
@@ -25,14 +24,9 @@ const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthDashboardRoute = AuthDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthQuestionsIndexRoute = AuthQuestionsIndexRouteImport.update({
@@ -47,45 +41,40 @@ const AuthWikiTopicsRoute = AuthWikiTopicsRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/dashboard': typeof AuthDashboardRoute
+  '/': typeof AuthIndexRoute
   '/wiki/topics': typeof AuthWikiTopicsRoute
   '/questions': typeof AuthQuestionsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/dashboard': typeof AuthDashboardRoute
+  '/': typeof AuthIndexRoute
   '/wiki/topics': typeof AuthWikiTopicsRoute
   '/questions': typeof AuthQuestionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_auth': typeof AuthRouteWithChildren
   '/login': typeof LoginRoute
-  '/_auth/dashboard': typeof AuthDashboardRoute
+  '/_auth/': typeof AuthIndexRoute
   '/_auth/wiki/topics': typeof AuthWikiTopicsRoute
   '/_auth/questions/': typeof AuthQuestionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/dashboard' | '/wiki/topics' | '/questions'
+  fullPaths: '/login' | '/' | '/wiki/topics' | '/questions'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/dashboard' | '/wiki/topics' | '/questions'
+  to: '/login' | '/' | '/wiki/topics' | '/questions'
   id:
     | '__root__'
-    | '/'
     | '/_auth'
     | '/login'
-    | '/_auth/dashboard'
+    | '/_auth/'
     | '/_auth/wiki/topics'
     | '/_auth/questions/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
@@ -106,18 +95,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_auth/': {
+      id: '/_auth/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_auth/dashboard': {
-      id: '/_auth/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthDashboardRouteImport
+      preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/questions/': {
@@ -138,13 +120,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthRouteChildren {
-  AuthDashboardRoute: typeof AuthDashboardRoute
+  AuthIndexRoute: typeof AuthIndexRoute
   AuthWikiTopicsRoute: typeof AuthWikiTopicsRoute
   AuthQuestionsIndexRoute: typeof AuthQuestionsIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthDashboardRoute: AuthDashboardRoute,
+  AuthIndexRoute: AuthIndexRoute,
   AuthWikiTopicsRoute: AuthWikiTopicsRoute,
   AuthQuestionsIndexRoute: AuthQuestionsIndexRoute,
 }
@@ -152,7 +134,6 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   LoginRoute: LoginRoute,
 }
