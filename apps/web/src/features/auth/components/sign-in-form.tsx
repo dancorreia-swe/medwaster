@@ -39,7 +39,7 @@ export function SignInForm({}: { onSwitchToSignUp?: () => void }) {
         },
         {
           onSuccess: () => {
-            const redirectTo = search.redirect || "/dashboard";
+            const redirectTo = search.redirect || "/";
 
             navigate({
               to: redirectTo,

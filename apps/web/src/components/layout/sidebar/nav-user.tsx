@@ -51,6 +51,7 @@ export function NavUser({ user }: { user: AuthenticatedUser }) {
 
   return (
     <SidebarMenu>
+      {" "}
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

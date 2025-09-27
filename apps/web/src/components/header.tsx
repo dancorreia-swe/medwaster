@@ -4,8 +4,9 @@ import UserMenu from "./user-menu";
 
 export default function Header() {
   const links = [
-    { to: "/", label: "Home" },
-    { to: "/dashboard", label: "Dashboard" },
+    { to: "/", label: "Dashboard" },
+    { to: "/questions", label: "Questões" },
+    { to: "/wiki/topics", label: "Tópicos" },
   ];
 
   return (

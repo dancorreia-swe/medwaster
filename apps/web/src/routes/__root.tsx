@@ -1,4 +1,3 @@
-import Loader from "@/components/loader";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -6,7 +5,6 @@ import {
   HeadContent,
   Outlet,
   createRootRouteWithContext,
-  useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { QueryClient } from "@tanstack/react-query";
@@ -14,6 +12,7 @@ import "../index.css";
 
 export interface RouterAppContext {
   queryClient: QueryClient;
+  getTitle: () => string;
 }
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
@@ -38,10 +37,6 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 });
 
 function RootComponent() {
-  const isFetching = useRouterState({
-    select: (s) => s.isLoading,
-  });
-
   return (
     <>
       <HeadContent />
@@ -51,9 +46,7 @@ function RootComponent() {
         disableTransitionOnChange
         storageKey="vite-ui-theme"
       >
-        <div className="grid grid-rows-[auto_1fr] h-svh">
-          {isFetching ? <Loader /> : <Outlet />}
-        </div>
+        <Outlet />
         <Toaster richColors />
       </ThemeProvider>
       <ReactQueryDevtools buttonPosition="bottom-right" />

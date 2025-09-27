@@ -22,7 +22,7 @@ export default function SignUpForm({
   onSwitchToSignIn: () => void;
 }) {
   const navigate = useNavigate({
-    from: "/",
+    from: "/login",
   });
   const { isPending } = authClient.useSession();
 
@@ -42,7 +42,7 @@ export default function SignUpForm({
         {
           onSuccess: () => {
             navigate({
-              to: "/dashboard",
+              to: "/",
             });
             toast.success("Cadastro realizado com sucesso");
           },

@@ -1,7 +1,12 @@
+import { AppBreadcrumb } from "@/components/layout/app-breadcrumb";
 import { AppSidebar } from "@/components/layout/sidebar/app-sidebar";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
-import type { AuthenticatedUser } from "@/types/user";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth")({
@@ -9,34 +14,42 @@ export const Route = createFileRoute("/_auth")({
     const { data: session } = await authClient.getSession();
 
     if (!session) {
+      const redirectSearch =
+        location.href === "/"
+          ? undefined
+          : {
+              redirect: location.href,
+            };
+
       throw redirect({
         to: "/login",
-        search: {
-          redirect: location.href,
-        },
+        ...(redirectSearch ? { search: redirectSearch } : {}),
       });
     }
-
-    return { session };
-  },
-  loader: ({ context: { session } }) => {
-    return {
-      session,
-      user: session.user as AuthenticatedUser,
-    };
   },
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { user } = Route.useLoaderData();
-
   return (
     <SidebarProvider>
-      <AppSidebar user={user} />
+      <AppSidebar />
       <main>
-        <SidebarTrigger />
-        <Outlet />
+        <SidebarInset>
+          <header className="flex h-16 shrink-0 items-center gap-2">
+            <div className="flex items-center gap-2 px-4">
+              <SidebarTrigger className="-ml-1" />
+              <Separator
+                orientation="vertical"
+                className="mr-2 data-[orientation=vertical]:h-4"
+              />
+              <AppBreadcrumb />
+            </div>
+          </header>
+          <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
+            <Outlet />
+          </main>
+        </SidebarInset>
       </main>
     </SidebarProvider>
   );

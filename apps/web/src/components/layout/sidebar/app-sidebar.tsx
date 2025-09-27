@@ -22,6 +22,7 @@ import type { TRoute } from "@/types/routes";
 import { Link, useLocation } from "@tanstack/react-router";
 import { NavUser } from "./nav-user";
 import type { AuthenticatedUser } from "@/types/user";
+import { authClient } from "@/lib/auth-client";
 
 type SidebarItem = {
   title: string;
@@ -47,12 +48,9 @@ const items: SidebarItem[] = [
   },
 ];
 
-type AppSidebarProps = {
-  user: AuthenticatedUser;
-};
-
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar() {
   const location = useLocation();
+  const { data } = authClient.useSession();
 
   return (
     <Sidebar>
@@ -96,7 +94,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        {data?.user && <NavUser user={data.user as AuthenticatedUser} />}
       </SidebarFooter>
     </Sidebar>
   );
