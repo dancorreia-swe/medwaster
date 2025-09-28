@@ -8,6 +8,13 @@
       "when": 1758738772483,
       "tag": "0000_magenta_speedball",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1759083951472,
+      "tag": "0001_peaceful_rogue",
+      "breakpoints": true
     }
   ]
 }

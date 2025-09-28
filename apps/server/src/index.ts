@@ -4,6 +4,8 @@ import { cors } from "@elysiajs/cors";
 import { betterAuthMacro as betterAuth } from "./lib/auth";
 import { wiki } from "./modules/wiki";
 import { questions } from "./modules/questions";
+import { audit } from "./modules/audit";
+import { auditMiddleware } from "./middleware/audit";
 
 const app = new Elysia()
   .use(
@@ -15,8 +17,14 @@ const app = new Elysia()
     }),
   )
   .use(betterAuth)
+  .use(auditMiddleware({
+    logSuccess: true,
+    logErrors: true,
+    logAuthEvents: true,
+  }))
   .use(wiki)
   .use(questions)
+  .use(audit)
   .get("/", () => "OK")
   .listen(3000, () => {
     console.log("Server is running on http://localhost:3000");

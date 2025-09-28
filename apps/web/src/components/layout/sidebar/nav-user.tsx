@@ -17,9 +17,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import type { AuthenticatedUser } from "@/types/user";
-import { authClient } from "@/lib/auth-client";
 import { useNavigate } from "@tanstack/react-router";
-import { toast } from "sonner";
+import { signOut } from "@/lib/utils";
 
 export function NavUser({ user }: { user: AuthenticatedUser }) {
   const { isMobile } = useSidebar();
@@ -41,12 +40,10 @@ export function NavUser({ user }: { user: AuthenticatedUser }) {
     return emailFirst ?? "?";
   }, [user.email, user.name]);
 
-  const handleSignOut = () => {
-    authClient.signOut().then(() => {
-      toast.success("Deslogado com sucesso");
+  const handleSignOut = async () => {
+    await signOut();
 
-      navigate({ to: "/login" });
-    });
+    navigate({ to: "/login" });
   };
 
   return (

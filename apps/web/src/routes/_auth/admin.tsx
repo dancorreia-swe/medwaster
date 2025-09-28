@@ -7,40 +7,32 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
-import { canAccessWebApp, ROLE_ERRORS } from "@/lib/rbac";
+import { canAccessSuperAdmin, ROLE_ERRORS } from "@/lib/rbac";
 import {
   createFileRoute,
   Outlet,
   redirect,
 } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_auth")({
+export const Route = createFileRoute("/_auth/admin")({
   beforeLoad: async ({ location }) => {
     const { data: session } = await authClient.getSession();
 
     if (!session) {
-      const redirectSearch =
-        location.href === "/"
-          ? undefined
-          : {
-              redirect: location.href,
-            };
-
       throw redirect({
         to: "/login",
-        ...(redirectSearch ? { search: redirectSearch } : {}),
+        search: {
+          redirect: location.href,
+        },
       });
     }
 
-    if (!canAccessWebApp(session.user)) {
+    if (!canAccessSuperAdmin(session.user)) {
       throw redirect({
-        to: "/access-denied",
+        to: "/",
         search: {
-          error: "web_access_denied",
-          message: session.user.role === "user" 
-            ? ROLE_ERRORS.USER_ROLE_WEB_BLOCKED
-            : ROLE_ERRORS.WEB_ACCESS_DENIED,
-          userRole: session.user.role,
+          error: "insufficient_permissions",
+          message: ROLE_ERRORS.ADMIN_REQUIRED,
         },
       });
     }
@@ -64,6 +56,10 @@ function RouteComponent() {
           </div>
         </header>
         <main className="flex flex-1 flex-col gap-4 p-4 pt-0 w-full">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+            <span className="text-sm text-slate-600">Painel Administrativo</span>
+          </div>
           <Outlet />
         </main>
       </SidebarInset>

@@ -1,6 +1,6 @@
 import { authClient } from "@/lib/auth-client";
 import { useForm } from "@tanstack/react-form";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import z from "zod";
 import Loader from "../../../components/loader";
@@ -24,7 +24,7 @@ export function SignInForm({}: { onSwitchToSignUp?: () => void }) {
     from: "/login",
   });
 
-  const { data: session, isPending } = authClient.useSession();
+  const { isPending } = authClient.useSession();
 
   const form = useForm({
     defaultValues: {
@@ -140,12 +140,10 @@ export function SignInForm({}: { onSwitchToSignUp?: () => void }) {
             <Button
               type="button"
               variant="link"
-              onClick={() =>
-                toast.info("A recuperação de senha estará disponível em breve.")
-              }
+              asChild
               className="px-0 text-sm font-medium"
             >
-              Esqueceu sua senha?
+              <Link to="/forgot-password">Esqueceu sua senha?</Link>
             </Button>
           </div>
 
