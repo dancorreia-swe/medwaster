@@ -1,0 +1,1 @@
+export { auditController as audit } from "./audit.controller";

@@ -5,6 +5,9 @@ import { db } from "../db";
 import { admin } from "better-auth/plugins";
 import * as schema from "../db/schema/auth";
 import Elysia from "elysia";
+import { EmailService } from "./email-service";
+import { AuditService } from "../modules/audit/audit.service";
+import { RateLimitMonitor } from "./rate-limit-monitor";
 
 export const auth = betterAuth({
   basePath: "/api/auth",
@@ -15,7 +18,73 @@ export const auth = betterAuth({
   trustedOrigins: [process.env.CORS_ORIGIN || "", "my-better-t-app://"],
   emailAndPassword: {
     enabled: true,
-    sendResetPassword: async ({ user, url, token }, request) => {},
+    sendResetPassword: async ({ user, url, token }, request) => {
+      const clientIP = request
+        ? AuditService.getClientIP(request)
+        : "127.0.0.1";
+      const userAgent = request ? request.headers.get("user-agent") || "" : "";
+
+      await RateLimitMonitor.trackRequest(user.email, "password-reset");
+
+      await AuditService.log(
+        {
+          eventType: "password_reset_requested",
+          userId: user.id,
+          additionalContext: {
+            email: user.email,
+            token: token.substring(0, 8) + "...",
+          },
+        },
+        {
+          ipAddress: clientIP,
+          userAgent: userAgent,
+        },
+      );
+
+      const result = await EmailService.sendPasswordReset({
+        to: user.email,
+        userName: user.name || user.email,
+        resetUrl: url,
+        token: token,
+      });
+
+      if (!result.success) {
+        await AuditService.log(
+          {
+            eventType: "password_reset_email_failed",
+            userId: user.id,
+            additionalContext: {
+              error: result.error,
+              email: user.email,
+            },
+          },
+          {
+            ipAddress: clientIP,
+            userAgent: userAgent,
+          },
+        );
+      }
+    },
+    onPasswordReset: async ({ user }, request) => {
+      const clientIP = request
+        ? AuditService.getClientIP(request)
+        : "127.0.0.1";
+      const userAgent = request ? request.headers.get("user-agent") || "" : "";
+
+      await AuditService.log(
+        {
+          eventType: "password_reset_completed",
+          userId: user.id,
+          additionalContext: {
+            email: user.email,
+          },
+        },
+        {
+          ipAddress: clientIP,
+          userAgent: userAgent,
+        },
+      );
+    },
   },
   advanced: {
     defaultCookieAttributes: {
@@ -53,12 +122,3 @@ export const betterAuthMacro = new Elysia({
       },
     },
   });
-
-// const newUser = await auth.api.createUser({
-//   body: {
-//     email: "daniel.correia@dev.com", // required
-//     password: "password", // required
-//     name: "Daniel Correia", // required
-//     role: "user",
-//   },
-// });

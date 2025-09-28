@@ -7,11 +7,11 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
+import { canAccessWebApp, ROLE_ERRORS } from "@/lib/rbac";
 import {
   createFileRoute,
   Outlet,
   redirect,
-  useRouterState,
 } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth")({
@@ -29,6 +29,19 @@ export const Route = createFileRoute("/_auth")({
       throw redirect({
         to: "/login",
         ...(redirectSearch ? { search: redirectSearch } : {}),
+      });
+    }
+
+    if (!canAccessWebApp(session.user)) {
+      throw redirect({
+        to: "/access-denied",
+        search: {
+          error: "web_access_denied",
+          message: session.user.role === "user" 
+            ? ROLE_ERRORS.USER_ROLE_WEB_BLOCKED
+            : ROLE_ERRORS.WEB_ACCESS_DENIED,
+          userRole: session.user.role,
+        },
       });
     }
   },
