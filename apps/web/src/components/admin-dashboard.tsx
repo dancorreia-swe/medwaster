@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Shield, Users, FileText, TrendingUp } from "lucide-react";
 import { getRoleDisplayName } from "@/lib/rbac";
-import { useSearch } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 
 export function Dashboard() {
   const { user, canAccessSuperAdmin } = usePermissions();
@@ -108,8 +108,8 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <a
-                href="/_auth/admin/audit-logs"
+              <Link
+                to="/admin/audit-logs"
                 className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
               >
                 <Shield className="h-8 w-8 text-blue-500" />
@@ -119,7 +119,7 @@ export function Dashboard() {
                     Visualizar eventos de segurança
                   </p>
                 </div>
-              </a>
+              </Link>
 
               <div className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 bg-slate-50 opacity-50">
                 <Users className="h-8 w-8 text-slate-400" />

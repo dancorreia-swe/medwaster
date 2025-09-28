@@ -13,13 +13,11 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AccessDeniedRouteImport } from './routes/access-denied'
-import { Route as AuthOldRouteImport } from './routes/_auth-old'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthIndexRouteImport } from './routes/_auth/index'
 import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
 import { Route as AuthQuestionsIndexRouteImport } from './routes/_auth/questions/index'
 import { Route as AuthWikiTopicsRouteImport } from './routes/_auth/wiki/topics'
-import { Route as AuthAdminAuditLogsRouteImport } from './routes/_auth/admin/audit-logs'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -39,10 +37,6 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const AccessDeniedRoute = AccessDeniedRouteImport.update({
   id: '/access-denied',
   path: '/access-denied',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthOldRoute = AuthOldRouteImport.update({
-  id: '/_auth-old',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -69,20 +63,14 @@ const AuthWikiTopicsRoute = AuthWikiTopicsRouteImport.update({
   path: '/wiki/topics',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthAdminAuditLogsRoute = AuthAdminAuditLogsRouteImport.update({
-  id: '/audit-logs',
-  path: '/audit-logs',
-  getParentRoute: () => AuthAdminRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/access-denied': typeof AccessDeniedRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/admin': typeof AuthAdminRouteWithChildren
+  '/admin': typeof AuthAdminRoute
   '/': typeof AuthIndexRoute
-  '/admin/audit-logs': typeof AuthAdminAuditLogsRoute
   '/wiki/topics': typeof AuthWikiTopicsRoute
   '/questions': typeof AuthQuestionsIndexRoute
 }
@@ -91,23 +79,20 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/admin': typeof AuthAdminRouteWithChildren
+  '/admin': typeof AuthAdminRoute
   '/': typeof AuthIndexRoute
-  '/admin/audit-logs': typeof AuthAdminAuditLogsRoute
   '/wiki/topics': typeof AuthWikiTopicsRoute
   '/questions': typeof AuthQuestionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteWithChildren
-  '/_auth-old': typeof AuthOldRoute
   '/access-denied': typeof AccessDeniedRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/_auth/admin': typeof AuthAdminRouteWithChildren
+  '/_auth/admin': typeof AuthAdminRoute
   '/_auth/': typeof AuthIndexRoute
-  '/_auth/admin/audit-logs': typeof AuthAdminAuditLogsRoute
   '/_auth/wiki/topics': typeof AuthWikiTopicsRoute
   '/_auth/questions/': typeof AuthQuestionsIndexRoute
 }
@@ -120,7 +105,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/'
-    | '/admin/audit-logs'
     | '/wiki/topics'
     | '/questions'
   fileRoutesByTo: FileRoutesByTo
@@ -131,27 +115,23 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/'
-    | '/admin/audit-logs'
     | '/wiki/topics'
     | '/questions'
   id:
     | '__root__'
     | '/_auth'
-    | '/_auth-old'
     | '/access-denied'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/_auth/admin'
     | '/_auth/'
-    | '/_auth/admin/audit-logs'
     | '/_auth/wiki/topics'
     | '/_auth/questions/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
-  AuthOldRoute: typeof AuthOldRoute
   AccessDeniedRoute: typeof AccessDeniedRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
@@ -186,13 +166,6 @@ declare module '@tanstack/react-router' {
       path: '/access-denied'
       fullPath: '/access-denied'
       preLoaderRoute: typeof AccessDeniedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_auth-old': {
-      id: '/_auth-old'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof AuthOldRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth': {
@@ -230,37 +203,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthWikiTopicsRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/admin/audit-logs': {
-      id: '/_auth/admin/audit-logs'
-      path: '/audit-logs'
-      fullPath: '/admin/audit-logs'
-      preLoaderRoute: typeof AuthAdminAuditLogsRouteImport
-      parentRoute: typeof AuthAdminRoute
-    }
   }
 }
 
-interface AuthAdminRouteChildren {
-  AuthAdminAuditLogsRoute: typeof AuthAdminAuditLogsRoute
-}
-
-const AuthAdminRouteChildren: AuthAdminRouteChildren = {
-  AuthAdminAuditLogsRoute: AuthAdminAuditLogsRoute,
-}
-
-const AuthAdminRouteWithChildren = AuthAdminRoute._addFileChildren(
-  AuthAdminRouteChildren,
-)
-
 interface AuthRouteChildren {
-  AuthAdminRoute: typeof AuthAdminRouteWithChildren
+  AuthAdminRoute: typeof AuthAdminRoute
   AuthIndexRoute: typeof AuthIndexRoute
   AuthWikiTopicsRoute: typeof AuthWikiTopicsRoute
   AuthQuestionsIndexRoute: typeof AuthQuestionsIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthAdminRoute: AuthAdminRouteWithChildren,
+  AuthAdminRoute: AuthAdminRoute,
   AuthIndexRoute: AuthIndexRoute,
   AuthWikiTopicsRoute: AuthWikiTopicsRoute,
   AuthQuestionsIndexRoute: AuthQuestionsIndexRoute,
@@ -270,7 +224,6 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
-  AuthOldRoute: AuthOldRoute,
   AccessDeniedRoute: AccessDeniedRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
