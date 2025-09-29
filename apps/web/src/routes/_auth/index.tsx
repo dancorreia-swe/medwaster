@@ -1,11 +1,16 @@
 import { authClient } from "@/lib/auth-client";
 import { Dashboard } from "@/components/admin-dashboard";
 import { createFileRoute } from "@tanstack/react-router";
+import { client } from "@/lib/client";
 
 export const Route = createFileRoute("/_auth/")({
   component: RouteComponent,
   beforeLoad() {
     return { getTitle: () => "Painel Administrativo" };
+  },
+  loader: async () => {
+    const { data, error } = await client.health.get();
+    console.log({ data, error });
   },
 });
 

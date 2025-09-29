@@ -4,10 +4,18 @@ import { expo } from "@better-auth/expo";
 import { db } from "../db";
 import { admin } from "better-auth/plugins";
 import * as schema from "../db/schema/auth";
-import Elysia from "elysia";
+import Elysia, { t } from "elysia";
 import { EmailService } from "./email-service";
 import { AuditService } from "../modules/audit/audit.service";
 import { RateLimitMonitor } from "./rate-limit-monitor";
+
+export const ROLES = {
+  SUPER_ADMIN: "super-admin",
+  ADMIN: "admin",
+  USER: "user",
+};
+
+type Roles = (typeof ROLES)[keyof typeof ROLES];
 
 export const auth = betterAuth({
   basePath: "/api/auth",
@@ -86,13 +94,6 @@ export const auth = betterAuth({
       );
     },
   },
-  advanced: {
-    defaultCookieAttributes: {
-      sameSite: "none",
-      secure: true,
-      httpOnly: true,
-    },
-  },
   plugins: [
     expo(),
     admin({
@@ -108,7 +109,7 @@ export const betterAuthMacro = new Elysia({
   .mount(auth.handler)
   .macro({
     auth: {
-      async resolve({ status, request: { headers } }) {
+      resolve: async ({ status, request: { headers } }) => {
         const session = await auth.api.getSession({
           headers,
         });
@@ -121,4 +122,21 @@ export const betterAuthMacro = new Elysia({
         };
       },
     },
+    role: (role: string | string[] | Roles | Roles[]) => ({
+      resolve: ({ user, status }) => {
+        const userRole = user?.role || "user";
+
+        if (userRole === ROLES.SUPER_ADMIN) {
+          return;
+        }
+
+        if (role && typeof role === "string" && userRole !== role) {
+          return status(403);
+        }
+
+        if (role && Array.isArray(role) && !role.includes(userRole)) {
+          return status(403);
+        }
+      },
+    }),
   });

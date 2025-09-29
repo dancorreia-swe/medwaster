@@ -7,21 +7,33 @@ import { questions } from "./modules/questions";
 import { audit } from "./modules/audit";
 import { auditMiddleware } from "./middleware/audit";
 
+const envCorsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  : [];
+
+const corsOrigin = envCorsOrigins.includes("*")
+  ? true
+  : [...envCorsOrigins, /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
+
 const app = new Elysia()
   .use(
     cors({
-      origin: process.env.CORS_ORIGIN || "*",
+      origin: corsOrigin,
       methods: ["GET", "POST", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
       credentials: true,
     }),
   )
   .use(betterAuth)
-  .use(auditMiddleware({
-    logSuccess: true,
-    logErrors: true,
-    logAuthEvents: true,
-  }))
+  .use(
+    auditMiddleware({
+      logSuccess: true,
+      logErrors: true,
+      logAuthEvents: true,
+    }),
+  )
   .use(wiki)
   .use(questions)
   .use(audit)

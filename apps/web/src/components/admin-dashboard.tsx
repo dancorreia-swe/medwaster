@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Shield, Users, FileText, TrendingUp } from "lucide-react";
 import { getRoleDisplayName } from "@/lib/rbac";
 import { Link, useSearch } from "@tanstack/react-router";
+import { client } from "@/lib/client";
 
 export function Dashboard() {
   const { user, canAccessSuperAdmin } = usePermissions();
