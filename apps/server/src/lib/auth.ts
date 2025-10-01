@@ -4,10 +4,11 @@ import { expo } from "@better-auth/expo";
 import { db } from "../db";
 import { admin } from "better-auth/plugins";
 import * as schema from "../db/schema/auth";
-import Elysia, { t } from "elysia";
+import Elysia from "elysia";
 import { EmailService } from "./email-service";
 import { AuditService } from "../modules/audit/audit.service";
 import { RateLimitMonitor } from "./rate-limit-monitor";
+import { ForbiddenError, UnauthorizedError } from "./errors";
 
 export const ROLES = {
   SUPER_ADMIN: "super-admin",
@@ -109,12 +110,14 @@ export const betterAuthMacro = new Elysia({
   .mount(auth.handler)
   .macro({
     auth: {
-      resolve: async ({ status, request: { headers } }) => {
+      async resolve({ request }) {
         const session = await auth.api.getSession({
-          headers,
+          headers: request.headers,
         });
 
-        if (!session) return status(401);
+        if (!session) {
+          throw new UnauthorizedError("Authentication required");
+        }
 
         return {
           user: session.user,
@@ -123,19 +126,26 @@ export const betterAuthMacro = new Elysia({
       },
     },
     role: (role: string | string[] | Roles | Roles[]) => ({
-      resolve: ({ user, status }) => {
-        const userRole = user?.role || "user";
+      resolve: ({ user }) => {
+        if (!user) {
+          throw new UnauthorizedError("Authentication required");
+        }
 
+        const userRole = user.role || "user";
+
+        // Super admin has access to everything
         if (userRole === ROLES.SUPER_ADMIN) {
           return;
         }
 
+        // Check single role
         if (role && typeof role === "string" && userRole !== role) {
-          return status(403);
+          throw new ForbiddenError("Insufficient permissions");
         }
 
+        // Check multiple roles
         if (role && Array.isArray(role) && !role.includes(userRole)) {
-          return status(403);
+          throw new ForbiddenError("Insufficient permissions");
         }
       },
     }),
