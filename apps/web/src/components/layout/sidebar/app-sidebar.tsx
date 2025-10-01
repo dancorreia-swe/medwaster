@@ -5,6 +5,7 @@ import {
   Settings,
   Users,
   BarChart3,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,6 +41,11 @@ const adminItems: SidebarItem[] = [
     title: "Painel Principal",
     to: "/",
     icon: Home,
+  },
+  {
+    title: "Wiki Management",
+    to: "/_auth/admin/wiki",
+    icon: BookOpen,
   },
   {
     title: "Logs de Auditoria",

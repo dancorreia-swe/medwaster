@@ -133,3 +133,5 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@source "../../../node_modules/@blocknote/shadcn";
