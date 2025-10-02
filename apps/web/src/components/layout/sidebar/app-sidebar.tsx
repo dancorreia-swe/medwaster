@@ -35,7 +35,6 @@ type SidebarItem = {
   requiresSuperAdmin?: boolean;
 };
 
-// WEB APP IS ADMIN-ONLY - No regular user items
 const adminItems: SidebarItem[] = [
   {
     title: "Painel Principal",
@@ -43,33 +42,28 @@ const adminItems: SidebarItem[] = [
     icon: Home,
   },
   {
-    title: "Wiki Management",
-    to: "/_auth/admin/wiki",
+    title: "Wiki",
+    to: "/wiki",
     icon: BookOpen,
-  },
-  {
-    title: "Logs de Auditoria",
-    to: "/_auth/admin/audit-logs",
-    icon: Shield,
-  },
-  {
-    title: "Gerenciar Usuários",
-    to: "/_auth/admin/users",
-    icon: Users,
-    requiresSuperAdmin: true,
-  },
-  {
-    title: "Relatórios",
-    to: "/_auth/admin/reports",
-    icon: BarChart3,
   },
 ];
 
 const superAdminItems: SidebarItem[] = [
   {
     title: "Configurações do Sistema",
-    to: "/_auth/admin/system-settings",
+    to: "/admin/system-settings",
     icon: Settings,
+  },
+  {
+    title: "Logs de Auditoria",
+    to: "/admin/audit-logs",
+    icon: Shield,
+  },
+  {
+    title: "Gerenciar Usuários",
+    to: "/admin/users",
+    icon: Users,
+    requiresSuperAdmin: true,
   },
 ];
 
@@ -91,7 +85,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">MedWaster</span>
                   <span className="truncate text-xs">
-                    Painel {canAccessSuperAdmin ? "Super Admin" : "Admin"}
+                    Painel Administrativo
                   </span>
                 </div>
               </Link>
@@ -102,7 +96,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         {/* Admin Section - All web users are admins */}
         <SidebarGroup>
-          <SidebarGroupLabel>Administração</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {adminItems.map((item) => {
@@ -113,7 +106,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       <SidebarMenuButton disabled className="opacity-50">
                         <item.icon />
                         <span>{item.title}</span>
-                        <span className="text-xs text-red-500 ml-auto">Super Admin</span>
+                        <span className="text-xs text-red-500 ml-auto">
+                          Super Admin
+                        </span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );

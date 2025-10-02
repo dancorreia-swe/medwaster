@@ -8,36 +8,58 @@ export const articlesQueryOptions = (params?: {
   category?: string;
   page?: number;
   limit?: number;
-}) => queryOptions({
-  queryKey: ["wiki", "articles", params],
-  queryFn: () => client.wiki.articles.get({
-    query: params
-  }),
-});
+}) =>
+  queryOptions({
+    queryKey: ["wiki", "articles", params],
+    queryFn: () =>
+      client.wiki.articles.get({
+        query: params,
+      }),
+  });
 
 // Single article query options
-export const articleQueryOptions = (id: number) => queryOptions({
-  queryKey: ["wiki", "articles", id],
-  queryFn: () => client.wiki.articles[id].get(),
-});
-
-// Articles analytics query options
-export const articleAnalyticsQueryOptions = () => queryOptions({
-  queryKey: ["wiki", "articles", "analytics"],
-  queryFn: () => client.wiki.articles.analytics?.get(),
-});
+export const articleQueryOptions = (id: number) =>
+  queryOptions({
+    queryKey: ["wiki", "articles", id],
+    queryFn: () => client.wiki.articles({ id }).get(),
+  });
 
 // Categories query options
-export const categoriesQueryOptions = () => queryOptions({
-  queryKey: ["wiki", "categories"],
-  queryFn: () => client.wiki.categories?.get(),
-});
+export const categoriesQueryOptions = () =>
+  queryOptions({
+    queryKey: ["wiki", "categories"],
+    queryFn: async () => {
+      // Mock data for now since we don't have categories endpoint yet
+      return {
+        data: [
+          { id: 1, name: "Biological Waste" },
+          { id: 2, name: "Chemical Waste" },
+          { id: 3, name: "Pharmaceutical Waste" },
+          { id: 4, name: "Pathological Waste" },
+          { id: 5, name: "Sharps" },
+        ],
+      };
+    },
+  });
 
-// Tags query options  
-export const tagsQueryOptions = () => queryOptions({
-  queryKey: ["wiki", "tags"],
-  queryFn: () => client.wiki.tags?.get(),
-});
+// Tags query options
+export const tagsQueryOptions = () =>
+  queryOptions({
+    queryKey: ["wiki", "tags"],
+    queryFn: async () => {
+      // Mock data for now since we don't have tags endpoint yet
+      return {
+        data: [
+          { id: 1, name: "biológico" },
+          { id: 2, name: "descarte" },
+          { id: 3, name: "segurança" },
+          { id: 4, name: "anvisa" },
+          { id: 5, name: "rdc222" },
+          { id: 6, name: "procedimento" },
+        ],
+      };
+    },
+  });
 
 // Export types for components
 export type ArticleListItem = {
@@ -72,3 +94,4 @@ export type ArticleDetail = ArticleListItem & {
   metaDescription?: string;
   featuredImageUrl?: string;
 };
+

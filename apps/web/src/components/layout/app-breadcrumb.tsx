@@ -1,4 +1,4 @@
-import { useRouterState } from "@tanstack/react-router";
+import { useMatches } from "@tanstack/react-router";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,15 +7,17 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "../ui/breadcrumb";
+import { Fragment } from "react/jsx-runtime";
 
 const AppBreadcrumb = () => {
-  const matches = useRouterState({ select: (s) => s.matches });
+  const matches = useMatches();
 
   const breadcrumbs = matches
     .filter((match) => match.context.getTitle)
     .map(({ pathname, context }) => {
+    console.log('match context:', context);
       return {
-        title: context.getTitle(),
+        title: context.getTitle ? context.getTitle() : "Untitled",
         path: pathname,
       };
     });
@@ -24,16 +26,18 @@ const AppBreadcrumb = () => {
     <Breadcrumb>
       <BreadcrumbList>
         {breadcrumbs.map((breadcrumb, index) => (
-          <BreadcrumbItem key={breadcrumb.path}>
-            {index === breadcrumbs.length - 1 ? (
-              <BreadcrumbPage>{breadcrumb.title}</BreadcrumbPage>
-            ) : (
-              <BreadcrumbLink href={breadcrumb.path}>
-                {breadcrumb.title}
-              </BreadcrumbLink>
-            )}
+          <Fragment key={breadcrumb.path}>
+            <BreadcrumbItem >
+              {index === breadcrumbs.length - 1 ? (
+                <BreadcrumbPage>{breadcrumb.title}</BreadcrumbPage>
+              ) : (
+                <BreadcrumbLink href={breadcrumb.path}>
+                  {breadcrumb.title}
+                </BreadcrumbLink>
+              )}
+            </BreadcrumbItem>
             {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
-          </BreadcrumbItem>
+          </Fragment>
         ))}
       </BreadcrumbList>
     </Breadcrumb>

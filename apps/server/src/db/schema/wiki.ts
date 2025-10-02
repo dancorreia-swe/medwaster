@@ -1,5 +1,4 @@
 import {
-  boolean,
   index,
   integer,
   jsonb,
@@ -14,17 +13,28 @@ import { relations } from "drizzle-orm";
 import { user } from "./auth";
 import { contentCategories, tags } from "./questions";
 
-// Enums for wiki articles
-export const wikiArticleStatusValues = ["draft", "published", "archived"] as const;
-export const wikiArticleStatusEnum = pgEnum("wiki_article_status", wikiArticleStatusValues);
+export const wikiArticleStatusValues = [
+  "draft",
+  "published",
+  "archived",
+] as const;
+
+export const wikiArticleStatusEnum = pgEnum(
+  "wiki_article_status",
+  wikiArticleStatusValues,
+);
 
 export const wikiRelationshipTypeValues = [
   "related",
-  "prerequisite", 
+  "prerequisite",
   "continuation",
-  "reference"
+  "reference",
 ] as const;
-export const wikiRelationshipTypeEnum = pgEnum("wiki_relationship_type", wikiRelationshipTypeValues);
+
+export const wikiRelationshipTypeEnum = pgEnum(
+  "wiki_relationship_type",
+  wikiRelationshipTypeValues,
+);
 
 // Main wiki articles table
 export const wikiArticles = pgTable(
@@ -56,26 +66,27 @@ export const wikiArticles = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    // Performance indexes
-    statusIdx: index("idx_wiki_articles_status").on(table.status),
-    categoryIdx: index("idx_wiki_articles_category").on(table.categoryId),
-    authorIdx: index("idx_wiki_articles_author").on(table.authorId),
-    publishedAtIdx: index("idx_wiki_articles_published_at").on(table.publishedAt),
-    updatedAtIdx: index("idx_wiki_articles_updated_at").on(table.updatedAt),
-    slugIdx: index("idx_wiki_articles_slug").on(table.slug),
-    
-    // Composite indexes for common queries
-    statusCategoryIdx: index("idx_wiki_articles_status_category").on(table.status, table.categoryId),
-    statusUpdatedIdx: index("idx_wiki_articles_status_updated").on(table.status, table.updatedAt),
-    authorUpdatedIdx: index("idx_wiki_articles_author_updated").on(table.authorId, table.updatedAt),
-    
-    // Analytics indexes
-    viewsIdx: index("idx_wiki_articles_views").on(table.viewCount, table.lastViewedAt),
-  }),
+  (table) => [
+    index("idx_wiki_articles_status").on(table.status),
+    index("idx_wiki_articles_category").on(table.categoryId),
+    index("idx_wiki_articles_author").on(table.authorId),
+    index("idx_wiki_articles_published_at").on(table.publishedAt),
+    index("idx_wiki_articles_updated_at").on(table.updatedAt),
+    index("idx_wiki_articles_slug").on(table.slug),
+
+    index("idx_wiki_articles_status_category").on(
+      table.status,
+      table.categoryId,
+    ),
+    index("idx_wiki_articles_status_updated").on(table.status, table.updatedAt),
+    index("idx_wiki_articles_author_updated").on(
+      table.authorId,
+      table.updatedAt,
+    ),
+    index("idx_wiki_articles_views").on(table.viewCount, table.lastViewedAt),
+  ],
 );
 
-// Junction table for article-tag relationships
 export const wikiArticleTags = pgTable(
   "wiki_article_tags",
   {
@@ -92,18 +103,17 @@ export const wikiArticleTags = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    pk: primaryKey({
+  (table) => [
+    primaryKey({
       columns: [table.articleId, table.tagId],
       name: "wiki_article_tags_pk",
     }),
-    articleIdx: index("idx_wiki_article_tags_article").on(table.articleId),
-    tagIdx: index("idx_wiki_article_tags_tag").on(table.tagId),
-    compositeIdx: index("idx_wiki_article_tags_composite").on(table.tagId, table.articleId),
-  }),
+    index("idx_wiki_article_tags_article").on(table.articleId),
+    index("idx_wiki_article_tags_tag").on(table.tagId),
+    index("idx_wiki_article_tags_composite").on(table.tagId, table.articleId),
+  ],
 );
 
-// Table for managing content relationships
 export const wikiArticleRelationships = pgTable(
   "wiki_article_relationships",
   {
@@ -122,52 +132,57 @@ export const wikiArticleRelationships = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
+  (table) => [
     // Unique constraint to prevent duplicate relationships
-    uniqueRelationship: index("idx_wiki_relationships_unique").on(
+    index("idx_wiki_relationships_unique").on(
       table.sourceArticleId,
       table.targetArticleId,
       table.relationshipType,
     ),
-    sourceIdx: index("idx_wiki_relationships_source").on(table.sourceArticleId),
-    targetIdx: index("idx_wiki_relationships_target").on(table.targetArticleId),
-    typeIdx: index("idx_wiki_relationships_type").on(table.relationshipType),
+    index("idx_wiki_relationships_source").on(table.sourceArticleId),
+    index("idx_wiki_relationships_target").on(table.targetArticleId),
+    index("idx_wiki_relationships_type").on(table.relationshipType),
+  ],
+);
+
+export const wikiArticlesRelations = relations(
+  wikiArticles,
+  ({ one, many }) => ({
+    author: one(user, {
+      fields: [wikiArticles.authorId],
+      references: [user.id],
+    }),
+    category: one(contentCategories, {
+      fields: [wikiArticles.categoryId],
+      references: [contentCategories.id],
+    }),
+    articleTags: many(wikiArticleTags),
+    sourceRelationships: many(wikiArticleRelationships, {
+      relationName: "sourceArticle",
+    }),
+    targetRelationships: many(wikiArticleRelationships, {
+      relationName: "targetArticle",
+    }),
   }),
 );
 
-// Drizzle relations
-export const wikiArticlesRelations = relations(wikiArticles, ({ one, many }) => ({
-  author: one(user, {
-    fields: [wikiArticles.authorId],
-    references: [user.id],
+export const wikiArticleTagsRelations = relations(
+  wikiArticleTags,
+  ({ one }) => ({
+    article: one(wikiArticles, {
+      fields: [wikiArticleTags.articleId],
+      references: [wikiArticles.id],
+    }),
+    tag: one(tags, {
+      fields: [wikiArticleTags.tagId],
+      references: [tags.id],
+    }),
+    assignedByUser: one(user, {
+      fields: [wikiArticleTags.assignedBy],
+      references: [user.id],
+    }),
   }),
-  category: one(contentCategories, {
-    fields: [wikiArticles.categoryId],
-    references: [contentCategories.id],
-  }),
-  articleTags: many(wikiArticleTags),
-  sourceRelationships: many(wikiArticleRelationships, {
-    relationName: "sourceArticle",
-  }),
-  targetRelationships: many(wikiArticleRelationships, {
-    relationName: "targetArticle",
-  }),
-}));
-
-export const wikiArticleTagsRelations = relations(wikiArticleTags, ({ one }) => ({
-  article: one(wikiArticles, {
-    fields: [wikiArticleTags.articleId],
-    references: [wikiArticles.id],
-  }),
-  tag: one(tags, {
-    fields: [wikiArticleTags.tagId],
-    references: [tags.id],
-  }),
-  assignedByUser: one(user, {
-    fields: [wikiArticleTags.assignedBy],
-    references: [user.id],
-  }),
-}));
+);
 
 export const wikiArticleRelationshipsRelations = relations(
   wikiArticleRelationships,
@@ -189,14 +204,81 @@ export const wikiArticleRelationshipsRelations = relations(
   }),
 );
 
-// Type exports for TypeScript
+export const wikiFiles = pgTable(
+  "wiki_files",
+  {
+    id: serial("id").primaryKey(),
+    originalName: text("original_name").notNull(),
+    storedFilename: text("stored_filename").notNull().unique(),
+    mimeType: text("mime_type").notNull(),
+    fileSize: integer("file_size").notNull(),
+    filePath: text("file_path").notNull(),
+    uploadedBy: text("uploaded_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    associatedArticleId: integer("associated_article_id").references(
+      () => wikiArticles.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_wiki_files_article").on(table.associatedArticleId),
+    index("idx_wiki_files_uploaded_by").on(table.uploadedBy),
+    index("idx_wiki_files_created_at").on(table.createdAt),
+    index("idx_wiki_files_stored_filename").on(table.storedFilename),
+  ],
+);
+
+export const wikiFilesRelations = relations(wikiFiles, ({ one }) => ({
+  uploadedByUser: one(user, {
+    fields: [wikiFiles.uploadedBy],
+    references: [user.id],
+  }),
+  associatedArticle: one(wikiArticles, {
+    fields: [wikiFiles.associatedArticleId],
+    references: [wikiArticles.id],
+  }),
+}));
+export const wikiArticlesRelationsUpdated = relations(
+  wikiArticles,
+  ({ one, many }) => ({
+    author: one(user, {
+      fields: [wikiArticles.authorId],
+      references: [user.id],
+    }),
+    category: one(contentCategories, {
+      fields: [wikiArticles.categoryId],
+      references: [contentCategories.id],
+    }),
+    articleTags: many(wikiArticleTags),
+    files: many(wikiFiles),
+    sourceRelationships: many(wikiArticleRelationships, {
+      relationName: "sourceArticle",
+    }),
+    targetRelationships: many(wikiArticleRelationships, {
+      relationName: "targetArticle",
+    }),
+  }),
+);
+
 export type WikiArticle = typeof wikiArticles.$inferSelect;
 export type NewWikiArticle = typeof wikiArticles.$inferInsert;
-export type WikiArticleStatus = typeof wikiArticleStatusValues[number];
-export type WikiRelationshipType = typeof wikiRelationshipTypeValues[number];
+export type WikiArticleStatus = (typeof wikiArticleStatusValues)[number];
+export type WikiRelationshipType = (typeof wikiRelationshipTypeValues)[number];
 
 export type WikiArticleTag = typeof wikiArticleTags.$inferSelect;
 export type NewWikiArticleTag = typeof wikiArticleTags.$inferInsert;
 
-export type WikiArticleRelationship = typeof wikiArticleRelationships.$inferSelect;
-export type NewWikiArticleRelationship = typeof wikiArticleRelationships.$inferInsert;
+export type WikiArticleRelationship =
+  typeof wikiArticleRelationships.$inferSelect;
+export type NewWikiArticleRelationship =
+  typeof wikiArticleRelationships.$inferInsert;
+
+export type WikiFile = typeof wikiFiles.$inferSelect;
+export type NewWikiFile = typeof wikiFiles.$inferInsert;

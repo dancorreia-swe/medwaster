@@ -10,7 +10,11 @@ import {
 } from "../../../db/schema/wiki";
 import { contentCategories, tags } from "../../../db/schema/questions";
 import { user } from "../../../db/schema/auth";
-import { ContentProcessor, generateSlug, ensureUniqueSlug } from "./content-processor";
+import {
+  ContentProcessor,
+  generateSlug,
+  ensureUniqueSlug,
+} from "./content-processor";
 import {
   NotFoundError,
   ValidationError,
@@ -38,39 +42,48 @@ export class ArticleService {
     const existingSlugs = await db
       .select({ slug: wikiArticles.slug })
       .from(wikiArticles)
-      .then(results => results.map(r => r.slug));
-    
+      .then((results) => results.map((r) => r.slug));
+
     const slug = ensureUniqueSlug(baseSlug, existingSlugs);
 
     // Process content
     const contentText = ContentProcessor.extractPlainText(data.content);
-    const readingTimeMinutes = ContentProcessor.calculateReadingTime(data.content);
-    const excerpt = data.excerpt || ContentProcessor.generateExcerpt(data.content);
+    const readingTimeMinutes = ContentProcessor.calculateReadingTime(
+      data.content,
+    );
+    const excerpt =
+      data.excerpt || ContentProcessor.generateExcerpt(data.content);
 
     // Validate category if provided
     if (data.categoryId) {
       const category = await db
         .select()
         .from(contentCategories)
-        .where(and(
-          eq(contentCategories.id, data.categoryId),
-          eq(contentCategories.type, 'wiki'),
-          eq(contentCategories.isActive, true)
-        ))
+        .where(
+          and(
+            eq(contentCategories.id, data.categoryId),
+            eq(contentCategories.type, "wiki"),
+            eq(contentCategories.isActive, true),
+          ),
+        )
         .limit(1);
 
       if (category.length === 0) {
-        throw new ValidationError('Category not found or not active', { categoryId: data.categoryId });
+        throw new ValidationError("Category not found or not active", {
+          categoryId: data.categoryId,
+        });
       }
     }
 
     // Validate publication requirements
-    if (data.status === 'published') {
+    if (data.status === "published") {
       if (!data.categoryId) {
-        throw new BusinessLogicError('Published articles must have a category');
+        throw new BusinessLogicError("Published articles must have a category");
       }
       if (contentText.length < 50) {
-        throw new BusinessLogicError('Published articles must have at least 50 characters of content');
+        throw new BusinessLogicError(
+          "Published articles must have at least 50 characters of content",
+        );
       }
     }
 
@@ -81,12 +94,12 @@ export class ArticleService {
       contentText,
       excerpt,
       readingTimeMinutes,
-      status: data.status || 'draft',
+      status: data.status || "draft",
       categoryId: data.categoryId,
       authorId,
       featuredImageUrl: data.featuredImageUrl,
       metaDescription: data.metaDescription,
-      publishedAt: data.status === 'published' ? new Date() : null,
+      publishedAt: data.status === "published" ? new Date() : null,
     };
 
     try {
@@ -103,8 +116,13 @@ export class ArticleService {
 
       return this.getArticleById(article.id);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('unique constraint')) {
-        throw new ConflictError('Article with this slug already exists', { slug });
+      if (
+        error instanceof Error &&
+        error.message.includes("unique constraint")
+      ) {
+        throw new ConflictError("Article with this slug already exists", {
+          slug,
+        });
       }
       throw error;
     }
@@ -126,7 +144,7 @@ export class ArticleService {
       .limit(1);
 
     if (existingArticle.length === 0) {
-      throw new NotFoundError('Article');
+      throw new NotFoundError("Article");
     }
 
     const updateData: Partial<NewWikiArticle> = {
@@ -140,8 +158,8 @@ export class ArticleService {
         .select({ slug: wikiArticles.slug })
         .from(wikiArticles)
         .where(sql`${wikiArticles.id} != ${id}`)
-        .then(results => results.map(r => r.slug));
-      
+        .then((results) => results.map((r) => r.slug));
+
       updateData.title = data.title;
       updateData.slug = ensureUniqueSlug(baseSlug, existingSlugs);
     }
@@ -150,8 +168,10 @@ export class ArticleService {
     if (data.content) {
       updateData.content = data.content;
       updateData.contentText = ContentProcessor.extractPlainText(data.content);
-      updateData.readingTimeMinutes = ContentProcessor.calculateReadingTime(data.content);
-      
+      updateData.readingTimeMinutes = ContentProcessor.calculateReadingTime(
+        data.content,
+      );
+
       // Update excerpt if not explicitly provided
       if (!data.excerpt) {
         updateData.excerpt = ContentProcessor.generateExcerpt(data.content);
@@ -160,8 +180,10 @@ export class ArticleService {
 
     // Update other fields
     if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
-    if (data.metaDescription !== undefined) updateData.metaDescription = data.metaDescription;
-    if (data.featuredImageUrl !== undefined) updateData.featuredImageUrl = data.featuredImageUrl;
+    if (data.metaDescription !== undefined)
+      updateData.metaDescription = data.metaDescription;
+    if (data.featuredImageUrl !== undefined)
+      updateData.featuredImageUrl = data.featuredImageUrl;
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
 
     // Handle status changes
@@ -170,27 +192,31 @@ export class ArticleService {
       const newStatus = data.status;
 
       // Validate publication requirements
-      if (newStatus === 'published') {
+      if (newStatus === "published") {
         const categoryId = data.categoryId ?? existingArticle[0].categoryId;
         const content = data.content ?? existingArticle[0].content;
-        
+
         if (!categoryId) {
-          throw new BusinessLogicError('Published articles must have a category');
+          throw new BusinessLogicError(
+            "Published articles must have a category",
+          );
         }
-        
-        const contentText = data.content 
+
+        const contentText = data.content
           ? ContentProcessor.extractPlainText(content)
           : existingArticle[0].contentText;
-          
+
         if (!contentText || contentText.length < 50) {
-          throw new BusinessLogicError('Published articles must have at least 50 characters of content');
+          throw new BusinessLogicError(
+            "Published articles must have at least 50 characters of content",
+          );
         }
 
         // Set published timestamp if transitioning to published
-        if (oldStatus !== 'published') {
+        if (oldStatus !== "published") {
           updateData.publishedAt = new Date();
         }
-      } else if (newStatus === 'draft' && oldStatus === 'published') {
+      } else if (newStatus === "draft" && oldStatus === "published") {
         // Clear published timestamp when unpublishing
         updateData.publishedAt = null;
       }
@@ -203,15 +229,19 @@ export class ArticleService {
       const category = await db
         .select()
         .from(contentCategories)
-        .where(and(
-          eq(contentCategories.id, data.categoryId),
-          eq(contentCategories.type, 'wiki'),
-          eq(contentCategories.isActive, true)
-        ))
+        .where(
+          and(
+            eq(contentCategories.id, data.categoryId),
+            eq(contentCategories.type, "wiki"),
+            eq(contentCategories.isActive, true),
+          ),
+        )
         .limit(1);
 
       if (category.length === 0) {
-        throw new ValidationError('Category not found or not active', { categoryId: data.categoryId });
+        throw new ValidationError("Category not found or not active", {
+          categoryId: data.categoryId,
+        });
       }
     }
 
@@ -229,8 +259,13 @@ export class ArticleService {
 
       return this.getArticleById(id);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('unique constraint')) {
-        throw new ConflictError('Article with this slug already exists', { slug: updateData.slug });
+      if (
+        error instanceof Error &&
+        error.message.includes("unique constraint")
+      ) {
+        throw new ConflictError("Article with this slug already exists", {
+          slug: updateData.slug,
+        });
       }
       throw error;
     }
@@ -251,19 +286,22 @@ export class ArticleService {
         },
       })
       .from(wikiArticles)
-      .leftJoin(contentCategories, eq(wikiArticles.categoryId, contentCategories.id))
+      .leftJoin(
+        contentCategories,
+        eq(wikiArticles.categoryId, contentCategories.id),
+      )
       .leftJoin(user, eq(wikiArticles.authorId, user.id))
       .where(eq(wikiArticles.id, id))
       .limit(1);
 
     if (result.length === 0) {
-      throw new NotFoundError('Article');
+      throw new NotFoundError("Article");
     }
 
     const { article, category, author } = result[0];
 
     if (!author) {
-      throw new NotFoundError('Article author');
+      throw new NotFoundError("Article author");
     }
 
     // Get article tags
@@ -283,19 +321,21 @@ export class ArticleService {
       title: article.title,
       slug: article.slug,
       content: article.content as object,
-      contentText: article.contentText || '',
-      excerpt: article.excerpt || '',
+      contentText: article.contentText || "",
+      excerpt: article.excerpt || "",
       metaDescription: article.metaDescription,
       featuredImageUrl: article.featuredImageUrl,
       status: article.status,
       readingTimeMinutes: article.readingTimeMinutes || 1,
       viewCount: article.viewCount,
-      category: category ? {
-        id: category.id,
-        name: category.name,
-        color: category.color || '#3b82f6',
-        parentId: category.parentId,
-      } : null,
+      category: category
+        ? {
+            id: category.id,
+            name: category.name,
+            color: category.color || "#3b82f6",
+            parentId: category.parentId,
+          }
+        : null,
       author: {
         id: author.id,
         name: author.name,
@@ -306,7 +346,7 @@ export class ArticleService {
         .map(({ tag }) => ({
           id: tag!.id,
           name: tag!.name,
-          color: tag!.color || '#6b7280',
+          color: tag!.color || "#6b7280",
         })),
       relationships,
       createdAt: article.createdAt.toISOString(),
@@ -335,8 +375,10 @@ export class ArticleService {
     // Build where conditions
     const whereConditions = [];
 
-    if (query.status && query.status !== 'all') {
-      whereConditions.push(eq(wikiArticles.status, query.status as WikiArticleStatus));
+    if (query.status && query.status !== "all") {
+      whereConditions.push(
+        eq(wikiArticles.status, query.status as WikiArticleStatus),
+      );
     }
 
     if (query.categoryId) {
@@ -352,7 +394,7 @@ export class ArticleService {
         or(
           ilike(wikiArticles.title, `%${query.search}%`),
           ilike(wikiArticles.contentText, `%${query.search}%`),
-        )
+        ),
       );
     }
 
@@ -364,9 +406,9 @@ export class ArticleService {
         .from(wikiArticleTags)
         .leftJoin(tags, eq(wikiArticleTags.tagId, tags.id))
         .where(inArray(tags.name, query.tags));
-      
-      tagArticleIds = tagResults.map(r => r.articleId);
-      
+
+      tagArticleIds = tagResults.map((r) => r.articleId);
+
       if (tagArticleIds.length > 0) {
         whereConditions.push(inArray(wikiArticles.id, tagArticleIds));
       } else {
@@ -378,7 +420,8 @@ export class ArticleService {
       }
     }
 
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+    const whereClause =
+      whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
     // Get total count
     const [{ count }] = await db
@@ -388,21 +431,35 @@ export class ArticleService {
 
     // Build order by clause
     const orderBy = [];
-    const sortField = query.sort || 'updated_at';
-    const sortOrder = query.order || 'desc';
+    const sortField = query.sort || "updated_at";
+    const sortOrder = query.order || "desc";
 
     switch (sortField) {
-      case 'title':
-        orderBy.push(sortOrder === 'asc' ? wikiArticles.title : desc(wikiArticles.title));
+      case "title":
+        orderBy.push(
+          sortOrder === "asc" ? wikiArticles.title : desc(wikiArticles.title),
+        );
         break;
-      case 'created_at':
-        orderBy.push(sortOrder === 'asc' ? wikiArticles.createdAt : desc(wikiArticles.createdAt));
+      case "created_at":
+        orderBy.push(
+          sortOrder === "asc"
+            ? wikiArticles.createdAt
+            : desc(wikiArticles.createdAt),
+        );
         break;
-      case 'view_count':
-        orderBy.push(sortOrder === 'asc' ? wikiArticles.viewCount : desc(wikiArticles.viewCount));
+      case "view_count":
+        orderBy.push(
+          sortOrder === "asc"
+            ? wikiArticles.viewCount
+            : desc(wikiArticles.viewCount),
+        );
         break;
       default:
-        orderBy.push(sortOrder === 'asc' ? wikiArticles.updatedAt : desc(wikiArticles.updatedAt));
+        orderBy.push(
+          sortOrder === "asc"
+            ? wikiArticles.updatedAt
+            : desc(wikiArticles.updatedAt),
+        );
     }
 
     // Get articles
@@ -417,7 +474,10 @@ export class ArticleService {
         },
       })
       .from(wikiArticles)
-      .leftJoin(contentCategories, eq(wikiArticles.categoryId, contentCategories.id))
+      .leftJoin(
+        contentCategories,
+        eq(wikiArticles.categoryId, contentCategories.id),
+      )
       .leftJoin(user, eq(wikiArticles.authorId, user.id))
       .where(whereClause)
       .orderBy(...orderBy)
@@ -425,8 +485,11 @@ export class ArticleService {
       .offset(offset);
 
     // Get tags for each article
-    const articleIds = results.map(r => r.article.id);
-    const articleTagsMap: Record<number, Array<{ id: number; name: string; color: string }>> = {};
+    const articleIds = results.map((r) => r.article.id);
+    const articleTagsMap: Record<
+      number,
+      Array<{ id: number; name: string; color: string }>
+    > = {};
 
     if (articleIds.length > 0) {
       const articleTags = await db
@@ -446,7 +509,7 @@ export class ArticleService {
           articleTagsMap[articleId].push({
             id: tag.id,
             name: tag.name,
-            color: tag.color || '#6b7280',
+            color: tag.color || "#6b7280",
           });
         }
       }
@@ -458,15 +521,17 @@ export class ArticleService {
         id: article.id,
         title: article.title,
         slug: article.slug,
-        excerpt: article.excerpt || '',
+        excerpt: article.excerpt || "",
         status: article.status,
         readingTimeMinutes: article.readingTimeMinutes || 1,
         viewCount: article.viewCount,
-        category: category ? {
-          id: category.id,
-          name: category.name,
-          color: category.color || '#3b82f6',
-        } : null,
+        category: category
+          ? {
+              id: category.id,
+              name: category.name,
+              color: category.color || "#3b82f6",
+            }
+          : null,
         author: {
           id: author!.id,
           name: author!.name,
@@ -490,24 +555,63 @@ export class ArticleService {
   }
 
   /**
+   * Get global stats for articles
+   */
+  static async getStats(): Promise<{
+    total: number;
+    published: number;
+    draft: number;
+    archived: number;
+    viewsTotal: number;
+  }> {
+    const [{ total }] = await db
+      .select({ total: sql<number>`count(*)` })
+      .from(wikiArticles);
+
+    const [{ published }] = await db
+      .select({ published: sql<number>`count(*)` })
+      .from(wikiArticles)
+      .where(eq(wikiArticles.status, "published" as WikiArticleStatus));
+
+    const [{ draft }] = await db
+      .select({ draft: sql<number>`count(*)` })
+      .from(wikiArticles)
+      .where(eq(wikiArticles.status, "draft" as WikiArticleStatus));
+
+    const [{ archived }] = await db
+      .select({ archived: sql<number>`count(*)` })
+      .from(wikiArticles)
+      .where(eq(wikiArticles.status, "archived" as WikiArticleStatus));
+
+    const [{ viewsTotal }] = await db
+      .select({ viewsTotal: sql<number>`COALESCE(SUM(${wikiArticles.viewCount}), 0)` })
+      .from(wikiArticles);
+
+    return { total, published, draft, archived, viewsTotal };
+  }
+
+
+  /**
    * Soft delete article (archive)
    */
-  static async archiveArticle(id: number): Promise<{ message: string; archivedAt: string }> {
+  static async archiveArticle(
+    id: number,
+  ): Promise<{ message: string; archivedAt: string }> {
     const result = await db
       .update(wikiArticles)
       .set({
-        status: 'archived',
+        status: "archived",
         updatedAt: new Date(),
       })
       .where(eq(wikiArticles.id, id))
       .returning({ id: wikiArticles.id });
 
     if (result.length === 0) {
-      throw new NotFoundError('Article');
+      throw new NotFoundError("Article");
     }
 
     return {
-      message: 'Article archived successfully',
+      message: "Article archived successfully",
       archivedAt: new Date().toISOString(),
     };
   }
@@ -523,26 +627,28 @@ export class ArticleService {
       .limit(1);
 
     if (article.length === 0) {
-      throw new NotFoundError('Article');
+      throw new NotFoundError("Article");
     }
 
-    if (article[0].status === 'published') {
-      throw new BusinessLogicError('Article is already published');
+    if (article[0].status === "published") {
+      throw new BusinessLogicError("Article is already published");
     }
 
     // Validate publication requirements
     if (!article[0].categoryId) {
-      throw new BusinessLogicError('Published articles must have a category');
+      throw new BusinessLogicError("Published articles must have a category");
     }
 
     if (!article[0].contentText || article[0].contentText.length < 50) {
-      throw new BusinessLogicError('Published articles must have at least 50 characters of content');
+      throw new BusinessLogicError(
+        "Published articles must have at least 50 characters of content",
+      );
     }
 
     await db
       .update(wikiArticles)
       .set({
-        status: 'published',
+        status: "published",
         publishedAt: new Date(),
         updatedAt: new Date(),
       })
@@ -562,17 +668,17 @@ export class ArticleService {
       .limit(1);
 
     if (article.length === 0) {
-      throw new NotFoundError('Article');
+      throw new NotFoundError("Article");
     }
 
-    if (article[0].status !== 'published') {
-      throw new BusinessLogicError('Article is not published');
+    if (article[0].status !== "published") {
+      throw new BusinessLogicError("Article is not published");
     }
 
     await db
       .update(wikiArticles)
       .set({
-        status: 'draft',
+        status: "draft",
         publishedAt: null,
         updatedAt: new Date(),
       })
@@ -596,7 +702,7 @@ export class ArticleService {
 
     // Add new tags
     if (tagIds.length > 0) {
-      const tagData = tagIds.map(tagId => ({
+      const tagData = tagIds.map((tagId) => ({
         articleId,
         tagId,
         assignedBy: userId,
@@ -621,19 +727,22 @@ export class ArticleService {
         },
       })
       .from(wikiArticleRelationships)
-      .leftJoin(wikiArticles, eq(wikiArticleRelationships.targetArticleId, wikiArticles.id))
+      .leftJoin(
+        wikiArticles,
+        eq(wikiArticleRelationships.targetArticleId, wikiArticles.id),
+      )
       .where(eq(wikiArticleRelationships.sourceArticleId, articleId));
 
     return {
       related: relationships
-        .filter(r => r.type === 'related' && r.targetArticle !== null)
-        .map(r => r.targetArticle!),
+        .filter((r) => r.type === "related" && r.targetArticle !== null)
+        .map((r) => r.targetArticle!),
       prerequisites: relationships
-        .filter(r => r.type === 'prerequisite' && r.targetArticle !== null)
-        .map(r => r.targetArticle!),
+        .filter((r) => r.type === "prerequisite" && r.targetArticle !== null)
+        .map((r) => r.targetArticle!),
       continuations: relationships
-        .filter(r => r.type === 'continuation' && r.targetArticle !== null)
-        .map(r => r.targetArticle!),
+        .filter((r) => r.type === "continuation" && r.targetArticle !== null)
+        .map((r) => r.targetArticle!),
     };
   }
 }

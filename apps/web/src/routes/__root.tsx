@@ -12,7 +12,7 @@ import "../index.css";
 
 export interface RouterAppContext {
   queryClient: QueryClient;
-  getTitle: () => string;
+  getTitle?: () => string;
 }
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({

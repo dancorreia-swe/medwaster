@@ -7,8 +7,8 @@ import * as schema from "../db/schema/auth";
 import Elysia from "elysia";
 import { EmailService } from "./email-service";
 import { AuditService } from "../modules/audit/audit.service";
-import { RateLimitMonitor } from "./rate-limit-monitor";
 import { ForbiddenError, UnauthorizedError } from "./errors";
+import { RateLimitMonitor } from "./rate-limit-monitor";
 
 export const ROLES = {
   SUPER_ADMIN: "super-admin",
@@ -133,17 +133,14 @@ export const betterAuthMacro = new Elysia({
 
         const userRole = user.role || "user";
 
-        // Super admin has access to everything
         if (userRole === ROLES.SUPER_ADMIN) {
           return;
         }
 
-        // Check single role
         if (role && typeof role === "string" && userRole !== role) {
           throw new ForbiddenError("Insufficient permissions");
         }
 
-        // Check multiple roles
         if (role && Array.isArray(role) && !role.includes(userRole)) {
           throw new ForbiddenError("Insufficient permissions");
         }
