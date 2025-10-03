@@ -20,6 +20,8 @@ import type { AuthenticatedUser } from "@/types/user";
 import { useNavigate } from "@tanstack/react-router";
 import { signOut } from "@/lib/utils";
 import { getRoleDisplayName } from "@/lib/rbac";
+import { ThemeSwitcher } from "@/components/ui/shadcn-io/theme-switcher";
+import { useTheme } from "next-themes";
 
 export function NavUser({ user }: { user: AuthenticatedUser }) {
   const { isMobile } = useSidebar();
@@ -47,9 +49,10 @@ export function NavUser({ user }: { user: AuthenticatedUser }) {
     navigate({ to: "/login" });
   };
 
+  const { theme, setTheme } = useTheme();
+
   return (
     <SidebarMenu>
-      {" "}
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -65,7 +68,9 @@ export function NavUser({ user }: { user: AuthenticatedUser }) {
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{getRoleDisplayName(user.role)}</span>
+                <span className="truncate text-xs">
+                  {getRoleDisplayName(user.role)}
+                </span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>

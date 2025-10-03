@@ -34,6 +34,7 @@
   "dependencies": {
     "@blocknote/xl-pdf-exporter": "^0.40.0",
     "@react-pdf/renderer": "^4.3.1",
-    "file-type": "^21.0.0"
+    "file-type": "^21.0.0",
+    "logixlysia": "^5.2.0"
   }
 }

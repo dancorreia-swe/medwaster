@@ -5,7 +5,6 @@ import {
   wikiArticleTags,
   wikiArticleRelationships,
   type NewWikiArticle,
-  type WikiArticle,
   type WikiArticleStatus,
 } from "../../../db/schema/wiki";
 import { contentCategories, tags } from "../../../db/schema/questions";
@@ -136,7 +135,6 @@ export class ArticleService {
     data: UpdateArticleData,
     authorId: string,
   ): Promise<ArticleDetail> {
-    // Check if article exists
     const existingArticle = await db
       .select()
       .from(wikiArticles)
@@ -584,12 +582,13 @@ export class ArticleService {
       .where(eq(wikiArticles.status, "archived" as WikiArticleStatus));
 
     const [{ viewsTotal }] = await db
-      .select({ viewsTotal: sql<number>`COALESCE(SUM(${wikiArticles.viewCount}), 0)` })
+      .select({
+        viewsTotal: sql<number>`COALESCE(SUM(${wikiArticles.viewCount}), 0)`,
+      })
       .from(wikiArticles);
 
     return { total, published, draft, archived, viewsTotal };
   }
-
 
   /**
    * Soft delete article (archive)

@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useArticles,
   useCategories,
+  useCreateArticle,
   useWikiStats,
 } from "@/features/wiki/api/wikiQueries";
 import { wrapRouteWithOutletIfNested } from "@/utils/router";
@@ -23,7 +24,7 @@ import {
   useNavigate,
   useSearch,
 } from "@tanstack/react-router";
-import { Calendar, Clock, Eye, FileText, Plus } from "lucide-react";
+import { Calendar, Clock, Eye, FileText, Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 
 const STATUS_TABS = [
@@ -88,19 +89,15 @@ function RouteComponent() {
       {/* Page Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+          <h1 className="text-2xl md:text-3xl font-bold">
             Base de Conhecimento
           </h1>
-          <p className="text-slate-600 mt-1 max-w-2xl">
+          <p className="text-muted-foreground mt-1 max-w-2xl">
             Documentação, tópicos e artigos organizados como base de
             conhecimento para o aluno
           </p>
         </div>
-        <Button asChild>
-          <Link to="/wiki/new">
-            <Plus className="mr-2 h-4 w-4" /> Um novo artigo
-          </Link>
-        </Button>
+        <NewArticleButton />
       </div>
 
       {/* Filters + Search */}
@@ -172,6 +169,67 @@ function RouteComponent() {
           )}
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+const EMPTY_BLOCKNOTE_DOC = { type: "doc", content: [] } as const;
+const DEFAULT_TITLE = "Novo artigo";
+
+function NewArticleButton() {
+  const navigate = useNavigate();
+  const { mutateAsync: createArticle } = useCreateArticle();
+
+  const [isCreating, setIsCreating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleCreate = async () => {
+    setIsCreating(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await createArticle({
+        title: DEFAULT_TITLE,
+        content: EMPTY_BLOCKNOTE_DOC,
+        excerpt: "",
+        status: "draft",
+      } as any);
+
+      const createdId = response?.data?.data.id;
+      if (!createdId) {
+        throw new Error(
+          "Não foi possível obter o identificador do novo artigo.",
+        );
+      }
+
+      navigate({
+        to: "/wiki/$articleId",
+        params: { articleId: String(createdId) },
+      });
+    } catch (error) {
+      const fallback =
+        error instanceof Error
+          ? error.message
+          : "Falha ao criar rascunho. Tente novamente.";
+      setErrorMessage(fallback);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-end gap-2">
+      <Button onClick={handleCreate} disabled={isCreating}>
+        {isCreating ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Plus className="mr-2 h-4 w-4" />
+        )}
+        {isCreating ? "Criando..." : "Novo artigo"}
+      </Button>
+      {errorMessage && (
+        <span className="text-xs text-destructive">{errorMessage}</span>
+      )}
     </div>
   );
 }
@@ -268,7 +326,7 @@ function ArticleCard({ article }: { article: any }) {
             variant="ghost"
             className="px-0 text-blue-600 hover:text-blue-700"
           >
-            <Link to={`/wiki/articles/${article.id}`}>
+            <Link to={`/wiki/$articleId`} params={{ articleId: article.id }}>
               <FileText className="mr-2 h-4 w-4" /> Abrir artigo
             </Link>
           </Button>

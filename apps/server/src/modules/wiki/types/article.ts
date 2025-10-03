@@ -9,47 +9,55 @@ export const createArticleSchema = t.Object({
   featuredImageUrl: t.Optional(t.String()),
   categoryId: t.Optional(t.Number()),
   tagIds: t.Optional(t.Array(t.Number())),
-  status: t.Optional(t.Union([
-    t.Literal("draft"),
-    t.Literal("published"),
-    t.Literal("archived")
-  ])),
+  status: t.Optional(
+    t.Union([
+      t.Literal("draft"),
+      t.Literal("published"),
+      t.Literal("archived"),
+    ]),
+  ),
 });
 
 export const updateArticleSchema = t.Object({
   title: t.Optional(t.String({ minLength: 5, maxLength: 200 })),
-  content: t.Optional(t.Object({})), // BlockNote JSON content
+  content: t.Optional(t.Object({})),
   excerpt: t.Optional(t.String({ maxLength: 500 })),
   metaDescription: t.Optional(t.String({ maxLength: 160 })),
   featuredImageUrl: t.Optional(t.String()),
   categoryId: t.Optional(t.Number()),
   tagIds: t.Optional(t.Array(t.Number())),
-  status: t.Optional(t.Union([
-    t.Literal("draft"),
-    t.Literal("published"),
-    t.Literal("archived")
-  ])),
+  status: t.Optional(
+    t.Union([
+      t.Literal("draft"),
+      t.Literal("published"),
+      t.Literal("archived"),
+    ]),
+  ),
 });
 
 export const articleListQuerySchema = t.Object({
   page: t.Optional(t.Number({ minimum: 1 })),
   limit: t.Optional(t.Number({ minimum: 1, maximum: 50 })),
-  status: t.Optional(t.Union([
-    t.Literal("draft"),
-    t.Literal("published"),
-    t.Literal("archived"),
-    t.Literal("all")
-  ])),
+  status: t.Optional(
+    t.Union([
+      t.Literal("draft"),
+      t.Literal("published"),
+      t.Literal("archived"),
+      t.Literal("all"),
+    ]),
+  ),
   categoryId: t.Optional(t.Number()),
   authorId: t.Optional(t.String()),
   search: t.Optional(t.String({ maxLength: 100 })),
   tags: t.Optional(t.Array(t.String())),
-  sort: t.Optional(t.Union([
-    t.Literal("created_at"),
-    t.Literal("updated_at"),
-    t.Literal("title"),
-    t.Literal("view_count")
-  ])),
+  sort: t.Optional(
+    t.Union([
+      t.Literal("created_at"),
+      t.Literal("updated_at"),
+      t.Literal("title"),
+      t.Literal("view_count"),
+    ]),
+  ),
   order: t.Optional(t.Union([t.Literal("asc"), t.Literal("desc")])),
 });
 
@@ -61,12 +69,14 @@ export const bulkOperationSchema = t.Object({
     t.Literal("archive"),
     t.Literal("update_category"),
     t.Literal("add_tags"),
-    t.Literal("remove_tags")
+    t.Literal("remove_tags"),
   ]),
-  parameters: t.Optional(t.Object({
-    categoryId: t.Optional(t.Number()),
-    tagIds: t.Optional(t.Array(t.Number())),
-  })),
+  parameters: t.Optional(
+    t.Object({
+      categoryId: t.Optional(t.Number()),
+      tagIds: t.Optional(t.Array(t.Number())),
+    }),
+  ),
 });
 
 // Response types
@@ -85,18 +95,20 @@ export const articleListItemSchema = t.Object({
       name: t.String(),
       color: t.String(),
     }),
-    t.Null()
+    t.Null(),
   ]),
   author: t.Object({
     id: t.String(),
     name: t.String(),
     email: t.String(),
   }),
-  tags: t.Array(t.Object({
-    id: t.Number(),
-    name: t.String(),
-    color: t.String(),
-  })),
+  tags: t.Array(
+    t.Object({
+      id: t.Number(),
+      name: t.String(),
+      color: t.String(),
+    }),
+  ),
   createdAt: t.String(),
   updatedAt: t.String(),
   publishedAt: t.Union([t.String(), t.Null()]),
@@ -121,37 +133,45 @@ export const articleDetailSchema = t.Object({
       color: t.String(),
       parentId: t.Union([t.Number(), t.Null()]),
     }),
-    t.Null()
+    t.Null(),
   ]),
   author: t.Object({
     id: t.String(),
     name: t.String(),
     email: t.String(),
   }),
-  tags: t.Array(t.Object({
-    id: t.Number(),
-    name: t.String(),
-    color: t.String(),
-  })),
+  tags: t.Array(
+    t.Object({
+      id: t.Number(),
+      name: t.String(),
+      color: t.String(),
+    }),
+  ),
   relationships: t.Object({
-    related: t.Array(t.Object({
-      id: t.Number(),
-      title: t.String(),
-      slug: t.String(),
-      status: t.String(),
-    })),
-    prerequisites: t.Array(t.Object({
-      id: t.Number(),
-      title: t.String(),
-      slug: t.String(),
-      status: t.String(),
-    })),
-    continuations: t.Array(t.Object({
-      id: t.Number(),
-      title: t.String(),
-      slug: t.String(),
-      status: t.String(),
-    })),
+    related: t.Array(
+      t.Object({
+        id: t.Number(),
+        title: t.String(),
+        slug: t.String(),
+        status: t.String(),
+      }),
+    ),
+    prerequisites: t.Array(
+      t.Object({
+        id: t.Number(),
+        title: t.String(),
+        slug: t.String(),
+        status: t.String(),
+      }),
+    ),
+    continuations: t.Array(
+      t.Object({
+        id: t.Number(),
+        title: t.String(),
+        slug: t.String(),
+        status: t.String(),
+      }),
+    ),
   }),
   createdAt: t.String(),
   updatedAt: t.String(),

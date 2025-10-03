@@ -24,7 +24,7 @@ export class HttpError extends Error {
           message: this.message,
           details: this.details,
           timestamp: new Date().toISOString(),
-          path: "", // Will be filled by context
+          path: "",
         },
       } satisfies ErrorResponse,
       {
@@ -167,15 +167,6 @@ export interface ErrorResponse {
   };
 }
 
-export interface SuccessResponse<T = any> {
-  success: true;
-  data: T;
-  meta?: {
-    timestamp: string;
-    requestId?: string;
-  };
-}
-
 // =====================================================
 // Global Error Handler for Elysia
 // =====================================================
@@ -292,19 +283,6 @@ export const globalErrorHandler = new Elysia({
 // Helper Functions
 // =====================================================
 
-/**
- * Create a success response with consistent format
- */
-export function success<T>(data: T, meta?: any): SuccessResponse<T> {
-  return {
-    success: true,
-    data,
-    meta: {
-      timestamp: new Date().toISOString(),
-      ...meta,
-    },
-  };
-}
 
 /**
  * Create an error response (for middleware usage)

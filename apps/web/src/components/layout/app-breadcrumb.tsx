@@ -15,7 +15,6 @@ const AppBreadcrumb = () => {
   const breadcrumbs = matches
     .filter((match) => match.context.getTitle)
     .map(({ pathname, context }) => {
-    console.log('match context:', context);
       return {
         title: context.getTitle ? context.getTitle() : "Untitled",
         path: pathname,
@@ -27,7 +26,7 @@ const AppBreadcrumb = () => {
       <BreadcrumbList>
         {breadcrumbs.map((breadcrumb, index) => (
           <Fragment key={breadcrumb.path}>
-            <BreadcrumbItem >
+            <BreadcrumbItem>
               {index === breadcrumbs.length - 1 ? (
                 <BreadcrumbPage>{breadcrumb.title}</BreadcrumbPage>
               ) : (

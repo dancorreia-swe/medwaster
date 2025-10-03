@@ -1,185 +1,83 @@
 import { client } from "@/lib/client";
-import { treaty } from "@elysiajs/eden";
-import type { App } from "@server/index";
 
-// Wiki articles API
+type ArticleResource = ReturnType<typeof client.wiki.articles>;
+type FileResource = ReturnType<typeof client.wiki.files>;
+type ArticlesGetParams = Parameters<typeof client.wiki.articles.get>[0];
+type ArticleListQuery = ArticlesGetParams extends { query?: infer Q } ? Q : undefined;
+type FilesGetParams = Parameters<typeof client.wiki.files.get>[0];
+type FileListQuery = FilesGetParams extends { query?: infer Q } ? Q : undefined;
+type ExportPdfParams = Parameters<ArticleResource["export"]["pdf"]["get"]>[0];
+type ExportPdfQuery = ExportPdfParams extends { query?: infer Q } ? Q : undefined;
+
+const toArticleResource = (id: number) => client.wiki.articles({ id: id.toString() });
+const toFileResource = (id: number) => client.wiki.files({ id: id.toString() });
+
 export const wikiApi = {
-  // Articles endpoints
-  articles: {
-    // List articles with filtering and pagination
-    list: async (params?: {
-      page?: number;
-      limit?: number;
-      status?: string;
-      categoryId?: number;
-      authorId?: string;
-      search?: string;
-      sort?: string;
-      order?: string;
-    }) => {
-      const result = await client.wiki.articles.get({
-        query: params,
-      });
-      return result;
-    },
+  listArticles: (query?: ArticleListQuery) =>
+    query ? client.wiki.articles.get({ query }) : client.wiki.articles.get(),
 
-    // Get single article by ID
-    get: async (id: number) => {
-      const result = await client.wiki.articles({ id: id.toString() }).get();
-      return result;
-    },
+  getStats: () => client.wiki.articles.stats.get(),
 
-    // Create new article
-    create: async (data: {
-      title: string;
-      slug?: string;
-      content: any; // BlockNote content
-      excerpt?: string;
-      categoryId?: number;
-      tagIds?: number[];
-      status: "draft" | "published";
-      featuredImageUrl?: string;
-      metaDescription?: string;
-    }) => {
-      const result = await client.wiki.articles.post(data);
-      return result;
-    },
+  getArticle: (id: number) => toArticleResource(id).get(),
 
-    // Update existing article
-    update: async (
-      id: number,
-      data: {
-        title?: string;
-        slug?: string;
-        content?: any;
-        excerpt?: string;
-        categoryId?: number;
-        tagIds?: number[];
-        status?: "draft" | "published";
-        featuredImageUrl?: string;
-        metaDescription?: string;
-      },
-    ) => {
-      const result = await client.wiki.articles({ id: id.toString() }).put(data);
-      return result;
-    },
+  createArticle: (body: Parameters<typeof client.wiki.articles.post>[0]) =>
+    client.wiki.articles.post(body),
 
-    // Delete article
-    delete: async (id: number) => {
-      const result = await client.wiki.articles({ id: id.toString() }).delete();
-      return result;
-    },
+  updateArticle: (
+    id: number,
+    body: Parameters<ArticleResource["put"]>[0],
+  ) => toArticleResource(id).put(body),
 
-    // Publish article
-    publish: async (id: number) => {
-      const result = await client.wiki
-        .articles({ id: id.toString() })
-        .publish.post();
-      return result;
-    },
+  deleteArticle: (id: number) => toArticleResource(id).delete(),
 
-    // Unpublish article
-    unpublish: async (id: number) => {
-      const result = await client.wiki
-        .articles({ id: id.toString() })
-        .unpublish.post();
-      return result;
-    },
+  publishArticle: (id: number) => toArticleResource(id).publish.post(),
 
-    // Export article to PDF
-    exportPdf: async (
-      id: number,
-      options?: {
-        includeImages?: boolean;
-        format?: "A4" | "Letter";
-      },
-    ) => {
-      const result = await client.wiki
-        .articles({ id: id.toString() })
-        .export.pdf.get({
-          query: options,
-        });
-      return result;
-    },
+  unpublishArticle: (id: number) => toArticleResource(id).unpublish.post(),
 
-    // Bulk export articles to PDF
-    bulkExportPdf: async (data: {
-      articleIds: number[];
-      includeImages?: boolean;
-      format?: "A4" | "Letter";
-      title?: string;
-    }) => {
-      const result = await client.wiki.articles.export.pdf.post(data);
-      return result;
-    },
+  exportArticlePdf: (id: number, query?: ExportPdfQuery) => {
+    const resource = toArticleResource(id);
+    return query ? resource.export.pdf.get({ query }) : resource.export.pdf.get();
   },
 
-  // Files endpoints
-  files: {
-    // List files
-    list: async (params?: {
-      page?: number;
-      limit?: number;
-      articleId?: number;
-      mimeType?: string;
-    }) => {
-      const result = await client.wiki.files.get({
-        query: params,
-      });
-      return result;
-    },
+  bulkExportPdf: (
+    body: Parameters<typeof client.wiki.articles.export.pdf.post>[0],
+  ) => client.wiki.articles.export.pdf.post(body),
 
-    // Upload file
-    upload: async (file: File, articleId?: number) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      if (articleId) {
-        formData.append("articleId", articleId.toString());
-      }
+  listFiles: (query?: FileListQuery) =>
+    query ? client.wiki.files.get({ query }) : client.wiki.files.get(),
 
-      // Note: Eden Treaty doesn't handle FormData directly, so we use fetch
-      const response = await fetch("/client/wiki/files/upload", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
+  getFile: (id: number) => toFileResource(id).get(),
 
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
-      }
+  deleteFile: (id: number) => toFileResource(id).delete(),
 
-      return response.json();
-    },
+  uploadFile: async (file: File, articleId?: number) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (articleId) {
+      formData.append("articleId", articleId.toString());
+    }
 
-    // Get file by ID (serves the file)
-    get: async (id: number) => {
-      const result = await client.wiki.files({ id: id.toString() }).get();
-      return result;
-    },
+    const response = await fetch("/client/wiki/files/upload", {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
 
-    // Delete file
-    delete: async (id: number) => {
-      const result = await client.wiki.files({ id: id.toString() }).delete();
-      return result;
-    },
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`);
+    }
+
+    return response.json();
   },
 
-  // Categories (from questions module but used by wiki)
-  categories: {
-    list: async () => {
-      const result = await client.questions.categories.get();
-      return result;
-    },
-  },
+  listCategories: () => client.questions.categories.get(),
 
-  // Tags (from questions module but used by wiki)
-  tags: {
-    list: async () => {
-      const result = await client.questions.tags.get();
-      return result;
-    },
-  },
+  listTags: () => client.questions.tags.get(),
 };
 
-export default wikiApi;
-
+export type ListArticlesResponse = Awaited<ReturnType<typeof wikiApi.listArticles>>;
+export type GetArticleResponse = Awaited<ReturnType<typeof wikiApi.getArticle>>;
+export type CreateArticleResponse = Awaited<ReturnType<typeof wikiApi.createArticle>>;
+export type UpdateArticleResponse = Awaited<ReturnType<typeof wikiApi.updateArticle>>;
+export type ArticleListQueryParams = ArticleListQuery;
+export type FileListQueryParams = FileListQuery;

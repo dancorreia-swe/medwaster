@@ -1,4 +1,5 @@
 import "dotenv/config";
+import logixlysia from "logixlysia";
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { betterAuthMacro as betterAuth } from "./lib/auth";
@@ -20,9 +21,29 @@ const corsOrigin = envCorsOrigins.includes("*")
 
 const app = new Elysia()
   .use(
+    logixlysia({
+      config: {
+        showStartupMessage: true,
+        startupMessageFormat: "simple",
+        timestamp: {
+          translateTime: "yyyy-mm-dd HH:MM:ss",
+        },
+        ip: true,
+        logFilePath: "./logs/example.log",
+        customLogFormat:
+          "🦊 {now} {level} {duration} {method} {pathname} {status} {message} {ip} {epoch}",
+        logFilter: {
+          level: ["ERROR", "WARNING", "INFO"],
+          status: [500, 404, 200, 201],
+          method: ["GET", "POST", "PUT", "DELETE"],
+        },
+      },
+    }),
+  )
+  .use(
     cors({
       origin: process.env.CORS_ORIGIN,
-      methods: ["GET", "POST", "OPTIONS"],
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
       allowedHeaders: ["Content-Type", "Authorization"],
       credentials: true,
     }),
@@ -40,8 +61,6 @@ const app = new Elysia()
   .use(questions)
   .use(audit)
   .get("/", () => "OK")
-  .listen(3000, () => {
-    console.log("Server is running on http://localhost:3000");
-  });
+  .listen(3000);
 
 export type App = typeof app;

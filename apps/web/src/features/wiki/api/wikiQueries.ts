@@ -1,79 +1,65 @@
-import React from "react";
+import { useCallback, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { treaty } from "@elysiajs/eden";
-import type { App } from "@server/index";
 import { wikiApi } from "./wikiApi";
+import { client } from "@/lib/client";
 
-const api = treaty<App>(import.meta.env.VITE_SERVER_URL || "http://localhost:3000");
-
-export const useWikiStats = () => {
-  return useQuery({
-    queryKey: ["wiki", "stats"],
-    queryFn: async () => api.wiki.articles.stats.get(),
-    staleTime: 60 * 1000,
-  });
-};
-
-// Query keys for consistent caching
 export const wikiQueryKeys = {
   all: ["wiki"] as const,
+  stats: () => [...wikiQueryKeys.all, "stats"] as const,
   articles: () => [...wikiQueryKeys.all, "articles"] as const,
-  articlesList: (filters?: any) => [...wikiQueryKeys.articles(), "list", filters] as const,
+  articlesList: (filters?: unknown) =>
+    [...wikiQueryKeys.articles(), "list", filters] as const,
   article: (id: number) => [...wikiQueryKeys.articles(), "detail", id] as const,
   files: () => [...wikiQueryKeys.all, "files"] as const,
-  filesList: (filters?: any) => [...wikiQueryKeys.files(), "list", filters] as const,
+  filesList: (filters?: unknown) =>
+    [...wikiQueryKeys.files(), "list", filters] as const,
   categories: () => [...wikiQueryKeys.all, "categories"] as const,
   tags: () => [...wikiQueryKeys.all, "tags"] as const,
 };
 
-// Article queries
-export const useArticles = (params?: {
-  page?: number;
-  limit?: number;
-  status?: string;
-  categoryId?: number;
-  authorId?: string;
-  search?: string;
-  sort?: string;
-  order?: string;
-}) => {
-  return useQuery({
-    queryKey: wikiQueryKeys.articlesList(params),
-    queryFn: () => wikiApi.articles.list(params),
-    staleTime: 5 * 60 * 1000, 
-    gcTime: 10 * 60 * 1000,
+export const useWikiStats = () =>
+  useQuery({
+    queryKey: wikiQueryKeys.stats(),
+    queryFn: wikiApi.getStats,
+    staleTime: 60_000,
   });
-};
 
-export const useArticle = (id: number) => {
-  return useQuery({
+type ArticleListQueryParams = import("./wikiApi").ArticleListQueryParams;
+type FileListQueryParams = import("./wikiApi").FileListQueryParams;
+
+type UpdateArticleInput = Parameters<typeof wikiApi.updateArticle>[1];
+type CreateArticleInput = Parameters<typeof wikiApi.createArticle>[0];
+type BulkExportInput = Parameters<typeof wikiApi.bulkExportPdf>[0];
+type ExportPdfInput = Parameters<typeof wikiApi.exportArticlePdf>[1];
+
+export const useArticles = (filters?: ArticleListQueryParams) =>
+  useQuery({
+    queryKey: wikiQueryKeys.articlesList(filters),
+    queryFn: () => wikiApi.listArticles(filters),
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+  });
+
+export const useArticle = (id: number) =>
+  useQuery({
     queryKey: wikiQueryKeys.article(id),
-    queryFn: () => wikiApi.articles.get(id),
-    enabled: !!id && id > 0,
-    staleTime: 5 * 60 * 1000,
+    queryFn: () => wikiApi.getArticle(id),
+    enabled: Number.isFinite(id) && id > 0,
+    staleTime: 5 * 60_000,
   });
-};
 
-// Article mutations
 export const useCreateArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: wikiApi.articles.create,
-    onSuccess: (data, variables) => {
-      // Invalidate articles list to refetch
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.articles(),
-      });
+    mutationFn: wikiApi.createArticle,
+    onSuccess: (response) => {
+      const created = response?.data?.data;
 
-      // Optimistically add the new article to the cache
-      queryClient.setQueryData(
-        wikiQueryKeys.article(data.data.id),
-        data
-      );
-    },
-    onError: (error) => {
-      console.error("Failed to create article:", error);
+      if (created?.id) {
+        queryClient.setQueryData(wikiQueryKeys.article(created.id), response);
+      }
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
     },
   });
 };
@@ -82,22 +68,20 @@ export const useUpdateArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
-      wikiApi.articles.update(id, data),
-    onSuccess: (data, { id }) => {
-      // Update the specific article in cache
-      queryClient.setQueryData(
-        wikiQueryKeys.article(id),
-        data
-      );
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      console.log(data);
 
-      // Invalidate articles list to refetch
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.articles(),
+      return await client.wiki.articles({ id }).put({
+        title: data?.title,
+        content: data?.content,
       });
     },
+    onSuccess: (response, variables) => {
+      queryClient.setQueryData(wikiQueryKeys.article(variables.id), response);
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
+    },
     onError: (error) => {
-      console.error("Failed to update article:", error);
+      console.error("Error updating article:", error);
     },
   });
 };
@@ -106,20 +90,10 @@ export const useDeleteArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => wikiApi.articles.delete(id),
-    onSuccess: (data, id) => {
-      // Remove from cache
-      queryClient.removeQueries({
-        queryKey: wikiQueryKeys.article(id),
-      });
-
-      // Invalidate articles list
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.articles(),
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to delete article:", error);
+    mutationFn: (id: number) => wikiApi.deleteArticle(id),
+    onSuccess: (_, id) => {
+      queryClient.removeQueries({ queryKey: wikiQueryKeys.article(id) });
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
     },
   });
 };
@@ -128,20 +102,10 @@ export const usePublishArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => wikiApi.articles.publish(id),
-    onSuccess: (data, id) => {
-      // Update the article cache with new status
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.article(id),
-      });
-
-      // Invalidate articles list
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.articles(),
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to publish article:", error);
+    mutationFn: (id: number) => wikiApi.publishArticle(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.article(id) });
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
     },
   });
 };
@@ -150,50 +114,29 @@ export const useUnpublishArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => wikiApi.articles.unpublish(id),
-    onSuccess: (data, id) => {
-      // Update the article cache
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.article(id),
-      });
-
-      // Invalidate articles list
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.articles(),
-      });
+    mutationFn: (id: number) => wikiApi.unpublishArticle(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.article(id) });
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
     },
   });
 };
 
-// File queries
-export const useFiles = (params?: {
-  page?: number;
-  limit?: number;
-  articleId?: number;
-  mimeType?: string;
-}) => {
-  return useQuery({
-    queryKey: wikiQueryKeys.filesList(params),
-    queryFn: () => wikiApi.files.list(params),
-    staleTime: 5 * 60 * 1000,
+export const useFiles = (filters?: FileListQueryParams) =>
+  useQuery({
+    queryKey: wikiQueryKeys.filesList(filters),
+    queryFn: () => wikiApi.listFiles(filters),
+    staleTime: 5 * 60_000,
   });
-};
 
-// File mutations
 export const useUploadFile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ file, articleId }: { file: File; articleId?: number }) =>
-      wikiApi.files.upload(file, articleId),
+      wikiApi.uploadFile(file, articleId),
     onSuccess: () => {
-      // Invalidate files list to refetch
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.files(),
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to upload file:", error);
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.files() });
     },
   });
 };
@@ -202,82 +145,56 @@ export const useDeleteFile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => wikiApi.files.delete(id),
+    mutationFn: (id: number) => wikiApi.deleteFile(id),
     onSuccess: () => {
-      // Invalidate files list
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.files(),
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to delete file:", error);
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.files() });
     },
   });
 };
 
-// Categories and tags
-export const useCategories = () => {
-  return useQuery({
+export const useCategories = () =>
+  useQuery({
     queryKey: wikiQueryKeys.categories(),
-    queryFn: () => wikiApi.categories.list(),
-    staleTime: 30 * 60 * 1000, // 30 minutes (categories don't change often)
-    gcTime: 60 * 60 * 1000, // 1 hour
+    queryFn: wikiApi.listCategories,
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
   });
-};
 
-export const useTags = () => {
-  return useQuery({
+export const useTags = () =>
+  useQuery({
     queryKey: wikiQueryKeys.tags(),
-    queryFn: () => wikiApi.tags.list(),
-    staleTime: 30 * 60 * 1000, // 30 minutes
-    gcTime: 60 * 60 * 1000, // 1 hour
+    queryFn: wikiApi.listTags,
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
   });
-};
 
-// Bulk operations
 export const useBulkArticleOperations = () => {
   const queryClient = useQueryClient();
 
+  const invalidateArticles = () => {
+    queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
+  };
+
   const publishMultiple = useMutation({
-    mutationFn: async (articleIds: number[]) => {
-      return Promise.all(articleIds.map(id => wikiApi.articles.publish(id)));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.articles(),
-      });
-    },
+    mutationFn: (articleIds: number[]) =>
+      Promise.all(articleIds.map((id) => wikiApi.publishArticle(id))),
+    onSuccess: invalidateArticles,
   });
 
   const unpublishMultiple = useMutation({
-    mutationFn: async (articleIds: number[]) => {
-      return Promise.all(articleIds.map(id => wikiApi.articles.unpublish(id)));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.articles(),
-      });
-    },
+    mutationFn: (articleIds: number[]) =>
+      Promise.all(articleIds.map((id) => wikiApi.unpublishArticle(id))),
+    onSuccess: invalidateArticles,
   });
 
   const deleteMultiple = useMutation({
-    mutationFn: async (articleIds: number[]) => {
-      return Promise.all(articleIds.map(id => wikiApi.articles.delete(id)));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: wikiQueryKeys.articles(),
-      });
-    },
+    mutationFn: (articleIds: number[]) =>
+      Promise.all(articleIds.map((id) => wikiApi.deleteArticle(id))),
+    onSuccess: invalidateArticles,
   });
 
   const exportMultiple = useMutation({
-    mutationFn: (data: {
-      articleIds: number[];
-      includeImages?: boolean;
-      format?: "A4" | "Letter";
-      title?: string;
-    }) => wikiApi.articles.bulkExportPdf(data),
+    mutationFn: (input: BulkExportInput) => wikiApi.bulkExportPdf(input),
   });
 
   return {
@@ -288,65 +205,47 @@ export const useBulkArticleOperations = () => {
   };
 };
 
-// Export operations
-export const useExportArticle = () => {
-  return useMutation({
-    mutationFn: ({ id, options }: {
-      id: number;
-      options?: { includeImages?: boolean; format?: "A4" | "Letter" };
-    }) => wikiApi.articles.exportPdf(id, options),
-    onError: (error) => {
-      console.error("Failed to export article:", error);
-    },
+export const useExportArticle = () =>
+  useMutation({
+    mutationFn: ({ id, options }: { id: number; options?: ExportPdfInput }) =>
+      wikiApi.exportArticlePdf(id, options),
   });
-};
 
-// Auto-save hook for article editing
 export const useAutoSaveArticle = (articleId?: number, debounceMs = 3000) => {
   const updateMutation = useUpdateArticle();
   const createMutation = useCreateArticle();
 
-  const autoSave = React.useCallback(
-    async (data: any) => {
-      try {
-        if (articleId) {
-          await updateMutation.mutateAsync({ id: articleId, data });
-        } else {
-          await createMutation.mutateAsync(data);
-        }
-      } catch (error) {
-        console.error("Auto-save failed:", error);
+  const run = useCallback(
+    async (data: UpdateArticleInput | CreateArticleInput) => {
+      if (articleId) {
+        await updateMutation.mutateAsync({
+          id: articleId,
+          data: data as UpdateArticleInput,
+        });
+        return;
       }
+      await createMutation.mutateAsync(data as CreateArticleInput);
     },
-    [articleId, updateMutation, createMutation]
+    [articleId, updateMutation, createMutation],
   );
 
-  // Debounced version of auto-save
-  const debouncedAutoSave = React.useMemo(
-    () => debounce(autoSave, debounceMs),
-    [autoSave, debounceMs]
-  );
+  const debounced = useMemo(() => {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    return (payload: UpdateArticleInput | CreateArticleInput) => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => run(payload), debounceMs);
+    };
+  }, [run, debounceMs]);
 
   return {
-    autoSave: debouncedAutoSave,
+    autoSave: debounced,
     isAutoSaving: updateMutation.isPending || createMutation.isPending,
     autoSaveError: updateMutation.error || createMutation.error,
   };
 };
 
-// Debounce utility
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-}
-
 export default {
+  useWikiStats,
   useArticles,
   useArticle,
   useCreateArticle,

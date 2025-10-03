@@ -1,5 +1,5 @@
 import { betterAuthMacro } from "@/lib/auth";
-import { success, BadRequestError } from "@/lib/errors";
+import { BadRequestError } from "@/lib/errors";
 import Elysia, { t } from "elysia";
 import { ArticleService } from "./services/article-service";
 import { ExportService } from "./services/export.service";
@@ -8,13 +8,14 @@ import {
   updateArticleSchema,
   articleListQuerySchema,
 } from "./types/article";
+import { success } from "@/lib/responses";
 
 export const wikiArticles = new Elysia({ prefix: "/articles" })
   .use(betterAuthMacro)
   .guard(
     {
       auth: true,
-      role: ["admin", "super_admin"], // Allow both admin and super_admin
+      role: ["admin", "super_admin"],
     },
     (app) =>
       app
@@ -23,6 +24,7 @@ export const wikiArticles = new Elysia({ prefix: "/articles" })
           "/",
           async ({ query }) => {
             const result = await ArticleService.listArticles(query);
+
             return success(result);
           },
           {
@@ -50,9 +52,10 @@ export const wikiArticles = new Elysia({ prefix: "/articles" })
 
         .post(
           "/",
-          async ({ body, user }) => {
+          async ({ body, user, status }) => {
             const article = await ArticleService.createArticle(body, user.id);
-            return success(article);
+
+            return status("Created", success(article));
           },
           {
             body: createArticleSchema,
@@ -67,12 +70,12 @@ export const wikiArticles = new Elysia({ prefix: "/articles" })
               throw new Error("Invalid article ID");
             }
 
-            // user.id is guaranteed to exist due to auth: true guard
             const article = await ArticleService.updateArticle(
               id,
               body,
               user.id,
             );
+
             return success(article);
           },
           {
@@ -85,13 +88,13 @@ export const wikiArticles = new Elysia({ prefix: "/articles" })
 
         .delete(
           "/:id",
-          async ({ params: { id } }) => {
+          async ({ params: { id }, status }) => {
             if (isNaN(id)) {
               throw new Error("Invalid article ID");
             }
 
             const result = await ArticleService.archiveArticle(id);
-            return success(result);
+            return status("No Content", success(result));
           },
           {
             params: t.Object({
