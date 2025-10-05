@@ -6,6 +6,7 @@ import {
   Users,
   BarChart3,
   BookOpen,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 
@@ -45,6 +46,11 @@ const adminItems: SidebarItem[] = [
     title: "Wiki",
     to: "/wiki",
     icon: BookOpen,
+  },
+  {
+    title: "Tags",
+    to: "/tags",
+    icon: Tag,
   },
 ];
 

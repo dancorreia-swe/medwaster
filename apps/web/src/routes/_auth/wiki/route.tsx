@@ -88,15 +88,15 @@ function RouteComponent() {
     <div className="flex flex-col gap-6">
       {/* Page Header */}
       <div className="flex items-start justify-between">
-        <div>
+        <header>
           <h1 className="text-2xl md:text-3xl font-bold">
             Base de Conhecimento
           </h1>
-          <p className="text-muted-foreground mt-1 max-w-2xl">
+          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
             Documentação, tópicos e artigos organizados como base de
             conhecimento para o aluno
           </p>
-        </div>
+        </header>
         <NewArticleButton />
       </div>
 

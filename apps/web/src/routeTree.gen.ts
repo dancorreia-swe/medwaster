@@ -16,6 +16,7 @@ import { Route as AccessDeniedRouteImport } from './routes/access-denied'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthIndexRouteImport } from './routes/_auth/index'
 import { Route as AuthWikiRouteRouteImport } from './routes/_auth/wiki/route'
+import { Route as AuthTagsIndexRouteImport } from './routes/_auth/tags/index'
 import { Route as AuthQuestionsIndexRouteImport } from './routes/_auth/questions/index'
 import { Route as AuthWikiNewRouteImport } from './routes/_auth/wiki/new'
 import { Route as AuthWikiArticleIdIndexRouteImport } from './routes/_auth/wiki/$articleId/index'
@@ -54,6 +55,11 @@ const AuthWikiRouteRoute = AuthWikiRouteRouteImport.update({
   path: '/wiki',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthTagsIndexRoute = AuthTagsIndexRouteImport.update({
+  id: '/tags/',
+  path: '/tags/',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthQuestionsIndexRoute = AuthQuestionsIndexRouteImport.update({
   id: '/questions/',
   path: '/questions/',
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthIndexRoute
   '/wiki/new': typeof AuthWikiNewRoute
   '/questions': typeof AuthQuestionsIndexRoute
+  '/tags': typeof AuthTagsIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthIndexRoute
   '/wiki/new': typeof AuthWikiNewRoute
   '/questions': typeof AuthQuestionsIndexRoute
+  '/tags': typeof AuthTagsIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRoutesById {
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/_auth/': typeof AuthIndexRoute
   '/_auth/wiki/new': typeof AuthWikiNewRoute
   '/_auth/questions/': typeof AuthQuestionsIndexRoute
+  '/_auth/tags/': typeof AuthTagsIndexRoute
   '/_auth/wiki/$articleId/': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/'
     | '/wiki/new'
     | '/questions'
+    | '/tags'
     | '/wiki/$articleId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/'
     | '/wiki/new'
     | '/questions'
+    | '/tags'
     | '/wiki/$articleId'
   id:
     | '__root__'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/_auth/'
     | '/_auth/wiki/new'
     | '/_auth/questions/'
+    | '/_auth/tags/'
     | '/_auth/wiki/$articleId/'
   fileRoutesById: FileRoutesById
 }
@@ -201,6 +213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthWikiRouteRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/tags/': {
+      id: '/_auth/tags/'
+      path: '/tags'
+      fullPath: '/tags'
+      preLoaderRoute: typeof AuthTagsIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/questions/': {
       id: '/_auth/questions/'
       path: '/questions'
@@ -243,12 +262,14 @@ interface AuthRouteChildren {
   AuthWikiRouteRoute: typeof AuthWikiRouteRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
   AuthQuestionsIndexRoute: typeof AuthQuestionsIndexRoute
+  AuthTagsIndexRoute: typeof AuthTagsIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthWikiRouteRoute: AuthWikiRouteRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
   AuthQuestionsIndexRoute: AuthQuestionsIndexRoute,
+  AuthTagsIndexRoute: AuthTagsIndexRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
