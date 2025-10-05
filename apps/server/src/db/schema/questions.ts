@@ -10,6 +10,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { createInsertSchema } from 'drizzle-typebox';
 
 import { user } from "./auth";
 
@@ -21,14 +22,26 @@ export const questionTypeValues = [
 ] as const;
 export const questionTypeEnum = pgEnum("question_type", questionTypeValues);
 
-export const questionDifficultyValues = ["basic", "intermediate", "advanced"] as const;
+export const questionDifficultyValues = [
+  "basic",
+  "intermediate",
+  "advanced",
+] as const;
 export const questionDifficultyEnum = pgEnum(
   "question_difficulty",
   questionDifficultyValues,
 );
 
-export const questionStatusValues = ["draft", "active", "inactive", "archived"] as const;
-export const questionStatusEnum = pgEnum("question_status", questionStatusValues);
+export const questionStatusValues = [
+  "draft",
+  "active",
+  "inactive",
+  "archived",
+] as const;
+export const questionStatusEnum = pgEnum(
+  "question_status",
+  questionStatusValues,
+);
 
 export const contentCategoryTypeValues = [
   "wiki",
@@ -138,12 +151,15 @@ export const questionOptions = pgTable(
   }),
 );
 
-export const questionOptionsRelations = relations(questionOptions, ({ one }) => ({
-  question: one(questions, {
-    fields: [questionOptions.questionId],
-    references: [questions.id],
+export const questionOptionsRelations = relations(
+  questionOptions,
+  ({ one }) => ({
+    question: one(questions, {
+      fields: [questionOptions.questionId],
+      references: [questions.id],
+    }),
   }),
-}));
+);
 
 export const questionFillBlankAnswers = pgTable(
   "question_fill_blank_answers",
@@ -230,10 +246,10 @@ export const tags = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    nameIdx: index("tags_name_idx").on(table.name),
-  }),
+  (table) => [index("tags_name_idx").on(table.name)],
 );
+
+export const tagsInsertSchema = createInsertSchema(tags);
 
 export const tagsRelations = relations(tags, ({ many }) => ({
   questionTags: many(questionTags),
@@ -263,9 +279,12 @@ export const questionTags = pgTable(
   }),
 );
 
-export const contentCategoriesRelations = relations(contentCategories, ({ many }) => ({
-  questions: many(questions),
-}));
+export const contentCategoriesRelations = relations(
+  contentCategories,
+  ({ many }) => ({
+    questions: many(questions),
+  }),
+);
 
 export const questionTagsRelations = relations(questionTags, ({ one }) => ({
   question: one(questions, {
