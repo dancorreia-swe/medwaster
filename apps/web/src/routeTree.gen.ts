@@ -20,6 +20,8 @@ import { Route as AuthTagsIndexRouteImport } from './routes/_auth/tags/index'
 import { Route as AuthQuestionsIndexRouteImport } from './routes/_auth/questions/index'
 import { Route as AuthWikiNewRouteImport } from './routes/_auth/wiki/new'
 import { Route as AuthWikiArticleIdIndexRouteImport } from './routes/_auth/wiki/$articleId/index'
+import { Route as AuthAdminUsersIndexRouteImport } from './routes/_auth/admin/users/index'
+import { Route as AuthAdminSettingsIndexRouteImport } from './routes/_auth/admin/settings/index'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -75,6 +77,16 @@ const AuthWikiArticleIdIndexRoute = AuthWikiArticleIdIndexRouteImport.update({
   path: '/$articleId/',
   getParentRoute: () => AuthWikiRouteRoute,
 } as any)
+const AuthAdminUsersIndexRoute = AuthAdminUsersIndexRouteImport.update({
+  id: '/admin/users/',
+  path: '/admin/users/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthAdminSettingsIndexRoute = AuthAdminSettingsIndexRouteImport.update({
+  id: '/admin/settings/',
+  path: '/admin/settings/',
+  getParentRoute: () => AuthRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/access-denied': typeof AccessDeniedRoute
@@ -86,6 +98,8 @@ export interface FileRoutesByFullPath {
   '/wiki/new': typeof AuthWikiNewRoute
   '/questions': typeof AuthQuestionsIndexRoute
   '/tags': typeof AuthTagsIndexRoute
+  '/admin/settings': typeof AuthAdminSettingsIndexRoute
+  '/admin/users': typeof AuthAdminUsersIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -98,6 +112,8 @@ export interface FileRoutesByTo {
   '/wiki/new': typeof AuthWikiNewRoute
   '/questions': typeof AuthQuestionsIndexRoute
   '/tags': typeof AuthTagsIndexRoute
+  '/admin/settings': typeof AuthAdminSettingsIndexRoute
+  '/admin/users': typeof AuthAdminUsersIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRoutesById {
@@ -112,6 +128,8 @@ export interface FileRoutesById {
   '/_auth/wiki/new': typeof AuthWikiNewRoute
   '/_auth/questions/': typeof AuthQuestionsIndexRoute
   '/_auth/tags/': typeof AuthTagsIndexRoute
+  '/_auth/admin/settings/': typeof AuthAdminSettingsIndexRoute
+  '/_auth/admin/users/': typeof AuthAdminUsersIndexRoute
   '/_auth/wiki/$articleId/': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -126,6 +144,8 @@ export interface FileRouteTypes {
     | '/wiki/new'
     | '/questions'
     | '/tags'
+    | '/admin/settings'
+    | '/admin/users'
     | '/wiki/$articleId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -138,6 +158,8 @@ export interface FileRouteTypes {
     | '/wiki/new'
     | '/questions'
     | '/tags'
+    | '/admin/settings'
+    | '/admin/users'
     | '/wiki/$articleId'
   id:
     | '__root__'
@@ -151,6 +173,8 @@ export interface FileRouteTypes {
     | '/_auth/wiki/new'
     | '/_auth/questions/'
     | '/_auth/tags/'
+    | '/_auth/admin/settings/'
+    | '/_auth/admin/users/'
     | '/_auth/wiki/$articleId/'
   fileRoutesById: FileRoutesById
 }
@@ -241,6 +265,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthWikiArticleIdIndexRouteImport
       parentRoute: typeof AuthWikiRouteRoute
     }
+    '/_auth/admin/users/': {
+      id: '/_auth/admin/users/'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthAdminUsersIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/admin/settings/': {
+      id: '/_auth/admin/settings/'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthAdminSettingsIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
@@ -263,6 +301,8 @@ interface AuthRouteChildren {
   AuthIndexRoute: typeof AuthIndexRoute
   AuthQuestionsIndexRoute: typeof AuthQuestionsIndexRoute
   AuthTagsIndexRoute: typeof AuthTagsIndexRoute
+  AuthAdminSettingsIndexRoute: typeof AuthAdminSettingsIndexRoute
+  AuthAdminUsersIndexRoute: typeof AuthAdminUsersIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
@@ -270,6 +310,8 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthIndexRoute: AuthIndexRoute,
   AuthQuestionsIndexRoute: AuthQuestionsIndexRoute,
   AuthTagsIndexRoute: AuthTagsIndexRoute,
+  AuthAdminSettingsIndexRoute: AuthAdminSettingsIndexRoute,
+  AuthAdminUsersIndexRoute: AuthAdminUsersIndexRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

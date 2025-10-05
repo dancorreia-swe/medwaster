@@ -46,7 +46,7 @@ export interface TagTableItem {
   slug: string;
   description?: string | null;
   color?: string | null;
-  createdAt?: string | null;
+  createdAt?: Date | string | null;
 }
 
 interface TagsTableProps {

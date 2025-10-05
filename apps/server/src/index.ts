@@ -6,6 +6,7 @@ import { betterAuthMacro as betterAuth } from "./lib/auth";
 import { globalErrorHandler } from "./lib/errors";
 import { wiki } from "./modules/wiki";
 import { questions } from "./modules/questions";
+import { tags } from "./modules/tags";
 import { audit } from "./modules/audit";
 import { auditMiddleware } from "./middleware/audit";
 
@@ -59,6 +60,7 @@ const app = new Elysia()
   )
   .use(wiki)
   .use(questions)
+  .use(tags)
   .use(audit)
   .get("/", () => "OK")
   .listen(3000);
