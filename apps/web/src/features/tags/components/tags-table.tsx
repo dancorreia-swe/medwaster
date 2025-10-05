@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactElement } from "react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { cn, formatDate } from "@/lib/utils";
 import {
   flexRender,
@@ -27,9 +34,9 @@ import {
   ChevronDown,
   ChevronsUpDown,
   ChevronUp,
-  ChevronUpIcon,
   MoreHorizontal,
   Pencil,
+  Tag as TagIcon,
   Trash2,
 } from "lucide-react";
 
@@ -215,11 +222,18 @@ export function TagsTable({ data, onEdit, onDelete }: TagsTableProps) {
             ))
           ) : (
             <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-24 text-center text-sm text-muted-foreground"
-              >
-                Nenhuma tag encontrada.
+              <TableCell colSpan={columns.length} className="p-6">
+                <Empty className="py-10">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <TagIcon className="size-5" />
+                    </EmptyMedia>
+                    <EmptyTitle>Nenhuma tag encontrada</EmptyTitle>
+                    <EmptyDescription>
+                      Ajuste os filtros ou crie uma nova tag para começar.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
               </TableCell>
             </TableRow>
           )}
@@ -230,10 +244,14 @@ export function TagsTable({ data, onEdit, onDelete }: TagsTableProps) {
 }
 
 function SortIcon({ direction }: { direction: false | "asc" | "desc" }) {
-  const directions  = {
+  const icons = {
     asc: <ChevronUp className="size-4" />,
     desc: <ChevronDown className="size-4" />,
   } as const;
 
-  return direction ? directions[direction] : <ChevronsUpDown className="size-4 text-muted-foreground"/>;
- }
+  if (!direction) {
+    return <ChevronsUpDown className="size-4 text-muted-foreground" />;
+  }
+
+  return icons[direction];
+}
