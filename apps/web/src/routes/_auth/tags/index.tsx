@@ -11,13 +11,26 @@ import {
 } from "@/features/tags/api/list-tags";
 import { TagsTable } from "@/features/tags/components/tags-table";
 import type { TagTableItem } from "@/features/tags/components/tags-table";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus, Search } from "lucide-react";
 import { z } from "zod";
 
 import type { ListTagsQuery } from "@server/modules/tags/model";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { deleteTag } from "@/features/tags/api/delete-tag";
+import { tagsQueryKeys } from "@/features/tags/api/list-tags";
 
 const searchSchema = z.object({
   q: z
@@ -56,6 +69,10 @@ export const Route = createFileRoute("/_auth/tags/")({
 function TagsRoute() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
+  const queryClient = useQueryClient();
+
+  const [tagPendingDelete, setTagPendingDelete] = useState<TagTableItem | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const [searchValue, setSearchValue] = useState(search.q ?? "");
   const debouncedSearch = useDebouncedCallback((value: string) => {
@@ -75,6 +92,22 @@ function TagsRoute() {
 
   const tagsResponse = tagsQuery.data;
   const tags = tagsResponse ?? [];
+
+  const deleteTagMutation = useMutation({
+    mutationFn: (tagId: number) => deleteTag(tagId),
+    onSuccess: () => {
+      toast.success("Tag excluída com sucesso.");
+
+      queryClient.invalidateQueries({ queryKey: tagsQueryKeys.all });
+      setIsDeleteDialogOpen(false);
+      setTagPendingDelete(null);
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error ? error.message : "Não foi possível excluir a tag.";
+      toast.error(message);
+    },
+  });
 
   const tableData = useMemo<TagTableItem[]>(
     () =>
@@ -116,6 +149,38 @@ function TagsRoute() {
         q: value ? value : undefined,
       }),
     });
+  }
+
+  function handleRequestDelete(tag: TagTableItem) {
+    setTagPendingDelete(tag);
+    setIsDeleteDialogOpen(true);
+  }
+
+  function handleDeleteDialogChange(open: boolean) {
+    if (deleteTagMutation.isLoading) return;
+    setIsDeleteDialogOpen(open);
+    if (!open) {
+      setTagPendingDelete(null);
+    }
+  }
+
+  async function handleConfirmDelete(event: React.MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    if (!tagPendingDelete) return;
+
+    const rawId = tagPendingDelete.id;
+    const numericId = typeof rawId === "number" ? rawId : Number(rawId);
+
+    if (!Number.isFinite(numericId)) {
+      toast.error("Identificador de tag inválido.");
+      return;
+    }
+
+    try {
+      await deleteTagMutation.mutateAsync(numericId);
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   return (
@@ -170,9 +235,39 @@ function TagsRoute() {
         <TagsTable
           data={tableData}
           onEdit={(tag) => console.info("Editar tag", tag)}
-          onDelete={(tag) => console.info("Excluir tag", tag)}
+          onDelete={handleRequestDelete}
         />
       )}
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDeleteDialogChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir tag</AlertDialogTitle>
+            <AlertDialogDescription>
+              Essa ação não pode ser desfeita. Tem certeza de que deseja excluir a tag
+              {" "}
+              <span className="font-semibold text-foreground">
+                {tagPendingDelete?.name ? `"${tagPendingDelete.name}"` : "selecionada"}
+              </span>
+              ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteTagMutation.isLoading}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={deleteTagMutation.isLoading}
+            >
+              {deleteTagMutation.isLoading ? (
+                <Spinner className="mr-2" />
+              ) : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

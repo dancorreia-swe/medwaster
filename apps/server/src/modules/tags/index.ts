@@ -2,7 +2,12 @@ import { betterAuthMacro } from "@/lib/auth";
 import Elysia from "elysia";
 import { TagsService } from "./service";
 import { success } from "@/lib/responses";
-import { createTagBody, listTagsQuery, tagParams, updateTagBody } from "./model";
+import {
+  createTagBody,
+  listTagsQuery,
+  tagParams,
+  updateTagBody,
+} from "./model";
 
 export const tags = new Elysia({ prefix: "/tags" }).use(betterAuthMacro).guard(
   {
@@ -48,9 +53,9 @@ export const tags = new Elysia({ prefix: "/tags" }).use(betterAuthMacro).guard(
       .delete(
         "/:id",
         async ({ params: { id }, status }) => {
-          const deletedTag = await TagsService.deleteTag(id);
+          await TagsService.deleteTag(id);
 
-          return status(204, success(deletedTag));
+          return status(204);
         },
         {
           params: tagParams,
