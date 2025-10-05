@@ -15,7 +15,9 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus, Search } from "lucide-react";
 import { z } from "zod";
+
 import type { ListTagsQuery } from "@server/modules/tags/model";
+import { Spinner } from "@/components/ui/spinner";
 
 const searchSchema = z.object({
   q: z
@@ -27,10 +29,10 @@ const searchSchema = z.object({
 
 type TagsSearch = z.infer<typeof searchSchema>;
 
-function buildListQuery(search?: TagsSearch): ListTagsQueryInput {
+function buildListQuery(search?: TagsSearch | null): ListTagsQueryInput {
   if (!search) return undefined;
 
-  const term = search.q?.trim() ?? undefined;
+  const term = search.q?.trim();
   if (!term) return undefined;
 
   const keys: NonNullable<ListTagsQuery["keys"]> = ["name", "slug"];
@@ -43,10 +45,9 @@ function buildListQuery(search?: TagsSearch): ListTagsQueryInput {
 
 export const Route = createFileRoute("/_auth/tags/")({
   validateSearch: searchSchema,
-  loaderDeps: ({ search: { q } }) => ({ q }),
-  loader: ({ context: { queryClient }, deps: { q: search } }) => {
+  loaderDeps: ({ search }) => ({ search }),
+  loader: ({ context: { queryClient }, deps: { search } }) => {
     const query = buildListQuery(search as TagsSearch);
-
     return queryClient.ensureQueryData(listTagsQueryOptions(query));
   },
   component: TagsRoute,
@@ -69,15 +70,11 @@ function TagsRoute() {
 
   useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
 
-  useEffect(() => {
-    setSearchValue(search.q ?? "");
-  }, [search.q]);
-
   const listQuery = useMemo(() => buildListQuery(search), [search]);
   const tagsQuery = useQuery(listTagsQueryOptions(listQuery));
 
   const tagsResponse = tagsQuery.data;
-  const tags = tagsResponse?.data?.success ? tagsResponse.data.data : [];
+  const tags = tagsResponse ?? [];
 
   const tableData = useMemo<TagTableItem[]>(
     () =>
@@ -93,6 +90,8 @@ function TagsRoute() {
   );
 
   const isInitialLoading = tagsQuery.isPending && !tagsResponse;
+  const isSearching = tagsQuery.isFetching && !tagsQuery.isPending;
+
   const errorMessage =
     tagsQuery.error instanceof Error
       ? tagsQuery.error.message
@@ -100,6 +99,7 @@ function TagsRoute() {
 
   function handleSearchChange(event: React.ChangeEvent<HTMLInputElement>) {
     const value = event.target.value;
+
     setSearchValue(value);
     debouncedSearch(value.trim());
   }
@@ -142,11 +142,16 @@ function TagsRoute() {
           <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             id="tags-search"
+            type="search"
             value={searchValue}
             onChange={handleSearchChange}
             placeholder="Buscar tags..."
             className="pl-9"
           />
+
+          {isSearching && (
+            <Spinner className="text-muted-foreground absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin" />
+          )}
         </div>
       </form>
 

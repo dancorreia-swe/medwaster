@@ -25,10 +25,12 @@ export async function signOut(): Promise<void> {
   }
 }
 
-export function formatDate(value?: string | null) {
+export function formatDate(value?: Date | string | null) {
   if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
+
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "-";
+
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "short",
