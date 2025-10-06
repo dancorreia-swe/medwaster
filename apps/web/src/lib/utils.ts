@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import Color from "color";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -36,4 +37,12 @@ export function formatDate(value?: Date | string | null) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+export function randomColor(): string {
+  const hue = Math.floor(Math.random() * 360);
+  const saturation = 70 + Math.random() * 30;
+  const lightness = 40 + Math.random() * 20;
+
+  return Color.hsl(hue, saturation, lightness).hex();
 }

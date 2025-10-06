@@ -8,6 +8,7 @@ import { useDebouncedCallback } from "@/hooks/use-debounce";
 import {
   listTagsQueryOptions,
   type ListTagsQueryInput,
+  type TagDto,
 } from "@/features/tags/api/list-tags";
 import { TagsTable } from "@/features/tags/components/tags-table";
 import type { TagTableItem } from "@/features/tags/components/tags-table";
@@ -31,6 +32,10 @@ import {
 import { toast } from "sonner";
 import { deleteTag } from "@/features/tags/api/delete-tag";
 import { tagsQueryKeys } from "@/features/tags/api/list-tags";
+import {
+  TagFormDialog,
+  type TagFormValues,
+} from "@/features/tags/components/tag-form-dialog";
 
 const searchSchema = z.object({
   q: z
@@ -58,6 +63,7 @@ function buildListQuery(search?: TagsSearch | null): ListTagsQueryInput {
 
 export const Route = createFileRoute("/_auth/tags/")({
   validateSearch: searchSchema,
+  beforeLoad: () => ({ getTitle: () => "Tags" }),
   loaderDeps: ({ search }) => ({ search }),
   loader: ({ context: { queryClient }, deps: { search } }) => {
     const query = buildListQuery(search as TagsSearch);
@@ -71,8 +77,13 @@ function TagsRoute() {
   const search = Route.useSearch();
   const queryClient = useQueryClient();
 
-  const [tagPendingDelete, setTagPendingDelete] = useState<TagTableItem | null>(null);
+  const [tagPendingDelete, setTagPendingDelete] = useState<TagTableItem | null>(
+    null,
+  );
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
+  const [tagToEdit, setTagToEdit] = useState<TagTableItem | null>(null);
 
   const [searchValue, setSearchValue] = useState(search.q ?? "");
   const debouncedSearch = useDebouncedCallback((value: string) => {
@@ -104,14 +115,59 @@ function TagsRoute() {
     },
     onError: (error: unknown) => {
       const message =
-        error instanceof Error ? error.message : "Não foi possível excluir a tag.";
+        error instanceof Error
+          ? error.message
+          : "Não foi possível excluir a tag.";
+      toast.error(message);
+    },
+  });
+
+  const createTagMutation = useMutation({
+    mutationFn: async (values: TagFormValues) => {
+      // TODO: Implement API call
+      console.log("Create tag:", values);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return values;
+    },
+    onSuccess: () => {
+      toast.success("Tag criada com sucesso.");
+      queryClient.invalidateQueries({ queryKey: tagsQueryKeys.all });
+      setIsFormDialogOpen(false);
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível criar a tag.";
+      toast.error(message);
+    },
+  });
+
+  const updateTagMutation = useMutation({
+    mutationFn: async (values: TagFormValues) => {
+      // TODO: Implement API call
+      console.log("Update tag:", tagToEdit?.id, values);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return values;
+    },
+    onSuccess: () => {
+      toast.success("Tag atualizada com sucesso.");
+      queryClient.invalidateQueries({ queryKey: tagsQueryKeys.all });
+      setIsFormDialogOpen(false);
+      setTagToEdit(null);
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível atualizar a tag.";
       toast.error(message);
     },
   });
 
   const tableData = useMemo<TagTableItem[]>(
     () =>
-      tags.map((tag) => ({
+      tags.map((tag: TagDto) => ({
         id: tag.id,
         name: tag.name,
         slug: tag.slug,
@@ -157,14 +213,44 @@ function TagsRoute() {
   }
 
   function handleDeleteDialogChange(open: boolean) {
-    if (deleteTagMutation.isLoading) return;
+    if (deleteTagMutation.isPending) return;
     setIsDeleteDialogOpen(open);
     if (!open) {
       setTagPendingDelete(null);
     }
   }
 
-  async function handleConfirmDelete(event: React.MouseEvent<HTMLButtonElement>) {
+  function handleCreateTag() {
+    setTagToEdit(null);
+    setIsFormDialogOpen(true);
+  }
+
+  function handleEditTag(tag: TagTableItem) {
+    setTagToEdit(tag);
+    setIsFormDialogOpen(true);
+  }
+
+  function handleFormDialogChange(open: boolean) {
+    if (createTagMutation.isPending || updateTagMutation.isPending) return;
+    setIsFormDialogOpen(open);
+
+    if (!open) {
+      console.log("Resetting tag to edit");
+      setTagToEdit(null);
+    }
+  }
+
+  async function handleFormSubmit(values: TagFormValues) {
+    if (tagToEdit) {
+      await updateTagMutation.mutateAsync(values);
+    } else {
+      await createTagMutation.mutateAsync(values);
+    }
+  }
+
+  async function handleConfirmDelete(
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) {
     event.preventDefault();
     if (!tagPendingDelete) return;
 
@@ -184,7 +270,7 @@ function TagsRoute() {
   }
 
   return (
-    <div className="flex flex-col gap-6 py-6">
+    <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold md:text-3xl">Tags</h1>
@@ -193,7 +279,7 @@ function TagsRoute() {
             fluxos de criação de conteúdo.
           </p>
         </div>
-        <Button className="w-full sm:w-auto">
+        <Button className="w-full sm:w-auto" onClick={handleCreateTag}>
           <Plus className="mr-2 h-4 w-4" />
           Nova tag
         </Button>
@@ -234,33 +320,39 @@ function TagsRoute() {
       ) : (
         <TagsTable
           data={tableData}
-          onEdit={(tag) => console.info("Editar tag", tag)}
+          onEdit={handleEditTag}
           onDelete={handleRequestDelete}
         />
       )}
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={handleDeleteDialogChange}>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={handleDeleteDialogChange}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir tag</AlertDialogTitle>
             <AlertDialogDescription>
-              Essa ação não pode ser desfeita. Tem certeza de que deseja excluir a tag
-              {" "}
+              Essa ação não pode ser desfeita. Tem certeza de que deseja excluir
+              a tag
               <span className="font-semibold text-foreground">
-                {tagPendingDelete?.name ? `"${tagPendingDelete.name}"` : "selecionada"}
+                {tagPendingDelete?.name
+                  ? ` "${tagPendingDelete.name}"`
+                  : "selecionada"}
               </span>
               ?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteTagMutation.isLoading}>
+            <AlertDialogCancel disabled={deleteTagMutation.isPending}>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60"
               onClick={handleConfirmDelete}
-              disabled={deleteTagMutation.isLoading}
+              disabled={deleteTagMutation.isPending}
             >
-              {deleteTagMutation.isLoading ? (
+              {deleteTagMutation.isPending ? (
                 <Spinner className="mr-2" />
               ) : null}
               Excluir
@@ -268,6 +360,16 @@ function TagsRoute() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TagFormDialog
+        open={isFormDialogOpen}
+        onOpenChange={handleFormDialogChange}
+        tag={tagToEdit}
+        onSubmit={handleFormSubmit}
+        isSubmitting={
+          createTagMutation.isPending || updateTagMutation.isPending
+        }
+      />
     </div>
   );
 }

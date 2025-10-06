@@ -219,7 +219,7 @@ function NewArticleButton() {
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <Button onClick={handleCreate} disabled={isCreating}>
+      <Button onClick={handleCreate} disabled={isCreating} variant={"default"}>
         {isCreating ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
