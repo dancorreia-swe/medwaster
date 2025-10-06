@@ -1,23 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, Search } from "lucide-react";
+import { z } from "zod";
+import { toast } from "sonner";
 
 import Loader from "@/components/loader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useDebouncedCallback } from "@/hooks/use-debounce";
-import {
-  listTagsQueryOptions,
-  type ListTagsQueryInput,
-  type TagDto,
-} from "@/features/tags/api/list-tags";
-import { TagsTable } from "@/features/tags/components/tags-table";
-import type { TagTableItem } from "@/features/tags/components/tags-table";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Search } from "lucide-react";
-import { z } from "zod";
-
-import type { ListTagsQuery } from "@server/modules/tags/model";
 import { Spinner } from "@/components/ui/spinner";
 import {
   AlertDialog,
@@ -29,13 +20,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { deleteTag } from "@/features/tags/api/delete-tag";
-import { tagsQueryKeys } from "@/features/tags/api/list-tags";
+import { useDebouncedCallback } from "@/hooks/use-debounce";
+import {
+  listTagsQueryOptions,
+  type ListTagsQueryInput,
+  type TagDto,
+  tagsQueryKeys,
+  deleteTag,
+  createTag,
+  updateTag,
+} from "@/features/tags/api";
+import { TagsTable, type TagTableItem } from "@/features/tags/components/tags-table";
 import {
   TagFormDialog,
   type TagFormValues,
 } from "@/features/tags/components/tag-form-dialog";
+
+import type { ListTagsQuery } from "@server/modules/tags/model";
 
 const searchSchema = z.object({
   q: z
@@ -123,12 +124,7 @@ function TagsRoute() {
   });
 
   const createTagMutation = useMutation({
-    mutationFn: async (values: TagFormValues) => {
-      // TODO: Implement API call
-      console.log("Create tag:", values);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return values;
-    },
+    mutationFn: (values: TagFormValues) => createTag(values),
     onSuccess: () => {
       toast.success("Tag criada com sucesso.");
       queryClient.invalidateQueries({ queryKey: tagsQueryKeys.all });
@@ -144,11 +140,11 @@ function TagsRoute() {
   });
 
   const updateTagMutation = useMutation({
-    mutationFn: async (values: TagFormValues) => {
-      // TODO: Implement API call
-      console.log("Update tag:", tagToEdit?.id, values);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return values;
+    mutationFn: (values: TagFormValues) => {
+      if (!tagToEdit?.id) {
+        throw new Error("Tag ID is required for update");
+      }
+      return updateTag(tagToEdit.id, values);
     },
     onSuccess: () => {
       toast.success("Tag atualizada com sucesso.");

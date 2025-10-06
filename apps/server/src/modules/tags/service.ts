@@ -1,9 +1,10 @@
-import { eq, ilike, or, type SQL } from 'drizzle-orm';
+import { eq, ilike, or, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { tagsInsertSchema, tags as tagsSchema } from "@/db/schema/questions";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
-import type { CreateTagBody, ListTagsQuery, UpdateTagBody } from './model';
-import Color from 'color';
+import type { CreateTagBody, ListTagsQuery, UpdateTagBody } from "./model";
+import Color from "color";
+import { Value } from "@sinclair/typebox/value";
 
 export abstract class TagsService {
   static async getAll(query?: ListTagsQuery) {
@@ -55,15 +56,15 @@ export abstract class TagsService {
     return tag;
   }
 
-
   static async createTag(newTag: CreateTagBody) {
     if (!newTag.color) {
       newTag.color = TagsService.randomColor().hex();
     }
 
+    const parsedTag = Value.Parse(tagsInsertSchema, newTag);
     const createdTag = await db
       .insert(tagsSchema)
-      .values(tagsInsertSchema.parse(newTag))
+      .values(parsedTag)
       .returning();
 
     return createdTag;
@@ -122,7 +123,7 @@ export abstract class TagsService {
 
   private static randomColor() {
     const hue = Math.floor(Math.random() * 360);
-    const saturation = 70 + Math.random() * 30; 
+    const saturation = 70 + Math.random() * 30;
     const lightness = 40 + Math.random() * 20;
 
     return Color.hsl(hue, saturation, lightness);
