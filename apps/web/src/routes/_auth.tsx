@@ -1,5 +1,6 @@
 import { AppBreadcrumb } from "@/components/layout/app-breadcrumb";
 import { AppSidebar } from "@/components/layout/sidebar/app-sidebar";
+import { useRouterState } from "@tanstack/react-router";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -9,6 +10,8 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { canAccessWebApp, ROLE_ERRORS } from "@/lib/rbac";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { ThemeSwitcher } from "@/components/ui/shadcn-io/theme-switcher";
+import { useTheme } from "@/components/theme-provider";
 
 export const Route = createFileRoute("/_auth")({
   beforeLoad: async ({ location }) => {
@@ -46,11 +49,13 @@ export const Route = createFileRoute("/_auth")({
 });
 
 function RouteComponent() {
+  const { theme, setTheme } = useTheme();
+
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2">
+      <SidebarInset className="px-6">
+        <header className="flex h-16 shrink-0 items-center gap-2 justify-between pr-4 mb-4">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator
@@ -59,7 +64,13 @@ function RouteComponent() {
             />
             <AppBreadcrumb />
           </div>
+
+          <ThemeSwitcher
+            value={theme as "light" | "dark" | "system"}
+            onChange={setTheme as (t: "light" | "dark" | "system") => void}
+          />
         </header>
+
         <main className="flex flex-1 flex-col gap-4 p-4 pt-0 w-full">
           <Outlet />
         </main>

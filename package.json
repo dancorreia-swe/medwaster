@@ -30,5 +30,11 @@
   "overrides": {
     "@sinclair/typebox": "^0.34.41"
   },
-  "packageManager": "bun@1.2.20"
+  "packageManager": "bun@1.2.20",
+  "dependencies": {
+    "@blocknote/xl-pdf-exporter": "^0.40.0",
+    "@react-pdf/renderer": "^4.3.1",
+    "file-type": "^21.0.0",
+    "logixlysia": "^5.2.0"
+  }
 }

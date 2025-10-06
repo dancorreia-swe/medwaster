@@ -15,6 +15,13 @@
       "when": 1759083951472,
       "tag": "0001_peaceful_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1759379257737,
+      "tag": "0002_lying_mastermind",
+      "breakpoints": true
     }
   ]
 }

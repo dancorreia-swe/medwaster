@@ -35,9 +35,6 @@ export function Dashboard() {
             Acesso ao painel do MedWaster Learning
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary">{getRoleDisplayName(user?.role)}</Badge>
-        </div>
       </div>
 
       {/* User Stats */}

@@ -8,10 +8,6 @@ export const Route = createFileRoute("/_auth/")({
   beforeLoad() {
     return { getTitle: () => "Painel Administrativo" };
   },
-  loader: async () => {
-    const { data, error } = await client.health.get();
-    console.log({ data, error });
-  },
 });
 
 function RouteComponent() {

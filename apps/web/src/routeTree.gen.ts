@@ -15,9 +15,13 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AccessDeniedRouteImport } from './routes/access-denied'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthIndexRouteImport } from './routes/_auth/index'
-import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
+import { Route as AuthWikiRouteRouteImport } from './routes/_auth/wiki/route'
+import { Route as AuthTagsIndexRouteImport } from './routes/_auth/tags/index'
 import { Route as AuthQuestionsIndexRouteImport } from './routes/_auth/questions/index'
-import { Route as AuthWikiTopicsRouteImport } from './routes/_auth/wiki/topics'
+import { Route as AuthWikiNewRouteImport } from './routes/_auth/wiki/new'
+import { Route as AuthWikiArticleIdIndexRouteImport } from './routes/_auth/wiki/$articleId/index'
+import { Route as AuthAdminUsersIndexRouteImport } from './routes/_auth/admin/users/index'
+import { Route as AuthAdminSettingsIndexRouteImport } from './routes/_auth/admin/settings/index'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -48,9 +52,14 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthAdminRoute = AuthAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const AuthWikiRouteRoute = AuthWikiRouteRouteImport.update({
+  id: '/wiki',
+  path: '/wiki',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthTagsIndexRoute = AuthTagsIndexRouteImport.update({
+  id: '/tags/',
+  path: '/tags/',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthQuestionsIndexRoute = AuthQuestionsIndexRouteImport.update({
@@ -58,9 +67,24 @@ const AuthQuestionsIndexRoute = AuthQuestionsIndexRouteImport.update({
   path: '/questions/',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthWikiTopicsRoute = AuthWikiTopicsRouteImport.update({
-  id: '/wiki/topics',
-  path: '/wiki/topics',
+const AuthWikiNewRoute = AuthWikiNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthWikiRouteRoute,
+} as any)
+const AuthWikiArticleIdIndexRoute = AuthWikiArticleIdIndexRouteImport.update({
+  id: '/$articleId/',
+  path: '/$articleId/',
+  getParentRoute: () => AuthWikiRouteRoute,
+} as any)
+const AuthAdminUsersIndexRoute = AuthAdminUsersIndexRouteImport.update({
+  id: '/admin/users/',
+  path: '/admin/users/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthAdminSettingsIndexRoute = AuthAdminSettingsIndexRouteImport.update({
+  id: '/admin/settings/',
+  path: '/admin/settings/',
   getParentRoute: () => AuthRoute,
 } as any)
 
@@ -69,20 +93,28 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/admin': typeof AuthAdminRoute
+  '/wiki': typeof AuthWikiRouteRouteWithChildren
   '/': typeof AuthIndexRoute
-  '/wiki/topics': typeof AuthWikiTopicsRoute
+  '/wiki/new': typeof AuthWikiNewRoute
   '/questions': typeof AuthQuestionsIndexRoute
+  '/tags': typeof AuthTagsIndexRoute
+  '/admin/settings': typeof AuthAdminSettingsIndexRoute
+  '/admin/users': typeof AuthAdminUsersIndexRoute
+  '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/access-denied': typeof AccessDeniedRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/admin': typeof AuthAdminRoute
+  '/wiki': typeof AuthWikiRouteRouteWithChildren
   '/': typeof AuthIndexRoute
-  '/wiki/topics': typeof AuthWikiTopicsRoute
+  '/wiki/new': typeof AuthWikiNewRoute
   '/questions': typeof AuthQuestionsIndexRoute
+  '/tags': typeof AuthTagsIndexRoute
+  '/admin/settings': typeof AuthAdminSettingsIndexRoute
+  '/admin/users': typeof AuthAdminUsersIndexRoute
+  '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -91,10 +123,14 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/_auth/admin': typeof AuthAdminRoute
+  '/_auth/wiki': typeof AuthWikiRouteRouteWithChildren
   '/_auth/': typeof AuthIndexRoute
-  '/_auth/wiki/topics': typeof AuthWikiTopicsRoute
+  '/_auth/wiki/new': typeof AuthWikiNewRoute
   '/_auth/questions/': typeof AuthQuestionsIndexRoute
+  '/_auth/tags/': typeof AuthTagsIndexRoute
+  '/_auth/admin/settings/': typeof AuthAdminSettingsIndexRoute
+  '/_auth/admin/users/': typeof AuthAdminUsersIndexRoute
+  '/_auth/wiki/$articleId/': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -103,20 +139,28 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
-    | '/admin'
+    | '/wiki'
     | '/'
-    | '/wiki/topics'
+    | '/wiki/new'
     | '/questions'
+    | '/tags'
+    | '/admin/settings'
+    | '/admin/users'
+    | '/wiki/$articleId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/access-denied'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
-    | '/admin'
+    | '/wiki'
     | '/'
-    | '/wiki/topics'
+    | '/wiki/new'
     | '/questions'
+    | '/tags'
+    | '/admin/settings'
+    | '/admin/users'
+    | '/wiki/$articleId'
   id:
     | '__root__'
     | '/_auth'
@@ -124,10 +168,14 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
-    | '/_auth/admin'
+    | '/_auth/wiki'
     | '/_auth/'
-    | '/_auth/wiki/topics'
+    | '/_auth/wiki/new'
     | '/_auth/questions/'
+    | '/_auth/tags/'
+    | '/_auth/admin/settings/'
+    | '/_auth/admin/users/'
+    | '/_auth/wiki/$articleId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -182,11 +230,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/admin': {
-      id: '/_auth/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthAdminRouteImport
+    '/_auth/wiki': {
+      id: '/_auth/wiki'
+      path: '/wiki'
+      fullPath: '/wiki'
+      preLoaderRoute: typeof AuthWikiRouteRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/tags/': {
+      id: '/_auth/tags/'
+      path: '/tags'
+      fullPath: '/tags'
+      preLoaderRoute: typeof AuthTagsIndexRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/questions/': {
@@ -196,28 +251,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthQuestionsIndexRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/wiki/topics': {
-      id: '/_auth/wiki/topics'
-      path: '/wiki/topics'
-      fullPath: '/wiki/topics'
-      preLoaderRoute: typeof AuthWikiTopicsRouteImport
+    '/_auth/wiki/new': {
+      id: '/_auth/wiki/new'
+      path: '/new'
+      fullPath: '/wiki/new'
+      preLoaderRoute: typeof AuthWikiNewRouteImport
+      parentRoute: typeof AuthWikiRouteRoute
+    }
+    '/_auth/wiki/$articleId/': {
+      id: '/_auth/wiki/$articleId/'
+      path: '/$articleId'
+      fullPath: '/wiki/$articleId'
+      preLoaderRoute: typeof AuthWikiArticleIdIndexRouteImport
+      parentRoute: typeof AuthWikiRouteRoute
+    }
+    '/_auth/admin/users/': {
+      id: '/_auth/admin/users/'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthAdminUsersIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/admin/settings/': {
+      id: '/_auth/admin/settings/'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthAdminSettingsIndexRouteImport
       parentRoute: typeof AuthRoute
     }
   }
 }
 
+interface AuthWikiRouteRouteChildren {
+  AuthWikiNewRoute: typeof AuthWikiNewRoute
+  AuthWikiArticleIdIndexRoute: typeof AuthWikiArticleIdIndexRoute
+}
+
+const AuthWikiRouteRouteChildren: AuthWikiRouteRouteChildren = {
+  AuthWikiNewRoute: AuthWikiNewRoute,
+  AuthWikiArticleIdIndexRoute: AuthWikiArticleIdIndexRoute,
+}
+
+const AuthWikiRouteRouteWithChildren = AuthWikiRouteRoute._addFileChildren(
+  AuthWikiRouteRouteChildren,
+)
+
 interface AuthRouteChildren {
-  AuthAdminRoute: typeof AuthAdminRoute
+  AuthWikiRouteRoute: typeof AuthWikiRouteRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
-  AuthWikiTopicsRoute: typeof AuthWikiTopicsRoute
   AuthQuestionsIndexRoute: typeof AuthQuestionsIndexRoute
+  AuthTagsIndexRoute: typeof AuthTagsIndexRoute
+  AuthAdminSettingsIndexRoute: typeof AuthAdminSettingsIndexRoute
+  AuthAdminUsersIndexRoute: typeof AuthAdminUsersIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthAdminRoute: AuthAdminRoute,
+  AuthWikiRouteRoute: AuthWikiRouteRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
-  AuthWikiTopicsRoute: AuthWikiTopicsRoute,
   AuthQuestionsIndexRoute: AuthQuestionsIndexRoute,
+  AuthTagsIndexRoute: AuthTagsIndexRoute,
+  AuthAdminSettingsIndexRoute: AuthAdminSettingsIndexRoute,
+  AuthAdminUsersIndexRoute: AuthAdminUsersIndexRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
