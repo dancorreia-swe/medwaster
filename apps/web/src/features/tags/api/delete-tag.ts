@@ -10,7 +10,7 @@ export async function deleteTag(id: number | string) {
   const response = await client.tags({ id: numericId }).delete();
 
   if (response.status !== 204) {
-    throw new Error("Não foi possível deletar a tag.")
+    throw new Error("Não foi possível deletar a tag.");
   }
 
   return true;

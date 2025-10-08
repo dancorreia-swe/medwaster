@@ -16,8 +16,10 @@ import { Route as AccessDeniedRouteImport } from './routes/access-denied'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthIndexRouteImport } from './routes/_auth/index'
 import { Route as AuthWikiRouteRouteImport } from './routes/_auth/wiki/route'
+import { Route as AuthTrailsIndexRouteImport } from './routes/_auth/trails/index'
 import { Route as AuthTagsIndexRouteImport } from './routes/_auth/tags/index'
 import { Route as AuthQuestionsIndexRouteImport } from './routes/_auth/questions/index'
+import { Route as AuthCategoriesIndexRouteImport } from './routes/_auth/categories/index'
 import { Route as AuthWikiNewRouteImport } from './routes/_auth/wiki/new'
 import { Route as AuthWikiArticleIdIndexRouteImport } from './routes/_auth/wiki/$articleId/index'
 import { Route as AuthAdminUsersIndexRouteImport } from './routes/_auth/admin/users/index'
@@ -57,6 +59,11 @@ const AuthWikiRouteRoute = AuthWikiRouteRouteImport.update({
   path: '/wiki',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthTrailsIndexRoute = AuthTrailsIndexRouteImport.update({
+  id: '/trails/',
+  path: '/trails/',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthTagsIndexRoute = AuthTagsIndexRouteImport.update({
   id: '/tags/',
   path: '/tags/',
@@ -65,6 +72,11 @@ const AuthTagsIndexRoute = AuthTagsIndexRouteImport.update({
 const AuthQuestionsIndexRoute = AuthQuestionsIndexRouteImport.update({
   id: '/questions/',
   path: '/questions/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthCategoriesIndexRoute = AuthCategoriesIndexRouteImport.update({
+  id: '/categories/',
+  path: '/categories/',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthWikiNewRoute = AuthWikiNewRouteImport.update({
@@ -96,8 +108,10 @@ export interface FileRoutesByFullPath {
   '/wiki': typeof AuthWikiRouteRouteWithChildren
   '/': typeof AuthIndexRoute
   '/wiki/new': typeof AuthWikiNewRoute
+  '/categories': typeof AuthCategoriesIndexRoute
   '/questions': typeof AuthQuestionsIndexRoute
   '/tags': typeof AuthTagsIndexRoute
+  '/trails': typeof AuthTrailsIndexRoute
   '/admin/settings': typeof AuthAdminSettingsIndexRoute
   '/admin/users': typeof AuthAdminUsersIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
@@ -110,8 +124,10 @@ export interface FileRoutesByTo {
   '/wiki': typeof AuthWikiRouteRouteWithChildren
   '/': typeof AuthIndexRoute
   '/wiki/new': typeof AuthWikiNewRoute
+  '/categories': typeof AuthCategoriesIndexRoute
   '/questions': typeof AuthQuestionsIndexRoute
   '/tags': typeof AuthTagsIndexRoute
+  '/trails': typeof AuthTrailsIndexRoute
   '/admin/settings': typeof AuthAdminSettingsIndexRoute
   '/admin/users': typeof AuthAdminUsersIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
@@ -126,8 +142,10 @@ export interface FileRoutesById {
   '/_auth/wiki': typeof AuthWikiRouteRouteWithChildren
   '/_auth/': typeof AuthIndexRoute
   '/_auth/wiki/new': typeof AuthWikiNewRoute
+  '/_auth/categories/': typeof AuthCategoriesIndexRoute
   '/_auth/questions/': typeof AuthQuestionsIndexRoute
   '/_auth/tags/': typeof AuthTagsIndexRoute
+  '/_auth/trails/': typeof AuthTrailsIndexRoute
   '/_auth/admin/settings/': typeof AuthAdminSettingsIndexRoute
   '/_auth/admin/users/': typeof AuthAdminUsersIndexRoute
   '/_auth/wiki/$articleId/': typeof AuthWikiArticleIdIndexRoute
@@ -142,8 +160,10 @@ export interface FileRouteTypes {
     | '/wiki'
     | '/'
     | '/wiki/new'
+    | '/categories'
     | '/questions'
     | '/tags'
+    | '/trails'
     | '/admin/settings'
     | '/admin/users'
     | '/wiki/$articleId'
@@ -156,8 +176,10 @@ export interface FileRouteTypes {
     | '/wiki'
     | '/'
     | '/wiki/new'
+    | '/categories'
     | '/questions'
     | '/tags'
+    | '/trails'
     | '/admin/settings'
     | '/admin/users'
     | '/wiki/$articleId'
@@ -171,8 +193,10 @@ export interface FileRouteTypes {
     | '/_auth/wiki'
     | '/_auth/'
     | '/_auth/wiki/new'
+    | '/_auth/categories/'
     | '/_auth/questions/'
     | '/_auth/tags/'
+    | '/_auth/trails/'
     | '/_auth/admin/settings/'
     | '/_auth/admin/users/'
     | '/_auth/wiki/$articleId/'
@@ -237,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthWikiRouteRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/trails/': {
+      id: '/_auth/trails/'
+      path: '/trails'
+      fullPath: '/trails'
+      preLoaderRoute: typeof AuthTrailsIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/tags/': {
       id: '/_auth/tags/'
       path: '/tags'
@@ -249,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/questions'
       fullPath: '/questions'
       preLoaderRoute: typeof AuthQuestionsIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/categories/': {
+      id: '/_auth/categories/'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof AuthCategoriesIndexRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/wiki/new': {
@@ -299,8 +337,10 @@ const AuthWikiRouteRouteWithChildren = AuthWikiRouteRoute._addFileChildren(
 interface AuthRouteChildren {
   AuthWikiRouteRoute: typeof AuthWikiRouteRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
+  AuthCategoriesIndexRoute: typeof AuthCategoriesIndexRoute
   AuthQuestionsIndexRoute: typeof AuthQuestionsIndexRoute
   AuthTagsIndexRoute: typeof AuthTagsIndexRoute
+  AuthTrailsIndexRoute: typeof AuthTrailsIndexRoute
   AuthAdminSettingsIndexRoute: typeof AuthAdminSettingsIndexRoute
   AuthAdminUsersIndexRoute: typeof AuthAdminUsersIndexRoute
 }
@@ -308,8 +348,10 @@ interface AuthRouteChildren {
 const AuthRouteChildren: AuthRouteChildren = {
   AuthWikiRouteRoute: AuthWikiRouteRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
+  AuthCategoriesIndexRoute: AuthCategoriesIndexRoute,
   AuthQuestionsIndexRoute: AuthQuestionsIndexRoute,
   AuthTagsIndexRoute: AuthTagsIndexRoute,
+  AuthTrailsIndexRoute: AuthTrailsIndexRoute,
   AuthAdminSettingsIndexRoute: AuthAdminSettingsIndexRoute,
   AuthAdminUsersIndexRoute: AuthAdminUsersIndexRoute,
 }

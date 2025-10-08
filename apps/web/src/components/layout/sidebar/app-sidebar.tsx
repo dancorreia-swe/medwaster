@@ -4,12 +4,19 @@ import {
   Shield,
   Settings,
   Users,
-  BarChart3,
   BookOpen,
   Tag,
   type LucideIcon,
+  Shapes,
+  Route,
+  ChevronRight,
+  BookType,
+  Trophy,
+  HelpCircle,
+  ClipboardList,
+  BrainCircuit,
+  BadgeCheck,
 } from "lucide-react";
-
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +28,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { SuperAdminOnly, usePermissions } from "@/components/auth/role-guard";
 import type { TRoute } from "@/types/routes";
@@ -28,15 +38,39 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { NavUser } from "./nav-user";
 import type { AuthenticatedUser } from "@/types/user";
 import { authClient } from "@/lib/auth-client";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@radix-ui/react-collapsible";
 
-type SidebarItem = {
+interface BaseSidebarItem {
   title: string;
-  to: TRoute;
   icon: LucideIcon;
   requiresSuperAdmin?: boolean;
-};
+}
 
-const adminItems: SidebarItem[] = [
+interface SidebarSingleItem extends BaseSidebarItem {
+  to: TRoute;
+  isActive?: boolean;
+}
+
+interface SidebarCollapsibleItem extends BaseSidebarItem {
+  isActive?: boolean;
+  items: SidebarSingleItem[];
+}
+
+type SidebarItem = SidebarSingleItem | SidebarCollapsibleItem;
+
+function isSingleItem(item: SidebarItem): item is SidebarSingleItem {
+  return "to" in item;
+}
+
+function isCollapsibleItem(item: SidebarItem): item is SidebarCollapsibleItem {
+  return "items" in item;
+}
+
+const adminItems = [
   {
     title: "Painel Principal",
     to: "/",
@@ -44,26 +78,64 @@ const adminItems: SidebarItem[] = [
   },
   {
     title: "Wiki",
-    to: "/wiki",
+    isActive: true,
     icon: BookOpen,
+    items: [
+      {
+        title: "Artigos",
+        to: "/wiki",
+        icon: BookType,
+      },
+      {
+        title: "Categorias",
+        to: "/categories",
+        icon: Shapes,
+      },
+    ],
+  },
+  {
+    title: "Questões e Quizzes",
+    icon: HelpCircle,
+    items: [
+      {
+        title: "Questões Isoladas",
+        to: "/questions",
+        icon: ClipboardList,
+      },
+      {
+        title: "Quizzes",
+        to: "/questions",
+        icon: BrainCircuit,
+      },
+    ],
+  },
+  {
+    title: "Trilhas",
+    to: "/trails",
+    icon: Route,
   },
   {
     title: "Tags",
     to: "/tags",
     icon: Tag,
   },
-];
-
-const superAdminItems: SidebarItem[] = [
   {
-    title: "Configurações do Sistema",
-    to: "/admin/system-settings",
-    icon: Settings,
+    title: "Conquistas",
+    to: "/achievements",
+    icon: Trophy,
   },
   {
-    title: "Logs de Auditoria",
-    to: "/admin/audit-logs",
-    icon: Shield,
+    title: "Certificados",
+    to: "/certificates",
+    icon: BadgeCheck
+  }
+] as const satisfies readonly SidebarItem[];
+
+const superAdminItems = [
+  {
+    title: "Configurações do Sistema",
+    to: "/admin/settings",
+    icon: Settings,
   },
   {
     title: "Gerenciar Usuários",
@@ -71,7 +143,7 @@ const superAdminItems: SidebarItem[] = [
     icon: Users,
     requiresSuperAdmin: true,
   },
-];
+] as const satisfies readonly SidebarSingleItem[];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation();
@@ -105,8 +177,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent>
             <SidebarMenu>
               {adminItems.map((item) => {
-                // Hide super-admin-only items for regular admins
-                if (item.requiresSuperAdmin && !canAccessSuperAdmin) {
+                if (
+                  "requiresSuperAdmin" in item &&
+                  item.requiresSuperAdmin &&
+                  !canAccessSuperAdmin
+                ) {
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton disabled className="opacity-50">
@@ -120,19 +195,61 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   );
                 }
 
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
+                if (isCollapsibleItem(item)) {
+                  return (
+                    <Collapsible
+                      key={item.title}
                       asChild
-                      isActive={location.pathname === item.to}
+                      defaultOpen={item.isActive}
+                      className="group/collapsible"
                     >
-                      <Link to={item.to}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton tooltip={item.title}>
+                            <item.icon />
+                            <span>{item.title}</span>
+                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {item.items.map((subItem) => (
+                              <SidebarMenuSubItem key={subItem.title}>
+                                <SidebarMenuSubButton
+                                  isActive={location.pathname === subItem.to}
+                                  asChild
+                                >
+                                  <Link to={subItem.to}>
+                                    <subItem.icon />
+                                    <span>{subItem.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                }
+
+                if (isSingleItem(item)) {
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={location.pathname === item.to}
+                      >
+                        <Link to={item.to}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }
+
+                return null;
               })}
             </SidebarMenu>
           </SidebarGroupContent>
