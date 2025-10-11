@@ -2,6 +2,7 @@ import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Button,
   Text,
   TextInput,
   TouchableOpacity,
@@ -13,6 +14,16 @@ export function SignIn() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleSocialLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/dashboard",
+    });
+  };
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -31,7 +42,6 @@ export function SignIn() {
         onSuccess: () => {
           setEmail("");
           setPassword("");
-          queryClient.refetchQueries();
         },
         onFinished: () => {
           setIsLoading(false);
@@ -45,13 +55,11 @@ export function SignIn() {
       <Text className="text-lg font-semibold text-foreground mb-4">
         Sign In
       </Text>
-
       {error && (
         <View className="mb-4 p-3 bg-destructive/10 rounded-md">
           <Text className="text-destructive text-sm">{error}</Text>
         </View>
       )}
-
       <TextInput
         className="mb-3 p-4 rounded-md bg-input text-foreground border border-input"
         placeholder="Email"
@@ -61,7 +69,6 @@ export function SignIn() {
         keyboardType="email-address"
         autoCapitalize="none"
       />
-
       <TextInput
         className="mb-4 p-4 rounded-md bg-input text-foreground border border-input"
         placeholder="Password"
@@ -70,7 +77,6 @@ export function SignIn() {
         placeholderTextColor="#9CA3AF"
         secureTextEntry
       />
-
       <TouchableOpacity
         onPress={handleLogin}
         disabled={isLoading}
@@ -81,6 +87,15 @@ export function SignIn() {
         ) : (
           <Text className="text-primary-foreground font-medium">Sign In</Text>
         )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={handleSocialLogin}
+        className="bg-primary p-4 mt-3 border border-border rounded-md flex-row justify-center items-center"
+      >
+        <Text className="text-primary-foreground font-medium">
+          Google Log in
+        </Text>
       </TouchableOpacity>
     </View>
   );
