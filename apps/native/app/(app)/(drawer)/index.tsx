@@ -2,8 +2,6 @@ import { authClient } from "@/lib/auth-client";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 import { Container } from "@/components/container";
-import { SignIn } from "@/components/sign-in";
-import { SignUp } from "@/components/sign-up";
 
 export default function Home() {
   const { data: session } = authClient.useSession();
@@ -38,15 +36,13 @@ export default function Home() {
             </View>
           ) : null}
           <View className="mb-6 rounded-lg border border-border p-4">
-            <Text className="mb-3 font-medium text-foreground">API Status</Text>
+            <Text className="mb-3 font-medium text-foreground">
+              Protected Route
+            </Text>
+            <Text className="text-muted-foreground text-sm">
+              This screen is only accessible to authenticated users.
+            </Text>
           </View>
-
-          {!session?.user && (
-            <>
-              <SignIn />
-              <SignUp />
-            </>
-          )}
         </View>
       </ScrollView>
     </Container>
