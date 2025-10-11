@@ -1,20 +1,27 @@
-import { Link } from "expo-router";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { Container } from "@/components/container";
 import { LandingHeroImage } from "@/components/landing-hero-image";
-import { SignInBottomSheet } from "@/components/sign-in-bottom-sheet";
+import {
+  AuthBottomSheet,
+  type AuthBottomSheetRef,
+} from "@/components/auth-bottom-sheet";
 import { useRef, useCallback } from "react";
-import type BottomSheet from "@gorhom/bottom-sheet";
 
 export default function Landing() {
-  const bottomSheetRef = useRef<BottomSheet>(null);
+  const authBottomSheetRef = useRef<AuthBottomSheetRef>(null);
 
   const handleOpenSignIn = useCallback(() => {
-    bottomSheetRef.current?.expand();
+    authBottomSheetRef.current?.switchToSignIn();
+    authBottomSheetRef.current?.expand();
   }, []);
 
-  const handleCloseSignIn = useCallback(() => {
-    bottomSheetRef.current?.close();
+  const handleOpenSignUp = useCallback(() => {
+    authBottomSheetRef.current?.switchToSignUp();
+    authBottomSheetRef.current?.expand();
+  }, []);
+
+  const handleClose = useCallback(() => {
+    authBottomSheetRef.current?.close();
   }, []);
 
   return (
@@ -41,22 +48,21 @@ export default function Landing() {
       </View>
 
       <View className="px-5 pb-6 gap-[17px]">
-        <Link href="/(auth)/sign-up" asChild>
-          <TouchableOpacity
-            className="bg-[#155DFC] rounded-[14px] py-4 items-center justify-center"
-            style={{
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.1,
-              shadowRadius: 3,
-              elevation: 2,
-            }}
-          >
-            <Text className="text-white font-bold text-[14px] tracking-tight">
-              COMEÇAR
-            </Text>
-          </TouchableOpacity>
-        </Link>
+        <TouchableOpacity
+          onPress={handleOpenSignUp}
+          className="bg-[#155DFC] rounded-[14px] py-4 items-center justify-center"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.1,
+            shadowRadius: 3,
+            elevation: 2,
+          }}
+        >
+          <Text className="text-white font-bold text-[14px] tracking-tight">
+            COMEÇAR
+          </Text>
+        </TouchableOpacity>
 
         <View className="flex-row items-center justify-center gap-1">
           <Text className="text-[14px] text-[#364153] tracking-tight">
@@ -70,8 +76,8 @@ export default function Landing() {
         </View>
       </View>
 
-      {/* Sign In Bottom Sheet */}
-      <SignInBottomSheet ref={bottomSheetRef} onClose={handleCloseSignIn} />
+      {/* Unified Auth Bottom Sheet */}
+      <AuthBottomSheet ref={authBottomSheetRef} onClose={handleClose} />
     </Container>
   );
 }
