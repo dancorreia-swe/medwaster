@@ -1,8 +1,5 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { Link } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-
-import { HeaderButton } from "@/components/header-button";
 
 const DrawerLayout = () => {
   return (
@@ -20,15 +17,10 @@ const DrawerLayout = () => {
       <Drawer.Screen
         name="(tabs)"
         options={{
-          headerTitle: "Tabs",
-          drawerLabel: "Tabs",
+          headerShown: false,
+          drawerLabel: "Dashboard",
           drawerIcon: ({ size, color }) => (
-            <MaterialIcons name="border-bottom" size={size} color={color} />
-          ),
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <HeaderButton />
-            </Link>
+            <MaterialIcons name="dashboard" size={size} color={color} />
           ),
         }}
       />
