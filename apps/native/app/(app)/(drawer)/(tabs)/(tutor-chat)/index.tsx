@@ -5,13 +5,43 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Sparkles, ArrowLeft, Paperclip, Mic, Send } from "lucide-react-native";
 import { Container } from "@/components/container";
+import { useState, useEffect, useRef } from "react";
 
 export default function TutorScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const [inputText, setInputText] = useState("");
+  const colorAnim = useRef(new Animated.Value(0)).current;
+
+  const handleBack = () => {
+    const lastTab = (params.lastTab as string) || "index";
+    router.replace(`/(app)/(drawer)/(tabs)/${lastTab}`);
+  };
+
+  const isInputEmpty = inputText.trim().length === 0;
+
+  useEffect(() => {
+    Animated.timing(colorAnim, {
+      toValue: isInputEmpty ? 0 : 1,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [isInputEmpty]);
+
+  const backgroundColor = colorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#E5E7EB", "#155DFC"],
+  });
+
+  const iconColor = colorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#99A1AF", "#FFFFFF"],
+  });
 
   return (
     <Container className="flex-1 bg-white">
@@ -23,7 +53,7 @@ export default function TutorScreen() {
         <View className="border-b border-gray-200 px-4 py-3">
           <View className="flex-row items-center gap-3">
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={handleBack}
               className="w-9 h-9 items-center justify-center -ml-2"
             >
               <ArrowLeft size={24} color="#101828" strokeWidth={2} />
@@ -64,6 +94,8 @@ export default function TutorScreen() {
               placeholder="Pergunte algo..."
               placeholderTextColor="#99A1AF"
               className="flex-1 text-base leading-tight text-neutral-900 px-2.5 py-1"
+              value={inputText}
+              onChangeText={setInputText}
             />
 
             {/* Mic Button */}
@@ -71,8 +103,21 @@ export default function TutorScreen() {
               <Mic size={18} color="#6A7282" />
             </TouchableOpacity>
 
-            <TouchableOpacity className="w-7 h-7 rounded-full bg-[#E5E7EB] items-center justify-center ml-1">
-              <Send size={12} color="#99A1AF" fill="#99A1AF" />
+            <TouchableOpacity 
+              disabled={isInputEmpty}
+            >
+              <Animated.View 
+                className="w-7 h-7 rounded-full items-center justify-center ml-1"
+                style={{ backgroundColor }}
+              >
+                <Animated.Text>
+                  <Send 
+                    size={12} 
+                    color={isInputEmpty ? "#99A1AF" : "#FFFFFF"} 
+                    fill={isInputEmpty ? "#99A1AF" : "#FFFFFF"} 
+                  />
+                </Animated.Text>
+              </Animated.View>
             </TouchableOpacity>
           </View>
         </View>
