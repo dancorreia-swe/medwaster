@@ -6,14 +6,12 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Sparkles, ArrowLeft, Paperclip, Mic, Send } from "lucide-react-native";
 import { Container } from "@/components/container";
 
 export default function TutorScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
 
   return (
     <Container className="flex-1 bg-white">
@@ -42,15 +40,13 @@ export default function TutorScreen() {
           <View className="items-center gap-3.5">
             {/* AI Icon */}
             <View className="w-14 h-14 rounded-full bg-[#F9FAFB] items-center justify-center">
-              <Sparkles size={28} color="#99A1AF" strokeWidth={2.33} />
+              <Sparkles size={28} color="#99A1AF" />
             </View>
 
-            {/* Heading */}
             <Text className="text-[17.5px] font-medium text-[#101828] text-center leading-snug tracking-tight">
               Tutor de Resíduos Hospitalares
             </Text>
 
-            {/* Description */}
             <Text className="text-[12.25px] text-[#6A7282] text-center leading-[17.5px]">
               Faça perguntas sobre classificação, descarte e gestão de resíduos
               médicos
@@ -58,33 +54,25 @@ export default function TutorScreen() {
           </View>
         </View>
 
-        {/* Bottom Input Area */}
         <View className="border-t border-gray-200 px-3.5 pb-2 pt-3">
           <View className="bg-[#F9FAFB] rounded-full border border-[#E5E7EB] flex-row items-center px-4 py-2">
-            {/* Paperclip Button */}
             <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center">
-              <Paperclip size={17.5} color="#6A7282" strokeWidth={1.46} />
+              <Paperclip size={18} color="#6A7282" />
             </TouchableOpacity>
 
-            {/* Text Input */}
             <TextInput
               placeholder="Pergunte algo..."
               placeholderTextColor="#99A1AF"
-              className="flex-1 text-[15px] text-[#101828] px-2.5 py-1"
+              className="flex-1 text-base leading-tight text-neutral-900 px-2.5 py-1"
             />
 
             {/* Mic Button */}
             <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center">
-              <Mic size={17.5} color="#6A7282" strokeWidth={1.46} />
+              <Mic size={18} color="#6A7282" />
             </TouchableOpacity>
 
             <TouchableOpacity className="w-7 h-7 rounded-full bg-[#E5E7EB] items-center justify-center ml-1">
-              <Send
-                size={14}
-                color="#99A1AF"
-                strokeWidth={1.17}
-                fill="#99A1AF"
-              />
+              <Send size={12} color="#99A1AF" fill="#99A1AF" />
             </TouchableOpacity>
           </View>
         </View>

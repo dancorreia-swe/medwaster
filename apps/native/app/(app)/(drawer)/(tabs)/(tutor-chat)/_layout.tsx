@@ -4,7 +4,7 @@ export default function TutorChatLayout() {
   return (
     <Stack
       screenOptions={{
-        animation: "slide_from_right",
+        headerShown: false,
       }}
     >
       <Stack.Screen
