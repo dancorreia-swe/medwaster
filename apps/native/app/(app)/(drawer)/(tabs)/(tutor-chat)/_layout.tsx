@@ -13,6 +13,13 @@ export default function TutorChatLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="text-viewer"
+        options={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      />
     </Stack>
   );
 }

@@ -8,9 +8,14 @@ interface StatsCardProps {
   modules: number;
 }
 
-export function StatsCard({ streak, keyPoints, minutes, modules }: StatsCardProps) {
+export function StatsCard({
+  streak,
+  keyPoints,
+  minutes,
+  modules,
+}: StatsCardProps) {
   return (
-    <View className="mx-5 mb-3.5 bg-white rounded-[12.75px] p-5 shadow-sm">
+    <View className="mx-5 mb-3.5 bg-white rounded-[12.75px] p-6 shadow-sm">
       <View className="flex-row justify-between mb-3.5">
         {/* Streak */}
         <View className="items-center gap-1">
@@ -20,9 +25,7 @@ export function StatsCard({ streak, keyPoints, minutes, modules }: StatsCardProp
               {streak}
             </Text>
           </View>
-          <Text className="text-[10.5px] text-[#6B7280] text-center">
-            dia
-          </Text>
+          <Text className="text-[10.5px] text-[#6B7280] text-center">dia</Text>
         </View>
 
         {/* Key Points */}
@@ -57,7 +60,7 @@ export function StatsCard({ streak, keyPoints, minutes, modules }: StatsCardProp
       </View>
 
       {/* Daily Mission Button */}
-      <TouchableOpacity className="bg-[#155DFC] rounded-[12.75px] py-3 flex-row items-center justify-center shadow-sm">
+      <TouchableOpacity className="bg-primary rounded-[12.75px] py-3 flex-row items-center justify-center shadow-sm">
         <Text className="text-white text-[12.25px] font-medium tracking-tight">
           SUA MISSÃO DIÁRIA
         </Text>
