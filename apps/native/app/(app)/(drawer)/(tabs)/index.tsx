@@ -1,14 +1,15 @@
 import { ScrollView, Text, View } from "react-native";
 import { Container } from "@/components/container";
-import {
-  HomeHeader,
-  StatsCard,
-  CategoryCard,
-  TrailCard,
-  QuickAccessCard,
-} from "@/features/home/components";
+import { StatsCard } from "@/features/home/components/stats-card";
+import { HomeHeader } from "@/features/home/components/home-header";
+import { CategoryCard } from "@/features/home/components/category-card";
+import { TrailCard } from "@/features/home/components/trail-card";
+import { QuickAccessCard } from "@/features/home/components/quick-access-card";
+import { verifyInstallation } from "nativewind";
 
 export default function Home() {
+  verifyInstallation();
+
   return (
     <View className="flex-1 bg-[#FAFAFA]">
       <Container className="flex-1">
@@ -107,4 +108,3 @@ export default function Home() {
     </View>
   );
 }
-
