@@ -1,12 +1,15 @@
 import { Stack } from "expo-router";
 
-export default function AuthLayout() {
+export default function TutorChatLayout() {
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        animation: "slide_from_right",
+      }}
+    >
       <Stack.Screen
         name="index"
         options={{
-          title: "Welcome",
           headerShown: false,
         }}
       />

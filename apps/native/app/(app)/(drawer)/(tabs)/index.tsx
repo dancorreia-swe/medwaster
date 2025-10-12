@@ -1,5 +1,4 @@
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Flame,
   Target,
@@ -11,7 +10,7 @@ import {
 } from "lucide-react-native";
 import { Container } from "@/components/container";
 
-export default function Dashboard() {
+export default function Home() {
   return (
     <View className="flex-1 bg-[#FAFAFA]">
       <Container className="flex-1">
@@ -87,27 +86,35 @@ export default function Dashboard() {
             <Text className="text-lg font-semibold text-[#0A0A0A] mb-3.5">
               Categorias de interesse
             </Text>
-            <View className="grid grid-cols-2 gap-3.5">
-              <CategoryCard
-                title="Perfurocortantes"
-                bgColor="#EFF6FF"
-                iconColor="#155DFC"
-              />
-              <CategoryCard
-                title="Químicos"
-                bgColor="#FAF5FF"
-                iconColor="#9810FA"
-              />
-              <CategoryCard
-                title="Infectantes"
-                bgColor="#FEF2F2"
-                iconColor="#E7000B"
-              />
-              <CategoryCard
-                title="Radioativos"
-                bgColor="#FFFBEB"
-                iconColor="#E17100"
-              />
+            <View className="flex-row flex-wrap gap-3.5">
+              <View className="flex-1 min-w-[45%]">
+                <CategoryCard
+                  title="Perfurocortantes"
+                  bgColor="#EFF6FF"
+                  iconColor="#155DFC"
+                />
+              </View>
+              <View className="flex-1 min-w-[45%]">
+                <CategoryCard
+                  title="Químicos"
+                  bgColor="#FAF5FF"
+                  iconColor="#9810FA"
+                />
+              </View>
+              <View className="flex-1 min-w-[45%]">
+                <CategoryCard
+                  title="Infectantes"
+                  bgColor="#FEF2F2"
+                  iconColor="#E7000B"
+                />
+              </View>
+              <View className="flex-1 min-w-[45%]">
+                <CategoryCard
+                  title="Radioativos"
+                  bgColor="#FFFBEB"
+                  iconColor="#E17100"
+                />
+              </View>
             </View>
           </View>
 

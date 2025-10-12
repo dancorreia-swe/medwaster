@@ -76,7 +76,6 @@ export default function Landing() {
         </View>
       </View>
 
-      {/* Unified Auth Bottom Sheet */}
       <AuthBottomSheet ref={authBottomSheetRef} onClose={handleClose} />
     </Container>
   );
