@@ -6,6 +6,7 @@ import { Container } from "@/components/container";
 export default function TextViewer() {
   const router = useRouter();
   const params = useLocalSearchParams();
+
   const text = params.text as string;
 
   return (
@@ -28,7 +29,7 @@ export default function TextViewer() {
 
       {/* Text Content */}
       <ScrollView className="flex-1 px-5 py-6">
-        <Text 
+        <Text
           className="text-[15px] text-[#101828] leading-[24.38px]"
           selectable={true}
         >

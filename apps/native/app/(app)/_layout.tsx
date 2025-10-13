@@ -15,7 +15,6 @@ export default function AppLayout() {
   return (
     <Stack>
       <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-      <Stack.Screen name="tutor" options={{ headerShown: false }} />
     </Stack>
   );
 }

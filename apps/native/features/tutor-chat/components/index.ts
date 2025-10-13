@@ -1,2 +1,3 @@
-export * from "./ai-message.tsx";
-export * from "./user-message.tsx";
+export * from "./ai-message";
+export * from "./user-message";
+export * from "./message-bubble";

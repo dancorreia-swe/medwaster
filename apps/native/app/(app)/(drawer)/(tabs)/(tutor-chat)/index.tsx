@@ -8,21 +8,30 @@ import {
   Animated,
   ScrollView,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { Sparkles, ArrowLeft, Paperclip, Mic, Send } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import {
+  Sparkles,
+  ArrowLeft,
+  Paperclip,
+  Mic,
+  Send,
+  GraduationCap,
+} from "lucide-react-native";
 import { Container } from "@/components/container";
 import { useState, useEffect, useRef } from "react";
 import { UserMessage, AiMessage } from "@/features/tutor-chat/components";
+import { Icon } from "@/components/icon";
+
+type MessageType = "user" | "ai";
 
 type Message = {
   id: string;
-  type: "user" | "ai";
+  type: MessageType;
   content: string;
 };
 
 export default function TutorScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
   const [inputText, setInputText] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const colorAnim = useRef(new Animated.Value(0)).current;
@@ -40,13 +49,16 @@ export default function TutorScreen() {
     setMessages((prev) => [...prev, userMessage]);
     setInputText("");
 
-    // Simulate AI response
     setTimeout(() => {
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: "ai",
-        content:
-          "Entendo sua dúvida sobre gestão de resíduos hospitalares. Para dar uma resposta mais precisa, você poderia fornecer mais detalhes? Por exemplo: qual tipo de resíduo (perfurocortante, químico, biológico)? Qual é o contexto específico?",
+        content: `Entendo sua dúvida sobre gestão de resíduos hospitalares.
+## Para dar uma resposta mais precisa,
+você poderia fornecer mais detalhes? 
+Por exemplo:
+- qual tipo de resíduo (perfurocortante, químico, biológico)? 
+- Qual é o contexto específico?`,
       };
       setMessages((prev) => [...prev, aiMessage]);
     }, 1000);
@@ -63,7 +75,6 @@ export default function TutorScreen() {
   }, [isInputEmpty]);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
     if (messages.length > 0) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -73,12 +84,7 @@ export default function TutorScreen() {
 
   const backgroundColor = colorAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ["#E5E7EB", "#155DFC"],
-  });
-
-  const iconColor = colorAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["#99A1AF", "#FFFFFF"],
+    outputRange: ["rgb(229, 231, 235)", "rgb(21, 93, 252)"], // gray-200 to primary
   });
 
   return (
@@ -94,10 +100,10 @@ export default function TutorScreen() {
               onPress={() => router.back()}
               className="w-9 h-9 items-center justify-center -ml-2"
             >
-              <ArrowLeft size={24} color="#101828" strokeWidth={2} />
+              <ArrowLeft size={24} className="text-gray-900" strokeWidth={2} />
             </TouchableOpacity>
 
-            <Text className="text-[17px] font-semibold text-[#101828]">
+            <Text className="text-lg font-semibold text-gray-900">
               Tutor AI
             </Text>
           </View>
@@ -107,28 +113,34 @@ export default function TutorScreen() {
         <ScrollView
           ref={scrollViewRef}
           className="flex-1"
-          contentContainerStyle={{ paddingVertical: 20 }}
+          contentContainerClassName={
+            messages.length === 0 ? "flex-1" : undefined
+          }
           showsVerticalScrollIndicator={false}
         >
           {messages.length === 0 ? (
             <View className="flex-1 items-center justify-center px-5">
               <View className="items-center gap-3.5">
-                <View className="w-14 h-14 rounded-full bg-[#F9FAFB] items-center justify-center">
-                  <Sparkles size={28} color="#99A1AF" />
+                <View className="w-14 h-14 rounded-full bg-secondary items-center justify-center">
+                  <Icon
+                    icon={GraduationCap}
+                    size={28}
+                    className="text-primary"
+                  />
                 </View>
 
-                <Text className="text-[17.5px] font-medium text-[#101828] text-center leading-snug tracking-tight">
-                  Tutor de Resíduos Hospitalares
+                <Text className="text-2xl font-medium text-gray-900 text-center leading-snug tracking-tight">
+                  Tutor Medwaster
                 </Text>
 
-                <Text className="text-[12.25px] text-[#6A7282] text-center leading-[17.5px]">
+                <Text className="text-base text-gray-500 text-center leading-tight px-4">
                   Faça perguntas sobre classificação, descarte e gestão de
-                  resíduos médicos
+                  resíduos médicos.
                 </Text>
               </View>
             </View>
           ) : (
-            <View className="gap-3.5">
+            <View className="gap-3.5 py-5">
               {messages.map((message) =>
                 message.type === "user" ? (
                   <UserMessage key={message.id} message={message.content} />
@@ -142,34 +154,37 @@ export default function TutorScreen() {
 
         {/* Input */}
         <View className="border-t border-gray-200 px-3.5 pb-2 pt-3">
-          <View className="bg-[#F9FAFB] rounded-full border border-[#E5E7EB] flex-row items-center px-4 py-2">
-            <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center">
-              <Paperclip size={18} color="#6A7282" />
-            </TouchableOpacity>
+          <View className="bg-gray-50 rounded-full border border-gray-200 flex-row items-center px-4 py-2">
+            {/* <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center"> */}
+            {/*   <Paperclip size={18} className="text-gray-500" /> */}
+            {/* </TouchableOpacity> */}
 
             <TextInput
               placeholder="Pergunte algo..."
-              placeholderTextColor="#99A1AF"
-              className="flex-1 text-base leading-tight text-neutral-900 px-2.5 py-1"
+              className="flex-1 text-base leading-tight text-neutral-900 px-2.5 py-1 placeholder:text-muted-foreground/80"
               value={inputText}
               onChangeText={setInputText}
               onSubmitEditing={handleSend}
             />
 
-            <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center">
-              <Mic size={18} color="#6A7282" />
+            <TouchableOpacity className="size-8 rounded-full items-center justify-center">
+              <Icon icon={Mic} size={18} className="text-muted-foreground" />
             </TouchableOpacity>
 
             <TouchableOpacity disabled={isInputEmpty} onPress={handleSend}>
               <Animated.View
-                className="w-7 h-7 rounded-full items-center justify-center ml-1"
+                className="size-8 rounded-full items-center justify-center ml-1"
                 style={{ backgroundColor }}
               >
                 <Animated.Text>
-                  <Send
+                  <Icon
+                    icon={Send}
                     size={12}
-                    color={isInputEmpty ? "#99A1AF" : "#FFFFFF"}
-                    fill={isInputEmpty ? "#99A1AF" : "#FFFFFF"}
+                    className={
+                      isInputEmpty
+                        ? "text-muted-foreground fill-muted-foreground"
+                        : "text-white fill-white"
+                    }
                   />
                 </Animated.Text>
               </Animated.View>
