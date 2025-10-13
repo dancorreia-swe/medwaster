@@ -58,10 +58,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="(wiki)"
         options={{
           title: "Wiki",
           tabBarIcon: ({ color }) => <BookOpen color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="two"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen
