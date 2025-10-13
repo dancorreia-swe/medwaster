@@ -1,7 +1,6 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { ChevronRight, Heart } from "lucide-react-native";
 import { Icon } from "@/components/icon";
-import { useState } from "react";
 
 interface ArticleCardProps {
   emoji: string;
@@ -22,11 +21,8 @@ export function ArticleCard({
   isFavorite = false,
   onFavoriteToggle,
 }: ArticleCardProps) {
-  const [localFavorite, setLocalFavorite] = useState(isFavorite);
-
   const handleFavoritePress = (e: any) => {
     e.stopPropagation();
-    setLocalFavorite(!localFavorite);
     onFavoriteToggle?.();
   };
 
@@ -68,8 +64,8 @@ export function ArticleCard({
             <Icon
               icon={Heart}
               size={18}
-              className={localFavorite ? "text-red-500" : "text-gray-300"}
-              fill={localFavorite ? "#ef4444" : "none"}
+              className={isFavorite ? "text-red-500" : "text-gray-300"}
+              fill={isFavorite ? "#ef4444" : "none"}
             />
           </TouchableOpacity>
         </View>

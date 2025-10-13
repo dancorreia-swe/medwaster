@@ -71,10 +71,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="four"
+        name="(profile)"
         options={{
           title: "Perfil",
           tabBarIcon: ({ color }) => <User color={color} size={24} />,
+        }}
+      />
+      <Tabs.Screen
+        name="four"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

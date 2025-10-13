@@ -130,6 +130,7 @@ export default function WikiScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
 
@@ -166,6 +167,23 @@ export default function WikiScreen() {
     }
   };
 
+  const handleFavoriteToggle = (articleId: string) => {
+    setFavoriteIds((prev) =>
+      prev.includes(articleId)
+        ? prev.filter((id) => id !== articleId)
+        : [...prev, articleId]
+    );
+  };
+
+  // Filter articles based on active tab
+  const filteredArticles = () => {
+    if (activeTab === "favoritos") {
+      return articles.filter((article) => favoriteIds.includes(article.id));
+    }
+    // Add category/level filtering logic here later
+    return articles;
+  };
+
   useEffect(() => {
     if (selectedCategories.length === 0 && activeTab === "categorias") {
       setActiveTab("todos");
@@ -192,7 +210,11 @@ export default function WikiScreen() {
             />
           </View>
 
-          <WikiArticlesList articles={articles} />
+          <WikiArticlesList
+            articles={filteredArticles()}
+            favoriteIds={favoriteIds}
+            onFavoriteToggle={handleFavoriteToggle}
+          />
         </ScrollView>
 
         <CategoryFilterBottomSheet

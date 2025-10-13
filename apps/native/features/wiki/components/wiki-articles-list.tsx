@@ -12,9 +12,15 @@ export interface Article {
 
 interface WikiArticlesListProps {
   articles: Article[];
+  favoriteIds: string[];
+  onFavoriteToggle: (articleId: string) => void;
 }
 
-export function WikiArticlesList({ articles }: WikiArticlesListProps) {
+export function WikiArticlesList({ 
+  articles, 
+  favoriteIds,
+  onFavoriteToggle 
+}: WikiArticlesListProps) {
   return (
     <View className="px-5 pt-5 pb-6 gap-3">
       {articles.map((article) => (
@@ -25,6 +31,8 @@ export function WikiArticlesList({ articles }: WikiArticlesListProps) {
           description={article.description}
           level={article.level}
           duration={article.duration}
+          isFavorite={favoriteIds.includes(article.id)}
+          onFavoriteToggle={() => onFavoriteToggle(article.id)}
         />
       ))}
     </View>

@@ -1,6 +1,5 @@
 import { AppBreadcrumb } from "@/components/layout/app-breadcrumb";
 import { AppSidebar } from "@/components/layout/sidebar/app-sidebar";
-import { useRouterState } from "@tanstack/react-router";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
