@@ -7,12 +7,14 @@ import {
 
 type ContainerProps = {
   children: React.ReactNode;
-} & SafeAreaViewProps;
+  edges?: ("top" | "right" | "bottom" | "left")[];
+} & Omit<SafeAreaViewProps, "edges">;
 
-export const Container = ({ children, ...props }: ContainerProps) => {
+export const Container = ({ children, edges = ["top"], ...props }: ContainerProps) => {
   return (
     <SafeAreaView
       className="flex-1 bg-background"
+      edges={edges}
       {...props}
     >
       {children}

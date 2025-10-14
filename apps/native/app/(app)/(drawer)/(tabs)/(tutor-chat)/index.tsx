@@ -88,7 +88,7 @@ Por exemplo:
   });
 
   return (
-    <Container className="flex-1 bg-white">
+    <Container className="flex-1 bg-white" edges={["top", "bottom"]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"

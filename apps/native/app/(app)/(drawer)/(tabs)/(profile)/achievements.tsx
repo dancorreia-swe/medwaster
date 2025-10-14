@@ -3,8 +3,11 @@ import { Container } from "@/components/container";
 
 export default function AchievementsScreen() {
   return (
-    <Container className="flex-1 bg-white">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+    <Container className="flex-1 bg-gray-50">
+      <ScrollView 
+        className="flex-1" 
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View className="pt-[42px] px-5 pb-5">
           <Text className="text-[28px] font-bold text-gray-900">Conquistas</Text>

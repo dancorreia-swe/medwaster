@@ -4,11 +4,11 @@ interface WikiHeaderProps {}
 
 export function WikiHeader({}: WikiHeaderProps) {
   return (
-    <View className="flex-row items-center gap-2.5 mb-7">
-      <Text className="text-[28px] font-bold text-gray-900 leading-tight">
+    <View className="flex-row items-center gap-2.5 py-3 mb-3">
+      <Text className="text-4xl font-bold text-gray-900 leading-tight">
         Wiki
       </Text>
-      <Text className="text-[28px] font-light text-gray-400 leading-tight">
+      <Text className="text-4xl font-light text-gray-400 leading-tight">
         Artigos
       </Text>
     </View>
