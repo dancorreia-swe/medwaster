@@ -88,12 +88,14 @@ Por exemplo:
   });
 
   return (
-    <Container className="flex-1 bg-white" edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
-        {/* Header */}
+    <View className="flex-1 bg-white">
+      <Container className="flex-1 bg-white" edges={["top"]}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+          keyboardVerticalOffset={0}
+        >
+          {/* Header */}
         <View className="border-b border-gray-200 px-4 py-3">
           <View className="flex-row items-center gap-3">
             <TouchableOpacity
@@ -193,5 +195,6 @@ Por exemplo:
         </View>
       </KeyboardAvoidingView>
     </Container>
+    </View>
   );
 }
