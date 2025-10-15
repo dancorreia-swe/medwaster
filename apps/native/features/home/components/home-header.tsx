@@ -6,9 +6,7 @@ export function HomeHeader() {
       <View className="w-[35px] h-[35px] rounded-[12.75px] bg-blue-400 justify-center items-center">
         <Text className="text-white text-sm font-semibold">M</Text>
       </View>
-      <Text className="text-lg font-semibold text-[#0A0A0A]">
-        MedWaste
-      </Text>
+      <Text className="text-lg font-semibold text-[#0A0A0A]">MedWaster</Text>
     </View>
   );
 }

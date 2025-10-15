@@ -10,41 +10,30 @@ import { authClient } from "@/lib/auth-client";
 export default function Home() {
   const { data: session } = authClient.useSession();
   const userName = session?.user.name || "Usuário";
-  const userImage = session?.user.image;
-  const firstName = userName.split(" ")[0];
 
   return (
     <Container className="flex-1 bg-gray-50">
-      <ScrollView 
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* User Greeting Header */}
-        <View className="bg-white border-b border-gray-100 px-5 py-3.5">
-          <View className="flex-row items-center gap-3.5">
-            <UserAvatar
-              name={userName}
-              imageUrl={userImage}
-              size="sm"
-              showBadge={false}
-            />
-            <View>
-              <Text className="text-xs text-gray-600">Olá,</Text>
-              <Text className="text-sm font-semibold text-gray-900">
-                {firstName}
-              </Text>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        {/* App Header */}
+        <View className="border-gray-100 px-5 py-3.5">
+          <View className="flex-row items-center gap-2.5">
+            <View className="w-8 h-8 rounded-xl bg-primary items-center justify-center">
+              <Text className="text-white text-base font-bold">M</Text>
             </View>
+            <Text className="text-base font-semibold text-gray-900">
+              MedWaster
+            </Text>
           </View>
         </View>
 
         {/* Main Content */}
-        <View className="pt-5">
+        <View className="pt-2 bg-gray-50 flex gap-3">
           {/* Stats Card */}
           <StatsCard streak={7} keyPoints={27} minutes={44} modules={3} />
 
           {/* Categories */}
-          <View className="mx-5 mb-3.5">
-            <Text className="text-lg font-semibold text-gray-900 mb-3.5">
+          <View className="mx-5 mb-5">
+            <Text className="text-base font-bold text-gray-900 mb-3.5">
               Categorias de interesse
             </Text>
             <View className="flex-row flex-wrap gap-3.5">
@@ -80,12 +69,12 @@ export default function Home() {
           </View>
 
           {/* Recommended Trails */}
-          <View className="mx-5 mb-3.5">
-            <View className="mb-1">
-              <Text className="text-lg font-semibold text-gray-900">
+          <View className="mb-5">
+            <View className="px-5 mb-3.5">
+              <Text className="text-base font-bold text-gray-900 mb-1">
                 Para você começar
               </Text>
-              <Text className="text-xs text-gray-600">
+              <Text className="text-sm text-gray-600">
                 Trilhas recomendadas especialmente para você
               </Text>
             </View>
@@ -93,23 +82,39 @@ export default function Home() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              className="mt-3.5 -mx-5 px-5"
-              contentContainerStyle={{ paddingRight: 20 }}
+              className="px-5 pb-1"
+              contentContainerStyle={{ paddingRight: 20, gap: 14 }}
             >
               <TrailCard
                 title="Descarte de Perfurocortantes"
                 category="Perfurocortantes"
                 duration="15 min"
-                gradient="from-[#2B7FFF] to-[#00B8DB]"
+                gradientColors={["#2B7FFF", "#00B8DB"]}
                 categoryBg="rgba(255, 255, 255, 0.2)"
                 status="new"
+              />
+              <TrailCard
+                title="Gestão de Resíduos Químicos"
+                category="Químicos"
+                duration="20 min"
+                gradientColors={["#AD46FF", "#F6339A"]}
+                categoryBg="rgba(255, 255, 255, 0.2)"
+                status="recommended"
+              />
+              <TrailCard
+                title="Segregação de Infectantes"
+                category="Infectantes"
+                duration="18 min"
+                gradientColors={["#00C950", "#00BC7D"]}
+                categoryBg="rgba(255, 255, 255, 0.2)"
+                status="recommended"
               />
             </ScrollView>
           </View>
 
           {/* Quick Access */}
           <View className="mx-5 mb-6">
-            <Text className="text-lg font-semibold text-gray-900 mb-3.5">
+            <Text className="text-base font-bold text-gray-900 mb-3.5">
               Acesso rápido
             </Text>
             <View className="gap-2.5">

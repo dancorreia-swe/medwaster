@@ -15,56 +15,63 @@ export function StatsCard({
   modules,
 }: StatsCardProps) {
   return (
-    <View className="mx-5 mb-3.5 bg-white rounded-[12.75px] p-6 shadow-sm">
-      <View className="flex-row justify-between mb-3.5">
-        {/* Streak */}
-        <View className="items-center gap-1">
-          <View className="flex-row items-center gap-1">
-            <Flame size={18} color="#FF6900" strokeWidth={1.5} />
-            <Text className="text-[21px] font-semibold text-[#0A0A0A]">
-              {streak}
+    <View className="mx-5 mb-5 bg-white rounded-[14px] border border-gray-200 overflow-hidden">
+      {/* Stats Row */}
+      <View className="flex-row gap-3">
+        {/* Streak Box - Isolated */}
+        <View className="px-6 py-3 items-center gap-2.5 border-r border-gray-200">
+          <Text className="text-xs text-gray-600">Sequência</Text>
+          <View className="items-center gap-1 flex-1">
+            <View className="flex-row items-center gap-x-1.5">
+              <Flame size={16} color="#FF6900" strokeWidth={1.5} />
+              <Text className="text-2xl font-semibold text-gray-900">
+                {streak}
+              </Text>
+            </View>
+            <Text className="text-xs text-gray-600">dias</Text>
+          </View>
+        </View>
+
+        {/* Other Stats */}
+        <View className="flex-1 gap-2.5 py-3">
+          {/* Label */}
+          <View className="items-center">
+            <Text className="text-xs text-gray-600">
+              Seu crescimento essa semana
             </Text>
           </View>
-          <Text className="text-[10.5px] text-[#6B7280] text-center">dia</Text>
-        </View>
+          {/* Stats Grid */}
+          <View className="flex-row justify-between">
+            <View className="items-center gap-1 flex-1">
+              <Text className="text-2xl font-semibold text-primary">
+                {keyPoints}
+              </Text>
+              <Text className="text-xs text-gray-600">pontos</Text>
+            </View>
 
-        {/* Key Points */}
-        <View className="items-center gap-0">
-          <Text className="text-[21px] font-semibold text-[#155DFC]">
-            {keyPoints}
-          </Text>
-          <Text className="text-[10.5px] text-[#6B7280] text-center leading-7">
-            pontos-chave
-          </Text>
-        </View>
+            <View className="items-center gap-1 flex-1">
+              <Text className="text-2xl font-semibold text-green-600">
+                {minutes}
+              </Text>
+              <Text className="text-xs text-gray-600">minutos</Text>
+            </View>
 
-        {/* Minutes */}
-        <View className="items-center gap-0">
-          <Text className="text-[21px] font-semibold text-[#00A63E]">
-            {minutes}
-          </Text>
-          <Text className="text-[10.5px] text-[#6B7280] text-center">
-            minutos
-          </Text>
-        </View>
-
-        {/* Modules */}
-        <View className="items-center gap-0">
-          <Text className="text-[21px] font-semibold text-[#9810FA]">
-            {modules}
-          </Text>
-          <Text className="text-[10.5px] text-[#6B7280] text-center">
-            módulos
-          </Text>
+            <View className="items-center gap-1 flex-1">
+              <Text className="text-2xl font-semibold text-purple-600">
+                {modules}
+              </Text>
+              <Text className="text-xs text-gray-600">módulos</Text>
+            </View>
+          </View>
         </View>
       </View>
 
       {/* Daily Mission Button */}
-      <TouchableOpacity className="bg-primary rounded-[12.75px] py-3 flex-row items-center justify-center shadow-sm">
-        <Text className="text-white text-[12.25px] font-medium tracking-tight">
-          SUA MISSÃO DIÁRIA
+      <TouchableOpacity className="bg-primary flex-row items-center justify-between px-[17.5px] py-3 rounded-b-[14px]">
+        <Text className="text-white text-xs font-bold tracking-[0.024em] uppercase">
+          Sua missão diária
         </Text>
-        <ChevronRight size={14} color="#FFFFFF" className="ml-1" />
+        <ChevronRight size={17.5} color="#FFFFFF" strokeWidth={1.5} />
       </TouchableOpacity>
     </View>
   );

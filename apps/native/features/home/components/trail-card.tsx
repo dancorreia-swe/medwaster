@@ -1,87 +1,107 @@
-import { Text, TouchableOpacity, View } from "react-native";
-import { Clock } from "lucide-react-native";
+import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import { Clock, ChevronRight } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface TrailCardProps {
   title: string;
   category: string;
   duration: string;
-  gradient: string;
+  gradientColors: [string, string];
   categoryBg: string;
-  status: "new" | "progress";
+  status: "new" | "progress" | "recommended";
   progress?: number;
+  onPress?: () => void;
 }
 
 export function TrailCard({
   title,
   category,
   duration,
-  gradient,
+  gradientColors,
   categoryBg,
   status,
   progress,
+  onPress,
 }: TrailCardProps) {
   return (
-    <View className="bg-white rounded-[12.75px] mr-3.5 fle shadow-sm shadow-black/15">
+    <TouchableOpacity 
+      onPress={onPress}
+      activeOpacity={0.8}
+      className="bg-white rounded-[12.75px] mr-3.5 shadow-sm shadow-black/15"
+    >
       {/* Gradient Header */}
-      <View className={`h-[140px] rounded-t-[12.75px] p-5 justify-between`}>
-        {/* Decorative Blurs */}
-        <View className="absolute top-3.5 right-3.5 w-[70px] h-[70px] rounded-full blur-[80px]" />
-        <View className="absolute top-7 left-0 w-[112px] h-[112px] rounded-full blur-[128px]" />
-
+      <LinearGradient
+        colors={gradientColors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
         {/* Content */}
         <View>
-          <View className="px-[7px] py-[3px] rounded-[6.75px] self-start mb-2">
+          <View 
+            className="px-2 py-1 rounded-md self-start mb-2"
+            style={{ backgroundColor: categoryBg }}
+          >
             <Text className="text-[10.5px] font-medium text-white">
               {category}
             </Text>
           </View>
-          <Text className="text-base font-semibold text-white leading-5">
+          <Text className="text-base font-semibold text-white leading-5 pr-8">
             {title}
           </Text>
         </View>
 
         {/* Duration */}
         <View className="flex-row items-center gap-[7px]">
-          <Clock size={14} color="rgba(255, 255, 255, 0.9)" strokeWidth={1.2} />
-          <Text className="text-[12.25px] text-white/90">{duration}</Text>
+          <Clock size={14} color="rgba(255, 255, 255, 0.9)" strokeWidth={1.5} />
+          <Text className="text-xs text-white/90">{duration}</Text>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Card Footer */}
-      <View className="p-3.5">
-        {status === "new" ? (
-          <>
-            <Text className="text-[12.25px] text-[#6B7280] mb-2.5">
-              Protocolos de segurança essenciais
+      <View className="px-3.5 py-3">
+        {status === "new" || status === "recommended" ? (
+          <View className="flex-row items-center justify-between">
+            <Text className="text-xs text-gray-600 flex-1">
+              {status === "new" 
+                ? "Protocolos de segurança essenciais" 
+                : "Classificação e identificação"}
             </Text>
-            <TouchableOpacity className="bg-white border border-black/10 rounded-[6.75px] py-1.5 items-center">
-              <Text className="text-[12.25px] font-medium text-[#0A0A0A]">
-                Começar
-              </Text>
-            </TouchableOpacity>
-          </>
+            <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
+          </View>
         ) : (
-          <>
-            <Text className="text-[12.25px] text-[#6B7280] mb-2.5">
-              Procedimentos de emergência
-            </Text>
-            <View className="mb-[7px]">
-              <View className="flex-row justify-between mb-[7px]">
-                <Text className="text-[10.5px] text-[#6B7280]">Progresso</Text>
-                <Text className="text-[10.5px] font-medium text-[#155DFC]">
-                  {progress}%
-                </Text>
-              </View>
-              <View className="h-[5.25px] bg-[#0066CC]/20 rounded-full overflow-hidden">
-                <View
-                  className="h-full bg-[#0066CC] rounded-full"
-                  style={{ width: `${progress}%` }}
-                />
-              </View>
+          <View>
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-xs text-gray-600">
+                Procedimentos de emergência
+              </Text>
+              <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
             </View>
-          </>
+            <View className="flex-row items-center justify-between mb-1.5">
+              <Text className="text-[10.5px] text-gray-500">Progresso</Text>
+              <Text className="text-[10.5px] font-semibold text-primary">
+                {progress}%
+              </Text>
+            </View>
+            <View className="h-1.5 bg-primary/10 rounded-full overflow-hidden">
+              <View
+                className="h-full bg-primary rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </View>
+          </View>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  gradientHeader: {
+    height: 140,
+    borderTopLeftRadius: 12.75,
+    borderTopRightRadius: 12.75,
+    padding: 20,
+    justifyContent: 'space-between',
+  },
+});
