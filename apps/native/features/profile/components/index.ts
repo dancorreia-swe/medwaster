@@ -5,3 +5,4 @@ export * from "./user-avatar";
 export * from "./user-card";
 export * from "./profile-stat";
 export * from "./action-card";
+export * from "./achievements-section";

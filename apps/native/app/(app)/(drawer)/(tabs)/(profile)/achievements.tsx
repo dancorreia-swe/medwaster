@@ -1,7 +1,12 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Container } from "@/components/container";
+import { useRouter } from "expo-router";
+import { ArrowLeft } from "lucide-react-native";
+import { Icon } from "@/components/icon";
 
 export default function AchievementsScreen() {
+  const router = useRouter();
+
   return (
     <Container className="flex-1 bg-gray-50">
       <ScrollView 
@@ -9,8 +14,18 @@ export default function AchievementsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View className="pt-[42px] px-5 pb-5">
-          <Text className="text-[28px] font-bold text-gray-900">Conquistas</Text>
+        <View className="px-5 pt-3.5 pb-0">
+          <View className="py-3 mb-3">
+            <View className="flex-row items-center gap-3">
+              <TouchableOpacity
+                onPress={() => router.back()}
+                className="w-9 h-9 items-center justify-center -ml-2"
+              >
+                <Icon icon={ArrowLeft} size={24} className="text-gray-900" />
+              </TouchableOpacity>
+              <Text className="text-4xl font-bold text-gray-900">Conquistas</Text>
+            </View>
+          </View>
         </View>
 
         {/* Achievements content placeholder */}

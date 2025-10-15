@@ -147,7 +147,6 @@ export default function WikiScreen() {
 
     setSelectedCategories(newCategories);
 
-    // Switch to categorias tab when selecting a category
     if (newCategories.length > 0) {
       setActiveTab("categorias");
     }
@@ -175,12 +174,11 @@ export default function WikiScreen() {
     );
   };
 
-  // Filter articles based on active tab
   const filteredArticles = () => {
     if (activeTab === "favoritos") {
       return articles.filter((article) => favoriteIds.includes(article.id));
     }
-    // Add category/level filtering logic here later
+
     return articles;
   };
 

@@ -84,117 +84,122 @@ Por exemplo:
 
   const backgroundColor = colorAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ["rgb(229, 231, 235)", "rgb(21, 93, 252)"], // gray-200 to primary
+    outputRange: [
+      "rgb(229, 231, 235)",
+      "rgb(21, 93, 252)"
+    ], // gray-200 to primary
   });
 
   return (
-    <View className="flex-1 bg-white">
-      <Container className="flex-1 bg-white" edges={["top"]}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1"
-          keyboardVerticalOffset={0}
-        >
+    <Container className="flex-1 bg-white" edges={["top", "bottom"]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+        keyboardVerticalOffset={0}
+      >
           {/* Header */}
-        <View className="border-b border-gray-200 px-4 py-3">
-          <View className="flex-row items-center gap-3">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="w-9 h-9 items-center justify-center -ml-2"
-            >
-              <ArrowLeft size={24} className="text-gray-900" strokeWidth={2} />
-            </TouchableOpacity>
-
-            <Text className="text-lg font-semibold text-gray-900">
-              Tutor AI
-            </Text>
-          </View>
-        </View>
-
-        {/* Messages */}
-        <ScrollView
-          ref={scrollViewRef}
-          className="flex-1"
-          contentContainerClassName={
-            messages.length === 0 ? "flex-1" : undefined
-          }
-          showsVerticalScrollIndicator={false}
-        >
-          {messages.length === 0 ? (
-            <View className="flex-1 items-center justify-center px-5">
-              <View className="items-center gap-3.5">
-                <View className="w-14 h-14 rounded-full bg-secondary items-center justify-center">
-                  <Icon
-                    icon={GraduationCap}
-                    size={28}
-                    className="text-primary"
-                  />
-                </View>
-
-                <Text className="text-2xl font-medium text-gray-900 text-center leading-snug tracking-tight">
-                  Tutor Medwaster
-                </Text>
-
-                <Text className="text-base text-gray-500 text-center leading-tight px-4">
-                  Faça perguntas sobre classificação, descarte e gestão de
-                  resíduos médicos.
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <View className="gap-3.5 py-5">
-              {messages.map((message) =>
-                message.type === "user" ? (
-                  <UserMessage key={message.id} message={message.content} />
-                ) : (
-                  <AiMessage key={message.id} message={message.content} />
-                ),
-              )}
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Input */}
-        <View className="border-t border-gray-200 px-3.5 pb-2 pt-3">
-          <View className="bg-gray-50 rounded-full border border-gray-200 flex-row items-center px-4 py-2">
-            {/* <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center"> */}
-            {/*   <Paperclip size={18} className="text-gray-500" /> */}
-            {/* </TouchableOpacity> */}
-
-            <TextInput
-              placeholder="Pergunte algo..."
-              className="flex-1 text-base leading-tight text-neutral-900 px-2.5 py-1 placeholder:text-muted-foreground/80"
-              value={inputText}
-              onChangeText={setInputText}
-              onSubmitEditing={handleSend}
-            />
-
-            <TouchableOpacity className="size-8 rounded-full items-center justify-center">
-              <Icon icon={Mic} size={18} className="text-muted-foreground" />
-            </TouchableOpacity>
-
-            <TouchableOpacity disabled={isInputEmpty} onPress={handleSend}>
-              <Animated.View
-                className="size-8 rounded-full items-center justify-center ml-1"
-                style={{ backgroundColor }}
+          <View className="border-b border-gray-200 px-4 py-3">
+            <View className="flex-row items-center gap-3">
+              <TouchableOpacity
+                onPress={() => router.back()}
+                className="w-9 h-9 items-center justify-center -ml-2"
               >
-                <Animated.Text>
-                  <Icon
-                    icon={Send}
-                    size={12}
-                    className={
-                      isInputEmpty
-                        ? "text-muted-foreground fill-muted-foreground"
-                        : "text-white fill-white"
-                    }
-                  />
-                </Animated.Text>
-              </Animated.View>
-            </TouchableOpacity>
+                <ArrowLeft
+                  size={24}
+                  className="text-gray-900"
+                  strokeWidth={2}
+                />
+              </TouchableOpacity>
+
+              <Text className="text-lg font-semibold text-gray-900">
+                Tutor AI
+              </Text>
+            </View>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+
+          {/* Messages */}
+          <ScrollView
+            ref={scrollViewRef}
+            className="flex-1"
+            contentContainerClassName={
+              messages.length === 0 ? "flex-1" : undefined
+            }
+            showsVerticalScrollIndicator={false}
+          >
+            {messages.length === 0 ? (
+              <View className="flex-1 items-center justify-center px-5">
+                <View className="items-center gap-3.5">
+                  <View className="w-14 h-14 rounded-full bg-secondary items-center justify-center">
+                    <Icon
+                      icon={GraduationCap}
+                      size={28}
+                      className="text-primary"
+                    />
+                  </View>
+
+                  <Text className="text-2xl font-medium text-gray-900 text-center leading-snug tracking-tight">
+                    Tutor Medwaster
+                  </Text>
+
+                  <Text className="text-base text-gray-500 text-center leading-tight px-4">
+                    Faça perguntas sobre classificação, descarte e gestão de
+                    resíduos médicos.
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View className="gap-3.5 py-5">
+                {messages.map((message) =>
+                  message.type === "user" ? (
+                    <UserMessage key={message.id} message={message.content} />
+                  ) : (
+                    <AiMessage key={message.id} message={message.content} />
+                  ),
+                )}
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Input */}
+          <View className="border-t border-gray-200 px-3.5 pb-2 pt-3">
+            <View className="bg-gray-50 rounded-full border border-gray-200 flex-row items-center px-4 py-2">
+              {/* <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center"> */}
+              {/*   <Paperclip size={18} className="text-gray-500" /> */}
+              {/* </TouchableOpacity> */}
+
+              <TextInput
+                placeholder="Pergunte algo..."
+                className="flex-1 text-base leading-tight text-neutral-900 px-2.5 py-1 placeholder:text-muted-foreground/80"
+                value={inputText}
+                onChangeText={setInputText}
+                onSubmitEditing={handleSend}
+              />
+
+              <TouchableOpacity className="size-8 rounded-full items-center justify-center">
+                <Icon icon={Mic} size={18} className="text-muted-foreground" />
+              </TouchableOpacity>
+
+              <TouchableOpacity disabled={isInputEmpty} onPress={handleSend}>
+                <Animated.View
+                  className="size-8 rounded-full items-center justify-center ml-1"
+                  style={{ backgroundColor }}
+                >
+                  <Animated.Text>
+                    <Icon
+                      icon={Send}
+                      size={12}
+                      className={
+                        isInputEmpty
+                          ? "text-muted-foreground fill-muted-foreground"
+                          : "text-white fill-white"
+                      }
+                    />
+                  </Animated.Text>
+                </Animated.View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
     </Container>
-    </View>
   );
 }
