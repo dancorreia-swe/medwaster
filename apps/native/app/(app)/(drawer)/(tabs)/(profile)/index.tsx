@@ -4,10 +4,8 @@ import { useRouter } from "expo-router";
 import {
   Calendar,
   Award,
-  Users,
   Settings,
   LogOut,
-  ChevronRight,
 } from "lucide-react-native";
 import { Icon } from "@/components/icon";
 import { authClient } from "@/lib/auth-client";
@@ -86,13 +84,13 @@ export default function ProfileScreen() {
         />
 
         {/* Action Cards Section */}
-        <View className="px-5 py-3.5 gap-3.5">
+        <View className="px-5 py-4 gap-3.5">
           <ActionCard
             icon={Calendar}
             iconColor="text-red-600"
             iconBgColor="bg-red-50"
             title="Sequência & Calendário"
-            description="Você está em uma sequência!"
+            description="Verifique sua sequência de estudos"
             onPress={() =>
               router.push("/(app)/(drawer)/(tabs)/(profile)/streak-calendar")
             }
@@ -101,20 +99,10 @@ export default function ProfileScreen() {
             icon={Award}
             iconColor="text-blue-600"
             iconBgColor="bg-blue-50"
-            title="Meus Certificados"
-            description="12 certificados conquistados"
+            title="Meus Certificado"
+            description="Veja o status do seu certificado"
             onPress={() =>
               router.push("/(app)/(drawer)/(tabs)/(profile)/certificates")
-            }
-          />
-          <ActionCard
-            icon={Users}
-            iconColor="text-green-600"
-            iconBgColor="bg-green-50"
-            title="Convidar Colegas"
-            description="Ganhe XP extra por indicação"
-            onPress={() =>
-              router.push("/(app)/(drawer)/(tabs)/(profile)/invite")
             }
           />
           <ActionCard
@@ -130,23 +118,13 @@ export default function ProfileScreen() {
         </View>
 
         {/* Logout Button */}
-        <View className="px-5 py-3.5">
-          <TouchableOpacity className="h-[70px] rounded-xl items-center justify-center flex-row gap-2">
-            <Icon icon={LogOut} size={17.5} className="text-red-600" />
+        <View className="px-5 py-6">
+          <TouchableOpacity className="rounded-xl items-center justify-center flex-row gap-2">
+            <Icon icon={LogOut} size={16} className="text-red-600" />
             <Text className="text-sm font-medium text-red-600">
               Sair da Conta
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View className="px-5 py-3.5 items-center gap-[3.5px]">
-          <Text className="text-[10.5px] text-gray-400 text-center">
-            MedWaste Learning v1.0.0
-          </Text>
-          <Text className="text-[10.5px] text-gray-400 text-center">
-            Gestão de Resíduos Hospitalares
-          </Text>
         </View>
       </ScrollView>
     </Container>

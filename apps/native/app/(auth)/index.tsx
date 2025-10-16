@@ -47,7 +47,7 @@ export default function Landing() {
         </View>
       </View>
 
-      <View className="px-5 pb-6 gap-[17px]">
+      <View className="px-5 pb-12 gap-6">
         <TouchableOpacity
           onPress={handleOpenSignUp}
           className="bg-[#155DFC] rounded-[14px] py-4 items-center justify-center"
@@ -69,7 +69,7 @@ export default function Landing() {
             Já tem uma conta?
           </Text>
           <TouchableOpacity onPress={handleOpenSignIn}>
-            <Text className="text-[14px] text-[#155DFC] font-bold tracking-tight">
+            <Text className="text-blue-500 font-bold tracking-tight">
               Entre
             </Text>
           </TouchableOpacity>

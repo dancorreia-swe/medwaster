@@ -12,12 +12,12 @@ export function FilterButton({ label, count, isActive, onPress }: FilterButtonPr
     <TouchableOpacity
       onPress={onPress}
       className={`flex-row items-center gap-2 px-3.5 py-2 rounded-full ${
-        isActive ? "bg-gray-900" : "bg-gray-100"
+        isActive ? "bg-primary" : "bg-gray-100"
       }`}
     >
       <Text
         className={`text-xs font-medium ${
-          isActive ? "text-white" : "text-gray-900"
+          isActive ? "text-white" : "text-gray-600"
         }`}
       >
         {label}

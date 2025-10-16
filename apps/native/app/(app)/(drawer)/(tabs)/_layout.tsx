@@ -41,7 +41,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="trails"
+        name="(trails)"
         options={{
           title: "Trilhas",
           tabBarIcon: ({ color }) => <Route color={color} />,

@@ -18,8 +18,8 @@ export default function Home() {
             <View className="w-8 h-8 rounded-xl bg-primary items-center justify-center">
               <Text className="text-white text-base font-bold">M</Text>
             </View>
-            <Text className="text-base font-semibold text-gray-900">
-              MedWaster
+            <Text className="text-xl font-semibold text-gray-900">
+              Medwaster
             </Text>
           </View>
         </View>
