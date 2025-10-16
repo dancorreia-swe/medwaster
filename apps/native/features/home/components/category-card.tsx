@@ -1,26 +1,34 @@
-import { Text, TouchableOpacity, View } from "react-native";
-import { BookOpen } from "lucide-react-native";
+import { View } from "react-native";
+import { BookOpen, ChevronRight } from "lucide-react-native";
+import {
+  InfoCard,
+  InfoCardIcon,
+  InfoCardContent,
+  InfoCardTitle,
+} from "./info-card";
 
 interface CategoryCardProps {
   title: string;
   bgColor: string;
   iconColor: string;
+  onPress?: () => void;
 }
 
-export function CategoryCard({ title, bgColor, iconColor }: CategoryCardProps) {
+export function CategoryCard({ title, bgColor, iconColor, onPress }: CategoryCardProps) {
   return (
-    <TouchableOpacity className="bg-white rounded-[12.75px] p-3.5 shadow-sm">
+    <InfoCard onPress={onPress} className="rounded-[12.75px]">
       <View className="flex-row items-center gap-2.5">
-        <View
-          className="size-8 rounded-[14px] justify-center items-center"
-          style={{ backgroundColor: bgColor }}
-        >
-          <BookOpen size={16} color={iconColor} strokeWidth={1.75} />
-        </View>
-        <Text className="text-[12.25px] font-medium text-[#0A0A0A] flex-1">
-          {title}
-        </Text>
+        <InfoCardIcon
+          icon={BookOpen}
+          bgColor={bgColor}
+          iconColor={iconColor}
+          size={32}
+          iconSize={16}
+        />
+        <InfoCardContent>
+          <InfoCardTitle className="text-[12.25px]">{title}</InfoCardTitle>
+        </InfoCardContent>
       </View>
-    </TouchableOpacity>
+    </InfoCard>
   );
 }

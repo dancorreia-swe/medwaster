@@ -20,7 +20,7 @@ import {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session } = authClient.useSession();
 
   const userName = session?.user.name || "Usuário";
   const userImage = session?.user.image;

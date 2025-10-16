@@ -28,10 +28,10 @@ export function iconWithClassName(icon: any) {
 export function getUserInitials(name: string | null | undefined): string {
   const fullName = name?.trim() || "User";
   const names = fullName.split(" ").filter(Boolean);
-  
+
   if (names.length >= 2) {
     return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
   }
-  
+
   return fullName.substring(0, 2).toUpperCase();
 }

@@ -2,10 +2,10 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter, useSegments } from "expo-router";
 import React, { useEffect, type PropsWithChildren } from "react";
 
-// This hook will protect the route based on user authentication
 function useProtectedRoute() {
   const segments = useSegments();
   const router = useRouter();
+
   const { data: session, isPending } = authClient.useSession();
 
   useEffect(() => {
@@ -17,7 +17,7 @@ function useProtectedRoute() {
     if (!session && inAppGroup) {
       router.replace("/(auth)");
     } else if (session && inAuthGroup) {
-      router.replace("/(app)");
+      router.replace("/(app)/(drawer)");
     }
   }, [session, segments, isPending]);
 }

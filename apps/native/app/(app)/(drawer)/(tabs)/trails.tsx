@@ -10,7 +10,8 @@ const journeys = [
     id: "1",
     emoji: "💊",
     title: "Descarte de Resíduos Farmacêuticos",
-    description: "Aprenda técnicas adequadas para descarte seguro de medicamentos",
+    description:
+      "Aprenda técnicas adequadas para descarte seguro de medicamentos",
     status: "in-progress" as const,
     bgColor: "#2B7FFF",
     progress: 67,
@@ -83,10 +84,7 @@ export default function Trails() {
 
   return (
     <Container className="flex-1 bg-gray-50">
-      <ScrollView 
-        className="flex-1" 
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="px-5 pt-3.5 pb-0">
           <View className="py-3 mb-3">
@@ -102,8 +100,8 @@ export default function Trails() {
 
           {/* Filter Buttons */}
           <View className="mb-5">
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerClassName="gap-2"
             >
@@ -159,4 +157,3 @@ export default function Trails() {
     </Container>
   );
 }
-

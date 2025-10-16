@@ -1,7 +1,6 @@
 import { ScrollView, Text, View } from "react-native";
 import { Container } from "@/components/container";
 import { StatsCard } from "@/features/home/components/stats-card";
-import { UserAvatar } from "@/features/profile/components";
 import { CategoryCard } from "@/features/home/components/category-card";
 import { TrailCard } from "@/features/home/components/trail-card";
 import { QuickAccessCard } from "@/features/home/components/quick-access-card";
@@ -9,7 +8,6 @@ import { authClient } from "@/lib/auth-client";
 
 export default function Home() {
   const { data: session } = authClient.useSession();
-  const userName = session?.user.name || "Usuário";
 
   return (
     <Container className="flex-1 bg-gray-50">
