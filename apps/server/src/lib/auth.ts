@@ -24,7 +24,11 @@ export const auth = betterAuth({
     provider: "pg",
     schema: schema,
   }),
-  trustedOrigins: [process.env.CORS_ORIGIN || "", "my-better-t-app://"],
+  trustedOrigins: [
+    process.env.CORS_ORIGIN || "",
+    "my-better-t-app://",
+    "exp://",
+  ],
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url, token }, request) => {
@@ -93,6 +97,13 @@ export const auth = betterAuth({
           userAgent: userAgent,
         },
       );
+    },
+  },
+  socialProviders: {
+    google: {
+      prompt: "select_account",
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
   plugins: [

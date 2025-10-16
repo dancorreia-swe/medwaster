@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Kbd, KbdGroup } from "./kbd";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -260,14 +261,14 @@ function SidebarTrigger({
 }: React.ComponentProps<typeof Button>) {
   const { toggleSidebar } = useSidebar();
 
-  let shortcut = `Crtl+${SIDEBAR_KEYBOARD_SHORTCUT.toUpperCase()}`;
+  let shortcutTrigger = `Ctrl`;
 
   const userSystem =
     typeof navigator !== "undefined" &&
     /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
   if (userSystem) {
-    shortcut = `⌘${SIDEBAR_KEYBOARD_SHORTCUT.toUpperCase()}`;
+    shortcutTrigger = `⌘`;
   }
 
   return (
@@ -290,7 +291,13 @@ function SidebarTrigger({
         </Button>
       </TooltipTrigger>
       <TooltipContent>
-        <span>Toggle Sidebar ({shortcut})</span>
+        <div className="flex items-center gap-2">
+          Toggle Sidebar{" "}
+          <KbdGroup>
+            <Kbd>{shortcutTrigger}</Kbd>
+            <Kbd>{SIDEBAR_KEYBOARD_SHORTCUT.toUpperCase()}</Kbd>
+          </KbdGroup>
+        </div>
       </TooltipContent>
     </Tooltip>
   );

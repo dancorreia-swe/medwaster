@@ -1,0 +1,82 @@
+import { Text, TouchableOpacity, View } from "react-native";
+import { Container } from "@/components/container";
+import { LandingHeroImage } from "@/components/landing-hero-image";
+import {
+  AuthBottomSheet,
+  type AuthBottomSheetRef,
+} from "@/components/auth-bottom-sheet";
+import { useRef, useCallback } from "react";
+
+export default function Landing() {
+  const authBottomSheetRef = useRef<AuthBottomSheetRef>(null);
+
+  const handleOpenSignIn = useCallback(() => {
+    authBottomSheetRef.current?.switchToSignIn();
+    authBottomSheetRef.current?.expand();
+  }, []);
+
+  const handleOpenSignUp = useCallback(() => {
+    authBottomSheetRef.current?.switchToSignUp();
+    authBottomSheetRef.current?.expand();
+  }, []);
+
+  const handleClose = useCallback(() => {
+    authBottomSheetRef.current?.close();
+  }, []);
+
+  return (
+    <Container>
+      <View className="h-10" />
+
+      <View className="flex-1 items-center justify-center px-8">
+        <View className="mb-8">
+          <LandingHeroImage width={200} height={200} />
+        </View>
+
+        <View className="mb-6">
+          <Text className="text-[42px] font-bold text-[#155DFC] text-center tracking-tight">
+            Medwaster
+          </Text>
+        </View>
+
+        <View className="mb-8">
+          <Text className="text-[15.75px] leading-[25.6px] text-[#4A5565] text-center tracking-tight">
+            A maneira gratuita, divertida e eficaz de aprender sobre descarte
+            correto de resíduos hospitalares!
+          </Text>
+        </View>
+      </View>
+
+      <View className="px-5 pb-12 gap-6">
+        <TouchableOpacity
+          onPress={handleOpenSignUp}
+          className="bg-[#155DFC] rounded-[14px] py-4 items-center justify-center"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.1,
+            shadowRadius: 3,
+            elevation: 2,
+          }}
+        >
+          <Text className="text-white font-bold text-[14px] tracking-tight">
+            COMEÇAR
+          </Text>
+        </TouchableOpacity>
+
+        <View className="flex-row items-center justify-center gap-1">
+          <Text className="text-[14px] text-[#364153] tracking-tight">
+            Já tem uma conta?
+          </Text>
+          <TouchableOpacity onPress={handleOpenSignIn}>
+            <Text className="text-blue-500 font-bold tracking-tight">
+              Entre
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <AuthBottomSheet ref={authBottomSheetRef} onClose={handleClose} />
+    </Container>
+  );
+}

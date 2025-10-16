@@ -270,7 +270,7 @@ export function TagFormDialog({
           </form.Field>
 
           <DialogFooter className="pt-4">
-           <Button
+            <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}

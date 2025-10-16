@@ -17,9 +17,12 @@ Quick facts
 Important files and folders
 ---------------------------
 - app/                        - expo-router routes and layout files (file-based routing)
+- app/(auth)/                 - Public authentication routes (sign-in, sign-up)
+- app/(app)/                  - Protected app routes (requires authentication)
 - components/                 - shared presentational components used across the app
-- lib/                        - clients, utilities and platform helpers (auth-client, constants)
-- app/_layout.tsx             - root layout for the app (status bar, providers)
+- lib/                        - clients, utilities and platform helpers (auth-client, auth-context, constants)
+- app/_layout.tsx             - root layout for the app (status bar, providers, SessionProvider)
+- lib/auth-context.tsx        - SessionProvider component that handles route protection
 - babel.config.js             - includes nativewind and expo presets
 - metro.config.js             - customized to work inside a monorepo and with nativewind
 - global.css / tailwind.config.js - nativewind configuration and CSS tokens
@@ -30,6 +33,10 @@ Routing (expo-router)
 ----------------------
 - Routes live in the app/ folder using expo-router's file-based conventions. Layouts and nested routes are supported via folder structure.
 - Use `Link`, `Stack`, `Tabs`, and `Drawer` from `expo-router` for navigation as shown in the existing app/ files.
+- The app uses route groups for authentication:
+  - (auth) - Public routes (sign-in, sign-up) - accessible only when NOT authenticated
+  - (app) - Protected routes (drawer, tabs, modal) - accessible only when authenticated
+- Route protection is handled by SessionProvider in lib/auth-context.tsx which automatically redirects based on authentication state.
 
 Styling (nativewind)
 ---------------------
@@ -42,8 +49,16 @@ Styling (nativewind)
 Auth (better-auth, expo)
 -------------------------
 - The native app uses `better-auth` together with `@better-auth/expo` and `expo-secure-store` for storing tokens.
-- `src/lib/auth-client.ts` (apps/native/lib/auth-client.ts) creates an auth client via `createAuthClient({ baseURL, expoClient({ store: SecureStore }) })`.
-- Use `authClient.useSession()` or `authClient` hooks in components to get session state, call `authClient.signIn.email()` / `authClient.signUp.email()` and `authClient.signOut()`.
+- `lib/auth-client.ts` creates an auth client via `createAuthClient({ baseURL, expoClient({ store: SecureStore }) })`.
+- `lib/auth-context.tsx` provides the SessionProvider component that wraps the app and handles route protection.
+- Use `authClient.useSession()` hook in components to get session state.
+- Authentication flows:
+  - Sign in: app/(auth)/sign-in.tsx - uses `authClient.signIn.email()` and `authClient.signIn.social()`
+  - Sign up: app/(auth)/sign-up.tsx - uses `authClient.signUp.email()`
+  - Sign out: calls `authClient.signOut()` - handled in protected routes
+- Route protection: SessionProvider automatically redirects:
+  - Unauthenticated users accessing (app) routes → redirected to /(auth)/sign-in
+  - Authenticated users accessing (auth) routes → redirected to /(app)
 
 Data fetching (React Query)
 ---------------------------
@@ -63,7 +78,9 @@ Organize platform features similarly to web, but tuned for mobile:
   - index.ts      -> exports the feature public API
 
 Example: authentication
-- UI components live in `components/` (SignIn, SignUp). These use `authClient` from `lib/auth-client.ts` to sign in/out and access session state.
+- Authentication screens live in `app/(auth)/` (sign-in.tsx, sign-up.tsx). These use `authClient` from `lib/auth-client.ts` to authenticate.
+- Protected app screens live in `app/(app)/` and are automatically guarded by SessionProvider.
+- SessionProvider in `lib/auth-context.tsx` uses `authClient.useSession()` to monitor auth state and redirect appropriately.
 
 Metro / Monorepo notes
 ----------------------

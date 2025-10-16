@@ -9,6 +9,7 @@ import { questions } from "./modules/questions";
 import { tags } from "./modules/tags";
 import { audit } from "./modules/audit";
 import { auditMiddleware } from "./middleware/audit";
+import { categories } from "./modules/categories";
 
 const envCorsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",")
@@ -58,11 +59,12 @@ const app = new Elysia()
       logAuthEvents: true,
     }),
   )
-  .use(wiki)
-  .use(questions)
   .use(tags)
+  .use(wiki)
+  .use(categories)
+  .use(questions)
   .use(audit)
   .get("/", () => "OK")
-  .listen(3000);
+  .listen(process.env.PORT ? Number(process.env.PORT) : 3000);
 
 export type App = typeof app;
