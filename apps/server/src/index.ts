@@ -10,6 +10,7 @@ import { tags } from "./modules/tags";
 import { audit } from "./modules/audit";
 import { auditMiddleware } from "./middleware/audit";
 import { categories } from "./modules/categories";
+import { ai } from "./modules/ai";
 
 const envCorsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",")
@@ -64,6 +65,7 @@ const app = new Elysia()
   .use(categories)
   .use(questions)
   .use(audit)
+  .use(ai)
   .get("/", () => "OK")
   .listen(process.env.PORT ? Number(process.env.PORT) : 3000);
 
