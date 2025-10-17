@@ -10,7 +10,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { createInsertSchema } from 'drizzle-typebox';
+import { createInsertSchema } from "drizzle-typebox";
 
 import { user } from "./auth";
 import { contentCategories } from "./categories";
@@ -111,9 +111,7 @@ export const questionOptions = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [
-    index("question_options_question_idx").on(table.questionId),
-  ],
+  (table) => [index("question_options_question_idx").on(table.questionId)],
 );
 
 export const questionOptionsRelations = relations(

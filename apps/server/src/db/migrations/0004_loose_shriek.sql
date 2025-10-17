@@ -1,0 +1,1 @@
+ALTER TABLE "content_categories" DROP COLUMN "parent_id";
