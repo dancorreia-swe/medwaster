@@ -7,7 +7,8 @@ import {
   type NewWikiArticle,
   type WikiArticleStatus,
 } from "../../../db/schema/wiki";
-import { contentCategories, tags } from "../../../db/schema/questions";
+import { contentCategories } from "../../../db/schema/categories";
+import { tags } from "../../../db/schema/questions";
 import { user } from "../../../db/schema/auth";
 import {
   ContentProcessor,
@@ -331,7 +332,6 @@ export class ArticleService {
             id: category.id,
             name: category.name,
             color: category.color || "#3b82f6",
-            parentId: category.parentId,
           }
         : null,
       author: {

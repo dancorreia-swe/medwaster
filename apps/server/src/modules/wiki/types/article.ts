@@ -131,7 +131,6 @@ export const articleDetailSchema = t.Object({
       id: t.Number(),
       name: t.String(),
       color: t.String(),
-      parentId: t.Union([t.Number(), t.Null()]),
     }),
     t.Null(),
   ]),

@@ -17,6 +17,7 @@
     "dev:server": "turbo -F server dev",
     "db:push": "turbo -F server db:push",
     "db:studio": "turbo -F server db:studio",
+    "db:seed": "turbo -F server db:seed",
     "db:generate": "turbo -F server db:generate",
     "db:migrate": "turbo -F server db:migrate",
     "db:start": "turbo -F server db:start",

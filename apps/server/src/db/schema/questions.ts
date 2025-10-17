@@ -13,6 +13,7 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from 'drizzle-typebox';
 
 import { user } from "./auth";
+import { contentCategories } from "./categories";
 
 export const questionTypeValues = [
   "multiple_choice",
@@ -43,42 +44,6 @@ export const questionStatusEnum = pgEnum(
   questionStatusValues,
 );
 
-export const contentCategoryTypeValues = [
-  "wiki",
-  "question",
-  "track",
-  "quiz",
-  "general",
-] as const;
-export const contentCategoryTypeEnum = pgEnum(
-  "content_category_type",
-  contentCategoryTypeValues,
-);
-
-export const contentCategories = pgTable(
-  "content_categories",
-  {
-    id: serial("id").primaryKey(),
-    name: text("name").notNull(),
-    slug: text("slug").notNull().unique(),
-    description: text("description"),
-    color: text("color"),
-    parentId: integer("parent_id"),
-    type: contentCategoryTypeEnum("type").notNull().default("wiki"),
-    isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => ({
-    nameIdx: index("content_categories_name_idx").on(table.name),
-    typeIdx: index("content_categories_type_idx").on(table.type),
-  }),
-);
-
 export const questions = pgTable(
   "questions",
   {
@@ -103,15 +68,15 @@ export const questions = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    typeIdx: index("questions_type_idx").on(table.type),
-    difficultyIdx: index("questions_difficulty_idx").on(table.difficulty),
-    statusIdx: index("questions_status_idx").on(table.status),
-    categoryIdx: index("questions_category_idx").on(table.categoryId),
-    authorIdx: index("questions_author_idx").on(table.authorId),
-    createdAtIdx: index("questions_created_at_idx").on(table.createdAt),
-    updatedAtIdx: index("questions_updated_at_idx").on(table.updatedAt),
-  }),
+  (table) => [
+    index("questions_type_idx").on(table.type),
+    index("questions_difficulty_idx").on(table.difficulty),
+    index("questions_status_idx").on(table.status),
+    index("questions_category_idx").on(table.categoryId),
+    index("questions_author_idx").on(table.authorId),
+    index("questions_created_at_idx").on(table.createdAt),
+    index("questions_updated_at_idx").on(table.updatedAt),
+  ],
 );
 
 export const questionsRelations = relations(questions, ({ many, one }) => ({
@@ -146,9 +111,9 @@ export const questionOptions = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    questionIdx: index("question_options_question_idx").on(table.questionId),
-  }),
+  (table) => [
+    index("question_options_question_idx").on(table.questionId),
+  ],
 );
 
 export const questionOptionsRelations = relations(
@@ -178,12 +143,12 @@ export const questionFillBlankAnswers = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    questionSeqIdx: index("question_fill_blank_sequence_idx").on(
+  (table) => [
+    index("question_fill_blank_sequence_idx").on(
       table.questionId,
       table.sequence,
     ),
-  }),
+  ],
 );
 
 export const questionFillBlankAnswersRelations = relations(
@@ -213,12 +178,12 @@ export const questionMatchingPairs = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    questionSequenceIdx: index("question_matching_sequence_idx").on(
+  (table) => [
+    index("question_matching_sequence_idx").on(
       table.questionId,
       table.sequence,
     ),
-  }),
+  ],
 );
 
 export const questionMatchingPairsRelations = relations(
@@ -271,19 +236,12 @@ export const questionTags = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    pk: primaryKey({
+  (table) => [
+    primaryKey({
       columns: [table.questionId, table.tagId],
       name: "question_tags_pk",
     }),
-  }),
-);
-
-export const contentCategoriesRelations = relations(
-  contentCategories,
-  ({ many }) => ({
-    questions: many(questions),
-  }),
+  ],
 );
 
 export const questionTagsRelations = relations(questionTags, ({ one }) => ({
@@ -300,3 +258,10 @@ export const questionTagsRelations = relations(questionTags, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+export const contentCategoriesRelations = relations(
+  contentCategories,
+  ({ many }) => ({
+    questions: many(questions),
+  }),
+);
