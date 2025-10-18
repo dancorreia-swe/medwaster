@@ -1,15 +1,15 @@
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
-import { db } from "../../../db";
+import { db } from "@/db";
 import {
   wikiArticles,
   wikiArticleTags,
   wikiArticleRelationships,
   type NewWikiArticle,
   type WikiArticleStatus,
-} from "../../../db/schema/wiki";
-import { contentCategories } from "../../../db/schema/categories";
-import { tags } from "../../../db/schema/questions";
-import { user } from "../../../db/schema/auth";
+} from "@/db/schema/wiki";
+import { contentCategories } from "@/db/schema/categories";
+import { tags } from "@/db/schema/questions";
+import { user } from "@/db/schema/auth";
 import {
   ContentProcessor,
   generateSlug,
@@ -20,7 +20,7 @@ import {
   ValidationError,
   ConflictError,
   BusinessLogicError,
-} from "../../../lib/errors";
+} from "@/lib/errors";
 import type {
   CreateArticleData,
   UpdateArticleData,
@@ -28,6 +28,8 @@ import type {
   ArticleListItem,
   ArticleDetail,
 } from "../types/article";
+import { ragQueue } from "@/lib/queue";
+import { NoCategoryError } from "../exceptions/no-category-error";
 
 export class ArticleService {
   /**
@@ -37,8 +39,8 @@ export class ArticleService {
     data: CreateArticleData,
     authorId: string,
   ): Promise<ArticleDetail> {
-    // Generate unique slug
     const baseSlug = generateSlug(data.title);
+
     const existingSlugs = await db
       .select({ slug: wikiArticles.slug })
       .from(wikiArticles)
@@ -46,7 +48,6 @@ export class ArticleService {
 
     const slug = ensureUniqueSlug(baseSlug, existingSlugs);
 
-    // Process content
     const contentText = ContentProcessor.extractPlainText(data.content);
     const readingTimeMinutes = ContentProcessor.calculateReadingTime(
       data.content,
@@ -54,7 +55,6 @@ export class ArticleService {
     const excerpt =
       data.excerpt || ContentProcessor.generateExcerpt(data.content);
 
-    // Validate category if provided
     if (data.categoryId) {
       const category = await db
         .select()
@@ -78,9 +78,10 @@ export class ArticleService {
     // Validate publication requirements
     if (data.status === "published") {
       if (!data.categoryId) {
-        throw new BusinessLogicError("Published articles must have a category");
+        throw new NoCategoryError("Published articles must have a category");
       }
-      if (contentText.length < 50) {
+
+      if (!data.contentText || data.contentText?.length < 50) {
         throw new BusinessLogicError(
           "Published articles must have at least 50 characters of content",
         );
@@ -98,23 +99,39 @@ export class ArticleService {
       categoryId: data.categoryId,
       authorId,
       featuredImageUrl: data.featuredImageUrl,
-      metaDescription: data.metaDescription,
       publishedAt: data.status === "published" ? new Date() : null,
     };
 
     try {
-      // Create article
       const [article] = await db
         .insert(wikiArticles)
         .values(articleData)
         .returning();
 
-      // Add tags if provided
       if (data.tagIds && data.tagIds.length > 0) {
         await this.updateArticleTags(article.id, data.tagIds, authorId);
       }
 
-      return this.getArticleById(article.id);
+      const createdArticle = await this.getArticleById(article.id);
+
+      if (data.status === "published") {
+        console.log(
+          "[Article Service] Adding embedding generation job for article:",
+          article.id,
+        );
+        try {
+          const job = await ragQueue.add("generate-embeddings", {
+            type: "generate-embeddings",
+            articleId: article.id,
+            content: data.contentText,
+          });
+          console.log("[Article Service] Job added successfully, ID:", job.id);
+        } catch (error) {
+          console.error("[Article Service] Failed to add job to queue:", error);
+        }
+      }
+
+      return createdArticle;
     } catch (error) {
       if (
         error instanceof Error &&
@@ -179,8 +196,6 @@ export class ArticleService {
 
     // Update other fields
     if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
-    if (data.metaDescription !== undefined)
-      updateData.metaDescription = data.metaDescription;
     if (data.featuredImageUrl !== undefined)
       updateData.featuredImageUrl = data.featuredImageUrl;
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
@@ -256,7 +271,19 @@ export class ArticleService {
         await this.updateArticleTags(id, data.tagIds, authorId);
       }
 
-      return this.getArticleById(id);
+      const updatedArticle = await this.getArticleById(id);
+
+      // Dispatch RAG worker to regenerate embeddings if content changed
+      if (data.content) {
+        await ragQueue.add("generate-embeddings", {
+          type: "generate-embeddings",
+          articleId: id,
+          content:
+            updateData.contentText || existingArticle[0].contentText || "",
+        });
+      }
+
+      return updatedArticle;
     } catch (error) {
       if (
         error instanceof Error &&
@@ -322,7 +349,6 @@ export class ArticleService {
       content: article.content as object,
       contentText: article.contentText || "",
       excerpt: article.excerpt || "",
-      metaDescription: article.metaDescription,
       featuredImageUrl: article.featuredImageUrl,
       status: article.status,
       readingTimeMinutes: article.readingTimeMinutes || 1,
@@ -653,7 +679,16 @@ export class ArticleService {
       })
       .where(eq(wikiArticles.id, id));
 
-    return this.getArticleById(id);
+    const publishedArticle = await this.getArticleById(id);
+
+    // Dispatch RAG worker to generate embeddings for published article
+    await ragQueue.add("generate-embeddings", {
+      type: "generate-embeddings",
+      articleId: id,
+      content: article[0].contentText || "",
+    });
+
+    return publishedArticle;
   }
 
   /**

@@ -36,6 +36,20 @@
       "when": 1760667817628,
       "tag": "0004_loose_shriek",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1760671221052,
+      "tag": "0005_ordinary_white_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1760693340155,
+      "tag": "0006_lively_daimon_hellstrom",
+      "breakpoints": true
     }
   ]
 }

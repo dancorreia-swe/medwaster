@@ -22,24 +22,24 @@ const corsOrigin = envCorsOrigins.includes("*")
   ? true
   : [...envCorsOrigins, /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 
-const app = new Elysia()
+export const app = new Elysia()
   .use(
     logixlysia({
       config: {
+        logFilter: {
+          level: ["DEBUG", "INFO", "WARNING", "ERROR"],
+          status: [200, 201, 204, 400, 401, 403, 404, 500],
+          method: ["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS"],
+        },
+        pino: {
+          prettyPrint: true,
+        },
         showStartupMessage: true,
-        startupMessageFormat: "simple",
+        startupMessageFormat: "banner",
         timestamp: {
           translateTime: "yyyy-mm-dd HH:MM:ss",
         },
-        ip: true,
-        logFilePath: "./logs/example.log",
-        customLogFormat:
-          "🦊 {now} {level} {duration} {method} {pathname} {status} {message} {ip} {epoch}",
-        logFilter: {
-          level: ["ERROR", "WARNING", "INFO"],
-          status: [500, 404, 200, 201],
-          method: ["GET", "POST", "PUT", "DELETE"],
-        },
+        logFilePath: "./logs/app.log",
       },
     }),
   )

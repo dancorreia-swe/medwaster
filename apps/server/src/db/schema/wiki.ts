@@ -8,6 +8,7 @@ import {
   text,
   timestamp,
   primaryKey,
+  vector,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { user } from "./auth";
@@ -37,7 +38,6 @@ export const wikiRelationshipTypeEnum = pgEnum(
   wikiRelationshipTypeValues,
 );
 
-// Main wiki articles table
 export const wikiArticles = pgTable(
   "wiki_articles",
   {
@@ -56,7 +56,6 @@ export const wikiArticles = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
     featuredImageUrl: text("featured_image_url"), // Optional header image
-    metaDescription: text("meta_description"), // SEO description, max 160 chars
     viewCount: integer("view_count").notNull().default(0), // Student view tracking
     lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }), // Latest student view
     publishedAt: timestamp("published_at", { withTimezone: true }), // Publication timestamp

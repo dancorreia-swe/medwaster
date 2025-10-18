@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { AuditService } from "../modules/audit/audit.service";
+import { AuditService } from "../../modules/audit/audit.service";
 
 // Mock ulid
 vi.mock("ulid", () => ({

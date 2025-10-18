@@ -69,8 +69,6 @@ export const useUpdateArticle = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      console.log(data);
-
       return await client.wiki.articles({ id }).put({
         title: data?.title,
         content: data?.content,
@@ -205,12 +203,6 @@ export const useBulkArticleOperations = () => {
   };
 };
 
-export const useExportArticle = () =>
-  useMutation({
-    mutationFn: ({ id, options }: { id: number; options?: ExportPdfInput }) =>
-      wikiApi.exportArticlePdf(id, options),
-  });
-
 export const useAutoSaveArticle = (articleId?: number, debounceMs = 3000) => {
   const updateMutation = useUpdateArticle();
   const createMutation = useCreateArticle();
@@ -259,6 +251,5 @@ export default {
   useCategories,
   useTags,
   useBulkArticleOperations,
-  useExportArticle,
   useAutoSaveArticle,
 };

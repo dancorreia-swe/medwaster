@@ -3,9 +3,9 @@ import { t } from "elysia";
 // Base types for wiki articles
 export const createArticleSchema = t.Object({
   title: t.String({ minLength: 5, maxLength: 200 }),
-  content: t.Object({}), // BlockNote JSON content (any object structure)
+  content: t.Object({}),
+  contentText: t.Optional(t.String()),
   excerpt: t.Optional(t.String({ maxLength: 500 })),
-  metaDescription: t.Optional(t.String({ maxLength: 160 })),
   featuredImageUrl: t.Optional(t.String()),
   categoryId: t.Optional(t.Number()),
   tagIds: t.Optional(t.Array(t.Number())),
@@ -21,6 +21,7 @@ export const createArticleSchema = t.Object({
 export const updateArticleSchema = t.Object({
   title: t.Optional(t.String({ minLength: 5, maxLength: 200 })),
   content: t.Optional(t.Object({})),
+  contentText: t.Optional(t.String()),
   excerpt: t.Optional(t.String({ maxLength: 500 })),
   metaDescription: t.Optional(t.String({ maxLength: 160 })),
   featuredImageUrl: t.Optional(t.String()),

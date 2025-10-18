@@ -16,42 +16,42 @@ export class ContentProcessor {
    * Extract plain text from BlockNote JSON content for search indexing
    */
   static extractPlainText(content: any): string {
-    if (!content || typeof content !== 'object') {
-      return '';
+    if (!content || typeof content !== "object") {
+      return "";
     }
 
-    let text = '';
+    let text = "";
 
     const extractFromBlock = (block: any): string => {
-      if (!block || typeof block !== 'object') return '';
+      if (!block || typeof block !== "object") return "";
 
-      let blockText = '';
+      let blockText = "";
 
       // Handle different block types
       if (block.type) {
         switch (block.type) {
-          case 'paragraph':
-          case 'heading':
+          case "paragraph":
+          case "heading":
             // Extract text from inline content
             if (block.content && Array.isArray(block.content)) {
               blockText = block.content
-                .map((item: any) => item.text || '')
-                .join('');
-            }
-            break;
-          
-          case 'bulletListItem':
-          case 'numberedListItem':
-          case 'checkListItem':
-            // Extract text from list items
-            if (block.content && Array.isArray(block.content)) {
-              blockText = block.content
-                .map((item: any) => item.text || '')
-                .join('');
+                .map((item: any) => item.text || "")
+                .join("");
             }
             break;
 
-          case 'table':
+          case "bulletListItem":
+          case "numberedListItem":
+          case "checkListItem":
+            // Extract text from list items
+            if (block.content && Array.isArray(block.content)) {
+              blockText = block.content
+                .map((item: any) => item.text || "")
+                .join("");
+            }
+            break;
+
+          case "table":
             // Extract text from table cells
             if (block.content && Array.isArray(block.content)) {
               blockText = block.content
@@ -61,20 +61,22 @@ export class ContentProcessor {
                       .map((cell: any) => {
                         if (cell.content && Array.isArray(cell.content)) {
                           return cell.content
-                            .map((cellContent: any) => extractFromBlock(cellContent))
-                            .join(' ');
+                            .map((cellContent: any) =>
+                              extractFromBlock(cellContent),
+                            )
+                            .join(" ");
                         }
-                        return '';
+                        return "";
                       })
-                      .join(' ');
+                      .join(" ");
                   }
-                  return '';
+                  return "";
                 })
-                .join(' ');
+                .join(" ");
             }
             break;
 
-          case 'codeBlock':
+          case "codeBlock":
             // Extract code content
             if (block.props && block.props.code) {
               blockText = block.props.code;
@@ -84,18 +86,22 @@ export class ContentProcessor {
           default:
             // Handle custom blocks (procedure, alert, equipment, etc.)
             if (block.props) {
-              if (block.props.title) blockText += block.props.title + ' ';
-              if (block.props.content) blockText += block.props.content + ' ';
+              if (block.props.title) blockText += block.props.title + " ";
+              if (block.props.content) blockText += block.props.content + " ";
               if (block.props.steps && Array.isArray(block.props.steps)) {
-                blockText += block.props.steps.join(' ') + ' ';
+                blockText += block.props.steps.join(" ") + " ";
               }
-              if (block.props.safety_notes && Array.isArray(block.props.safety_notes)) {
-                blockText += block.props.safety_notes.join(' ') + ' ';
+              if (
+                block.props.safety_notes &&
+                Array.isArray(block.props.safety_notes)
+              ) {
+                blockText += block.props.safety_notes.join(" ") + " ";
               }
               if (block.props.items && Array.isArray(block.props.items)) {
-                blockText += block.props.items
-                  .map((item: any) => item.name || item.description || '')
-                  .join(' ') + ' ';
+                blockText +=
+                  block.props.items
+                    .map((item: any) => item.name || item.description || "")
+                    .join(" ") + " ";
               }
             }
         }
@@ -108,10 +114,10 @@ export class ContentProcessor {
 
       // Recursively process children/content
       if (block.children && Array.isArray(block.children)) {
-        blockText += ' ' + block.children.map(extractFromBlock).join(' ');
+        blockText += " " + block.children.map(extractFromBlock).join(" ");
       }
       if (block.content && Array.isArray(block.content)) {
-        blockText += ' ' + block.content.map(extractFromBlock).join(' ');
+        blockText += " " + block.content.map(extractFromBlock).join(" ");
       }
 
       return blockText;
@@ -119,16 +125,16 @@ export class ContentProcessor {
 
     // Handle root content structure
     if (Array.isArray(content)) {
-      text = content.map(extractFromBlock).join(' ');
+      text = content.map(extractFromBlock).join(" ");
     } else if (content.content && Array.isArray(content.content)) {
-      text = content.content.map(extractFromBlock).join(' ');
+      text = content.content.map(extractFromBlock).join(" ");
     } else {
       text = extractFromBlock(content);
     }
 
     // Clean up the text
     return text
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .replace(/\s+/g, " ") // Replace multiple spaces with single space
       .trim();
   }
 
@@ -140,7 +146,7 @@ export class ContentProcessor {
     if (!plainText) return 0;
 
     // Split by whitespace and filter out empty strings
-    const words = plainText.split(/\s+/).filter(word => word.length > 0);
+    const words = plainText.split(/\s+/).filter((word) => word.length > 0);
     return words.length;
   }
 
@@ -150,7 +156,7 @@ export class ContentProcessor {
    */
   static calculateReadingTime(content: any): number {
     const wordCount = this.calculateWordCount(content);
-    
+
     if (wordCount === 0) return 1; // Minimum 1 minute
 
     // Base reading speed: 200 words per minute
@@ -172,31 +178,28 @@ export class ContentProcessor {
    */
   static generateExcerpt(content: any, maxLength: number = 150): string {
     const plainText = this.extractPlainText(content);
-    
-    if (!plainText) return '';
-    
+
+    if (!plainText) return "";
+
     if (plainText.length <= maxLength) {
       return plainText;
     }
 
-    // Find the last complete sentence within the limit
     const truncated = plainText.substring(0, maxLength);
     const lastSentenceEnd = Math.max(
-      truncated.lastIndexOf('.'),
-      truncated.lastIndexOf('!'),
-      truncated.lastIndexOf('?')
+      truncated.lastIndexOf("."),
+      truncated.lastIndexOf("!"),
+      truncated.lastIndexOf("?"),
     );
 
     if (lastSentenceEnd > maxLength * 0.6) {
-      // If we found a sentence end and it's not too short, use it
       return truncated.substring(0, lastSentenceEnd + 1);
     } else {
-      // Otherwise, find the last complete word
-      const lastSpace = truncated.lastIndexOf(' ');
+      const lastSpace = truncated.lastIndexOf(" ");
       if (lastSpace > 0) {
-        return truncated.substring(0, lastSpace) + '...';
+        return truncated.substring(0, lastSpace) + "...";
       } else {
-        return truncated + '...';
+        return truncated + "...";
       }
     }
   }
@@ -208,10 +211,10 @@ export class ContentProcessor {
     const urls: string[] = [];
 
     const extractFromBlock = (block: any): void => {
-      if (!block || typeof block !== 'object') return;
+      if (!block || typeof block !== "object") return;
 
       // Check for image blocks
-      if (block.type === 'image' && block.props && block.props.url) {
+      if (block.type === "image" && block.props && block.props.url) {
         urls.push(block.props.url);
       }
 
@@ -255,11 +258,11 @@ export class ContentProcessor {
 
     // Basic structure validation
     if (!content) {
-      errors.push('Content cannot be empty');
+      errors.push("Content cannot be empty");
     }
 
-    if (typeof content !== 'object') {
-      errors.push('Content must be a valid BlockNote JSON object');
+    if (typeof content !== "object") {
+      errors.push("Content must be a valid BlockNote JSON object");
     }
 
     // Extract metrics
@@ -268,17 +271,19 @@ export class ContentProcessor {
 
     // Content length validation
     if (wordCount < 25) {
-      warnings.push('Content is very short (less than 25 words)');
+      warnings.push("Content is very short (less than 25 words)");
     }
 
     if (wordCount === 0) {
-      errors.push('Content has no readable text');
+      errors.push("Content has no readable text");
     }
 
     // Check for proper structure
-    if (content && typeof content === 'object') {
+    if (content && typeof content === "object") {
       if (!Array.isArray(content) && !content.content) {
-        warnings.push('Content structure may be invalid - expected array or object with content property');
+        warnings.push(
+          "Content structure may be invalid - expected array or object with content property",
+        );
       }
     }
 
@@ -298,19 +303,22 @@ export class ContentProcessor {
 export function generateSlug(title: string): string {
   return title
     .toLowerCase()
-    .normalize('NFD') // Decompose accented characters
-    .replace(/[\u0300-\u036f]/g, '') // Remove accent marks
-    .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .normalize("NFD") // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, "") // Remove accent marks
+    .replace(/[^\w\s-]/g, "") // Remove special characters except spaces and hyphens
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
     .trim()
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
 }
 
 /**
  * Ensure slug uniqueness by appending number if needed
  */
-export function ensureUniqueSlug(baseSlug: string, existingSlugs: string[]): string {
+export function ensureUniqueSlug(
+  baseSlug: string,
+  existingSlugs: string[],
+): string {
   let slug = baseSlug;
   let counter = 1;
 

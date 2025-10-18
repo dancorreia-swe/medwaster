@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "dev": "turbo dev",
+    "dev:all": "turbo run dev dev:worker --filter='./apps/*' --concurrency=10",
     "build": "turbo build",
     "check-types": "turbo check-types",
     "test": "turbo test",
@@ -15,6 +16,7 @@
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
+    "dev:worker": "turbo -F server dev:worker",
     "db:push": "turbo -F server db:push",
     "db:studio": "turbo -F server db:studio",
     "db:seed": "turbo -F server db:seed",

@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { RateLimitMonitor } from "../lib/rate-limit-monitor";
+import { RateLimitMonitor } from "../../lib/rate-limit-monitor";
 
 // Mock database
 const mockDb = {
