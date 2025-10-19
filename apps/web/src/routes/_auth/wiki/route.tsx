@@ -53,7 +53,7 @@ function RouteComponent() {
     page: 1,
     limit: 12,
     status,
-    categoryId: search.categoryId,
+    categoryId: search.categoryId || undefined,
     search: search.q,
     sort: "updated_at",
     order: "desc",
@@ -173,7 +173,6 @@ function RouteComponent() {
   );
 }
 
-const EMPTY_BLOCKNOTE_DOC = { type: "doc", content: [] } as const;
 const DEFAULT_TITLE = "Novo artigo";
 
 function NewArticleButton() {
@@ -190,7 +189,6 @@ function NewArticleButton() {
     try {
       const response = await createArticle({
         title: DEFAULT_TITLE,
-        content: EMPTY_BLOCKNOTE_DOC,
         excerpt: "",
         status: "draft",
       } as any);

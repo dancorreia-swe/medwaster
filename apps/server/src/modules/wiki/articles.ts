@@ -19,7 +19,6 @@ export const wikiArticles = new Elysia({ prefix: "/articles" })
     },
     (app) =>
       app
-        // List articles with filtering and pagination
         .get(
           "/",
           async ({ query }) => {

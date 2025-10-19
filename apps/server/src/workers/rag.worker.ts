@@ -51,8 +51,6 @@ export const ragWorker = new Worker<RAGJobData>(
   {
     connection,
     concurrency: 4,
-    removeOnComplete: { count: 1000 },
-    removeOnFail: { count: 5000 },
     limiter: {
       max: 10,
       duration: 1000,

@@ -30,7 +30,6 @@ type FileListQueryParams = import("./wikiApi").FileListQueryParams;
 type UpdateArticleInput = Parameters<typeof wikiApi.updateArticle>[1];
 type CreateArticleInput = Parameters<typeof wikiApi.createArticle>[0];
 type BulkExportInput = Parameters<typeof wikiApi.bulkExportPdf>[0];
-type ExportPdfInput = Parameters<typeof wikiApi.exportArticlePdf>[1];
 
 export const useArticles = (filters?: ArticleListQueryParams) =>
   useQuery({
@@ -59,6 +58,7 @@ export const useCreateArticle = () => {
       if (created?.id) {
         queryClient.setQueryData(wikiQueryKeys.article(created.id), response);
       }
+
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
     },
   });
@@ -68,17 +68,44 @@ export const useUpdateArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await client.wiki.articles({ id }).put({
-        title: data?.title,
-        content: data?.content,
+    mutationFn: async ({ id, data }: { id: number; data: UpdateArticleInput  }) => {
+      return await client.wiki.articles({ id }).put(data);
+    },
+    onMutate: async ({ id, data }) => {
+      // Cancel outgoing refetches to prevent them from overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: wikiQueryKeys.article(id) });
+
+      // Snapshot the previous value
+      const previousArticle = queryClient.getQueryData(wikiQueryKeys.article(id));
+
+      // Optimistically update the cache
+      queryClient.setQueryData(wikiQueryKeys.article(id), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            ...data,
+            updatedAt: new Date().toISOString(),
+          },
+        };
       });
+
+      return { previousArticle };
     },
     onSuccess: (response, variables) => {
+      // Update with actual server response
       queryClient.setQueryData(wikiQueryKeys.article(variables.id), response);
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousArticle) {
+        queryClient.setQueryData(
+          wikiQueryKeys.article(variables.id),
+          context.previousArticle
+        );
+      }
       console.error("Error updating article:", error);
     },
   });

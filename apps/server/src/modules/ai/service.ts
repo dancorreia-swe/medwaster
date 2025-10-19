@@ -1,4 +1,4 @@
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { MarkdownTextSplitter } from "langchain/text_splitter";
 import { Document } from "@langchain/core/documents";
 import { openai } from "@ai-sdk/openai";
 import { embedMany } from "ai";
@@ -9,10 +9,9 @@ export abstract class AIService {
   ): Promise<{ content: string; embedding: number[] }[]> {
     const embeddingModel = openai.textEmbeddingModel("text-embedding-3-small");
 
-    const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 50,
-      chunkOverlap: 1,
-      separators: ["|", "##", ">", "-"],
+    const splitter = new MarkdownTextSplitter({
+      chunkOverlap: 30,
+      chunkSize: 250,
     });
 
     const docOutputs = await splitter.splitDocuments([

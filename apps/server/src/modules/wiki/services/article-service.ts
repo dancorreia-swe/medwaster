@@ -1,3 +1,4 @@
+import { ServerBlockNoteEditor } from "@blocknote/server-util";
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -32,6 +33,8 @@ import { ragQueue } from "@/lib/queue";
 import { NoCategoryError } from "../exceptions/no-category-error";
 
 export class ArticleService {
+  private static editor: ServerBlockNoteEditor = ServerBlockNoteEditor.create();
+
   /**
    * Create a new wiki article
    */
@@ -47,13 +50,6 @@ export class ArticleService {
       .then((results) => results.map((r) => r.slug));
 
     const slug = ensureUniqueSlug(baseSlug, existingSlugs);
-
-    const contentText = ContentProcessor.extractPlainText(data.content);
-    const readingTimeMinutes = ContentProcessor.calculateReadingTime(
-      data.content,
-    );
-    const excerpt =
-      data.excerpt || ContentProcessor.generateExcerpt(data.content);
 
     if (data.categoryId) {
       const category = await db
@@ -75,26 +71,10 @@ export class ArticleService {
       }
     }
 
-    // Validate publication requirements
-    if (data.status === "published") {
-      if (!data.categoryId) {
-        throw new NoCategoryError("Published articles must have a category");
-      }
-
-      if (!data.contentText || data.contentText?.length < 50) {
-        throw new BusinessLogicError(
-          "Published articles must have at least 50 characters of content",
-        );
-      }
-    }
-
     const articleData: NewWikiArticle = {
       title: data.title,
       slug,
-      content: data.content,
-      contentText,
-      excerpt,
-      readingTimeMinutes,
+      content: [{}],
       status: data.status || "draft",
       categoryId: data.categoryId,
       authorId,
@@ -113,23 +93,6 @@ export class ArticleService {
       }
 
       const createdArticle = await this.getArticleById(article.id);
-
-      if (data.status === "published") {
-        console.log(
-          "[Article Service] Adding embedding generation job for article:",
-          article.id,
-        );
-        try {
-          const job = await ragQueue.add("generate-embeddings", {
-            type: "generate-embeddings",
-            articleId: article.id,
-            content: data.contentText,
-          });
-          console.log("[Article Service] Job added successfully, ID:", job.id);
-        } catch (error) {
-          console.error("[Article Service] Failed to add job to queue:", error);
-        }
-      }
 
       return createdArticle;
     } catch (error) {
@@ -167,7 +130,6 @@ export class ArticleService {
       updatedAt: new Date(),
     };
 
-    // Update title and regenerate slug if needed
     if (data.title && data.title !== existingArticle[0].title) {
       const baseSlug = generateSlug(data.title);
       const existingSlugs = await db
@@ -183,29 +145,30 @@ export class ArticleService {
     // Update content and recalculate metrics
     if (data.content) {
       updateData.content = data.content;
-      updateData.contentText = ContentProcessor.extractPlainText(data.content);
+
+      updateData.contentText = await this.editor.blocksToMarkdownLossy(
+        data.content,
+      );
+      console.log(updateData.contentText);
+
       updateData.readingTimeMinutes = ContentProcessor.calculateReadingTime(
         data.content,
       );
 
-      // Update excerpt if not explicitly provided
       if (!data.excerpt) {
         updateData.excerpt = ContentProcessor.generateExcerpt(data.content);
       }
     }
 
-    // Update other fields
     if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
     if (data.featuredImageUrl !== undefined)
       updateData.featuredImageUrl = data.featuredImageUrl;
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
 
-    // Handle status changes
     if (data.status) {
       const oldStatus = existingArticle[0].status;
       const newStatus = data.status;
 
-      // Validate publication requirements
       if (newStatus === "published") {
         const categoryId = data.categoryId ?? existingArticle[0].categoryId;
         const content = data.content ?? existingArticle[0].content;
@@ -226,19 +189,16 @@ export class ArticleService {
           );
         }
 
-        // Set published timestamp if transitioning to published
         if (oldStatus !== "published") {
           updateData.publishedAt = new Date();
         }
       } else if (newStatus === "draft" && oldStatus === "published") {
-        // Clear published timestamp when unpublishing
         updateData.publishedAt = null;
       }
 
       updateData.status = newStatus;
     }
 
-    // Validate category if provided
     if (data.categoryId) {
       const category = await db
         .select()
@@ -273,7 +233,6 @@ export class ArticleService {
 
       const updatedArticle = await this.getArticleById(id);
 
-      // Dispatch RAG worker to regenerate embeddings if content changed
       if (data.content) {
         await ragQueue.add("generate-embeddings", {
           type: "generate-embeddings",

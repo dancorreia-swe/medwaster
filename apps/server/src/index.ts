@@ -12,6 +12,8 @@ import { auditMiddleware } from "./middleware/audit";
 import { categories } from "./modules/categories";
 import { ai } from "./modules/ai";
 
+const isDev = process.env.NODE_ENV === "development";
+
 const envCorsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",")
       .map((origin) => origin.trim())
@@ -22,7 +24,7 @@ const corsOrigin = envCorsOrigins.includes("*")
   ? true
   : [...envCorsOrigins, /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 
-export const app = new Elysia()
+export const app = new Elysia({ name: "medwaster-api" })
   .use(
     logixlysia({
       config: {
@@ -32,7 +34,24 @@ export const app = new Elysia()
           method: ["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS"],
         },
         pino: {
-          prettyPrint: true,
+          level: isDev ? "debug" : "info",
+          prettyPrint: isDev,
+          base: {
+            service: "medwaster-api",
+            version: "1.0.0",
+            environment: process.env.NODE_ENV,
+          },
+          redact: ["password", "token", "apiKey"],
+          transport: isDev
+            ? {
+                target: "pino-pretty",
+                options: {
+                  colorize: true,
+                  translateTime: "HH:MM:ss Z",
+                  ignore: "pid,hostname",
+                },
+              }
+            : undefined,
         },
         showStartupMessage: true,
         startupMessageFormat: "banner",
