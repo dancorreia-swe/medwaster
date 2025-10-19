@@ -109,10 +109,11 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
     handleRemoveTag,
     handleSelectTag,
     handleCreateTag,
+    handleEditorChange,
     canSave,
   } = useArticleEditor({
     articleId,
-    article: article,
+    article: article.data,
     onPublish,
   });
 
@@ -155,7 +156,7 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
 
         <ArticleContentEditor
           articleId={articleId}
-          initialContent={article?.content?.content}
+          initialContent={article?.data?.content}
           onUploadFile={handleUploadFile}
           onEditorReady={setEditor}
           onChange={handleEditorChange}
