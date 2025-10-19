@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
 import { useUpdateArticle } from "../api/wikiQueries";
 import type { BlockNoteEditor } from "@blocknote/core";
@@ -29,75 +29,74 @@ interface UseArticleEditorProps {
   onPublish: () => void;
 }
 
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((val, idx) => val === sortedB[idx]);
+}
+
 export function useArticleEditor({
   articleId,
   article,
   onPublish,
 }: UseArticleEditorProps) {
-  const { mutateAsync: updateArticle, isPending: isUpdating } =
-    useUpdateArticle();
+  const { mutateAsync: updateArticle, isPending: isUpdating } = useUpdateArticle();
 
-  const isInitialMount = useRef(true);
-
-  const [title, setTitle] = useState(article?.title ?? "");
-  const [status, setStatus] = useState<"draft" | "published">(
-    article?.status === "published" ? "published" : "draft",
-  );
-  const [categoryId, setCategoryId] = useState<number | undefined>(
-    article?.category?.id ?? undefined,
-  );
-  const [metaDescription] = useState(article?.metaDescription ?? "");
-  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(
-    article?.updatedAt ? new Date(article.updatedAt) : null,
-  );
+  const [title, setTitle] = useState("");
+  const [status, setStatus] = useState<"draft" | "published">("draft");
+  const [categoryId, setCategoryId] = useState<number | undefined>();
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [autoSaving, setAutoSaving] = useState(false);
   const [editor, setEditor] = useState<BlockNoteEditor | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<TagOption[]>(DEFAULT_TAG_OPTIONS);
+  const [newTag, setNewTag] = useState("");
 
-  const initialTags = useMemo(
-    () =>
-      article?.tags?.map((tag: any) => ({
-        id: String(tag.id),
-        label: tag.name,
-      })) ?? [],
-    [article?.tags],
-  );
+  // Track initial values from server to detect actual changes
+  const serverState = useRef({
+    title: "",
+    categoryId: undefined as number | undefined,
+    selectedTags: [] as string[],
+  });
 
-  const [selectedTags, setSelectedTags] = useState<string[]>(
-    initialTags.map((tag) => tag.id),
-  );
-  const [availableTags, setAvailableTags] = useState<TagOption[]>(() => {
+  // Initialize state from article data once per article
+  useEffect(() => {
+    if (!article) return;
+    
+    const newTitle = article.title ?? "";
+    const newStatus = article.status === "published" ? "published" : "draft";
+    const newCategoryId = article.category?.id;
+    const newLastSavedAt = article.updatedAt ? new Date(article.updatedAt) : null;
+
+    setTitle(newTitle);
+    setStatus(newStatus);
+    setCategoryId(newCategoryId);
+    setLastSavedAt(newLastSavedAt);
+
+    const articleTags = article.tags?.map((tag: any) => ({
+      id: String(tag.id),
+      label: tag.name,
+    })) ?? [];
+
+    const newSelectedTags = articleTags.map((tag: TagOption) => tag.id);
+    setSelectedTags(newSelectedTags);
+    
     const combined = [...DEFAULT_TAG_OPTIONS];
-    initialTags.forEach((tag) => {
+    articleTags.forEach((tag: TagOption) => {
       if (!combined.find((t) => t.id === tag.id)) {
         combined.push(tag);
       }
     });
-    return combined;
-  });
-  const [newTag, setNewTag] = useState("");
+    setAvailableTags(combined);
 
-  useEffect(() => {
-    isInitialMount.current = true;
-  }, [articleId]);
-
-  useEffect(() => {
-    if (isInitialMount.current && article) {
-      setTitle(article?.title ?? "");
-      setStatus(article?.status === "published" ? "published" : "draft");
-      setCategoryId(article?.category?.id ?? undefined);
-      setSelectedTags(initialTags.map((tag) => tag.id));
-      setAvailableTags(() => {
-        const base = [...DEFAULT_TAG_OPTIONS];
-        initialTags.forEach((tag) => {
-          if (!base.find((t) => t.id === tag.id)) {
-            base.push(tag);
-          }
-        });
-        return base;
-      });
-      isInitialMount.current = false;
-    }
-  }, [article, initialTags]); // Run when article data loads
+    // Store server state
+    serverState.current = {
+      title: newTitle,
+      categoryId: newCategoryId,
+      selectedTags: newSelectedTags,
+    };
+  }, [articleId, article]);
 
   const handleSave = useCallback(
     async (publish = false) => {
@@ -121,33 +120,27 @@ export function useArticleEditor({
             content: editor.document,
             categoryId,
             status: publish ? "published" : status,
-            metaDescription: metaDescription || undefined,
+            metaDescription: undefined,
           },
         } as any);
+
+        if (publish) {
+          setStatus("published");
+          onPublish();
+        } else {
+          setLastSavedAt(new Date());
+          serverState.current = {
+            title: title.trim(),
+            categoryId,
+            selectedTags,
+          };
+        }
       } catch (error) {
         console.error("Erro ao salvar artigo:", error);
         alert("Não foi possível salvar o artigo. Tente novamente.");
-        return;
       }
-
-      if (publish) {
-        setStatus("published");
-        onPublish();
-        return;
-      }
-
-      setLastSavedAt(new Date());
     },
-    [
-      title,
-      editor,
-      articleId,
-      categoryId,
-      status,
-      metaDescription,
-      updateArticle,
-      onPublish,
-    ],
+    [title, editor, articleId, categoryId, selectedTags, status, updateArticle, onPublish],
   );
 
   const debouncedAutoSave = useDebouncedCallback(() => {
@@ -156,23 +149,26 @@ export function useArticleEditor({
     handleSave(false).finally(() => setAutoSaving(false));
   }, 2000);
 
+  // Check if current state differs from server state
+  const hasChanges = useCallback(() => {
+    return (
+      title !== serverState.current.title ||
+      categoryId !== serverState.current.categoryId ||
+      !arraysEqual(selectedTags, serverState.current.selectedTags)
+    );
+  }, [title, categoryId, selectedTags]);
+
+  // Auto-save on changes (only if different from server state)
   useEffect(() => {
+    if (!hasChanges()) return;
     debouncedAutoSave();
     return debouncedAutoSave.cancel;
-  }, [title, debouncedAutoSave]);
+  }, [title, categoryId, selectedTags, hasChanges, debouncedAutoSave]);
 
-  useEffect(() => {
-    if (!editor) return;
-
-    const unsubscribe = editor.onChange(() => {
-      debouncedAutoSave();
-    });
-
-    return () => {
-      unsubscribe?.();
-      debouncedAutoSave.cancel();
-    };
-  }, [editor, debouncedAutoSave]);
+  const handleEditorChange = useCallback(() => {
+    // Editor changes are always considered changes
+    debouncedAutoSave();
+  }, [debouncedAutoSave]);
 
   const handleRemoveTag = useCallback((value: string) => {
     setSelectedTags((prev) => prev.filter((tag) => tag !== value));
@@ -213,6 +209,7 @@ export function useArticleEditor({
     handleRemoveTag,
     handleSelectTag,
     handleCreateTag,
+    handleEditorChange,
     canSave: title.trim().length >= MIN_TITLE_LENGTH,
   };
 }

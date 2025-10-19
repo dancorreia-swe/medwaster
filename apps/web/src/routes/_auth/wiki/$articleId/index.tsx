@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/components/auth/role-guard";
-import { useArticle, useCategories } from "@/features/wiki/api/wikiQueries";
+import { articleQueryOptions, categoriesQueryOptions, useArticle, useCategories } from "@/features/wiki/api/wikiQueries";
 import { wikiApi } from "@/features/wiki/api/wikiApi";
 import {
   ArticleEditorToolbar,
@@ -12,6 +12,19 @@ import {
 import { useArticleEditor } from "@/features/wiki/hooks/use-article-editor";
 
 export const Route = createFileRoute("/_auth/wiki/$articleId/")({
+  loader: async ({ context: { queryClient }, params: { articleId } }) => {
+    const numericArticleId = Number(articleId);
+    
+    if (Number.isNaN(numericArticleId)) {
+      throw new Error("Invalid article ID");
+    }
+
+    // Preload data - hooks below will return cached data instantly
+    await Promise.all([
+      queryClient.ensureQueryData(articleQueryOptions(numericArticleId)),
+      queryClient.ensureQueryData(categoriesQueryOptions()),
+    ]);
+  },
   component: RouteComponent,
   beforeLoad: ({ params }) => ({
     getTitle: () => `Editar Artigo ${params.articleId}`,
@@ -99,7 +112,7 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
     canSave,
   } = useArticleEditor({
     articleId,
-    article: article.data,
+    article: article,
     onPublish,
   });
 
@@ -142,9 +155,10 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
 
         <ArticleContentEditor
           articleId={articleId}
-          initialContent={article?.data.content}
+          initialContent={article?.content?.content}
           onUploadFile={handleUploadFile}
           onEditorReady={setEditor}
+          onChange={handleEditorChange}
         />
       </div>
     </div>

@@ -10,6 +10,7 @@ interface ArticleContentEditorProps {
   initialContent?: any[];
   onUploadFile: (file: File) => Promise<string>;
   onEditorReady?: (editor: BlockNoteEditor) => void;
+  onChange?: () => void; // Add onChange callback
   articleId?: number; // Add articleId to track article changes
 }
 
@@ -17,6 +18,7 @@ export function ArticleContentEditor({
   initialContent,
   onUploadFile,
   onEditorReady,
+  onChange,
   articleId,
 }: ArticleContentEditorProps) {
   const { theme } = useTheme();
@@ -40,6 +42,19 @@ export function ArticleContentEditor({
       onEditorReady(editor);
     }
   }, [editor, onEditorReady]);
+
+  // Listen to editor changes and notify parent
+  useEffect(() => {
+    if (!editor || !onChange) return;
+
+    const unsubscribe = editor.onChange(() => {
+      onChange();
+    });
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [editor, onChange]);
 
   if (!editor) {
     return (
