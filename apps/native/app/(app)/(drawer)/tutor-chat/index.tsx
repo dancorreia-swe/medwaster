@@ -8,7 +8,7 @@ import {
   Animated,
   ScrollView,
 } from "react-native";
-import { Href, Route, useLocalSearchParams, useRouter } from "expo-router";
+import { Route, useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Mic, Send, GraduationCap } from "lucide-react-native";
 import { Container } from "@/components/container";
 import { useState, useEffect, useRef } from "react";
