@@ -67,7 +67,7 @@ export function MessageBubble({ message, isUser = false }: MessageBubbleProps) {
           text: "Selecionar texto",
           onPress: () => {
             router.push({
-              pathname: "/(app)/(drawer)/(tabs)/(tutor-chat)/text-viewer",
+              pathname: "/(app)/(drawer)/tutor-chat/text-viewer",
               params: { text: message },
             });
           },

@@ -20,7 +20,6 @@ import { Route as AuthTrailsIndexRouteImport } from './routes/_auth/trails/index
 import { Route as AuthTagsIndexRouteImport } from './routes/_auth/tags/index'
 import { Route as AuthQuestionsIndexRouteImport } from './routes/_auth/questions/index'
 import { Route as AuthCategoriesIndexRouteImport } from './routes/_auth/categories/index'
-import { Route as AuthWikiNewRouteImport } from './routes/_auth/wiki/new'
 import { Route as AuthWikiArticleIdIndexRouteImport } from './routes/_auth/wiki/$articleId/index'
 import { Route as AuthAdminUsersIndexRouteImport } from './routes/_auth/admin/users/index'
 import { Route as AuthAdminSettingsIndexRouteImport } from './routes/_auth/admin/settings/index'
@@ -79,11 +78,6 @@ const AuthCategoriesIndexRoute = AuthCategoriesIndexRouteImport.update({
   path: '/categories/',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthWikiNewRoute = AuthWikiNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AuthWikiRouteRoute,
-} as any)
 const AuthWikiArticleIdIndexRoute = AuthWikiArticleIdIndexRouteImport.update({
   id: '/$articleId/',
   path: '/$articleId/',
@@ -107,7 +101,6 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/wiki': typeof AuthWikiRouteRouteWithChildren
   '/': typeof AuthIndexRoute
-  '/wiki/new': typeof AuthWikiNewRoute
   '/categories': typeof AuthCategoriesIndexRoute
   '/questions': typeof AuthQuestionsIndexRoute
   '/tags': typeof AuthTagsIndexRoute
@@ -123,7 +116,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/wiki': typeof AuthWikiRouteRouteWithChildren
   '/': typeof AuthIndexRoute
-  '/wiki/new': typeof AuthWikiNewRoute
   '/categories': typeof AuthCategoriesIndexRoute
   '/questions': typeof AuthQuestionsIndexRoute
   '/tags': typeof AuthTagsIndexRoute
@@ -141,7 +133,6 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_auth/wiki': typeof AuthWikiRouteRouteWithChildren
   '/_auth/': typeof AuthIndexRoute
-  '/_auth/wiki/new': typeof AuthWikiNewRoute
   '/_auth/categories/': typeof AuthCategoriesIndexRoute
   '/_auth/questions/': typeof AuthQuestionsIndexRoute
   '/_auth/tags/': typeof AuthTagsIndexRoute
@@ -159,7 +150,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/wiki'
     | '/'
-    | '/wiki/new'
     | '/categories'
     | '/questions'
     | '/tags'
@@ -175,7 +165,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/wiki'
     | '/'
-    | '/wiki/new'
     | '/categories'
     | '/questions'
     | '/tags'
@@ -192,7 +181,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_auth/wiki'
     | '/_auth/'
-    | '/_auth/wiki/new'
     | '/_auth/categories/'
     | '/_auth/questions/'
     | '/_auth/tags/'
@@ -289,13 +277,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCategoriesIndexRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/wiki/new': {
-      id: '/_auth/wiki/new'
-      path: '/new'
-      fullPath: '/wiki/new'
-      preLoaderRoute: typeof AuthWikiNewRouteImport
-      parentRoute: typeof AuthWikiRouteRoute
-    }
     '/_auth/wiki/$articleId/': {
       id: '/_auth/wiki/$articleId/'
       path: '/$articleId'
@@ -321,12 +302,10 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthWikiRouteRouteChildren {
-  AuthWikiNewRoute: typeof AuthWikiNewRoute
   AuthWikiArticleIdIndexRoute: typeof AuthWikiArticleIdIndexRoute
 }
 
 const AuthWikiRouteRouteChildren: AuthWikiRouteRouteChildren = {
-  AuthWikiNewRoute: AuthWikiNewRoute,
   AuthWikiArticleIdIndexRoute: AuthWikiArticleIdIndexRoute,
 }
 

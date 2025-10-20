@@ -15,11 +15,11 @@ import {
 
 import { db } from "@/db";
 import {
-  contentCategories,
   questionTags,
   questions,
   tags,
 } from "@/db/schema/questions";
+import { contentCategories } from "@/db/schema/categories";
 import { user } from "@/db/schema/auth";
 
 import type { ListQuestionsParams, SortOption } from "./questions.validators";

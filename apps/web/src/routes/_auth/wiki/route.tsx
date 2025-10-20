@@ -12,10 +12,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  articlesQueryOptions,
+  categoriesQueryOptions,
   useArticles,
   useCategories,
   useCreateArticle,
   useWikiStats,
+  wikiStatsQueryOptions,
 } from "@/features/wiki/api/wikiQueries";
 import { wrapRouteWithOutletIfNested } from "@/utils/router";
 import {
@@ -34,26 +37,61 @@ const STATUS_TABS = [
   { value: "archived", label: "Arquivados" },
 ];
 
+type WikiSearchParams = {
+  q?: string;
+  status?: string;
+  categoryId?: number;
+};
+
 export const Route = createFileRoute("/_auth/wiki")({
+  validateSearch: (search: Record<string, unknown>): WikiSearchParams => {
+    return {
+      q: search.q as string | undefined,
+      status: search.status as string | undefined,
+      categoryId: search.categoryId ? Number(search.categoryId) : undefined,
+    };
+  },
+  loaderDeps: ({ search }) => ({
+    status: search.status,
+    categoryId: search.categoryId,
+    q: search.q,
+  }),
+  loader: async ({ context: { queryClient }, deps }) => {
+    const status = (deps.status as string) ?? "all";
+    
+    // Preload data - hooks below will return cached data instantly (no loading states!)
+    await Promise.all([
+      queryClient.ensureQueryData(
+        articlesQueryOptions({
+          page: 1,
+          limit: 12,
+          status,
+          categoryId: deps.categoryId || undefined,
+          search: deps.q,
+          sort: "updated_at",
+          order: "desc",
+        })
+      ),
+      queryClient.ensureQueryData(categoriesQueryOptions()),
+      queryClient.ensureQueryData(wikiStatsQueryOptions()),
+    ]);
+  },
   beforeLoad: () => ({ getTitle: () => "Wiki" }),
   component: wrapRouteWithOutletIfNested(RouteComponent),
 });
 
 function RouteComponent() {
-  const search = useSearch({ strict: false }) as {
-    q?: string;
-    status?: string;
-    categoryId?: number;
-  };
+  const search = useSearch({ from: "/_auth/wiki" });
   const navigate = useNavigate();
   const [localQ, setLocalQ] = useState(search.q ?? "");
   const status = (search.status as string) ?? "all";
 
+  // Data is preloaded by loader - these hooks return cached data instantly
   const { data, isPending, isError } = useArticles({
     page: 1,
     limit: 12,
     status,
-    categoryId: search.categoryId,
+    categoryId: search.categoryId || undefined,
     search: search.q,
     sort: "updated_at",
     order: "desc",
@@ -173,7 +211,6 @@ function RouteComponent() {
   );
 }
 
-const EMPTY_BLOCKNOTE_DOC = { type: "doc", content: [] } as const;
 const DEFAULT_TITLE = "Novo artigo";
 
 function NewArticleButton() {
@@ -190,7 +227,6 @@ function NewArticleButton() {
     try {
       const response = await createArticle({
         title: DEFAULT_TITLE,
-        content: EMPTY_BLOCKNOTE_DOC,
         excerpt: "",
         status: "draft",
       } as any);
@@ -344,7 +380,7 @@ function EmptyState() {
         Tente alterar os filtros ou criar um novo artigo.
       </p>
       <Button asChild className="mt-4">
-        <Link to="/wiki/articles/new">
+        <Link to="/wiki">
           <Plus className="mr-2 h-4 w-4" /> Um novo artigo
         </Link>
       </Button>

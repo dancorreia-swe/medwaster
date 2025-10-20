@@ -2,6 +2,7 @@
   "name": "native",
   "version": "1.0.0",
   "main": "expo-router/entry",
+  "private": true,
   "scripts": {
     "dev": "expo start --clear",
     "android": "expo run:android",
@@ -10,15 +11,18 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@ai-sdk/react": "^2.0.76",
     "@babel/plugin-transform-react-jsx": "^7.27.1",
     "@better-auth/expo": "^1.3.4",
+    "@elysiajs/eden": "^1.4.4",
     "@expo/vector-icons": "^15.0.2",
     "@gorhom/bottom-sheet": "^5.2.6",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/drawer": "^7.1.1",
     "@react-navigation/native": "^7.0.14",
     "@tanstack/react-form": "^1.0.5",
-    "@tanstack/react-query": "^5.90.2",
+    "@tanstack/react-query": "^5.90.3",
+    "ai": "^5.0.76",
     "babel-preset-expo": "^54.0.4",
     "better-auth": "^1.3.4",
     "clsx": "^2.1.1",
@@ -41,6 +45,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.4",
+    "react-native-css-interop": "^0.2.1",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-marked": "^7.0.2",
     "react-native-nitro-modules": "^0.30.0",
@@ -56,12 +61,12 @@
   "devDependencies": {
     "@babel/core": "^7.26.10",
     "@types/react": "~19.1.10",
+    "elysia": "^1.4.12",
     "expo-mcp": "^0.1.12",
     "metro-cache": "^0.83.3",
     "react-query-external-sync": "^2.2.3",
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.9.2"
-  },
-  "private": true
+  }
 }

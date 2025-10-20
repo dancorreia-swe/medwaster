@@ -1,14 +1,16 @@
+import { ServerBlockNoteEditor } from "@blocknote/server-util";
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
-import { db } from "../../../db";
+import { db } from "@/db";
 import {
   wikiArticles,
   wikiArticleTags,
   wikiArticleRelationships,
   type NewWikiArticle,
   type WikiArticleStatus,
-} from "../../../db/schema/wiki";
-import { contentCategories, tags } from "../../../db/schema/questions";
-import { user } from "../../../db/schema/auth";
+} from "@/db/schema/wiki";
+import { contentCategories } from "@/db/schema/categories";
+import { tags } from "@/db/schema/questions";
+import { user } from "@/db/schema/auth";
 import {
   ContentProcessor,
   generateSlug,
@@ -19,7 +21,7 @@ import {
   ValidationError,
   ConflictError,
   BusinessLogicError,
-} from "../../../lib/errors";
+} from "@/lib/errors";
 import type {
   CreateArticleData,
   UpdateArticleData,
@@ -27,8 +29,12 @@ import type {
   ArticleListItem,
   ArticleDetail,
 } from "../types/article";
+import { ragQueue } from "@/lib/queue";
+import { NoCategoryError } from "../exceptions/no-category-error";
 
 export class ArticleService {
+  private static editor: ServerBlockNoteEditor = ServerBlockNoteEditor.create();
+
   /**
    * Create a new wiki article
    */
@@ -36,8 +42,8 @@ export class ArticleService {
     data: CreateArticleData,
     authorId: string,
   ): Promise<ArticleDetail> {
-    // Generate unique slug
     const baseSlug = generateSlug(data.title);
+
     const existingSlugs = await db
       .select({ slug: wikiArticles.slug })
       .from(wikiArticles)
@@ -45,15 +51,6 @@ export class ArticleService {
 
     const slug = ensureUniqueSlug(baseSlug, existingSlugs);
 
-    // Process content
-    const contentText = ContentProcessor.extractPlainText(data.content);
-    const readingTimeMinutes = ContentProcessor.calculateReadingTime(
-      data.content,
-    );
-    const excerpt =
-      data.excerpt || ContentProcessor.generateExcerpt(data.content);
-
-    // Validate category if provided
     if (data.categoryId) {
       const category = await db
         .select()
@@ -74,46 +71,30 @@ export class ArticleService {
       }
     }
 
-    // Validate publication requirements
-    if (data.status === "published") {
-      if (!data.categoryId) {
-        throw new BusinessLogicError("Published articles must have a category");
-      }
-      if (contentText.length < 50) {
-        throw new BusinessLogicError(
-          "Published articles must have at least 50 characters of content",
-        );
-      }
-    }
-
     const articleData: NewWikiArticle = {
       title: data.title,
       slug,
-      content: data.content,
-      contentText,
-      excerpt,
-      readingTimeMinutes,
+      content: [{}],
       status: data.status || "draft",
       categoryId: data.categoryId,
       authorId,
       featuredImageUrl: data.featuredImageUrl,
-      metaDescription: data.metaDescription,
       publishedAt: data.status === "published" ? new Date() : null,
     };
 
     try {
-      // Create article
       const [article] = await db
         .insert(wikiArticles)
         .values(articleData)
         .returning();
 
-      // Add tags if provided
       if (data.tagIds && data.tagIds.length > 0) {
         await this.updateArticleTags(article.id, data.tagIds, authorId);
       }
 
-      return this.getArticleById(article.id);
+      const createdArticle = await this.getArticleById(article.id);
+
+      return createdArticle;
     } catch (error) {
       if (
         error instanceof Error &&
@@ -149,7 +130,6 @@ export class ArticleService {
       updatedAt: new Date(),
     };
 
-    // Update title and regenerate slug if needed
     if (data.title && data.title !== existingArticle[0].title) {
       const baseSlug = generateSlug(data.title);
       const existingSlugs = await db
@@ -165,31 +145,29 @@ export class ArticleService {
     // Update content and recalculate metrics
     if (data.content) {
       updateData.content = data.content;
-      updateData.contentText = ContentProcessor.extractPlainText(data.content);
+
+      updateData.contentText = await this.editor.blocksToMarkdownLossy(
+        data.content,
+      );
+
       updateData.readingTimeMinutes = ContentProcessor.calculateReadingTime(
         data.content,
       );
 
-      // Update excerpt if not explicitly provided
       if (!data.excerpt) {
         updateData.excerpt = ContentProcessor.generateExcerpt(data.content);
       }
     }
 
-    // Update other fields
     if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
-    if (data.metaDescription !== undefined)
-      updateData.metaDescription = data.metaDescription;
     if (data.featuredImageUrl !== undefined)
       updateData.featuredImageUrl = data.featuredImageUrl;
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
 
-    // Handle status changes
     if (data.status) {
       const oldStatus = existingArticle[0].status;
       const newStatus = data.status;
 
-      // Validate publication requirements
       if (newStatus === "published") {
         const categoryId = data.categoryId ?? existingArticle[0].categoryId;
         const content = data.content ?? existingArticle[0].content;
@@ -210,19 +188,16 @@ export class ArticleService {
           );
         }
 
-        // Set published timestamp if transitioning to published
         if (oldStatus !== "published") {
           updateData.publishedAt = new Date();
         }
       } else if (newStatus === "draft" && oldStatus === "published") {
-        // Clear published timestamp when unpublishing
         updateData.publishedAt = null;
       }
 
       updateData.status = newStatus;
     }
 
-    // Validate category if provided
     if (data.categoryId) {
       const category = await db
         .select()
@@ -255,7 +230,18 @@ export class ArticleService {
         await this.updateArticleTags(id, data.tagIds, authorId);
       }
 
-      return this.getArticleById(id);
+      const updatedArticle = await this.getArticleById(id);
+
+      if (data.content) {
+        await ragQueue.add("generate-embeddings", {
+          type: "generate-embeddings",
+          articleId: id,
+          content:
+            updateData.contentText || existingArticle[0].contentText || "",
+        });
+      }
+
+      return updatedArticle;
     } catch (error) {
       if (
         error instanceof Error &&
@@ -321,7 +307,6 @@ export class ArticleService {
       content: article.content as object,
       contentText: article.contentText || "",
       excerpt: article.excerpt || "",
-      metaDescription: article.metaDescription,
       featuredImageUrl: article.featuredImageUrl,
       status: article.status,
       readingTimeMinutes: article.readingTimeMinutes || 1,
@@ -331,7 +316,6 @@ export class ArticleService {
             id: category.id,
             name: category.name,
             color: category.color || "#3b82f6",
-            parentId: category.parentId,
           }
         : null,
       author: {
@@ -653,7 +637,16 @@ export class ArticleService {
       })
       .where(eq(wikiArticles.id, id));
 
-    return this.getArticleById(id);
+    const publishedArticle = await this.getArticleById(id);
+
+    // Dispatch RAG worker to generate embeddings for published article
+    await ragQueue.add("generate-embeddings", {
+      type: "generate-embeddings",
+      articleId: id,
+      content: article[0].contentText || "",
+    });
+
+    return publishedArticle;
   }
 
   /**

@@ -6,15 +6,19 @@ import {
   User,
 } from "lucide-react-native";
 import { useColorScheme } from "@/lib/use-color-scheme";
-import { Tabs } from "expo-router";
+import { router, Tabs, usePathname } from "expo-router";
 
 export default function TabLayout() {
   const { isDarkColorScheme } = useColorScheme();
+  const pathname = usePathname();
 
   return (
     <Tabs
+      initialRouteName="index"
       backBehavior="history"
+      detachInactiveScreens
       screenOptions={{
+        freezeOnBlur: true,
         headerShown: false,
         tabBarActiveTintColor: isDarkColorScheme
           ? "hsl(217.2 91.2% 59.8%)"
@@ -41,33 +45,34 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="(trails)"
+        name="trails"
         options={{
           title: "Trilhas",
           tabBarIcon: ({ color }) => <Route color={color} />,
         }}
       />
-
-      <Tabs.Screen
-        name="(tutor-chat)"
-        options={{
-          title: "Tutor",
-          tabBarIcon: ({ color }) => <MessageCircle color={color} />,
-          tabBarStyle: { display: "none" },
-          animation: "shift",
-        }}
-      />
-      <Tabs.Screen
-        name="(wiki)"
-        options={{
-          title: "Wiki",
-          tabBarIcon: ({ color }) => <BookOpen color={color} />,
-        }}
-      />
       <Tabs.Screen
         name="two"
         options={{
-          href: null,
+          title: "Tutor",
+          tabBarIcon: ({ color }) => <MessageCircle color={color} />,
+        }}
+        listeners={() => ({
+          tabPress: (e) => {
+            e.preventDefault();
+
+            router.push({
+              pathname: "/(app)/(drawer)/tutor-chat",
+              params: { returnTo: pathname },
+            });
+          },
+        })}
+      />
+      <Tabs.Screen
+        name="wiki"
+        options={{
+          title: "Wiki",
+          tabBarIcon: ({ color }) => <BookOpen color={color} />,
         }}
       />
       <Tabs.Screen

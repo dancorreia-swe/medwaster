@@ -2,7 +2,7 @@ name: medwaster
 
 services:
   postgres:
-    image: postgres
+    image: pgvector/pgvector:pg18-trixie
     container_name: medwaster-postgres
     environment:
       POSTGRES_DB: medwaster

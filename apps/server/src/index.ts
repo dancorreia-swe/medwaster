@@ -10,6 +10,9 @@ import { tags } from "./modules/tags";
 import { audit } from "./modules/audit";
 import { auditMiddleware } from "./middleware/audit";
 import { categories } from "./modules/categories";
+import { ai } from "./modules/ai";
+
+const isDev = process.env.NODE_ENV === "development";
 
 const envCorsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",")
@@ -21,24 +24,41 @@ const corsOrigin = envCorsOrigins.includes("*")
   ? true
   : [...envCorsOrigins, /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 
-const app = new Elysia()
+export const app = new Elysia({ name: "medwaster-api" })
   .use(
     logixlysia({
       config: {
+        logFilter: {
+          level: ["DEBUG", "INFO", "WARNING", "ERROR"],
+          status: [200, 201, 204, 400, 401, 403, 404, 500],
+          method: ["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS"],
+        },
+        pino: {
+          level: isDev ? "debug" : "info",
+          prettyPrint: isDev,
+          base: {
+            service: "medwaster-api",
+            version: "1.0.0",
+            environment: process.env.NODE_ENV,
+          },
+          redact: ["password", "token", "apiKey"],
+          transport: isDev
+            ? {
+                target: "pino-pretty",
+                options: {
+                  colorize: true,
+                  translateTime: "HH:MM:ss Z",
+                  ignore: "pid,hostname",
+                },
+              }
+            : undefined,
+        },
         showStartupMessage: true,
-        startupMessageFormat: "simple",
+        startupMessageFormat: "banner",
         timestamp: {
           translateTime: "yyyy-mm-dd HH:MM:ss",
         },
-        ip: true,
-        logFilePath: "./logs/example.log",
-        customLogFormat:
-          "🦊 {now} {level} {duration} {method} {pathname} {status} {message} {ip} {epoch}",
-        logFilter: {
-          level: ["ERROR", "WARNING", "INFO"],
-          status: [500, 404, 200, 201],
-          method: ["GET", "POST", "PUT", "DELETE"],
-        },
+        logFilePath: "./logs/app.log",
       },
     }),
   )
@@ -64,6 +84,7 @@ const app = new Elysia()
   .use(categories)
   .use(questions)
   .use(audit)
+  .use(ai)
   .get("/", () => "OK")
   .listen(process.env.PORT ? Number(process.env.PORT) : 3000);
 

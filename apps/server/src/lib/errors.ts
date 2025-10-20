@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import logixlysia from "logixlysia";
 
 // =====================================================
 // HTTP Error Classes - Available Application-Wide
@@ -173,22 +174,23 @@ export interface ErrorResponse {
 
 export const globalErrorHandler = new Elysia({
   name: "global-error-handler",
-}).onError(({ code, error, set, request }) => {
-  console.log("[Global Error Handler] Called with:", {
-    code,
-    errorType: typeof error,
-    errorName: error?.constructor?.name,
-    message: "message" in error ? error.message : "Unknown error",
-  });
+}).onError({ as: "global" }, ({ code, error, set, request, store }) => {
+  store.pino.info(
+    {
+      code,
+      errorType: typeof error,
+      errorName: error?.constructor?.name,
+      message: "message" in error ? error.message : "Unknown error",
+    },
+    "[Global Error Handler] Called with",
+  );
 
   const timestamp = new Date().toISOString();
   const path = new URL(request.url).pathname;
   const requestId = request.headers.get("x-request-id") || undefined;
 
-  // Always set JSON content type for error responses
   set.headers["content-type"] = "application/json";
 
-  // Handle custom HTTP errors first
   if (error instanceof HttpError) {
     console.log(
       "[Global Error Handler] Handling HttpError:",
@@ -208,7 +210,6 @@ export const globalErrorHandler = new Elysia({
     } satisfies ErrorResponse;
   }
 
-  // Handle specific error codes
   switch (code) {
     case "VALIDATION":
       console.log("[Global Error Handler] Handling validation error");
@@ -254,7 +255,6 @@ export const globalErrorHandler = new Elysia({
       } satisfies ErrorResponse;
 
     default:
-      // Handle unknown/internal errors
       console.log("[Global Error Handler] Handling unknown error, code:", code);
       console.error("[Global Error Handler]", {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -282,7 +282,6 @@ export const globalErrorHandler = new Elysia({
 // =====================================================
 // Helper Functions
 // =====================================================
-
 
 /**
  * Create an error response (for middleware usage)

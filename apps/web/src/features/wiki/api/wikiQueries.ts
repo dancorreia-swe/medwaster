@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { wikiApi } from "./wikiApi";
 import { client } from "@/lib/client";
 
@@ -17,12 +17,14 @@ export const wikiQueryKeys = {
   tags: () => [...wikiQueryKeys.all, "tags"] as const,
 };
 
-export const useWikiStats = () =>
-  useQuery({
+export const wikiStatsQueryOptions = () =>
+  queryOptions({
     queryKey: wikiQueryKeys.stats(),
     queryFn: wikiApi.getStats,
     staleTime: 60_000,
   });
+
+export const useWikiStats = () => useQuery(wikiStatsQueryOptions());
 
 type ArticleListQueryParams = import("./wikiApi").ArticleListQueryParams;
 type FileListQueryParams = import("./wikiApi").FileListQueryParams;
@@ -30,23 +32,37 @@ type FileListQueryParams = import("./wikiApi").FileListQueryParams;
 type UpdateArticleInput = Parameters<typeof wikiApi.updateArticle>[1];
 type CreateArticleInput = Parameters<typeof wikiApi.createArticle>[0];
 type BulkExportInput = Parameters<typeof wikiApi.bulkExportPdf>[0];
-type ExportPdfInput = Parameters<typeof wikiApi.exportArticlePdf>[1];
 
-export const useArticles = (filters?: ArticleListQueryParams) =>
-  useQuery({
+export const articlesQueryOptions = (filters?: ArticleListQueryParams) =>
+  queryOptions({
     queryKey: wikiQueryKeys.articlesList(filters),
     queryFn: () => wikiApi.listArticles(filters),
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
   });
 
-export const useArticle = (id: number) =>
-  useQuery({
+export const useArticles = (filters?: ArticleListQueryParams) =>
+  useQuery(articlesQueryOptions(filters));
+
+export const articleQueryOptions = (id: number) =>
+  queryOptions({
     queryKey: wikiQueryKeys.article(id),
     queryFn: () => wikiApi.getArticle(id),
     enabled: Number.isFinite(id) && id > 0,
     staleTime: 5 * 60_000,
   });
+
+export const useArticle = (id: number) => useQuery(articleQueryOptions(id));
+
+export const categoriesQueryOptions = () =>
+  queryOptions({
+    queryKey: wikiQueryKeys.categories(),
+    queryFn: wikiApi.listCategories,
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+  });
+
+export const useCategories = () => useQuery(categoriesQueryOptions());
 
 export const useCreateArticle = () => {
   const queryClient = useQueryClient();
@@ -59,6 +75,7 @@ export const useCreateArticle = () => {
       if (created?.id) {
         queryClient.setQueryData(wikiQueryKeys.article(created.id), response);
       }
+
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
     },
   });
@@ -68,19 +85,44 @@ export const useUpdateArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      console.log(data);
+    mutationFn: async ({ id, data }: { id: number; data: UpdateArticleInput  }) => {
+      return await client.wiki.articles({ id }).put(data);
+    },
+    onMutate: async ({ id, data }) => {
+      // Cancel outgoing refetches to prevent them from overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: wikiQueryKeys.article(id) });
 
-      return await client.wiki.articles({ id }).put({
-        title: data?.title,
-        content: data?.content,
+      // Snapshot the previous value
+      const previousArticle = queryClient.getQueryData(wikiQueryKeys.article(id));
+
+      // Optimistically update the cache
+      queryClient.setQueryData(wikiQueryKeys.article(id), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            ...data,
+            updatedAt: new Date().toISOString(),
+          },
+        };
       });
+
+      return { previousArticle };
     },
     onSuccess: (response, variables) => {
+      // Update with actual server response
       queryClient.setQueryData(wikiQueryKeys.article(variables.id), response);
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousArticle) {
+        queryClient.setQueryData(
+          wikiQueryKeys.article(variables.id),
+          context.previousArticle
+        );
+      }
       console.error("Error updating article:", error);
     },
   });
@@ -152,14 +194,6 @@ export const useDeleteFile = () => {
   });
 };
 
-export const useCategories = () =>
-  useQuery({
-    queryKey: wikiQueryKeys.categories(),
-    queryFn: wikiApi.listCategories,
-    staleTime: 30 * 60_000,
-    gcTime: 60 * 60_000,
-  });
-
 export const useTags = () =>
   useQuery({
     queryKey: wikiQueryKeys.tags(),
@@ -204,12 +238,6 @@ export const useBulkArticleOperations = () => {
     exportMultiple,
   };
 };
-
-export const useExportArticle = () =>
-  useMutation({
-    mutationFn: ({ id, options }: { id: number; options?: ExportPdfInput }) =>
-      wikiApi.exportArticlePdf(id, options),
-  });
 
 export const useAutoSaveArticle = (articleId?: number, debounceMs = 3000) => {
   const updateMutation = useUpdateArticle();
@@ -259,6 +287,5 @@ export default {
   useCategories,
   useTags,
   useBulkArticleOperations,
-  useExportArticle,
   useAutoSaveArticle,
 };
