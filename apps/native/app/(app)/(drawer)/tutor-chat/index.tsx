@@ -6,14 +6,25 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Easing,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Route, useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Mic, Send, GraduationCap } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Mic,
+  Send,
+  GraduationCap,
+  Square,
+} from "lucide-react-native";
 import { Container } from "@/components/container";
 import { useState, useEffect, useRef } from "react";
 import { UserMessage, AiMessage } from "@/features/tutor-chat/components";
 import { Icon } from "@/components/icon";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import { fetch as expoFetch } from "expo/fetch";
 
 type MessageType = "user" | "ai";
 
@@ -28,8 +39,11 @@ export default function TutorScreen() {
   const { returnTo } = useLocalSearchParams<{ returnTo?: Route }>();
 
   const [inputText, setInputText] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const colorAnim = useRef(new Animated.Value(0)).current;
+  const [prevIsEmpty, setPrevIsEmpty] = useState(true);
+  const [cancelledMessageId, setCancelledMessageId] = useState<string | null>(
+    null,
+  );
+  const scaleAnim = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
 
   const handleBack = () => {
@@ -40,55 +54,73 @@ export default function TutorScreen() {
     }
   };
 
+  const { messages, sendMessage, status, stop } = useChat({
+    transport: new DefaultChatTransport({
+      fetch: expoFetch as unknown as typeof globalThis.fetch,
+      api: process.env.EXPO_PUBLIC_SERVER_URL + "/ai/chat",
+    }),
+    onError: (error) => console.error(error, "ERROR"),
+    onFinish: ({ isAbort, message }) => {
+      if (isAbort) {
+        setCancelledMessageId(message.id);
+      }
+    },
+    onData: () => {
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: false });
+      });
+    },
+  });
+
+  const handleStop = () => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === "assistant") {
+        setCancelledMessageId(lastMessage.id);
+      }
+    }
+
+    stop();
+  };
+
   const handleSend = () => {
     if (inputText.trim().length === 0) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: "user",
-      content: inputText.trim(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    setCancelledMessageId(null);
+    sendMessage({ text: inputText });
     setInputText("");
-
-    setTimeout(() => {
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: "ai",
-        content: `Entendo sua dúvida sobre gestão de resíduos hospitalares.
-## Para dar uma resposta mais precisa,
-você poderia fornecer mais detalhes? 
-Por exemplo:
-- qual tipo de resíduo (perfurocortante, químico, biológico)? 
-- Qual é o contexto específico?`,
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-    }, 1000);
   };
 
   const isInputEmpty = inputText.trim().length === 0;
 
   useEffect(() => {
-    Animated.timing(colorAnim, {
-      toValue: isInputEmpty ? 0 : 1,
-      duration: 200,
-      useNativeDriver: false,
-    }).start();
-  }, [isInputEmpty]);
+    if (prevIsEmpty !== isInputEmpty) {
+      setPrevIsEmpty(isInputEmpty);
+
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 0.8,
+          duration: 100,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.ease),
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+          easing: Easing.in(Easing.ease),
+        }),
+      ]).start();
+    }
+  }, [isInputEmpty, prevIsEmpty]);
 
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      });
     }
   }, [messages]);
-
-  const backgroundColor = colorAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["rgb(229, 231, 235)", "rgb(21, 93, 252)"], // gray-200 to primary
-  });
 
   return (
     <Container className="flex-1 bg-white" edges={["top", "bottom"]}>
@@ -150,54 +182,106 @@ Por exemplo:
             </View>
           ) : (
             <View className="gap-3.5 py-5">
-              {messages.map((message) =>
-                message.type === "user" ? (
-                  <UserMessage key={message.id} message={message.content} />
-                ) : (
-                  <AiMessage key={message.id} message={message.content} />
-                ),
+              {messages.map((message, index) => {
+                const isLastMessage = index === messages.length - 1;
+                const isCurrentlyStreaming =
+                  isLastMessage && status === "streaming";
+
+                const isCancelled = message.id === cancelledMessageId;
+
+                if (message.role === "user") {
+                  return (
+                    <UserMessage
+                      key={message.id}
+                      message={message.parts
+                        .map((part) => (part.type === "text" ? part.text : ""))
+                        .join("")}
+                    />
+                  );
+                }
+
+                const messageText = message.parts
+                  .map((part) => (part.type === "text" ? part.text : ""))
+                  .join("");
+
+                return (
+                  <AiMessage
+                    key={message.id}
+                    message={messageText.trim() === "" ? null : messageText}
+                    isStreaming={isCurrentlyStreaming}
+                    isCancelled={isCancelled}
+                  />
+                );
+              })}
+
+              {status === "submitted" && (
+                <View className="px-4 py-3 gap-3">
+                  <View className="flex-row items-center gap-2">
+                    <ActivityIndicator size="small" color="rgb(21, 93, 252)" />
+                    <Text className="text-sm text-gray-500">Pensando...</Text>
+                  </View>
+                </View>
               )}
             </View>
           )}
         </ScrollView>
 
         {/* Input */}
-        <View className="border-t border-gray-200 px-3.5 pb-2 pt-3">
-          <View className="bg-gray-50 rounded-full border border-gray-200 flex-row items-center px-4 py-2">
-            {/* <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center"> */}
-            {/*   <Paperclip size={18} className="text-gray-500" /> */}
-            {/* </TouchableOpacity> */}
+        <View className="px-3.5 pb-2 pt-3">
+          <View className="flex-row items-end justify-end gap-2">
+            <View className="flex-1 bg-gray-50 rounded-3xl border border-gray-200 px-4 py-2">
+              {/* <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center mb-1"> */}
+              {/*   <Paperclip size={18} className="text-gray-500" /> */}
+              {/* </TouchableOpacity> */}
 
-            <TextInput
-              placeholder="Pergunte algo..."
-              className="flex-1 text-base leading-tight text-neutral-900 px-2.5 py-1 placeholder:text-muted-foreground/80"
-              value={inputText}
-              onChangeText={setInputText}
-              onSubmitEditing={handleSend}
-            />
+              <TextInput
+                placeholder="Pergunte algo..."
+                className="text-lg leading-tight text-neutral-900 px-2.5 py-2 placeholder:text-muted-foreground/80"
+                value={inputText}
+                onChangeText={setInputText}
+                onSubmitEditing={handleSend}
+                multiline
+                maxLength={500}
+                style={{ maxHeight: 120 }}
+                textAlignVertical="top"
+              />
+            </View>
 
-            <TouchableOpacity className="size-8 rounded-full items-center justify-center">
-              <Icon icon={Mic} size={18} className="text-muted-foreground" />
-            </TouchableOpacity>
-
-            <TouchableOpacity disabled={isInputEmpty} onPress={handleSend}>
-              <Animated.View
-                className="size-8 rounded-full items-center justify-center ml-1"
-                style={{ backgroundColor }}
+            {status === "submitted" || status === "streaming" ? (
+              <TouchableOpacity
+                onPress={handleStop}
+                disabled={!(status === "submitted" || status === "streaming")}
+                className="mb-1"
               >
-                <Animated.Text>
+                <View className="size-14 rounded-full items-center justify-center bg-gray-700">
                   <Icon
-                    icon={Send}
-                    size={12}
-                    className={
-                      isInputEmpty
-                        ? "text-muted-foreground fill-muted-foreground"
-                        : "text-white fill-white"
-                    }
+                    icon={Square}
+                    size={14}
+                    className="text-white fill-white"
                   />
-                </Animated.Text>
-              </Animated.View>
-            </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={isInputEmpty ? undefined : handleSend}
+                disabled={!(status === "ready")}
+                className="mb-1 disabled:opacity-50"
+              >
+                <View className="size-14 rounded-full items-center justify-center bg-primary">
+                  <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+                    {isInputEmpty ? (
+                      <Icon icon={Mic} size={20} className="text-white" />
+                    ) : (
+                      <Icon
+                        icon={Send}
+                        size={16}
+                        className="text-white fill-white"
+                      />
+                    )}
+                  </Animated.View>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </KeyboardAvoidingView>

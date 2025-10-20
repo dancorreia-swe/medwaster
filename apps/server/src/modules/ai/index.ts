@@ -1,5 +1,11 @@
 import { betterAuthMacro } from "@/lib/auth";
-import { streamText, tool } from "ai";
+import {
+  convertToModelMessages,
+  smoothStream,
+  streamText,
+  tool,
+  type UIMessage,
+} from "ai";
 import { openai } from "@ai-sdk/openai";
 
 import Elysia, { t } from "elysia";
@@ -12,14 +18,16 @@ export const ai = new Elysia({ prefix: "/ai" }).use(betterAuthMacro).guard(
   (app) =>
     app.post(
       "/chat",
-      ({ body }) =>
+      ({ body: { messages } }) =>
         streamText({
+          experimental_transform: smoothStream({
+            delayInMs: 20,
+          }),
           model: openai("gpt-5-nano"),
           maxRetries: 3,
-          temperature: 0.3,
+          messages: convertToModelMessages(messages as UIMessage[]),
           system:
             "You're a specialist about medical information and pill disposition.",
-          prompt: body,
           tools: {
             rag: tool({
               description:
@@ -29,9 +37,16 @@ export const ai = new Elysia({ prefix: "/ai" }).use(betterAuthMacro).guard(
               }),
             }),
           },
-        }).textStream,
+        }).toUIMessageStreamResponse({
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "Content-Encoding": "none",
+          },
+        }),
       {
-        body: t.String(),
+        body: t.Object({
+          messages: t.Any(),
+        }),
       },
     ),
 );
