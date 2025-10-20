@@ -28,7 +28,7 @@ export const ai = new Elysia({ prefix: "/ai" }).use(betterAuthMacro).guard(
           experimental_telemetry: {
             isEnabled: true,
           },
-          model: openai("gpt-4o"),
+          model: openai("gpt-4o-mini"),
           stopWhen: stepCountIs(5),
           messages: convertToModelMessages(messages as UIMessage[]),
           system: `You are a helpful assistant. Check your knowledge base before answering any questions.

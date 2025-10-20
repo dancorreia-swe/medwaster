@@ -16,10 +16,7 @@ export abstract class AIService {
   ): Promise<{ content: string; embedding: number[] }[]> {
     const embeddingModel = this.embeddingModel;
 
-    const splitter = new MarkdownTextSplitter({
-      chunkOverlap: 30,
-      chunkSize: 250,
-    });
+    const splitter = new MarkdownTextSplitter();
 
     const docOutputs = await splitter.splitDocuments([
       new Document({ pageContent: content }),
