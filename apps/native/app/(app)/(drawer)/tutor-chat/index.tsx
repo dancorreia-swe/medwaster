@@ -8,7 +8,7 @@ import {
   Animated,
   ScrollView,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { Href, Route, useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Mic, Send, GraduationCap } from "lucide-react-native";
 import { Container } from "@/components/container";
 import { useState, useEffect, useRef } from "react";
@@ -25,10 +25,20 @@ type Message = {
 
 export default function TutorScreen() {
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: Route }>();
+
   const [inputText, setInputText] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const colorAnim = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
+
+  const handleBack = () => {
+    if (returnTo) {
+      router.push(returnTo);
+    } else {
+      router.push("/(app)/(drawer)/(tabs)");
+    }
+  };
 
   const handleSend = () => {
     if (inputText.trim().length === 0) return;
@@ -91,7 +101,7 @@ Por exemplo:
         <View className="border-b border-gray-200 px-4 pt-3.5 pb-3">
           <View className="flex-row items-center gap-4">
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={handleBack}
               className="rounded-full items-center justify-center"
             >
               <Icon icon={ArrowLeft} size={24} className="text-neutral-600" />

@@ -4,7 +4,7 @@ export default function AuthLayout() {
   return (
     <Stack>
       <Stack.Screen
-        name="index"
+        name="home"
         options={{
           title: "Welcome",
           headerShown: false,

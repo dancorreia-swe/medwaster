@@ -1,19 +1,8 @@
-import { Redirect, Stack } from "expo-router";
-import { authClient } from "@/lib/auth-client";
+import { Stack } from "expo-router";
 
 export default function AppLayout() {
-  const { data: session, isPending } = authClient.useSession();
-
-  if (isPending) {
-    return null;
-  }
-
-  if (!session) {
-    return <Redirect href="/(auth)" />;
-  }
-
   return (
-    <Stack>
+    <Stack initialRouteName="(drawer)">
       <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
     </Stack>
   );

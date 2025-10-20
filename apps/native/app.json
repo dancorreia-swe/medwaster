@@ -17,7 +17,8 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "tsconfigPaths": true
+      "tsconfigPaths": true,
+      "autolinkingModuleResolution": true
     },
     "newArchEnabled": true,
     "orientation": "portrait",
@@ -28,9 +29,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.amanvarshney01.mybettertapp"

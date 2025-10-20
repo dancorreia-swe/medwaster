@@ -3,11 +3,11 @@ import { Drawer } from "expo-router/drawer";
 
 const DrawerLayout = () => {
   return (
-    <Drawer>
+    <Drawer initialRouteName="dev-home">
       <Drawer.Screen
-        name="index"
+        name="dev-home"
         options={{
-          headerTitle: "Home",
+          headerTitle: "Dev-Home",
           drawerLabel: "Home",
           drawerIcon: ({ size, color }) => (
             <Ionicons name="home-outline" size={size} color={color} />
@@ -21,6 +21,16 @@ const DrawerLayout = () => {
           drawerLabel: "Dashboard",
           drawerIcon: ({ size, color }) => (
             <MaterialIcons name="dashboard" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="tutor-chat"
+        options={{
+          headerShown: false,
+          drawerLabel: "Tutor Chat",
+          drawerIcon: ({ size, color }) => (
+            <MaterialIcons name="chat" size={size} color={color} />
           ),
         }}
       />
