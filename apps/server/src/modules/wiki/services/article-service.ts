@@ -149,7 +149,6 @@ export class ArticleService {
       updateData.contentText = await this.editor.blocksToMarkdownLossy(
         data.content,
       );
-      console.log(updateData.contentText);
 
       updateData.readingTimeMinutes = ContentProcessor.calculateReadingTime(
         data.content,

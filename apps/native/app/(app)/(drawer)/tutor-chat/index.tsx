@@ -26,14 +26,6 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
 
-type MessageType = "user" | "ai";
-
-type Message = {
-  id: string;
-  type: MessageType;
-  content: string;
-};
-
 export default function TutorScreen() {
   const router = useRouter();
   const { returnTo } = useLocalSearchParams<{ returnTo?: Route }>();
@@ -64,11 +56,6 @@ export default function TutorScreen() {
       if (isAbort) {
         setCancelledMessageId(message.id);
       }
-    },
-    onData: () => {
-      requestAnimationFrame(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: false });
-      });
     },
   });
 
@@ -122,6 +109,16 @@ export default function TutorScreen() {
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (status === "streaming") {
+      const interval = setInterval(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: false });
+      }, 100);
+
+      return () => clearInterval(interval);
+    }
+  }, [status]);
+
   return (
     <Container className="flex-1 bg-white" edges={["top", "bottom"]}>
       <KeyboardAvoidingView
@@ -158,6 +155,12 @@ export default function TutorScreen() {
             messages.length === 0 ? "flex-1" : undefined
           }
           showsVerticalScrollIndicator={false}
+          onContentSizeChange={() => {
+            // Scroll when content size changes (new messages or streaming updates)
+            if (status === "streaming" || status === "submitted") {
+              scrollViewRef.current?.scrollToEnd({ animated: false });
+            }
+          }}
         >
           {messages.length === 0 ? (
             <View className="flex-1 items-center justify-center px-5">

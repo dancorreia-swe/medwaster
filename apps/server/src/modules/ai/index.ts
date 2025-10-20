@@ -2,6 +2,7 @@ import { betterAuthMacro } from "@/lib/auth";
 import {
   convertToModelMessages,
   smoothStream,
+  stepCountIs,
   streamText,
   tool,
   type UIMessage,
@@ -10,6 +11,7 @@ import { openai } from "@ai-sdk/openai";
 
 import Elysia, { t } from "elysia";
 import { z } from "zod";
+import { AIService } from "./service";
 
 export const ai = new Elysia({ prefix: "/ai" }).use(betterAuthMacro).guard(
   {
@@ -23,18 +25,23 @@ export const ai = new Elysia({ prefix: "/ai" }).use(betterAuthMacro).guard(
           experimental_transform: smoothStream({
             delayInMs: 20,
           }),
-          model: openai("gpt-5-nano"),
-          maxRetries: 3,
+          experimental_telemetry: {
+            isEnabled: true,
+          },
+          model: openai("gpt-4o"),
+          stopWhen: stepCountIs(5),
           messages: convertToModelMessages(messages as UIMessage[]),
-          system:
-            "You're a specialist about medical information and pill disposition.",
+          system: `You are a helpful assistant. Check your knowledge base before answering any questions.
+    Only respond to questions using information from tool calls. Your main language is Portuguese.
+    if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
           tools: {
-            rag: tool({
-              description:
-                "Get and retrieve relevant information from your knowledge base/wiki.",
+            getInformation: tool({
+              description: `get information from your knowledge base to answer questions.`,
               inputSchema: z.object({
-                question: z.string().describe("The question to search for"),
+                question: z.string().describe("the users question"),
               }),
+              execute: async ({ question }) =>
+                AIService.findRelevantContent(question),
             }),
           },
         }).toUIMessageStreamResponse({
