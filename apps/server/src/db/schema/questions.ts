@@ -256,10 +256,3 @@ export const questionTagsRelations = relations(questionTags, ({ one }) => ({
     references: [user.id],
   }),
 }));
-
-export const contentCategoriesRelations = relations(
-  contentCategories,
-  ({ many }) => ({
-    questions: many(questions),
-  }),
-);
