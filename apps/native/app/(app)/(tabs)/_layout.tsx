@@ -62,7 +62,7 @@ export default function TabLayout() {
             e.preventDefault();
 
             router.push({
-              pathname: "/(app)/(drawer)/tutor-chat",
+              pathname: "/(app)/tutor-chat",
               params: { returnTo: pathname },
             });
           },

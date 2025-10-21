@@ -43,7 +43,7 @@ export default function TutorScreen() {
     if (returnTo) {
       router.push(returnTo);
     } else {
-      router.push("/(app)/(drawer)/(tabs)");
+      router.push("/(app)/(tabs)");
     }
   };
 

@@ -14,6 +14,13 @@ export default function WikiLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="[id]"
+        options={{
+          headerShown: false,
+          href: null, // This hides it from tab bar
+        }}
+      />
     </Stack>
   );
 }

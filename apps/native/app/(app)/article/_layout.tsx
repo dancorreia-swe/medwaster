@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 
-export default function WikiArticleLayout() {
+export default function ArticleLayout() {
   return (
     <Stack
       screenOptions={{

@@ -79,7 +79,7 @@ export default function ProfileScreen() {
         {/* Achievements Section */}
         <AchievementsSection
           onViewAll={() =>
-            router.push("/(app)/(drawer)/(tabs)/(profile)/achievements")
+            router.push("/(app)/(tabs)/(profile)/achievements")
           }
         />
 
@@ -92,7 +92,7 @@ export default function ProfileScreen() {
             title="Sequência & Calendário"
             description="Verifique sua sequência de estudos"
             onPress={() =>
-              router.push("/(app)/(drawer)/(tabs)/(profile)/streak-calendar")
+              router.push("/(app)/(tabs)/(profile)/streak-calendar")
             }
           />
           <ActionCard
@@ -102,7 +102,7 @@ export default function ProfileScreen() {
             title="Meus Certificado"
             description="Veja o status do seu certificado"
             onPress={() =>
-              router.push("/(app)/(drawer)/(tabs)/(profile)/certificates")
+              router.push("/(app)/(tabs)/(profile)/certificates")
             }
           />
           <ActionCard
@@ -112,7 +112,7 @@ export default function ProfileScreen() {
             title="Configurações"
             description="Preferências e notificações"
             onPress={() =>
-              router.push("/(app)/(drawer)/(tabs)/(profile)/settings")
+              router.push("/(app)/(tabs)/(profile)/settings")
             }
           />
         </View>
