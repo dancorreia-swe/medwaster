@@ -33,6 +33,7 @@
   },
   "overrides": {
     "@sinclair/typebox": "^0.34.41",
+    "@react-native/assets-registry": "0.76.1",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },

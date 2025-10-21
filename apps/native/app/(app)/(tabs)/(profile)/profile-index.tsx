@@ -1,12 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Container } from "@/components/container";
 import { useRouter } from "expo-router";
-import {
-  Calendar,
-  Award,
-  Settings,
-  LogOut,
-} from "lucide-react-native";
+import { Calendar, Award, Settings, LogOut } from "lucide-react-native";
 import { Icon } from "@/components/icon";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -78,9 +73,7 @@ export default function ProfileScreen() {
 
         {/* Achievements Section */}
         <AchievementsSection
-          onViewAll={() =>
-            router.push("/(app)/(tabs)/(profile)/achievements")
-          }
+          onViewAll={() => router.push("/(app)/(tabs)/(profile)/achievements")}
         />
 
         {/* Action Cards Section */}
@@ -101,9 +94,7 @@ export default function ProfileScreen() {
             iconBgColor="bg-blue-50"
             title="Meus Certificado"
             description="Veja o status do seu certificado"
-            onPress={() =>
-              router.push("/(app)/(tabs)/(profile)/certificates")
-            }
+            onPress={() => router.push("/(app)/(tabs)/(profile)/certificates")}
           />
           <ActionCard
             icon={Settings}
@@ -111,15 +102,16 @@ export default function ProfileScreen() {
             iconBgColor="bg-gray-50"
             title="Configurações"
             description="Preferências e notificações"
-            onPress={() =>
-              router.push("/(app)/(tabs)/(profile)/settings")
-            }
+            onPress={() => router.push("/(app)/(tabs)/(profile)/settings")}
           />
         </View>
 
         {/* Logout Button */}
         <View className="px-5 py-6">
-          <TouchableOpacity className="rounded-xl items-center justify-center flex-row gap-2">
+          <TouchableOpacity
+            className="rounded-xl items-center justify-center flex-row gap-2"
+            onPress={() => authClient.signOut()}
+          >
             <Icon icon={LogOut} size={16} className="text-red-600" />
             <Text className="text-sm font-medium text-red-600">
               Sair da Conta

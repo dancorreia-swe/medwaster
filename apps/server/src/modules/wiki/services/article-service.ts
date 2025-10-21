@@ -207,7 +207,6 @@ export class ArticleService {
         .where(
           and(
             eq(contentCategories.id, data.categoryId),
-            eq(contentCategories.type, "wiki"),
             eq(contentCategories.isActive, true),
           ),
         )

@@ -9,6 +9,8 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useEffect } from "react";
+import { useTrailStore } from "@/stores/trail-store";
 
 type ModuleStatus = "completed" | "current" | "locked";
 type ModuleType = "quiz" | "article" | "question";
@@ -79,6 +81,7 @@ const journeyData = {
       {
         id: "3",
         emoji: "❓",
+        resourceLink: "questions/3",
         title: "Pergunta Rápida: Resíduos Classe A",
         instructor: "",
         status: "current" as const,
@@ -87,6 +90,14 @@ const journeyData = {
       },
       {
         id: "4",
+        emoji: "🏷️",
+        title: "Recipientes e Containers",
+        instructor: "Dra. Maria Santos",
+        status: "locked" as const,
+        type: "article" as const,
+      },
+      {
+        id: "5",
         emoji: "🎯",
         title: "Quiz: Identificação Básica",
         instructor: "",
@@ -94,14 +105,7 @@ const journeyData = {
         questions: 8,
         type: "quiz" as const,
       },
-      {
-        id: "5",
-        emoji: "🏷️",
-        title: "Recipientes e Containers",
-        instructor: "Dra. Maria Santos",
-        status: "locked" as const,
-        type: "article" as const,
-      },
+
       {
         id: "6",
         emoji: "🚨",
@@ -141,10 +145,31 @@ const journeyData = {
 };
 
 export default function JourneyDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; "unlock-next"?: string }>();
+  const { id } = params;
+  const unlockNext = params["unlock-next"] === "true";
 
   const router = useRouter();
   const journey = journeyData[id as keyof typeof journeyData];
+
+  // Zustand store
+  const { trails, initializeTrail, completeCurrentModule, getTrailModules } =
+    useTrailStore();
+  const modules = getTrailModules(id) || journey?.modules || [];
+
+  // Initialize trail on first load
+  useEffect(() => {
+    if (journey && !trails[id]) {
+      initializeTrail(id, journey.modules);
+    }
+  }, [id, journey]);
+
+  // Handle unlocking next module when returning from correct answer
+  useEffect(() => {
+    if (unlockNext) {
+      completeCurrentModule(id);
+    }
+  }, [unlockNext, id]);
 
   if (!journey) {
     return (
@@ -162,9 +187,21 @@ export default function JourneyDetail() {
 
     const handleModulePress = () => {
       if (module.status === "locked") return;
-      
+
+      console.log("Module pressed:", module.id, module.type, module);
+
       if (module.type === "article" && "resourceLink" in module) {
+        console.log("Navigating to article:", module.resourceLink);
         router.push(`/${module.resourceLink}` as any);
+      } else if (module.type === "question" && "resourceLink" in module) {
+        console.log(
+          "Navigating to question with resourceLink:",
+          module.resourceLink,
+        );
+        router.push(`/(app)/${module.resourceLink}` as any);
+      } else if (module.type === "question") {
+        console.log("Navigating to question with id:", module.id);
+        router.push(`/(app)/questions/${module.id}` as any);
       }
     };
 
@@ -215,7 +252,10 @@ export default function JourneyDetail() {
                     </View>
                   )}
 
-                  <TouchableOpacity className="bg-white rounded-full py-4 items-center shadow-md">
+                  <TouchableOpacity
+                    onPress={handleModulePress}
+                    className="bg-white rounded-full py-4 items-center shadow-md"
+                  >
                     <Text className="text-primary text-base font-semibold">
                       Start
                     </Text>
@@ -250,6 +290,7 @@ export default function JourneyDetail() {
                   </View>
 
                   <TouchableOpacity
+                    onPress={handleModulePress}
                     style={{ backgroundColor: style.buttonBg }}
                     className="rounded-full py-4 items-center shadow-md"
                   >
@@ -351,7 +392,7 @@ export default function JourneyDetail() {
         <View className="px-6 pt-4 pb-8">
           {/* Back Button */}
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.navigate("/(app)/(tabs)/trails")}
             className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center mb-6 mt-1"
           >
             <ChevronLeft size={24} color="#364153" strokeWidth={2} />
@@ -375,9 +416,7 @@ export default function JourneyDetail() {
 
         {/* Modules List */}
         <View className="px-6 pb-8">
-          {journey.modules.map((module, index) =>
-            renderModuleCard(module, index),
-          )}
+          {modules.map((module, index) => renderModuleCard(module, index))}
         </View>
       </ScrollView>
     </Container>

@@ -89,7 +89,7 @@ export default function Trails() {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="px-6 pt-4 pb-2">
-          <View className="flex-row items-center gap-3 py-4 mb-4">
+          <View className="flex-row items-center gap-2.5 py-3 mb-3">
             <Text className="text-4xl font-bold text-gray-900 leading-tight">
               Trilhas
             </Text>

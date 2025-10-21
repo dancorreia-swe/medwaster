@@ -1,14 +1,17 @@
 import { Text, TouchableOpacity, View } from "react-native";
 import { Container } from "@/components/container";
+import { Image } from "expo-image";
 import { LandingHeroImage } from "@/components/landing-hero-image";
 import {
   AuthBottomSheet,
   type AuthBottomSheetRef,
 } from "@/components/auth-bottom-sheet";
 import { useRef, useCallback } from "react";
+import { Asset, useAssets } from "expo-asset";
 
 export default function Landing() {
   const authBottomSheetRef = useRef<AuthBottomSheetRef>(null);
+  const [assets] = useAssets([require("../../assets/medwaster-mascot.png")]);
 
   const handleOpenSignIn = useCallback(() => {
     authBottomSheetRef.current?.switchToSignIn();
@@ -29,12 +32,16 @@ export default function Landing() {
       <View className="h-10" />
 
       <View className="flex-1 items-center justify-center px-8">
-        <View className="mb-8">
-          <LandingHeroImage width={200} height={200} />
+        <View>
+          <Image
+            source={assets?.[0]}
+            style={{ width: 400, height: 400 }}
+            contentFit="contain"
+          />
         </View>
 
         <View className="mb-6">
-          <Text className="text-[42px] font-bold text-[#155DFC] text-center tracking-tight">
+          <Text className="text-5xl font-bold text-primary text-center tracking-tight">
             Medwaster
           </Text>
         </View>
@@ -59,7 +66,7 @@ export default function Landing() {
             elevation: 2,
           }}
         >
-          <Text className="text-white font-bold text-[14px] tracking-tight">
+          <Text className="text-white font-bold text-xl tracking-tight">
             COMEÇAR
           </Text>
         </TouchableOpacity>

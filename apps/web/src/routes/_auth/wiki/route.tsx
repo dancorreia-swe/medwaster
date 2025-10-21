@@ -27,7 +27,7 @@ import {
   useNavigate,
   useSearch,
 } from "@tanstack/react-router";
-import { Calendar, Clock, Eye, FileText, Loader2, Plus } from "lucide-react";
+import { Calendar, Clock, Ellipsis, Eye, FileText, Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 
 const STATUS_TABS = [
@@ -320,7 +320,7 @@ function statusBadgeVariant(status?: string) {
 function ArticleCard({ article }: { article: any }) {
   return (
     <Card className="group">
-      <CardHeader className="pb-2">
+      <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base line-clamp-2 flex-1">
             {article.title}
@@ -338,7 +338,7 @@ function ArticleCard({ article }: { article: any }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm text-slate-600">
-        <p className="line-clamp-3 min-h-[3.75rem]">
+        <p className="line-clamp-3 min-h-15">
           {article.excerpt || "Sem resumo disponível."}
         </p>
         <div className="flex items-center gap-4 text-xs text-slate-500">
@@ -356,7 +356,7 @@ function ArticleCard({ article }: { article: any }) {
             </span>
           )}
         </div>
-        <div className="pt-2">
+        <div className="pt-2 flex justify-between items-center">
           <Button
             asChild
             variant="ghost"
@@ -366,6 +366,8 @@ function ArticleCard({ article }: { article: any }) {
               <FileText className="mr-2 h-4 w-4" /> Abrir artigo
             </Link>
           </Button>
+
+          <Ellipsis />
         </div>
       </CardContent>
     </Card>
