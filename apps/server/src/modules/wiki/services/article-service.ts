@@ -5,6 +5,8 @@ import {
   wikiArticles,
   wikiArticleTags,
   wikiArticleRelationships,
+  userArticleBookmarks,
+  userArticleReads,
   type NewWikiArticle,
   type WikiArticleStatus,
 } from "@/db/schema/wiki";
@@ -736,5 +738,363 @@ export class ArticleService {
         .filter((r) => r.type === "continuation" && r.targetArticle !== null)
         .map((r) => r.targetArticle!),
     };
+  }
+
+  /**
+   * List published articles only (for students)
+   */
+  static async listPublishedArticles(query: ArticleListQuery) {
+    return this.listArticles({
+      ...query,
+      status: "published",
+    });
+  }
+
+  /**
+   * Get published article by ID (for students)
+   */
+  static async getPublishedArticleById(id: number, userId: string) {
+    const article = await this.getArticleById(id);
+
+    if (article.status !== "published") {
+      throw new NotFoundError("Article");
+    }
+
+    // Track view
+    await db
+      .update(wikiArticles)
+      .set({
+        viewCount: sql`${wikiArticles.viewCount} + 1`,
+        lastViewedAt: new Date(),
+      })
+      .where(eq(wikiArticles.id, id));
+
+    // Create or update reading progress
+    const [existingRead] = await db
+      .select()
+      .from(userArticleReads)
+      .where(
+        and(
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.articleId, id),
+        ),
+      )
+      .limit(1);
+
+    if (!existingRead) {
+      await db.insert(userArticleReads).values({
+        userId,
+        articleId: id,
+        readPercentage: 0,
+        timeSpentSeconds: 0,
+      });
+    } else {
+      await db
+        .update(userArticleReads)
+        .set({
+          lastReadAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(userArticleReads.userId, userId),
+            eq(userArticleReads.articleId, id),
+          ),
+        );
+    }
+
+    return article;
+  }
+
+  /**
+   * Add favorite (bookmark)
+   */
+  static async addBookmark(userId: string, articleId: number) {
+    const [existingBookmark] = await db
+      .select()
+      .from(userArticleBookmarks)
+      .where(
+        and(
+          eq(userArticleBookmarks.userId, userId),
+          eq(userArticleBookmarks.articleId, articleId),
+        ),
+      )
+      .limit(1);
+
+    if (existingBookmark) {
+      throw new ConflictError("Article already favorited");
+    }
+
+    const [bookmark] = await db
+      .insert(userArticleBookmarks)
+      .values({
+        userId,
+        articleId,
+      })
+      .returning();
+
+    return bookmark;
+  }
+
+  /**
+   * Remove favorite (bookmark)
+   */
+  static async removeBookmark(userId: string, articleId: number) {
+    const result = await db
+      .delete(userArticleBookmarks)
+      .where(
+        and(
+          eq(userArticleBookmarks.userId, userId),
+          eq(userArticleBookmarks.articleId, articleId),
+        ),
+      )
+      .returning();
+
+    if (result.length === 0) {
+      throw new NotFoundError("Favorite");
+    }
+  }
+
+  /**
+   * Get user favorites (bookmarks)
+   */
+  static async getUserBookmarks(userId: string) {
+    const bookmarks = await db
+      .select({
+        bookmark: userArticleBookmarks,
+        article: wikiArticles,
+        category: contentCategories,
+      })
+      .from(userArticleBookmarks)
+      .leftJoin(
+        wikiArticles,
+        eq(userArticleBookmarks.articleId, wikiArticles.id),
+      )
+      .leftJoin(
+        contentCategories,
+        eq(wikiArticles.categoryId, contentCategories.id),
+      )
+      .where(eq(userArticleBookmarks.userId, userId))
+      .orderBy(desc(userArticleBookmarks.createdAt));
+
+    return bookmarks.map(({ bookmark, article, category }) => ({
+      id: article.id,
+      title: article.title,
+      slug: article.slug,
+      excerpt: article.excerpt,
+      category: category
+        ? {
+            id: category.id,
+            name: category.name,
+            color: category.color || "#3b82f6",
+          }
+        : null,
+      favoritedAt: bookmark.createdAt.toISOString(),
+    }));
+  }
+
+  /**
+   * Update read progress
+   */
+  static async updateReadProgress(
+    userId: string,
+    articleId: number,
+    data: { readPercentage: number; timeSpentSeconds: number },
+  ) {
+    const [existingRead] = await db
+      .select()
+      .from(userArticleReads)
+      .where(
+        and(
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.articleId, articleId),
+        ),
+      )
+      .limit(1);
+
+    if (!existingRead) {
+      const [progress] = await db
+        .insert(userArticleReads)
+        .values({
+          userId,
+          articleId,
+          readPercentage: data.readPercentage,
+          timeSpentSeconds: data.timeSpentSeconds,
+        })
+        .returning();
+
+      return progress;
+    }
+
+    const [progress] = await db
+      .update(userArticleReads)
+      .set({
+        readPercentage: data.readPercentage,
+        timeSpentSeconds: sql`${userArticleReads.timeSpentSeconds} + ${data.timeSpentSeconds}`,
+        lastReadAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.articleId, articleId),
+        ),
+      )
+      .returning();
+
+    return progress;
+  }
+
+  /**
+   * Mark article as read
+   */
+  static async markAsRead(userId: string, articleId: number) {
+    const [existingRead] = await db
+      .select()
+      .from(userArticleReads)
+      .where(
+        and(
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.articleId, articleId),
+        ),
+      )
+      .limit(1);
+
+    if (!existingRead) {
+      const [progress] = await db
+        .insert(userArticleReads)
+        .values({
+          userId,
+          articleId,
+          isRead: true,
+          readPercentage: 100,
+          markedReadAt: new Date(),
+        })
+        .returning();
+
+      return progress;
+    }
+
+    const [progress] = await db
+      .update(userArticleReads)
+      .set({
+        isRead: true,
+        readPercentage: 100,
+        markedReadAt: new Date(),
+        lastReadAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.articleId, articleId),
+        ),
+      )
+      .returning();
+
+    return progress;
+  }
+
+  /**
+   * Get reading list (articles in progress or not started)
+   */
+  static async getReadingList(userId: string) {
+    const articles = await db
+      .select({
+        article: wikiArticles,
+        category: contentCategories,
+        progress: userArticleReads,
+      })
+      .from(wikiArticles)
+      .leftJoin(
+        contentCategories,
+        eq(wikiArticles.categoryId, contentCategories.id),
+      )
+      .leftJoin(
+        userArticleReads,
+        and(
+          eq(userArticleReads.articleId, wikiArticles.id),
+          eq(userArticleReads.userId, userId),
+        ),
+      )
+      .where(
+        and(
+          eq(wikiArticles.status, "published"),
+          or(
+            eq(userArticleReads.isRead, false),
+            sql`${userArticleReads.isRead} IS NULL`,
+          ),
+        ),
+      )
+      .orderBy(desc(wikiArticles.publishedAt));
+
+    return articles.map(({ article, category, progress }) => ({
+      id: article.id,
+      title: article.title,
+      slug: article.slug,
+      excerpt: article.excerpt,
+      readingTimeMinutes: article.readingTimeMinutes,
+      category: category
+        ? {
+            id: category.id,
+            name: category.name,
+            color: category.color || "#3b82f6",
+          }
+        : null,
+      progress: progress
+        ? {
+            readPercentage: progress.readPercentage,
+            timeSpentSeconds: progress.timeSpentSeconds,
+            lastReadAt: progress.lastReadAt.toISOString(),
+          }
+        : null,
+    }));
+  }
+
+  /**
+   * Get reading history (completed articles)
+   */
+  static async getReadingHistory(userId: string) {
+    const articles = await db
+      .select({
+        article: wikiArticles,
+        category: contentCategories,
+        progress: userArticleReads,
+      })
+      .from(userArticleReads)
+      .leftJoin(
+        wikiArticles,
+        eq(userArticleReads.articleId, wikiArticles.id),
+      )
+      .leftJoin(
+        contentCategories,
+        eq(wikiArticles.categoryId, contentCategories.id),
+      )
+      .where(
+        and(
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.isRead, true),
+        ),
+      )
+      .orderBy(desc(userArticleReads.markedReadAt));
+
+    return articles.map(({ article, category, progress }) => ({
+      id: article.id,
+      title: article.title,
+      slug: article.slug,
+      excerpt: article.excerpt,
+      category: category
+        ? {
+            id: category.id,
+            name: category.name,
+            color: category.color || "#3b82f6",
+          }
+        : null,
+      readingStats: {
+        timeSpentSeconds: progress.timeSpentSeconds,
+        markedReadAt: progress.markedReadAt?.toISOString(),
+        firstReadAt: progress.firstReadAt.toISOString(),
+      },
+    }));
   }
 }

@@ -25,6 +25,7 @@ import { Icon } from "@/components/icon";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
+import { authClient } from "@/lib/auth-client";
 
 export default function TutorScreen() {
   const router = useRouter();
@@ -46,10 +47,14 @@ export default function TutorScreen() {
     }
   };
 
+  const cookies = authClient.getCookie();
   const { messages, sendMessage, status, stop } = useChat({
     transport: new DefaultChatTransport({
       fetch: expoFetch as unknown as typeof globalThis.fetch,
       api: process.env.EXPO_PUBLIC_SERVER_URL + "/ai/chat",
+      headers: {
+        'Cookie': cookies
+      }
     }),
     onError: (error) => console.error(error, "ERROR"),
     onFinish: ({ isAbort, message }) => {

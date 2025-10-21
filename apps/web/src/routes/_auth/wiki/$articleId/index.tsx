@@ -19,7 +19,6 @@ export const Route = createFileRoute("/_auth/wiki/$articleId/")({
       throw new Error("Invalid article ID");
     }
 
-    // Preload data - hooks below will return cached data instantly
     await Promise.all([
       queryClient.ensureQueryData(articleQueryOptions(numericArticleId)),
       queryClient.ensureQueryData(categoriesQueryOptions()),

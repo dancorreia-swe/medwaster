@@ -2,7 +2,7 @@ import "dotenv/config";
 import logixlysia from "logixlysia";
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
-import { betterAuthMacro as betterAuth } from "./lib/auth";
+import { betterAuthMacro as betterAuth, OpenAPI } from "./lib/auth";
 import { globalErrorHandler } from "./lib/errors";
 import { wiki } from "./modules/wiki";
 import { questions } from "./modules/questions";
@@ -11,6 +11,9 @@ import { audit } from "./modules/audit";
 import { auditMiddleware } from "./middleware/audit";
 import { categories } from "./modules/categories";
 import { ai } from "./modules/ai";
+import { openapi } from "@elysiajs/openapi";
+import { admin } from "./routers/admin";
+import { student } from "./routers/student";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -63,6 +66,14 @@ export const app = new Elysia({ name: "medwaster-api" })
     }),
   )
   .use(
+    openapi({
+      documentation: {
+        components: await OpenAPI.components,
+        paths: await OpenAPI.getPaths(),
+      },
+    }),
+  )
+  .use(
     cors({
       origin: corsOrigin,
       methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS", "HEAD"],
@@ -79,6 +90,8 @@ export const app = new Elysia({ name: "medwaster-api" })
       logAuthEvents: true,
     }),
   )
+  .use(admin)
+  .use(student)
   .use(tags)
   .use(wiki)
   .use(categories)

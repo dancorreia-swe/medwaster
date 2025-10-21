@@ -1,7 +1,20 @@
 import Elysia from "elysia";
-import { wikiArticles } from "./articles";
-import { wikiFiles } from "./files";
+import { adminArticles, userArticles } from "./articles";
 
-export const wiki = new Elysia({ prefix: "/wiki" })
-  .use(wikiArticles)
-  .use(wikiFiles);
+export const adminWiki = new Elysia({
+  prefix: "/wiki",
+  tags: ["Admin - Wiki"],
+  detail: {
+    description: "Admin endpoints for managing wiki content",
+  },
+})
+  .use(adminArticles);
+
+export const wiki = new Elysia({
+  prefix: "/wiki",
+  tags: ["Student - Wiki"],
+  detail: {
+    description: "Student endpoints for reading articles, managing bookmarks, and tracking progress",
+  },
+})
+  .use(userArticles);

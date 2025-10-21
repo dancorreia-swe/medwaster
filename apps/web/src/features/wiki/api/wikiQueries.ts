@@ -1,5 +1,10 @@
 import { useCallback, useMemo } from "react";
-import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  queryOptions,
+} from "@tanstack/react-query";
 import { wikiApi } from "./wikiApi";
 import { client } from "@/lib/client";
 
@@ -27,11 +32,9 @@ export const wikiStatsQueryOptions = () =>
 export const useWikiStats = () => useQuery(wikiStatsQueryOptions());
 
 type ArticleListQueryParams = import("./wikiApi").ArticleListQueryParams;
-type FileListQueryParams = import("./wikiApi").FileListQueryParams;
 
 type UpdateArticleInput = Parameters<typeof wikiApi.updateArticle>[1];
 type CreateArticleInput = Parameters<typeof wikiApi.createArticle>[0];
-type BulkExportInput = Parameters<typeof wikiApi.bulkExportPdf>[0];
 
 export const articlesQueryOptions = (filters?: ArticleListQueryParams) =>
   queryOptions({
@@ -85,15 +88,23 @@ export const useUpdateArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: UpdateArticleInput  }) => {
-      return await client.wiki.articles({ id }).put(data);
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: UpdateArticleInput;
+    }) => {
+      return await client.admin.wiki.articles({ id }).put(data);
     },
     onMutate: async ({ id, data }) => {
       // Cancel outgoing refetches to prevent them from overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: wikiQueryKeys.article(id) });
 
       // Snapshot the previous value
-      const previousArticle = queryClient.getQueryData(wikiQueryKeys.article(id));
+      const previousArticle = queryClient.getQueryData(
+        wikiQueryKeys.article(id),
+      );
 
       // Optimistically update the cache
       queryClient.setQueryData(wikiQueryKeys.article(id), (old: any) => {
@@ -120,7 +131,7 @@ export const useUpdateArticle = () => {
       if (context?.previousArticle) {
         queryClient.setQueryData(
           wikiQueryKeys.article(variables.id),
-          context.previousArticle
+          context.previousArticle,
         );
       }
       console.error("Error updating article:", error);
@@ -164,36 +175,6 @@ export const useUnpublishArticle = () => {
   });
 };
 
-export const useFiles = (filters?: FileListQueryParams) =>
-  useQuery({
-    queryKey: wikiQueryKeys.filesList(filters),
-    queryFn: () => wikiApi.listFiles(filters),
-    staleTime: 5 * 60_000,
-  });
-
-export const useUploadFile = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ file, articleId }: { file: File; articleId?: number }) =>
-      wikiApi.uploadFile(file, articleId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.files() });
-    },
-  });
-};
-
-export const useDeleteFile = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) => wikiApi.deleteFile(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.files() });
-    },
-  });
-};
-
 export const useTags = () =>
   useQuery({
     queryKey: wikiQueryKeys.tags(),
@@ -227,15 +208,10 @@ export const useBulkArticleOperations = () => {
     onSuccess: invalidateArticles,
   });
 
-  const exportMultiple = useMutation({
-    mutationFn: (input: BulkExportInput) => wikiApi.bulkExportPdf(input),
-  });
-
   return {
     publishMultiple,
     unpublishMultiple,
     deleteMultiple,
-    exportMultiple,
   };
 };
 
@@ -281,9 +257,6 @@ export default {
   useDeleteArticle,
   usePublishArticle,
   useUnpublishArticle,
-  useFiles,
-  useUploadFile,
-  useDeleteFile,
   useCategories,
   useTags,
   useBulkArticleOperations,

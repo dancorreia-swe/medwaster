@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -245,6 +246,103 @@ export const wikiFilesRelations = relations(wikiFiles, ({ one }) => ({
     references: [wikiArticles.id],
   }),
 }));
+
+export const userArticleBookmarks = pgTable(
+  "user_article_bookmarks",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    articleId: integer("article_id")
+      .notNull()
+      .references(() => wikiArticles.id, { onDelete: "cascade" }),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.userId, table.articleId],
+      name: "user_article_bookmarks_pk",
+    }),
+    index("user_article_bookmarks_user_idx").on(table.userId),
+    index("user_article_bookmarks_article_idx").on(table.articleId),
+    index("user_article_bookmarks_created_idx").on(table.createdAt),
+  ],
+);
+
+export const userArticleBookmarksRelations = relations(
+  userArticleBookmarks,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [userArticleBookmarks.userId],
+      references: [user.id],
+    }),
+    article: one(wikiArticles, {
+      fields: [userArticleBookmarks.articleId],
+      references: [wikiArticles.id],
+    }),
+  }),
+);
+
+export const userArticleReads = pgTable(
+  "user_article_reads",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    articleId: integer("article_id")
+      .notNull()
+      .references(() => wikiArticles.id, { onDelete: "cascade" }),
+
+    isRead: boolean("is_read").notNull().default(false),
+    readPercentage: integer("read_percentage").notNull().default(0),
+
+    timeSpentSeconds: integer("time_spent_seconds").notNull().default(0),
+
+    firstReadAt: timestamp("first_read_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastReadAt: timestamp("last_read_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    markedReadAt: timestamp("marked_read_at", { withTimezone: true }),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("user_article_reads_user_idx").on(table.userId),
+    index("user_article_reads_article_idx").on(table.articleId),
+    index("user_article_reads_user_article_idx").on(
+      table.userId,
+      table.articleId,
+    ),
+    index("user_article_reads_is_read_idx").on(table.isRead),
+    index("user_article_reads_last_read_idx").on(table.lastReadAt),
+  ],
+);
+
+export const userArticleReadsRelations = relations(
+  userArticleReads,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [userArticleReads.userId],
+      references: [user.id],
+    }),
+    article: one(wikiArticles, {
+      fields: [userArticleReads.articleId],
+      references: [wikiArticles.id],
+    }),
+  }),
+);
+
 export const wikiArticlesRelationsUpdated = relations(
   wikiArticles,
   ({ one, many }) => ({
@@ -258,6 +356,8 @@ export const wikiArticlesRelationsUpdated = relations(
     }),
     articleTags: many(wikiArticleTags),
     files: many(wikiFiles),
+    bookmarks: many(userArticleBookmarks),
+    reads: many(userArticleReads),
     sourceRelationships: many(wikiArticleRelationships, {
       relationName: "sourceArticle",
     }),
@@ -282,3 +382,9 @@ export type NewWikiArticleRelationship =
 
 export type WikiFile = typeof wikiFiles.$inferSelect;
 export type NewWikiFile = typeof wikiFiles.$inferInsert;
+
+export type UserArticleBookmark = typeof userArticleBookmarks.$inferSelect;
+export type NewUserArticleBookmark = typeof userArticleBookmarks.$inferInsert;
+
+export type UserArticleRead = typeof userArticleReads.$inferSelect;
+export type NewUserArticleRead = typeof userArticleReads.$inferInsert;

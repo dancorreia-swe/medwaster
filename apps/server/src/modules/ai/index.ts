@@ -15,7 +15,7 @@ import { AIService } from "./service";
 
 export const ai = new Elysia({ prefix: "/ai" }).use(betterAuthMacro).guard(
   {
-    auth: false,
+    auth: true,
   },
   (app) =>
     app.post(
