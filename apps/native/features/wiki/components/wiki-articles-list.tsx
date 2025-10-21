@@ -22,7 +22,7 @@ export function WikiArticlesList({
   onFavoriteToggle 
 }: WikiArticlesListProps) {
   return (
-    <View className="px-5 pt-5 pb-6 gap-3">
+    <View className="px-6 pt-6 pb-8 gap-4">
       {articles.map((article) => (
         <ArticleCard
           key={article.id}

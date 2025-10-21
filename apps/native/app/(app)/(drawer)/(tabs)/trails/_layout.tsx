@@ -14,6 +14,7 @@ export default function TrailLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen name="[id]" />
     </Stack>
   );
 }

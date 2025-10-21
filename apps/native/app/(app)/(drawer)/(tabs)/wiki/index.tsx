@@ -195,7 +195,7 @@ export default function WikiScreen() {
           className="flex-1" 
           showsVerticalScrollIndicator={false}
         >
-          <View className="px-5 pt-3.5 pb-0">
+          <View className="px-6 pt-4 pb-2">
             <WikiHeader />
 
             <WikiFilterTabs

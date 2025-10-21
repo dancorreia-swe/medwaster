@@ -1,8 +1,17 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { Icon } from "@/components/icon";
-import { ChevronRight, Clock, BookOpen, CheckCircle } from "lucide-react-native";
+import {
+  ChevronRight,
+  Clock,
+  BookOpen,
+  CheckCircle,
+} from "lucide-react-native";
 
-export type JourneyStatus = "in-progress" | "available" | "completed" | "locked";
+export type JourneyStatus =
+  | "in-progress"
+  | "available"
+  | "completed"
+  | "locked";
 
 interface JourneyCardProps {
   emoji: string;
@@ -33,64 +42,81 @@ export function JourneyCard({
     <TouchableOpacity
       onPress={onPress}
       disabled={isLocked}
-      className="bg-white rounded-xl border border-gray-100 shadow-sm mb-3.5"
+      className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-4"
       style={{ opacity: isLocked ? 0.6 : 1 }}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${description}. ${
+        status === "in-progress"
+          ? `${progress}% completo`
+          : status === "available"
+            ? `Disponível. ${duration}, ${modules} módulos`
+            : status === "completed"
+              ? "Completo"
+              : "Bloqueado. Complete trilhas anteriores"
+      }`}
+      accessibilityState={{ disabled: isLocked }}
     >
-      <View className="p-3.5 flex-row items-center gap-3.5">
+      <View className="p-5 flex-row gap-4 items-start">
         {/* Emoji Icon */}
-        <View 
-          className="w-14 h-14 rounded-2xl items-center justify-center"
+        <View
+          className="w-16 h-16 rounded-2xl items-center justify-center"
           style={{ backgroundColor: bgColor }}
         >
-          <Text className="text-[21px]">{emoji}</Text>
+          <Text className="text-[32px]">{emoji}</Text>
         </View>
 
         {/* Content */}
         <View className="flex-1">
-          <Text className="text-sm font-semibold text-gray-900 mb-1 leading-tight">
+          <Text className="text-base font-bold text-gray-900 mb-1.5 leading-snug">
             {title}
           </Text>
-          <Text className="text-xs text-gray-600 mb-2 leading-tight">
+          <Text className="text-sm text-gray-600 mb-3 leading-relaxed">
             {description}
           </Text>
 
           {/* Status Footer */}
           {status === "in-progress" && progress !== undefined && (
-            <View className="flex-row items-center gap-2.5">
-              <View className="flex-1 h-[5.25px] bg-blue-100 rounded-full overflow-hidden">
+            <View className="flex-row items-center gap-3">
+              <View className="flex-1 h-2 bg-blue-100 rounded-full overflow-hidden">
                 <View
                   className="h-full bg-blue-600 rounded-full"
                   style={{ width: `${progress}%` }}
                 />
               </View>
-              <Text className="text-[10.5px] font-medium text-blue-600">
+              <Text className="text-sm font-semibold text-blue-600 min-w-[44px] text-right">
                 {progress}%
               </Text>
             </View>
           )}
 
           {status === "available" && duration && modules && (
-            <View className="flex-row items-center gap-2.5">
-              <View className="flex-row items-center gap-1">
-                <Icon icon={Clock} size={12.25} className="text-gray-600" />
-                <Text className="text-[10.5px] text-gray-600">{duration}</Text>
+            <View className="flex-row items-center gap-4">
+              <View className="flex-row items-center gap-1.5">
+                <Icon icon={Clock} size={16} className="text-gray-500" />
+                <Text className="text-sm text-gray-700 font-medium">
+                  {duration}
+                </Text>
               </View>
-              <View className="flex-row items-center gap-1">
-                <Icon icon={BookOpen} size={12.25} className="text-gray-600" />
-                <Text className="text-[10.5px] text-gray-600">{modules} módulos</Text>
+              <View className="flex-row items-center gap-1.5">
+                <Icon icon={BookOpen} size={16} className="text-gray-500" />
+                <Text className="text-sm text-gray-700 font-medium">
+                  {modules} módulos
+                </Text>
               </View>
             </View>
           )}
 
           {status === "completed" && (
-            <View className="flex-row items-center gap-1.5">
-              <Icon icon={CheckCircle} size={14} className="text-green-600" />
-              <Text className="text-xs font-medium text-green-600">Completo</Text>
+            <View className="flex-row items-center gap-2">
+              <Icon icon={CheckCircle} size={18} className="text-green-600" />
+              <Text className="text-sm font-semibold text-green-600">
+                Completo
+              </Text>
             </View>
           )}
 
           {status === "locked" && (
-            <Text className="text-xs text-gray-600">
+            <Text className="text-sm text-gray-500 font-medium">
               Complete trilhas anteriores
             </Text>
           )}
@@ -98,10 +124,9 @@ export function JourneyCard({
 
         {/* Arrow */}
         {!isLocked && (
-          <Icon icon={ChevronRight} size={17.5} className="text-gray-400" />
+          <Icon icon={ChevronRight} size={24} className="text-gray-400" />
         )}
       </View>
     </TouchableOpacity>
   );
 }
-

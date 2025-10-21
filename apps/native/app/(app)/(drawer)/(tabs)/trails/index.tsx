@@ -1,6 +1,7 @@
 import { Container } from "@/components/container";
 import { ScrollView, Text, View } from "react-native";
 import { useState } from "react";
+import { useRouter } from "expo-router";
 import { FilterButton, JourneyCard } from "@/features/trails/components";
 
 type FilterType = "all" | "in-progress" | "available" | "completed";
@@ -66,6 +67,7 @@ const journeys = [
 
 export default function Trails() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const router = useRouter();
 
   const filteredJourneys = journeys.filter((journey) => {
     if (activeFilter === "all") return true;
@@ -86,55 +88,57 @@ export default function Trails() {
     <Container className="flex-1 bg-gray-50">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View className="px-5 pt-3.5 pb-0">
-          <View className="py-3 mb-3">
-            <View className="flex-row items-center gap-2.5">
-              <Text className="text-4xl font-bold text-gray-900 leading-tight">
-                Trilhas
-              </Text>
-              <Text className="text-4xl font-light text-gray-400 leading-tight">
-                de Aprendizado
-              </Text>
-            </View>
+        <View className="px-6 pt-4 pb-2">
+          <View className="flex-row items-center gap-3 py-4 mb-4">
+            <Text className="text-4xl font-bold text-gray-900 leading-tight">
+              Trilhas
+            </Text>
+            <Text className="text-4xl font-light text-gray-400 leading-tight">
+              de Aprendizado
+            </Text>
           </View>
 
           {/* Filter Buttons */}
-          <View className="mb-5">
+          <View className="mb-6">
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerClassName="gap-2"
+              contentContainerClassName="gap-2.5"
             >
               <FilterButton
                 label="Todas"
                 count={counts.all}
                 isActive={activeFilter === "all"}
                 onPress={() => setActiveFilter("all")}
+                variant="default"
               />
               <FilterButton
                 label="Em Progresso"
                 count={counts.inProgress}
                 isActive={activeFilter === "in-progress"}
                 onPress={() => setActiveFilter("in-progress")}
+                variant="progress"
               />
               <FilterButton
                 label="Disponíveis"
                 count={counts.available}
                 isActive={activeFilter === "available"}
                 onPress={() => setActiveFilter("available")}
+                variant="available"
               />
               <FilterButton
                 label="Completas"
                 count={counts.completed}
                 isActive={activeFilter === "completed"}
                 onPress={() => setActiveFilter("completed")}
+                variant="completed"
               />
             </ScrollView>
           </View>
         </View>
 
         {/* Journey Cards */}
-        <View className="px-5">
+        <View className="px-6 pb-6">
           {filteredJourneys.map((journey) => (
             <JourneyCard
               key={journey.id}
@@ -147,8 +151,7 @@ export default function Trails() {
               duration={journey.duration}
               modules={journey.modules}
               onPress={() => {
-                // TODO: Navigate to journey detail
-                console.log("Journey pressed:", journey.id);
+                router.push(`/trails/${journey.id}`);
               }}
             />
           ))}
