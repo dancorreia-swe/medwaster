@@ -11,6 +11,7 @@ export default function AppLayout() {
       <Stack.Screen name="article" />
       <Stack.Screen name="tutor-chat" />
       <Stack.Screen name="dev-home" />
+      <Stack.Screen name="questions" />
     </Stack>
   );
 }

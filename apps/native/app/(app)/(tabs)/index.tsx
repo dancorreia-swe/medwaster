@@ -27,7 +27,7 @@ export default function Home() {
         {/* Main Content */}
         <View className="pt-2 bg-gray-50 flex gap-3">
           {/* Stats Card */}
-          <StatsCard streak={7} keyPoints={27} minutes={44} modules={3} />
+          <StatsCard streak={2} questions={1} articles={2} trails={1} />
 
           {/* Categories */}
           <View className="mx-5 mb-5">

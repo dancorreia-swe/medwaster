@@ -18,7 +18,6 @@ export default function TutorChatLayout() {
         name="text-viewer"
         options={{
           headerShown: false,
-          animation: "slide_from_right",
         }}
       />
     </Stack>

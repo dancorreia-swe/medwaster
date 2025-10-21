@@ -3,16 +3,16 @@ import { Flame, ChevronRight } from "lucide-react-native";
 
 interface StatsCardProps {
   streak: number;
-  keyPoints: number;
-  minutes: number;
-  modules: number;
+  questions: number;
+  articles: number;
+  trails: number;
 }
 
 export function StatsCard({
   streak,
-  keyPoints,
-  minutes,
-  modules,
+  questions,
+  articles,
+  trails,
 }: StatsCardProps) {
   return (
     <View className="mx-5 mb-5 bg-white rounded-[14px] border border-gray-200 overflow-hidden">
@@ -44,23 +44,23 @@ export function StatsCard({
           <View className="flex-row justify-between">
             <View className="items-center gap-1 flex-1">
               <Text className="text-2xl font-semibold text-primary">
-                {keyPoints}
+                {questions}
               </Text>
-              <Text className="text-xs text-gray-600">pontos</Text>
+              <Text className="text-xs text-gray-600">perguntas</Text>
             </View>
 
             <View className="items-center gap-1 flex-1">
               <Text className="text-2xl font-semibold text-green-600">
-                {minutes}
+                {articles}
               </Text>
-              <Text className="text-xs text-gray-600">minutos</Text>
+              <Text className="text-xs text-gray-600">artigos</Text>
             </View>
 
             <View className="items-center gap-1 flex-1">
               <Text className="text-2xl font-semibold text-purple-600">
-                {modules}
+                {trails}
               </Text>
-              <Text className="text-xs text-gray-600">módulos</Text>
+              <Text className="text-xs text-gray-600">trilhas</Text>
             </View>
           </View>
         </View>
