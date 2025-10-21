@@ -22,6 +22,7 @@ interface Module {
   progress?: number;
   questions?: number;
   type?: ModuleType;
+  resourceLink?: string;
 }
 
 const moduleStyles = {
@@ -60,6 +61,7 @@ const journeyData = {
       {
         id: "1",
         emoji: "📚",
+        resourceLink: "article/1",
         title: "Introdução ao Descarte Seguro",
         instructor: "Prof. Ana Silva",
         status: "completed" as const,
@@ -68,6 +70,7 @@ const journeyData = {
       {
         id: "2",
         emoji: "📋",
+        resourceLink: "article/2",
         title: "Classificação de Resíduos",
         instructor: "Dr. Carlos Mendes",
         status: "completed" as const,
@@ -157,11 +160,20 @@ export default function JourneyDetail() {
     const moduleType = module.type || "article";
     const style = moduleStyles[moduleType];
 
+    const handleModulePress = () => {
+      if (module.status === "locked") return;
+      
+      if (module.type === "article" && "resourceLink" in module) {
+        router.push(`/${module.resourceLink}` as any);
+      }
+    };
+
     return (
       <View key={module.id} className="mb-0">
         <Pressable
           disabled={module.status === "locked"}
           className={`${module.status === "locked" ? "opacity-50" : ""}`}
+          onPress={handleModulePress}
         >
           {isCurrentActivity ? (
             // Current Activity Card - Different styles based on type

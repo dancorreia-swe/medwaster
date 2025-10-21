@@ -11,8 +11,9 @@ import {
 } from "@/features/wiki/components";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import BottomSheet from "@gorhom/bottom-sheet";
+import { useArticleStore } from "@/lib/stores/article-store";
 
-type TabType = "todos" | "favoritos" | "categorias";
+type TabType = "todos" | "favoritos" | "lidos" | "categorias";
 
 const articles: Article[] = [
   {
@@ -130,8 +131,8 @@ export default function WikiScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
+  const { isRead, isFavorite, toggleFavorite } = useArticleStore();
   const bottomSheetRef = useRef<BottomSheet>(null);
 
   const handleLevelToggle = (level: string) => {
@@ -167,16 +168,16 @@ export default function WikiScreen() {
   };
 
   const handleFavoriteToggle = (articleId: string) => {
-    setFavoriteIds((prev) =>
-      prev.includes(articleId)
-        ? prev.filter((id) => id !== articleId)
-        : [...prev, articleId]
-    );
+    toggleFavorite(articleId);
   };
 
   const filteredArticles = () => {
     if (activeTab === "favoritos") {
-      return articles.filter((article) => favoriteIds.includes(article.id));
+      return articles.filter((article) => isFavorite(article.id));
+    }
+    
+    if (activeTab === "lidos") {
+      return articles.filter((article) => isRead(article.id));
     }
 
     return articles;
@@ -213,7 +214,6 @@ export default function WikiScreen() {
 
           <WikiArticlesList
             articles={filteredArticles()}
-            favoriteIds={favoriteIds}
             onFavoriteToggle={handleFavoriteToggle}
           />
         </ScrollView>

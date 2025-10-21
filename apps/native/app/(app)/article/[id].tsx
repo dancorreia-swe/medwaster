@@ -13,6 +13,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { useMarkdown } from "react-native-marked";
 import * as Speech from "expo-speech";
+import { useArticleStore } from "@/lib/stores/article-store";
 
 const articlesData = {
   "1": {
@@ -77,14 +78,85 @@ Todo profissional de saúde deve:
 - Relatar não conformidades
 - Participar de treinamentos regulares`,
   },
+  "2": {
+    title: "Classificação de Resíduos",
+    emoji: "📋",
+    content: `# Classificação de Resíduos de Serviços de Saúde
+
+A classificação adequada dos resíduos de serviços de saúde é fundamental para garantir o manejo correto e a segurança de todos os envolvidos no processo.
+
+## Grupos de Resíduos
+
+De acordo com a RDC nº 222/2018 da ANVISA, os resíduos são classificados em grupos:
+
+### Grupo A - Resíduos Infectantes
+
+Resíduos com possível presença de agentes biológicos que podem apresentar risco de infecção:
+
+- **A1:** Culturas e estoques de microrganismos
+- **A2:** Carcaças, peças anatômicas, vísceras
+- **A3:** Peças anatômicas do ser humano
+- **A4:** Kits de linhas arteriais, filtros de ar
+- **A5:** Órgãos, tecidos e fluidos orgânicos com suspeita de príons
+
+### Grupo B - Resíduos Químicos
+
+Resíduos contendo substâncias químicas que podem apresentar risco à saúde ou ao meio ambiente:
+
+- Produtos farmacêuticos
+- Resíduos de saneantes
+- Desinfetantes
+- Resíduos contendo metais pesados
+- Reagentes para laboratório
+
+### Grupo C - Resíduos Radioativos
+
+Quaisquer materiais resultantes de atividades humanas que contenham radionuclídeos em quantidades superiores aos limites de eliminação.
+
+### Grupo D - Resíduos Comuns
+
+Resíduos que não apresentam risco biológico, químico ou radiológico à saúde ou ao meio ambiente:
+
+- Papel e papelão
+- Resíduos de varrição
+- Resíduos de podas de jardim
+- Restos alimentares
+
+### Grupo E - Perfurocortantes
+
+Objetos e instrumentos contendo cantos, bordas, pontos ou protuberâncias rígidas e agudas capazes de cortar ou perfurar.
+
+## Identificação Visual
+
+Cada grupo possui uma cor específica para identificação:
+
+- **Grupo A:** Branco
+- **Grupo B:** Laranja
+- **Grupo D:** Preto, azul ou verde (conforme segregação)
+- **Grupo E:** Amarelo ou branco leitoso
+
+## Importância da Classificação Correta
+
+A classificação adequada permite:
+
+- Segregação correta na origem
+- Acondicionamento apropriado
+- Transporte seguro
+- Destinação final adequada
+- Redução de custos operacionais
+- Minimização de riscos ambientais e à saúde`,
+  },
 };
 
 export default function WikiArticle() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const article = articlesData[id as keyof typeof articlesData];
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [isRead, setIsRead] = useState(false);
+  
+  const { isRead, markAsRead, markAsUnread, isFavorite, toggleFavorite } = useArticleStore();
+  const articleIsRead = isRead(id);
+  const articleIsFavorite = isFavorite(id);
+  
   const [isReading, setIsReading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -271,17 +343,17 @@ export default function WikiArticle() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setIsFavorite(!isFavorite)}
+            onPress={() => toggleFavorite(id)}
             className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center"
             accessibilityRole="button"
             accessibilityLabel={
-              isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
+              articleIsFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
             }
           >
             <Heart
               size={22}
-              color={isFavorite ? "#ef4444" : "#6B7280"}
-              fill={isFavorite ? "#ef4444" : "none"}
+              color={articleIsFavorite ? "#ef4444" : "#6B7280"}
+              fill={articleIsFavorite ? "#ef4444" : "none"}
               strokeWidth={2}
             />
           </TouchableOpacity>
@@ -336,17 +408,17 @@ export default function WikiArticle() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => setIsFavorite(!isFavorite)}
+              onPress={() => toggleFavorite(id)}
               className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center"
               accessibilityRole="button"
               accessibilityLabel={
-                isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
+                articleIsFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
               }
             >
               <Heart
                 size={22}
-                color={isFavorite ? "#ef4444" : "#6B7280"}
-                fill={isFavorite ? "#ef4444" : "none"}
+                color={articleIsFavorite ? "#ef4444" : "#6B7280"}
+                fill={articleIsFavorite ? "#ef4444" : "none"}
                 strokeWidth={2}
               />
             </TouchableOpacity>
@@ -401,13 +473,13 @@ export default function WikiArticle() {
           <View className="w-[1px] h-8 bg-white/20 mx-2" />
 
           <TouchableOpacity
-            onPress={() => setIsRead(!isRead)}
+            onPress={() => articleIsRead ? markAsUnread(id) : markAsRead(id)}
             className={`w-11 h-11 rounded-full items-center justify-center ${
-              isRead ? "bg-green-500/70" : "bg-white/20"
+              articleIsRead ? "bg-green-500/70" : "bg-white/20"
             }`}
             accessibilityRole="button"
             accessibilityLabel={
-              isRead ? "Marcar como não lido" : "Marcar como lido"
+              articleIsRead ? "Marcar como não lido" : "Marcar como lido"
             }
           >
             <BookOpenCheck size={20} color="#FFFFFF" strokeWidth={2} />

@@ -1,8 +1,8 @@
 import { View, TouchableOpacity, Text } from "react-native";
-import { BookOpen, Heart, LayoutGrid } from "lucide-react-native";
+import { BookOpen, Heart, LayoutGrid, BookOpenCheck } from "lucide-react-native";
 import { Icon } from "@/components/icon";
 
-type TabType = "todos" | "favoritos" | "categorias";
+type TabType = "todos" | "favoritos" | "lidos" | "categorias";
 
 interface WikiFilterTabsProps {
   activeTab: TabType;
@@ -62,6 +62,29 @@ export function WikiFilterTabs({
           }`}
         >
           Favoritos
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => onTabChange("lidos")}
+        className={`flex-row items-center gap-2.5 px-4 py-2 rounded-full min-h-10 ${
+          activeTab === "lidos" ? "bg-green-500" : "bg-green-50"
+        }`}
+        accessibilityRole="button"
+        accessibilityLabel="Ver artigos lidos"
+        accessibilityState={{ selected: activeTab === "lidos" }}
+      >
+        <Icon
+          icon={BookOpenCheck}
+          size={18}
+          className={activeTab === "lidos" ? "text-white" : "text-green-600"}
+        />
+        <Text
+          className={`text-sm font-semibold ${
+            activeTab === "lidos" ? "text-white" : "text-green-700"
+          }`}
+        >
+          Lidos
         </Text>
       </TouchableOpacity>
 
