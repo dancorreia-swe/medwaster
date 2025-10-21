@@ -34,6 +34,16 @@ const DrawerLayout = () => {
           ),
         }}
       />
+      <Drawer.Screen
+        name="article"
+        options={{
+          headerShown: false,
+          drawerLabel: "Wiki Article",
+          drawerIcon: ({ size, color }) => (
+            <MaterialIcons name="article" size={size} color={color} />
+          ),
+        }}
+      />
     </Drawer>
   );
 };

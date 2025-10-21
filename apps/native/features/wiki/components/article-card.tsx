@@ -10,6 +10,7 @@ interface ArticleCardProps {
   duration: string;
   isFavorite?: boolean;
   onFavoriteToggle?: () => void;
+  onPress?: () => void;
 }
 
 export function ArticleCard({
@@ -20,6 +21,7 @@ export function ArticleCard({
   duration,
   isFavorite = false,
   onFavoriteToggle,
+  onPress,
 }: ArticleCardProps) {
   const handleFavoritePress = (e: any) => {
     e.stopPropagation();
@@ -28,6 +30,7 @@ export function ArticleCard({
 
   return (
     <TouchableOpacity 
+      onPress={onPress}
       className="bg-white rounded-2xl shadow-sm shadow-black/10 border border-gray-100"
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${description}. Nível ${level}, ${duration} de leitura`}
