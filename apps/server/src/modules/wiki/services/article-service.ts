@@ -531,7 +531,7 @@ export class ArticleService {
       pagination: {
         page,
         limit,
-        total: count,
+        total: Number(count),
         pages: Math.ceil(count / limit),
       },
     };

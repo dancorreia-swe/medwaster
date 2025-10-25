@@ -22,11 +22,15 @@ export const adminArticles = new Elysia({
   .guard({
     auth: true,
     role: "admin",
+    detail: {
+      description: "Admin access required",
+    },
   })
   .get(
     "/",
     async ({ query }) => {
       const result = await ArticleService.listArticles(query);
+
       return success(result);
     },
     {
@@ -303,7 +307,6 @@ export const adminArticles = new Elysia({
 // ============================================================================
 // USER/STUDENT ROUTES - Reading, bookmarks, and progress tracking
 // ============================================================================
-// Note: Auth guard is applied at router level (student.ts) with scoped pattern
 
 export const userArticles = new Elysia({
   prefix: "/articles",
