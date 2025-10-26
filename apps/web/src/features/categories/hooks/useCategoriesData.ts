@@ -42,3 +42,21 @@ export const useUpdateCategory = (options?: { silent?: boolean }) => {
     },
   });
 };
+
+export const useDeleteCategory = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => categoriesApi.deleteCategory(id),
+    onSuccess: (_, id) => {
+      toast.success("Categoria excluída com sucesso");
+      queryClient.removeQueries({ queryKey: categoriesQueryKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: categoriesQueryKeys.lists() });
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao excluir categoria"
+      );
+    },
+  });
+};

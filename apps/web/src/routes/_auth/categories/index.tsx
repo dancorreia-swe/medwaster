@@ -10,7 +10,6 @@ import { categoriesListQueryOptions } from "@/features/categories/api";
 export const Route = createFileRoute("/_auth/categories/")({
   beforeLoad: () => ({ getTitle: () => "Categorias" }),
   loader: ({ context: { queryClient } }) => {
-    // Prefetch categories data
     return queryClient.ensureQueryData(categoriesListQueryOptions());
   },
   component: RouteComponent,
@@ -23,7 +22,6 @@ function RouteComponent() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Page Header */}
       <div className="flex items-start justify-between">
         <header>
           <h1 className="text-2xl md:text-3xl font-bold">Categorias</h1>
@@ -39,7 +37,6 @@ function RouteComponent() {
         </Button>
       </div>
 
-      {/* Error State */}
       {isError && (
         <Alert variant="destructive">
           <AlertTitle>Erro ao carregar categorias</AlertTitle>
@@ -51,14 +48,12 @@ function RouteComponent() {
         </Alert>
       )}
 
-      {/* Loading State */}
       {isLoading && (
         <div className="min-h-[400px] rounded-md border border-border bg-card">
           <Loader />
         </div>
       )}
 
-      {/* Table */}
       {!isLoading && !isError && <CategoriesTable categories={categories} />}
     </div>
   );

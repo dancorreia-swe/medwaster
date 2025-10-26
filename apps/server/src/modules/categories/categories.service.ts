@@ -120,4 +120,20 @@ export abstract class CategoriesService {
 
     return categories;
   }
+
+  static async deleteCategory(categoryId: number) {
+    const [existing] = await db
+      .select()
+      .from(contentCategories)
+      .where(eq(contentCategories.id, categoryId))
+      .limit(1);
+
+    if (!existing) {
+      throw new NotFoundError("Category");
+    }
+
+    await db.delete(contentCategories).where(eq(contentCategories.id, categoryId));
+
+    return existing;
+  }
 }

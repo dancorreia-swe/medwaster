@@ -34,7 +34,7 @@ export const wikiApi = {
 
   unpublishArticle: (id: number) => toArticleResource(id).unpublish.post(),
 
-  listCategories: () => client.categories.get(),
+  listCategories: () => client.admin.categories.get(),
 
   listTags: () => client.admin.tags.get(),
 };
