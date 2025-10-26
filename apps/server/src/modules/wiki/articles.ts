@@ -108,8 +108,8 @@ export const adminArticles = new Elysia({
     },
   )
 
-  .delete(
-    "/:id",
+  .put(
+    "/:id/archive",
     async ({ params: { id }, status }) => {
       if (isNaN(id)) {
         throw new BadRequestError("Invalid article ID");
@@ -126,6 +126,29 @@ export const adminArticles = new Elysia({
         summary: "Archive article",
         description:
           "Soft delete an article by archiving it. Archived articles are hidden from students but can be restored.",
+        tags: ["Admin - Wiki Articles"],
+      },
+    },
+  )
+
+  .delete(
+    "/:id",
+    async ({ params: { id }, status }) => {
+      if (isNaN(id)) {
+        throw new BadRequestError("Invalid article ID");
+      }
+
+      const result = await ArticleService.deleteArticle(id);
+      return status("No Content", success(result));
+    },
+    {
+      params: t.Object({
+        id: t.Number({ description: "Article ID" }),
+      }),
+      detail: {
+        summary: "Delete article",
+        description:
+          "Permanently delete an article and all its related data (tags, bookmarks, reading progress). This action cannot be undone.",
         tags: ["Admin - Wiki Articles"],
       },
     },

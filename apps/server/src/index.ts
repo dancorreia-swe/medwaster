@@ -6,7 +6,7 @@ import { betterAuthMacro as betterAuth, OpenAPI } from "./lib/auth";
 import { globalErrorHandler } from "./lib/errors";
 import { events } from "./lib/event-bus";
 import { questions } from "./modules/questions";
-import { tags, adminTags } from "./modules/tags";
+import { adminTags } from "./modules/tags";
 import { audit } from "./modules/audit";
 import { auditMiddleware } from "./middleware/audit";
 import { categories } from "./modules/categories";
@@ -92,7 +92,6 @@ export const app = new Elysia({ name: "medwaster-api" })
   )
   .use(wiki)
   .use(adminWiki)
-  .use(tags)
   .use(adminTags)
   .use(categories)
   .use(questions)

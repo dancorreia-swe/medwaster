@@ -7,7 +7,7 @@ export async function deleteTag(id: number | string) {
     throw new Error("Identificador de tag inválido.");
   }
 
-  const response = await client.tags({ id: numericId }).delete();
+  const response = await client.admin.tags({ id: numericId }).delete();
 
   if (response.status !== 204) {
     throw new Error("Não foi possível deletar a tag.");

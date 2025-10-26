@@ -2,7 +2,7 @@ import Elysia from "elysia";
 import { adminArticles, userArticles } from "./articles";
 
 export const adminWiki = new Elysia({
-  prefix: "/wiki",
+  prefix: "/admin/wiki",
   tags: ["Admin - Wiki"],
   detail: {
     description:

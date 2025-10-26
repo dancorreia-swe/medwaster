@@ -79,7 +79,8 @@ export const useCreateArticle = () => {
         queryClient.setQueryData(wikiQueryKeys.article(created.id), response);
       }
 
-      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
+      // Don't invalidate articles list here - let the editor page do it if needed
+      // This prevents the list from updating before navigation
     },
   });
 };
@@ -146,6 +147,18 @@ export const useDeleteArticle = () => {
     mutationFn: (id: number) => wikiApi.deleteArticle(id),
     onSuccess: (_, id) => {
       queryClient.removeQueries({ queryKey: wikiQueryKeys.article(id) });
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
+    },
+  });
+};
+
+export const useArchiveArticle = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => wikiApi.archiveArticle(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.article(id) });
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
     },
   });

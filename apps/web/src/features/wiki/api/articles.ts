@@ -94,4 +94,3 @@ export type ArticleDetail = ArticleListItem & {
   metaDescription?: string;
   featuredImageUrl?: string;
 };
-

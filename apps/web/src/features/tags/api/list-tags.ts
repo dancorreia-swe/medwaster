@@ -14,7 +14,7 @@ const tagsClient = (client as typeof client & {
   tags: {
     get: (params?: { query?: ListTagsQuery }) => Promise<{ success: boolean; data: TagRow[] }>;
   };
-}).tags;
+}).admin.tags;
 
 async function fetchTags(query?: ListTagsQueryInput) {
   const response = query ? await tagsClient.get({ query }) : await tagsClient.get();

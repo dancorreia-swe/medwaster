@@ -1,4 +1,5 @@
-import type { EventData, EventHandler, EventName, EventRegistry } from "./types";
+import type { EventRegistry } from "@events/registry";
+import type { EventData, EventHandler, EventName } from "./types";
 
 /**
  * Event Service

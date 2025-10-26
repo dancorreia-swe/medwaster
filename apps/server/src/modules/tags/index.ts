@@ -13,7 +13,8 @@ export const adminTags = new Elysia({
   prefix: "/admin/tags",
   tags: ["Admin - Tags"],
   detail: {
-    description: "Admin endpoints for managing tags - create, update, and delete",
+    description:
+      "Admin endpoints for managing tags - create, update, and delete",
   },
 })
   .use(betterAuthMacro)
@@ -24,6 +25,23 @@ export const adminTags = new Elysia({
     },
     (app) =>
       app
+        .get(
+          "/",
+          async ({ status, query }) => {
+            const allTags = await TagsService.getAll(query);
+
+            return status(200, success(allTags));
+          },
+          {
+            query: listTagsQuery,
+            detail: {
+              summary: "List all tags",
+              description:
+                "Retrieve a list of all tags. Supports optional search filtering by name or slug.",
+              tags: ["Tags"],
+            },
+          },
+        )
         .post(
           "/",
           async ({ body, status }) => {
@@ -76,32 +94,4 @@ export const adminTags = new Elysia({
             },
           },
         ),
-  );
-
-export const tags = new Elysia({
-  prefix: "/tags",
-  tags: ["Tags"],
-  detail: {
-    description: "Tag endpoints for browsing and filtering article tags",
-  },
-})
-  .use(betterAuthMacro)
-  .guard({ auth: true }, (app) =>
-    app.get(
-      "/",
-      async ({ status, query }) => {
-        const allTags = await TagsService.getAll(query);
-
-        return status(200, success(allTags));
-      },
-      {
-        query: listTagsQuery,
-        detail: {
-          summary: "List all tags",
-          description:
-            "Retrieve a list of all tags. Supports optional search filtering by name or slug.",
-          tags: ["Tags"],
-        },
-      },
-    ),
   );
