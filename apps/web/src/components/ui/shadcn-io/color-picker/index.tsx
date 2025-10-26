@@ -490,7 +490,7 @@ export type ColorPickerPreviewProps = HTMLAttributes<HTMLDivElement> & {
 
 export const ColorPickerPreview = ({
   className,
-  showLabel = true,
+  showLabel = false,
   label = 'Preview',
   ...props
 }: ColorPickerPreviewProps) => {
@@ -535,7 +535,7 @@ export const ColorPickerPreview = ({
             isDark ? 'text-white' : 'text-black'
           )}
         >
-          {hex}
+          {showLabel && hex}
         </span>
       </div>
     </div>

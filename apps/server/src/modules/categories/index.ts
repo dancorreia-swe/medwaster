@@ -3,8 +3,9 @@ import Elysia, { t } from "elysia";
 import { createCategoryBody, updateCategoryBody } from "./model";
 import { CategoriesService } from "./categories.service";
 import { NotFoundError } from "@/lib/errors";
+import { success } from "@/lib/responses";
 
-export const categories = new Elysia({ prefix: "/categories" })
+export const adminCategories = new Elysia({ prefix: "admin/categories" })
   .use(betterAuthMacro)
   .guard({ auth: true, role: [ROLES.ADMIN, ROLES.SUPER_ADMIN] }, (app) =>
     app
@@ -25,14 +26,20 @@ export const categories = new Elysia({ prefix: "/categories" })
           body: updateCategoryBody,
         },
       )
-      .get("/:id", async ({ status, params: { id } }) => {
-        const category = await CategoriesService.getCategoryById(id);
-        if (!category) {
-          throw new NotFoundError("Category not found");
-        }
+      .get(
+        "/:id",
+        async ({ status, params: { id } }) => {
+          const category = await CategoriesService.getCategoryById(id);
+          if (!category) {
+            throw new NotFoundError("Category not found");
+          }
 
-        return status(200, category);
-      })
+          return status(200, category);
+        },
+        {
+          params: t.Object({ id: t.Number() }),
+        },
+      )
       .post(
         "/",
         async ({ body, status }) => {
@@ -43,5 +50,14 @@ export const categories = new Elysia({ prefix: "/categories" })
         {
           body: createCategoryBody,
         },
+      )
+      .delete(
+        "/:id",
+        async ({ status, params: { id } }) => {
+          await CategoriesService.deleteCategory(id);
+
+          return status(200, success("Category deleted successfully"));
+        },
+        { params: t.Object({ id: t.Number() }) },
       ),
   );

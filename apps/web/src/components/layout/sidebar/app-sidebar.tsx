@@ -38,11 +38,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { NavUser } from "./nav-user";
 import type { AuthenticatedUser } from "@/types/user";
 import { authClient } from "@/lib/auth-client";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@radix-ui/react-collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface BaseSidebarItem {
   title: string;
@@ -211,12 +207,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                           </SidebarMenuButton>
                         </CollapsibleTrigger>
-                        <CollapsibleContent>
+                        <CollapsibleContent animate>
                           <SidebarMenuSub>
                             {item.items.map((subItem) => (
                               <SidebarMenuSubItem key={subItem.title}>
                                 <SidebarMenuSubButton
-                                  isActive={location.pathname === subItem.to}
+                                  isActive={
+                                    location.pathname === subItem.to ||
+                                    location.pathname.startsWith(`${subItem.to}/`)
+                                  }
                                   asChild
                                 >
                                   <Link to={subItem.to}>
