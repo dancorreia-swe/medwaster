@@ -1,8 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/components/auth/role-guard";
-import { articleQueryOptions, categoriesQueryOptions, useArticle, useCategories } from "@/features/wiki/api/wikiQueries";
-import { wikiApi } from "@/features/wiki/api/wikiApi";
+import {
+  articleQueryOptions,
+  categoriesQueryOptions,
+  useArticle,
+  useCategories,
+} from "@/features/wiki/api/wikiQueries";
 import {
   ArticleEditorToolbar,
   ArticleTitleInput,
@@ -14,7 +18,7 @@ import { useArticleEditor } from "@/features/wiki/hooks/use-article-editor";
 export const Route = createFileRoute("/_auth/wiki/$articleId/")({
   loader: async ({ context: { queryClient }, params: { articleId } }) => {
     const numericArticleId = Number(articleId);
-    
+
     if (Number.isNaN(numericArticleId)) {
       throw new Error("Invalid article ID");
     }
@@ -116,11 +120,6 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
     onPublish,
   });
 
-  const handleUploadFile = async (file: File) => {
-    const res = await wikiApi.uploadFile(file, articleId);
-    return res.data.url as string;
-  };
-
   return (
     <div className="flex flex-col">
       <ArticleEditorToolbar
@@ -156,7 +155,6 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
         <ArticleContentEditor
           articleId={articleId}
           initialContent={article?.data?.content}
-          onUploadFile={handleUploadFile}
           onEditorReady={setEditor}
           onChange={handleEditorChange}
         />

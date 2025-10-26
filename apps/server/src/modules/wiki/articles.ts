@@ -22,11 +22,15 @@ export const adminArticles = new Elysia({
   .guard({
     auth: true,
     role: "admin",
+    detail: {
+      description: "Admin access required",
+    },
   })
   .get(
     "/",
     async ({ query }) => {
       const result = await ArticleService.listArticles(query);
+
       return success(result);
     },
     {
@@ -104,15 +108,15 @@ export const adminArticles = new Elysia({
     },
   )
 
-  .delete(
-    "/:id",
-    async ({ params: { id }, status }) => {
+  .put(
+    "/:id/archive",
+    async ({ params: { id } }) => {
       if (isNaN(id)) {
         throw new BadRequestError("Invalid article ID");
       }
 
       const result = await ArticleService.archiveArticle(id);
-      return status("No Content", success(result));
+      return success(result);
     },
     {
       params: t.Object({
@@ -122,6 +126,29 @@ export const adminArticles = new Elysia({
         summary: "Archive article",
         description:
           "Soft delete an article by archiving it. Archived articles are hidden from students but can be restored.",
+        tags: ["Admin - Wiki Articles"],
+      },
+    },
+  )
+
+  .delete(
+    "/:id",
+    async ({ params: { id } }) => {
+      if (isNaN(id)) {
+        throw new BadRequestError("Invalid article ID");
+      }
+
+      const result = await ArticleService.deleteArticle(id);
+      return success(result);
+    },
+    {
+      params: t.Object({
+        id: t.Number({ description: "Article ID" }),
+      }),
+      detail: {
+        summary: "Delete article",
+        description:
+          "Permanently delete an article and all its related data (tags, bookmarks, reading progress). This action cannot be undone.",
         tags: ["Admin - Wiki Articles"],
       },
     },
@@ -303,7 +330,6 @@ export const adminArticles = new Elysia({
 // ============================================================================
 // USER/STUDENT ROUTES - Reading, bookmarks, and progress tracking
 // ============================================================================
-// Note: Auth guard is applied at router level (student.ts) with scoped pattern
 
 export const userArticles = new Elysia({
   prefix: "/articles",

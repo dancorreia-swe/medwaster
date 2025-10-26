@@ -15,9 +15,9 @@ function useProtectedRoute() {
     const inAppGroup = segments[0] === "(app)";
 
     if (!session && inAppGroup) {
-      router.replace("/(auth)");
+      router.replace("/(auth)/home");
     } else if (session && inAuthGroup) {
-      router.replace("/(app)/(drawer)");
+      router.replace("/(app)/(tabs)");
     }
   }, [session, segments, isPending]);
 }

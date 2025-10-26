@@ -1,4 +1,4 @@
-import { useMatches } from "@tanstack/react-router";
+import { Link, useMatches } from "@tanstack/react-router";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -30,8 +30,10 @@ const AppBreadcrumb = () => {
               {index === breadcrumbs.length - 1 ? (
                 <BreadcrumbPage>{breadcrumb.title}</BreadcrumbPage>
               ) : (
-                <BreadcrumbLink href={breadcrumb.path}>
-                  {breadcrumb.title}
+                <BreadcrumbLink href={breadcrumb.path} asChild>
+                  <Link to={breadcrumb.path}>
+                    <span>{breadcrumb.title}</span>
+                  </Link>
                 </BreadcrumbLink>
               )}
             </BreadcrumbItem>

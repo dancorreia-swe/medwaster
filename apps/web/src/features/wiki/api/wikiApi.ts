@@ -26,6 +26,8 @@ export const wikiApi = {
   updateArticle: (id: number, body: Parameters<ArticleResource["put"]>[0]) =>
     toArticleResource(id).put(body),
 
+  archiveArticle: (id: number) => toArticleResource(id).archive.put(),
+
   deleteArticle: (id: number) => toArticleResource(id).delete(),
 
   publishArticle: (id: number) => toArticleResource(id).publish.post(),
@@ -34,7 +36,7 @@ export const wikiApi = {
 
   listCategories: () => client.categories.get(),
 
-  listTags: () => client.tags.get(),
+  listTags: () => client.admin.tags.get(),
 };
 
 export type ListArticlesResponse = Awaited<

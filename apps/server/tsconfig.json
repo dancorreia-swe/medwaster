@@ -8,7 +8,8 @@
     "skipLibCheck": true,
     "baseUrl": "./",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@events/*": ["./src/modules/events/*"]
     },
     "outDir": "./dist",
     "types": ["bun"],

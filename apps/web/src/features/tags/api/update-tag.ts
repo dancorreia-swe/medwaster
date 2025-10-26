@@ -8,7 +8,7 @@ export async function updateTag(id: number | string, data: UpdateTagBody) {
     throw new Error("Identificador de tag inválido.");
   }
 
-  const response = await client.tags({ id: numericId }).patch(data);
+  const response = await client.admin.tags({ id }).patch(data);
 
   if (!response.data?.success) {
     throw new Error("Não foi possível atualizar a tag.");

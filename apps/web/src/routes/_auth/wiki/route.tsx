@@ -1,6 +1,3 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -9,25 +6,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   articlesQueryOptions,
   categoriesQueryOptions,
   useArticles,
   useCategories,
-  useCreateArticle,
   useWikiStats,
+  wikiQueryKeys,
   wikiStatsQueryOptions,
 } from "@/features/wiki/api/wikiQueries";
+import {
+  ArticleGrid,
+  ArticleGridSkeleton,
+  EmptyState,
+  NewArticleButton,
+} from "@/features/wiki/components";
 import { wrapRouteWithOutletIfNested } from "@/utils/router";
 import {
   createFileRoute,
-  Link,
   useNavigate,
   useSearch,
 } from "@tanstack/react-router";
-import { Calendar, Clock, Eye, FileText, Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 
 const STATUS_TABS = [
@@ -58,10 +58,24 @@ export const Route = createFileRoute("/_auth/wiki")({
   }),
   loader: async ({ context: { queryClient }, deps }) => {
     const status = (deps.status as string) ?? "all";
+
+    // Only prefetch articles on initial load - use cached data on subsequent visits
+    // The component will handle refetching via React Query's staleTime
+    const articlesKey = articlesQueryOptions({
+      page: 1,
+      limit: 12,
+      status,
+      categoryId: deps.categoryId || undefined,
+      search: deps.q,
+      sort: "updated_at",
+      order: "desc",
+    }).queryKey;
+
+    const hasData = queryClient.getQueryData(articlesKey);
     
-    // Preload data - hooks below will return cached data instantly (no loading states!)
-    await Promise.all([
-      queryClient.ensureQueryData(
+    if (!hasData) {
+      // Only fetch if we don't have data yet
+      await queryClient.prefetchQuery(
         articlesQueryOptions({
           page: 1,
           limit: 12,
@@ -70,11 +84,13 @@ export const Route = createFileRoute("/_auth/wiki")({
           search: deps.q,
           sort: "updated_at",
           order: "desc",
-        })
-      ),
-      queryClient.ensureQueryData(categoriesQueryOptions()),
-      queryClient.ensureQueryData(wikiStatsQueryOptions()),
-    ]);
+        }),
+      );
+    }
+    
+    // Categories and stats are cached for 30min, no need to refetch often
+    queryClient.prefetchQuery(categoriesQueryOptions());
+    queryClient.prefetchQuery(wikiStatsQueryOptions());
   },
   beforeLoad: () => ({ getTitle: () => "Wiki" }),
   component: wrapRouteWithOutletIfNested(RouteComponent),
@@ -207,183 +223,6 @@ function RouteComponent() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-const DEFAULT_TITLE = "Novo artigo";
-
-function NewArticleButton() {
-  const navigate = useNavigate();
-  const { mutateAsync: createArticle } = useCreateArticle();
-
-  const [isCreating, setIsCreating] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const handleCreate = async () => {
-    setIsCreating(true);
-    setErrorMessage(null);
-
-    try {
-      const response = await createArticle({
-        title: DEFAULT_TITLE,
-        excerpt: "",
-        status: "draft",
-      } as any);
-
-      const createdId = response?.data?.data.id;
-      if (!createdId) {
-        throw new Error(
-          "Não foi possível obter o identificador do novo artigo.",
-        );
-      }
-
-      navigate({
-        to: "/wiki/$articleId",
-        params: { articleId: String(createdId) },
-      });
-    } catch (error) {
-      const fallback =
-        error instanceof Error
-          ? error.message
-          : "Falha ao criar rascunho. Tente novamente.";
-      setErrorMessage(fallback);
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  return (
-    <div className="flex flex-col items-end gap-2">
-      <Button onClick={handleCreate} disabled={isCreating} variant={"default"}>
-        {isCreating ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Plus className="mr-2 h-4 w-4" />
-        )}
-        {isCreating ? "Criando..." : "Novo artigo"}
-      </Button>
-      {errorMessage && (
-        <span className="text-xs text-destructive">{errorMessage}</span>
-      )}
-    </div>
-  );
-}
-
-function ArticleGridSkeleton() {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Card key={i} className="overflow-hidden">
-          <CardHeader>
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-1/3 mt-2" />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-5/6" />
-            <div className="flex items-center gap-3 pt-2">
-              <Skeleton className="h-5 w-16" />
-              <Skeleton className="h-5 w-16" />
-              <Skeleton className="h-5 w-16" />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function ArticleGrid({ articles }: { articles: any[] }) {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {articles.map((a) => (
-        <ArticleCard key={a.id} article={a} />
-      ))}
-    </div>
-  );
-}
-
-function statusBadgeVariant(status?: string) {
-  switch (status) {
-    case "published":
-      return "default" as const;
-    case "draft":
-      return "secondary" as const;
-    case "archived":
-      return "outline" as const;
-    default:
-      return "secondary" as const;
-  }
-}
-
-function ArticleCard({ article }: { article: any }) {
-  return (
-    <Card className="group">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base line-clamp-2 flex-1">
-            {article.title}
-          </CardTitle>
-          <Badge
-            variant={statusBadgeVariant(article.status)}
-            className="shrink-0 capitalize"
-          >
-            {article.status === "draft"
-              ? "Rascunho"
-              : article.status === "published"
-                ? "Publicado"
-                : "Arquivado"}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm text-slate-600">
-        <p className="line-clamp-3 min-h-[3.75rem]">
-          {article.excerpt || "Sem resumo disponível."}
-        </p>
-        <div className="flex items-center gap-4 text-xs text-slate-500">
-          <span className="inline-flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" /> {article.readingTimeMinutes || 0}{" "}
-            min
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Eye className="h-3.5 w-3.5" /> {article.viewCount || 0}
-          </span>
-          {article.updatedAt && (
-            <span className="inline-flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />{" "}
-              {new Date(article.updatedAt).toLocaleDateString()}
-            </span>
-          )}
-        </div>
-        <div className="pt-2">
-          <Button
-            asChild
-            variant="ghost"
-            className="px-0 text-blue-600 hover:text-blue-700"
-          >
-            <Link to={`/wiki/$articleId`} params={{ articleId: article.id }}>
-              <FileText className="mr-2 h-4 w-4" /> Abrir artigo
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="border rounded-lg p-10 text-center">
-      <h3 className="text-lg font-semibold">Nenhum artigo encontrado</h3>
-      <p className="text-sm text-slate-600 mt-1">
-        Tente alterar os filtros ou criar um novo artigo.
-      </p>
-      <Button asChild className="mt-4">
-        <Link to="/wiki">
-          <Plus className="mr-2 h-4 w-4" /> Um novo artigo
-        </Link>
-      </Button>
     </div>
   );
 }

@@ -2,19 +2,19 @@ import Elysia from "elysia";
 import { adminArticles, userArticles } from "./articles";
 
 export const adminWiki = new Elysia({
-  prefix: "/wiki",
+  prefix: "/admin/wiki",
   tags: ["Admin - Wiki"],
   detail: {
-    description: "Admin endpoints for managing wiki content",
+    description:
+      "Admin endpoints for managing wiki articles - full CRUD, publishing, and analytics",
   },
-})
-  .use(adminArticles);
+}).use(adminArticles);
 
 export const wiki = new Elysia({
   prefix: "/wiki",
-  tags: ["Student - Wiki"],
+  tags: ["Wiki"],
   detail: {
-    description: "Student endpoints for reading articles, managing bookmarks, and tracking progress",
+    description:
+      "Student endpoints for reading articles, managing bookmarks, and tracking progress",
   },
-})
-  .use(userArticles);
+}).use(userArticles);

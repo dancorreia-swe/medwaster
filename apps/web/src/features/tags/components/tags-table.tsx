@@ -36,7 +36,7 @@ import {
   ChevronUp,
   MoreHorizontal,
   Pencil,
-  Tag as TagIcon,
+  Tag,
   Trash2,
 } from "lucide-react";
 
@@ -105,7 +105,11 @@ export function TagsTable({ data, onEdit, onDelete }: TagsTableProps) {
       },
       {
         accessorKey: "slug",
-        header: "Identificador",
+        header: () => (
+          <span className="text-sm font-medium flex items-center gap-2">
+            <Tag className="size-3.5" /> Identificador
+          </span>
+        ),
         enableSorting: true,
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground">
@@ -118,7 +122,7 @@ export function TagsTable({ data, onEdit, onDelete }: TagsTableProps) {
         header: "Criada em",
         enableSorting: false,
         cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {formatDate(row.original.createdAt)}
           </span>
         ),

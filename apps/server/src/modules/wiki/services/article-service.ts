@@ -207,7 +207,6 @@ export class ArticleService {
         .where(
           and(
             eq(contentCategories.id, data.categoryId),
-            eq(contentCategories.type, "wiki"),
             eq(contentCategories.isActive, true),
           ),
         )
@@ -532,7 +531,7 @@ export class ArticleService {
       pagination: {
         page,
         limit,
-        total: count,
+        total: Number(count),
         pages: Math.ceil(count / limit),
       },
     };
@@ -598,6 +597,48 @@ export class ArticleService {
     return {
       message: "Article archived successfully",
       archivedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Permanently delete an article (hard delete)
+   */
+  static async deleteArticle(
+    id: number,
+  ): Promise<{ message: string; deletedAt: string }> {
+    const [article] = await db
+      .select()
+      .from(wikiArticles)
+      .where(eq(wikiArticles.id, id))
+      .limit(1);
+
+    if (!article) {
+      throw new NotFoundError("Article");
+    }
+
+    // Delete related data first (due to foreign key constraints)
+    await db.delete(wikiArticleTags).where(eq(wikiArticleTags.articleId, id));
+    await db
+      .delete(wikiArticleRelationships)
+      .where(
+        or(
+          eq(wikiArticleRelationships.sourceArticleId, id),
+          eq(wikiArticleRelationships.targetArticleId, id),
+        ),
+      );
+    await db
+      .delete(userArticleBookmarks)
+      .where(eq(userArticleBookmarks.articleId, id));
+    await db
+      .delete(userArticleReads)
+      .where(eq(userArticleReads.articleId, id));
+
+    // Delete the article itself
+    await db.delete(wikiArticles).where(eq(wikiArticles.id, id));
+
+    return {
+      message: "Article permanently deleted",
+      deletedAt: new Date().toISOString(),
     };
   }
 

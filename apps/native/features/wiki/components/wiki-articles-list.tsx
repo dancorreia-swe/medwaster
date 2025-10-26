@@ -1,5 +1,7 @@
 import { View } from "react-native";
 import { ArticleCard } from "./article-card";
+import { useRouter } from "expo-router";
+import { useArticleStore } from "@/lib/stores/article-store";
 
 export interface Article {
   id: string;
@@ -12,17 +14,19 @@ export interface Article {
 
 interface WikiArticlesListProps {
   articles: Article[];
-  favoriteIds: string[];
+  favoriteIds?: string[];
   onFavoriteToggle: (articleId: string) => void;
 }
 
 export function WikiArticlesList({ 
   articles, 
-  favoriteIds,
   onFavoriteToggle 
 }: WikiArticlesListProps) {
+  const router = useRouter();
+  const { isFavorite } = useArticleStore();
+
   return (
-    <View className="px-5 pt-5 pb-6 gap-3">
+    <View className="px-6 pt-6 pb-8 gap-4">
       {articles.map((article) => (
         <ArticleCard
           key={article.id}
@@ -31,8 +35,9 @@ export function WikiArticlesList({
           description={article.description}
           level={article.level}
           duration={article.duration}
-          isFavorite={favoriteIds.includes(article.id)}
+          isFavorite={isFavorite(article.id)}
           onFavoriteToggle={() => onFavoriteToggle(article.id)}
+          onPress={() => router.push(`/article/${article.id}`)}
         />
       ))}
     </View>

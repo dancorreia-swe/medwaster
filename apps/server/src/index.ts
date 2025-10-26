@@ -4,16 +4,15 @@ import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { betterAuthMacro as betterAuth, OpenAPI } from "./lib/auth";
 import { globalErrorHandler } from "./lib/errors";
-import { wiki } from "./modules/wiki";
+import { events } from "./lib/event-bus";
 import { questions } from "./modules/questions";
-import { tags } from "./modules/tags";
+import { adminTags } from "./modules/tags";
 import { audit } from "./modules/audit";
 import { auditMiddleware } from "./middleware/audit";
 import { categories } from "./modules/categories";
 import { ai } from "./modules/ai";
 import { openapi } from "@elysiajs/openapi";
-import { admin } from "./routers/admin";
-import { student } from "./routers/student";
+import { wiki, adminWiki } from "./modules/wiki";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -82,6 +81,7 @@ export const app = new Elysia({ name: "medwaster-api" })
     }),
   )
   .use(globalErrorHandler)
+  .use(events)
   .use(betterAuth)
   .use(
     auditMiddleware({
@@ -90,10 +90,9 @@ export const app = new Elysia({ name: "medwaster-api" })
       logAuthEvents: true,
     }),
   )
-  .use(admin)
-  .use(student)
-  .use(tags)
   .use(wiki)
+  .use(adminWiki)
+  .use(adminTags)
   .use(categories)
   .use(questions)
   .use(audit)

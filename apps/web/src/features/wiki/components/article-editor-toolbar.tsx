@@ -47,15 +47,6 @@ export function ArticleEditorToolbar({
       </div>
       <div className="flex items-center gap-4">
         <Button
-          variant="outline"
-          size="sm"
-          onClick={onSave}
-          disabled={isSaving || !canSave}
-        >
-          <Save />
-          Salvar
-        </Button>
-        <Button
           onClick={onPublish}
           size="sm"
           disabled={isSaving || !canSave || status === "published"}

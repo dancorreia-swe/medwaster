@@ -2,8 +2,16 @@ import { Stack } from "expo-router";
 
 export default function AppLayout() {
   return (
-    <Stack initialRouteName="(drawer)">
-      <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+    <Stack
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="article" />
+      <Stack.Screen name="tutor-chat" />
+      <Stack.Screen name="dev-home" />
+      <Stack.Screen name="questions" />
     </Stack>
   );
 }

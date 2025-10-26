@@ -1,8 +1,8 @@
 import { View, TouchableOpacity, Text } from "react-native";
-import { BookOpen, Heart, LayoutGrid } from "lucide-react-native";
+import { BookOpen, Heart, LayoutGrid, BookOpenCheck } from "lucide-react-native";
 import { Icon } from "@/components/icon";
 
-type TabType = "todos" | "favoritos" | "categorias";
+type TabType = "todos" | "favoritos" | "lidos" | "categorias";
 
 interface WikiFilterTabsProps {
   activeTab: TabType;
@@ -18,21 +18,24 @@ export function WikiFilterTabs({
   selectedCategoriesCount,
 }: WikiFilterTabsProps) {
   return (
-    <View className="flex-row items-center gap-1.5 mb-7">
+    <View className="flex-row items-center gap-2.5 mb-7">
       <TouchableOpacity
         onPress={() => onTabChange("todos")}
-        className={`flex-row items-center gap-2 px-3.5 py-2 rounded-full ${
+        className={`flex-row items-center gap-2.5 px-4 py-2 rounded-full min-h-10 ${
           activeTab === "todos" ? "bg-primary" : "bg-gray-100"
         }`}
+        accessibilityRole="button"
+        accessibilityLabel="Ver todos os artigos"
+        accessibilityState={{ selected: activeTab === "todos" }}
       >
         <Icon
           icon={BookOpen}
-          size={14}
+          size={18}
           className={activeTab === "todos" ? "text-white" : "text-gray-600"}
         />
         <Text
-          className={`text-sm font-medium ${
-            activeTab === "todos" ? "text-white" : "text-gray-600"
+          className={`text-sm font-semibold ${
+            activeTab === "todos" ? "text-white" : "text-gray-700"
           }`}
         >
           Todos
@@ -41,18 +44,21 @@ export function WikiFilterTabs({
 
       <TouchableOpacity
         onPress={() => onTabChange("favoritos")}
-        className={`flex-row items-center gap-2 px-3.5 py-2 rounded-full ${
-          activeTab === "favoritos" ? "bg-pink-500" : "bg-gray-100"
+        className={`flex-row items-center gap-2.5 px-4 py-2 rounded-full min-h-10 ${
+          activeTab === "favoritos" ? "bg-pink-500" : "bg-pink-50"
         }`}
+        accessibilityRole="button"
+        accessibilityLabel="Ver artigos favoritos"
+        accessibilityState={{ selected: activeTab === "favoritos" }}
       >
         <Icon
           icon={Heart}
-          size={14}
-          className={activeTab === "favoritos" ? "text-white" : "text-gray-600"}
+          size={18}
+          className={activeTab === "favoritos" ? "text-white" : "text-pink-600"}
         />
         <Text
-          className={`text-sm font-medium ${
-            activeTab === "favoritos" ? "text-white" : "text-gray-600"
+          className={`text-sm font-semibold ${
+            activeTab === "favoritos" ? "text-white" : "text-pink-700"
           }`}
         >
           Favoritos
@@ -60,28 +66,58 @@ export function WikiFilterTabs({
       </TouchableOpacity>
 
       <TouchableOpacity
-        onPress={onCategoriesPress}
-        className={`flex-row items-center gap-2 px-3.5 py-2 rounded-full ${
-          activeTab === "categorias" ? "bg-primary" : "bg-gray-100"
+        onPress={() => onTabChange("lidos")}
+        className={`flex-row items-center gap-2.5 px-4 py-2 rounded-full min-h-10 ${
+          activeTab === "lidos" ? "bg-green-500" : "bg-green-50"
         }`}
+        accessibilityRole="button"
+        accessibilityLabel="Ver artigos lidos"
+        accessibilityState={{ selected: activeTab === "lidos" }}
+      >
+        <Icon
+          icon={BookOpenCheck}
+          size={18}
+          className={activeTab === "lidos" ? "text-white" : "text-green-600"}
+        />
+        <Text
+          className={`text-sm font-semibold ${
+            activeTab === "lidos" ? "text-white" : "text-green-700"
+          }`}
+        >
+          Lidos
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={onCategoriesPress}
+        className={`flex-row items-center gap-2.5 px-4 py-2 rounded-full min-h-10 ${
+          activeTab === "categorias" ? "bg-purple-500" : "bg-purple-50"
+        }`}
+        accessibilityRole="button"
+        accessibilityLabel={`Filtrar por categorias${selectedCategoriesCount > 0 ? `. ${selectedCategoriesCount} selecionadas` : ""}`}
+        accessibilityState={{ selected: activeTab === "categorias" }}
       >
         <Icon
           icon={LayoutGrid}
-          size={14}
+          size={18}
           className={
-            activeTab === "categorias" ? "text-white" : "text-gray-600"
+            activeTab === "categorias" ? "text-white" : "text-purple-600"
           }
         />
         <Text
-          className={`text-sm font-medium ${
-            activeTab === "categorias" ? "text-white" : "text-gray-600"
+          className={`text-sm font-semibold ${
+            activeTab === "categorias" ? "text-white" : "text-purple-700"
           }`}
         >
           Categorias
         </Text>
-        {selectedCategoriesCount > 0 && activeTab === "categorias" && (
-          <View className="bg-white rounded-full min-w-[20px] h-5 px-1.5 items-center justify-center ml-0.5">
-            <Text className="text-primary text-[10px] font-bold">
+        {selectedCategoriesCount > 0 && (
+          <View className={`rounded-full min-w-[24px] h-6 px-2 items-center justify-center ${
+            activeTab === "categorias" ? "bg-white/20" : "bg-white"
+          }`}>
+            <Text className={`text-xs font-bold ${
+              activeTab === "categorias" ? "text-white" : "text-purple-700"
+            }`}>
               {selectedCategoriesCount}
             </Text>
           </View>

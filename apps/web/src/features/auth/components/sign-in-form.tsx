@@ -94,6 +94,7 @@ export function SignInForm({}: { onSwitchToSignUp?: () => void }) {
                   E-mail
                 </Label>
                 <Input
+                  placeholder="Insira seu e-mail"
                   id={field.name}
                   name={field.name}
                   type="email"
