@@ -112,7 +112,7 @@ export function TagsTable({ data, onEdit, onDelete }: TagsTableProps) {
         ),
         enableSorting: true,
         cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded font-mono">
             {row.original.slug}
           </span>
         ),
