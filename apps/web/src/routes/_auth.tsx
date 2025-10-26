@@ -9,8 +9,12 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { canAccessWebApp, ROLE_ERRORS } from "@/lib/rbac";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { ThemeSwitcher } from "@/components/ui/shadcn-io/theme-switcher";
 import { useTheme } from "@/components/theme-provider";
+import {
+  ThemeToggleButton,
+  useThemeTransition,
+} from "@/components/ui/shadcn-io/theme-toggle-button";
+import { useCallback } from "react";
 
 export const Route = createFileRoute("/_auth")({
   beforeLoad: async ({ location }) => {
@@ -49,6 +53,13 @@ export const Route = createFileRoute("/_auth")({
 
 function RouteComponent() {
   const { theme, setTheme } = useTheme();
+  const { startTransition } = useThemeTransition();
+
+  const handleThemeToggle = useCallback(() => {
+    startTransition(() => {
+      setTheme((prevTheme) => (prevTheme === "dark" ? "light" : "dark"));
+    });
+  }, [setTheme, startTransition]);
 
   return (
     <SidebarProvider>
@@ -64,9 +75,11 @@ function RouteComponent() {
             <AppBreadcrumb />
           </div>
 
-          <ThemeSwitcher
-            value={theme as "light" | "dark" | "system"}
-            onChange={setTheme as (t: "light" | "dark" | "system") => void}
+          <ThemeToggleButton
+            theme={theme as "light" | "dark" | undefined}
+            onClick={handleThemeToggle}
+            variant="circle-blur"
+            start="top-right"
           />
         </header>
 
