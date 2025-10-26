@@ -14,6 +14,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Link } from "@tanstack/react-router";
 import {
   Archive,
@@ -26,9 +37,15 @@ import {
   MoreVertical,
   Trash2,
   Upload,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useDeleteArticle, useArchiveArticle, usePublishArticle } from "../api/wikiQueries";
+import { useState } from "react";
+import {
+  useDeleteArticle,
+  useArchiveArticle,
+  usePublishArticle,
+} from "../api/wikiQueries";
 
 function statusBadgeColor(status?: string) {
   switch (status) {
@@ -48,15 +65,31 @@ export function ArticleCard({ article }: { article: any }) {
   const archiveMutation = useArchiveArticle();
   const publishMutation = usePublishArticle();
 
-  const handleDelete = async () => {
-    if (!confirm("Tem certeza que deseja excluir permanentemente este artigo? Esta ação não pode ser desfeita.")) return;
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [confirmationText, setConfirmationText] = useState("");
+
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+    setConfirmationText("");
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmationText !== article.title) {
+      toast.error("O nome do artigo não corresponde");
+      return;
+    }
 
     try {
       await deleteMutation.mutateAsync(article.id);
+      setShowDeleteDialog(false);
       toast.success("Artigo excluído com sucesso");
     } catch (error) {
-      toast.error("Erro ao excluir artigo");
-      console.error(error);
+      console.error("Delete error:", error);
+      toast.error(
+        error instanceof Error 
+          ? error.message 
+          : "Erro ao excluir artigo"
+      );
     }
   };
 
@@ -186,20 +219,73 @@ export function ArticleCard({ article }: { article: any }) {
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
+              onClick={handleDeleteClick}
               className="text-destructive focus:text-destructive"
             >
-              {deleteMutation.isPending ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              ) : (
-                <Trash2 className="mr-2 size-4 text-destructive" />
-              )}
+              <Trash2 className="mr-2 size-4 text-destructive" />
               Excluir
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </CardFooter>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Excluir artigo permanentemente?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild className="gap-2 pt-1">
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Esta ação <strong>não pode ser desfeita</strong>. O artigo e
+                  todos os seus dados relacionados (tags, favoritos, progresso
+                  de leitura) serão permanentemente removidos.
+                </p>
+                <div className="space-y-2 pt-1">
+                  <Label htmlFor="confirm-title">
+                    Digite{" "}
+                    <strong className="text-foreground">{article.title}</strong>{" "}
+                    para confirmar:
+                  </Label>
+                  <Input
+                    id="confirm-title"
+                    value={confirmationText}
+                    onChange={(e) => setConfirmationText(e.target.value)}
+                    placeholder="Digite o nome do artigo"
+                    className="placeholder:font-normal font-semibold"
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={
+                deleteMutation.isPending || confirmationText !== article.title
+              }
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Excluir permanentemente
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

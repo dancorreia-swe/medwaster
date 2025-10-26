@@ -110,13 +110,13 @@ export const adminArticles = new Elysia({
 
   .put(
     "/:id/archive",
-    async ({ params: { id }, status }) => {
+    async ({ params: { id } }) => {
       if (isNaN(id)) {
         throw new BadRequestError("Invalid article ID");
       }
 
       const result = await ArticleService.archiveArticle(id);
-      return status("No Content", success(result));
+      return success(result);
     },
     {
       params: t.Object({
@@ -133,13 +133,13 @@ export const adminArticles = new Elysia({
 
   .delete(
     "/:id",
-    async ({ params: { id }, status }) => {
+    async ({ params: { id } }) => {
       if (isNaN(id)) {
         throw new BadRequestError("Invalid article ID");
       }
 
       const result = await ArticleService.deleteArticle(id);
-      return status("No Content", success(result));
+      return success(result);
     },
     {
       params: t.Object({

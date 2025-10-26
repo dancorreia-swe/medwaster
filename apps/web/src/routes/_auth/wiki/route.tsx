@@ -59,11 +59,23 @@ export const Route = createFileRoute("/_auth/wiki")({
   loader: async ({ context: { queryClient }, deps }) => {
     const status = (deps.status as string) ?? "all";
 
-    // Invalidate and refetch to ensure fresh data when returning to the list
-    queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
+    // Only prefetch articles on initial load - use cached data on subsequent visits
+    // The component will handle refetching via React Query's staleTime
+    const articlesKey = articlesQueryOptions({
+      page: 1,
+      limit: 12,
+      status,
+      categoryId: deps.categoryId || undefined,
+      search: deps.q,
+      sort: "updated_at",
+      order: "desc",
+    }).queryKey;
 
-    await Promise.all([
-      queryClient.ensureQueryData(
+    const hasData = queryClient.getQueryData(articlesKey);
+    
+    if (!hasData) {
+      // Only fetch if we don't have data yet
+      await queryClient.prefetchQuery(
         articlesQueryOptions({
           page: 1,
           limit: 12,
@@ -73,10 +85,12 @@ export const Route = createFileRoute("/_auth/wiki")({
           sort: "updated_at",
           order: "desc",
         }),
-      ),
-      queryClient.ensureQueryData(categoriesQueryOptions()),
-      queryClient.ensureQueryData(wikiStatsQueryOptions()),
-    ]);
+      );
+    }
+    
+    // Categories and stats are cached for 30min, no need to refetch often
+    queryClient.prefetchQuery(categoriesQueryOptions());
+    queryClient.prefetchQuery(wikiStatsQueryOptions());
   },
   beforeLoad: () => ({ getTitle: () => "Wiki" }),
   component: wrapRouteWithOutletIfNested(RouteComponent),
@@ -98,8 +112,6 @@ function RouteComponent() {
     sort: "updated_at",
     order: "desc",
   });
-  
-  console.log(data);
 
   const statsQuery = useWikiStats();
   const categoriesQuery = useCategories();

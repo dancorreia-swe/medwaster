@@ -99,15 +99,12 @@ export const useUpdateArticle = () => {
       return await client.admin.wiki.articles({ id }).put(data);
     },
     onMutate: async ({ id, data }) => {
-      // Cancel outgoing refetches to prevent them from overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: wikiQueryKeys.article(id) });
 
-      // Snapshot the previous value
       const previousArticle = queryClient.getQueryData(
         wikiQueryKeys.article(id),
       );
 
-      // Optimistically update the cache
       queryClient.setQueryData(wikiQueryKeys.article(id), (old: any) => {
         if (!old) return old;
         return {
@@ -123,12 +120,10 @@ export const useUpdateArticle = () => {
       return { previousArticle };
     },
     onSuccess: (response, variables) => {
-      // Update with actual server response
       queryClient.setQueryData(wikiQueryKeys.article(variables.id), response);
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
     },
     onError: (error, variables, context) => {
-      // Rollback on error
       if (context?.previousArticle) {
         queryClient.setQueryData(
           wikiQueryKeys.article(variables.id),
@@ -146,8 +141,13 @@ export const useDeleteArticle = () => {
   return useMutation({
     mutationFn: (id: number) => wikiApi.deleteArticle(id),
     onSuccess: (_, id) => {
+      // Remove the specific article query first
       queryClient.removeQueries({ queryKey: wikiQueryKeys.article(id) });
+      // Then invalidate the list to refetch
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
+    },
+    onError: (error) => {
+      console.error("Delete mutation error:", error);
     },
   });
 };
@@ -239,6 +239,7 @@ export const useAutoSaveArticle = (articleId?: number, debounceMs = 3000) => {
           id: articleId,
           data: data as UpdateArticleInput,
         });
+
         return;
       }
       await createMutation.mutateAsync(data as CreateArticleInput);
