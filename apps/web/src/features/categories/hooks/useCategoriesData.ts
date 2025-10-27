@@ -22,23 +22,55 @@ export const useCreateCategory = () => {
   });
 };
 
-export const useUpdateCategory = (options?: { silent?: boolean }) => {
+export const useUpdateCategory = (options?: { silent?: boolean; skipRefetch?: boolean }) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, ...data }: { id: number } & Parameters<typeof categoriesApi.updateCategory>[1]) =>
       categoriesApi.updateCategory(id, data),
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: categoriesQueryKeys.lists() });
+      
+      const previousCategories = queryClient.getQueriesData({ queryKey: categoriesQueryKeys.lists() });
+
+      queryClient.setQueriesData(
+        { queryKey: categoriesQueryKeys.lists() },
+        (old: any) => {
+          if (!old) return old;
+          
+          return {
+            ...old,
+            data: old.data?.map((category: any) =>
+              category.id === variables.id
+                ? { ...category, ...variables }
+                : category
+            ),
+          };
+        }
+      );
+
+      return { previousCategories };
+    },
     onSuccess: (_, variables) => {
       if (!options?.silent) {
         toast.success("Categoria atualizada com sucesso");
       }
-      queryClient.invalidateQueries({ queryKey: categoriesQueryKeys.detail(variables.id) });
-      queryClient.invalidateQueries({ queryKey: categoriesQueryKeys.lists() });
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previousCategories) {
+        context.previousCategories.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      
       toast.error(
         error instanceof Error ? error.message : "Erro ao atualizar categoria"
       );
+    },
+    onSettled: (_, __, variables) => {
+      if (!options?.skipRefetch) {
+        queryClient.invalidateQueries({ queryKey: categoriesQueryKeys.lists() });
+      }
     },
   });
 };

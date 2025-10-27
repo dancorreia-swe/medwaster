@@ -27,8 +27,7 @@ function RouteComponent() {
           <h1 className="text-2xl md:text-3xl font-bold">Categorias</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
             Gerencie as categorias utilizadas para organizar artigos, trilhas e
-            outros conteúdos da plataforma. Cada categoria pode ter subcategorias
-            para melhor estruturação.
+            outros conteúdos da plataforma.
           </p>
         </header>
         <Button>

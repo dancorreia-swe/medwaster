@@ -5,7 +5,7 @@ import { CategoriesService } from "./categories.service";
 import { NotFoundError } from "@/lib/errors";
 import { success } from "@/lib/responses";
 
-export const adminCategories = new Elysia({ prefix: "admin/categories" })
+export const adminCategories = new Elysia({ prefix: "/admin/categories" })
   .use(betterAuthMacro)
   .guard({ auth: true, role: [ROLES.ADMIN, ROLES.SUPER_ADMIN] }, (app) =>
     app

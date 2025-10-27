@@ -12,6 +12,7 @@ import { adminCategories } from "./modules/categories";
 import { ai } from "./modules/ai";
 import { openapi } from "@elysiajs/openapi";
 import { wiki, adminWiki } from "./modules/wiki";
+import { adminAchievements } from "./modules/achievements";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -92,6 +93,7 @@ export const app = new Elysia({ name: "medwaster-api" })
   .use(adminWiki)
   .use(adminTags)
   .use(adminCategories)
+  .use(adminAchievements)
   .use(questions)
   .use(audit)
   .use(ai)

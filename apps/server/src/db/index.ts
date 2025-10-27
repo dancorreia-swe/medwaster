@@ -4,6 +4,7 @@ import * as categories from "./schema/categories";
 import * as questions from "./schema/questions";
 import * as audit from "./schema/audit";
 import * as wiki from "./schema/wiki";
+import * as achievements from "./schema/achievements";
 
 import type { PgColumn, PgSelect } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
@@ -11,6 +12,7 @@ import type { SQL } from "drizzle-orm";
 export const db = drizzle(process.env.DATABASE_URL || "", {
   schema: {
     ...auth,
+    ...achievements,
     ...categories,
     ...questions,
     ...audit,
