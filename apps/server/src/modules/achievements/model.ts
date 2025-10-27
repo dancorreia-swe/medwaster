@@ -52,12 +52,73 @@ export const createAchievementBody = createInsertSchema(achievements, {
       ...schema,
       description: "Type of event that triggers this achievement",
     }),
-  triggerConfig: t.Optional(
-    t.Any({
-      description:
-        "Configuration object for trigger conditions (e.g., threshold values, specific IDs)",
-    }),
-  ),
+  targetCount: (schema) =>
+    t.Optional(
+      t.Number({
+        ...schema,
+        description: "Target count for count-based achievements (e.g., read 10 articles)",
+      }),
+    ),
+  targetResourceId: (schema) =>
+    t.Optional(
+      t.String({
+        ...schema,
+        description: "Specific resource ID for targeted achievements (e.g., specific trail or article ID)",
+      }),
+    ),
+  targetAccuracy: (schema) =>
+    t.Optional(
+      t.Number({
+        ...schema,
+        description: "Target accuracy percentage for performance-based achievements",
+      }),
+    ),
+  targetTimeSeconds: (schema) =>
+    t.Optional(
+      t.Number({
+        ...schema,
+        description: "Target time in seconds for time-based achievements",
+      }),
+    ),
+  targetStreakDays: (schema) =>
+    t.Optional(
+      t.Number({
+        ...schema,
+        description: "Target streak in days for streak-based achievements",
+      }),
+    ),
+  requirePerfectScore: (schema) =>
+    t.Optional(
+      t.Boolean({
+        ...schema,
+        description: "Whether perfect score is required",
+        default: false,
+      }),
+    ),
+  requireSequential: (schema) =>
+    t.Optional(
+      t.Boolean({
+        ...schema,
+        description: "Whether actions must be sequential",
+        default: false,
+      }),
+    ),
+  badgeIcon: (schema) =>
+    t.Optional(
+      t.String({
+        ...schema,
+        description: "Lucide icon name for the achievement badge",
+        default: "trophy",
+      }),
+    ),
+  badgeColor: (schema) =>
+    t.Optional(
+      t.String({
+        ...schema,
+        description: "Hex color for the achievement badge",
+        default: "#fbbf24",
+      }),
+    ),
   badgeImageUrl: (schema) =>
     t.Optional(
       t.String({
@@ -156,12 +217,69 @@ export const updateAchievementBody = createUpdateSchema(achievements, {
         description: "Type of event that triggers this achievement",
       }),
     ),
-  triggerConfig: t.Optional(
-    t.Any({
-      description:
-        "Configuration object for trigger conditions (e.g., threshold values, specific IDs)",
-    }),
-  ),
+  targetCount: (schema) =>
+    t.Optional(
+      t.Number({
+        ...schema,
+        description: "Target count for count-based achievements (e.g., read 10 articles)",
+      }),
+    ),
+  targetResourceId: (schema) =>
+    t.Optional(
+      t.String({
+        ...schema,
+        description: "Specific resource ID for targeted achievements (e.g., specific trail or article ID)",
+      }),
+    ),
+  targetAccuracy: (schema) =>
+    t.Optional(
+      t.Number({
+        ...schema,
+        description: "Target accuracy percentage for performance-based achievements",
+      }),
+    ),
+  targetTimeSeconds: (schema) =>
+    t.Optional(
+      t.Number({
+        ...schema,
+        description: "Target time in seconds for time-based achievements",
+      }),
+    ),
+  targetStreakDays: (schema) =>
+    t.Optional(
+      t.Number({
+        ...schema,
+        description: "Target streak in days for streak-based achievements",
+      }),
+    ),
+  requirePerfectScore: (schema) =>
+    t.Optional(
+      t.Boolean({
+        ...schema,
+        description: "Whether perfect score is required",
+      }),
+    ),
+  requireSequential: (schema) =>
+    t.Optional(
+      t.Boolean({
+        ...schema,
+        description: "Whether actions must be sequential",
+      }),
+    ),
+  badgeIcon: (schema) =>
+    t.Optional(
+      t.String({
+        ...schema,
+        description: "Lucide icon name for the achievement badge",
+      }),
+    ),
+  badgeColor: (schema) =>
+    t.Optional(
+      t.String({
+        ...schema,
+        description: "Hex color for the achievement badge",
+      }),
+    ),
   badgeImageUrl: (schema) =>
     t.Optional(
       t.String({

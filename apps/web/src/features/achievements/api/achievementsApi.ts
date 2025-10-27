@@ -1,6 +1,9 @@
 import { client } from "@/lib/client";
 
 export const achievementsApi = {
+  getAchievements: (params?: { page?: number; pageSize?: number }) =>
+    client.admin.achievements.get(params ? { query: params } : undefined),
+
   listAchievements: (params?: { page?: number; pageSize?: number }) =>
     client.admin.achievements.get(params ? { query: params } : undefined),
 

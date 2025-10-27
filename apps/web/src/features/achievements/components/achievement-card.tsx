@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Eye, EyeOff, GripVertical, Trophy } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Achievement } from "@server/db/schema/achievements";
 
@@ -29,6 +30,16 @@ const difficultyLabels = {
 
 export function AchievementCard({ achievement, onEdit }: AchievementCardProps) {
   const isActive = achievement.status === "active";
+  
+  const badgeIcon = achievement.badgeIcon || "trophy";
+  const badgeColor = achievement.badgeColor || "#fbbf24";
+  
+  const Icon = (LucideIcons as any)[
+    badgeIcon.split("-").map((s, i) => 
+      i === 0 ? s.charAt(0).toUpperCase() + s.slice(1) : 
+      s.charAt(0).toUpperCase() + s.slice(1)
+    ).join("")
+  ] || Trophy;
 
   return (
     <Card
@@ -49,12 +60,10 @@ export function AchievementCard({ achievement, onEdit }: AchievementCardProps) {
 
       <CardHeader className="pb-3 flex-1 flex flex-col items-center text-center space-y-4 pt-8">
         <div
-          className={cn(
-            "flex size-16 shrink-0 items-center justify-center rounded-lg",
-            isActive
-              ? "bg-primary/10 text-primary"
-              : "bg-muted text-muted-foreground",
-          )}
+          className="flex size-16 shrink-0 items-center justify-center rounded-full"
+          style={{ 
+            backgroundColor: isActive ? badgeColor + "20" : "#00000010"
+          }}
         >
           {achievement.badgeImageUrl ? (
             <img
@@ -68,7 +77,7 @@ export function AchievementCard({ achievement, onEdit }: AchievementCardProps) {
               className="h-10 w-10"
             />
           ) : (
-            <Trophy className="size-10" />
+            <Icon className="size-10" style={{ color: isActive ? badgeColor : "#666" }} />
           )}
         </div>
         <div className="flex-1 w-full space-y-2">

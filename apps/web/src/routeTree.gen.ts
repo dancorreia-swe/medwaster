@@ -23,6 +23,7 @@ import { Route as AuthAchievementsIndexRouteImport } from './routes/_auth/achiev
 import { Route as AuthWikiArticleIdIndexRouteImport } from './routes/_auth/wiki/$articleId/index'
 import { Route as AuthAdminUsersIndexRouteImport } from './routes/_auth/admin/users/index'
 import { Route as AuthAdminSettingsIndexRouteImport } from './routes/_auth/admin/settings/index'
+import { Route as AuthAchievementsAchievementIdIndexRouteImport } from './routes/_auth/achievements/$achievementId/index'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -93,6 +94,12 @@ const AuthAdminSettingsIndexRoute = AuthAdminSettingsIndexRouteImport.update({
   path: '/admin/settings/',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthAchievementsAchievementIdIndexRoute =
+  AuthAchievementsAchievementIdIndexRouteImport.update({
+    id: '/achievements/$achievementId/',
+    path: '/achievements/$achievementId/',
+    getParentRoute: () => AuthRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/access-denied': typeof AccessDeniedRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/categories': typeof AuthCategoriesIndexRoute
   '/tags': typeof AuthTagsIndexRoute
   '/trails': typeof AuthTrailsIndexRoute
+  '/achievements/$achievementId': typeof AuthAchievementsAchievementIdIndexRoute
   '/admin/settings': typeof AuthAdminSettingsIndexRoute
   '/admin/users': typeof AuthAdminUsersIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
@@ -120,6 +128,7 @@ export interface FileRoutesByTo {
   '/categories': typeof AuthCategoriesIndexRoute
   '/tags': typeof AuthTagsIndexRoute
   '/trails': typeof AuthTrailsIndexRoute
+  '/achievements/$achievementId': typeof AuthAchievementsAchievementIdIndexRoute
   '/admin/settings': typeof AuthAdminSettingsIndexRoute
   '/admin/users': typeof AuthAdminUsersIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
@@ -137,6 +146,7 @@ export interface FileRoutesById {
   '/_auth/categories/': typeof AuthCategoriesIndexRoute
   '/_auth/tags/': typeof AuthTagsIndexRoute
   '/_auth/trails/': typeof AuthTrailsIndexRoute
+  '/_auth/achievements/$achievementId/': typeof AuthAchievementsAchievementIdIndexRoute
   '/_auth/admin/settings/': typeof AuthAdminSettingsIndexRoute
   '/_auth/admin/users/': typeof AuthAdminUsersIndexRoute
   '/_auth/wiki/$articleId/': typeof AuthWikiArticleIdIndexRoute
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/tags'
     | '/trails'
+    | '/achievements/$achievementId'
     | '/admin/settings'
     | '/admin/users'
     | '/wiki/$articleId'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/tags'
     | '/trails'
+    | '/achievements/$achievementId'
     | '/admin/settings'
     | '/admin/users'
     | '/wiki/$articleId'
@@ -185,6 +197,7 @@ export interface FileRouteTypes {
     | '/_auth/categories/'
     | '/_auth/tags/'
     | '/_auth/trails/'
+    | '/_auth/achievements/$achievementId/'
     | '/_auth/admin/settings/'
     | '/_auth/admin/users/'
     | '/_auth/wiki/$articleId/'
@@ -298,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminSettingsIndexRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/achievements/$achievementId/': {
+      id: '/_auth/achievements/$achievementId/'
+      path: '/achievements/$achievementId'
+      fullPath: '/achievements/$achievementId'
+      preLoaderRoute: typeof AuthAchievementsAchievementIdIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
@@ -320,6 +340,7 @@ interface AuthRouteChildren {
   AuthCategoriesIndexRoute: typeof AuthCategoriesIndexRoute
   AuthTagsIndexRoute: typeof AuthTagsIndexRoute
   AuthTrailsIndexRoute: typeof AuthTrailsIndexRoute
+  AuthAchievementsAchievementIdIndexRoute: typeof AuthAchievementsAchievementIdIndexRoute
   AuthAdminSettingsIndexRoute: typeof AuthAdminSettingsIndexRoute
   AuthAdminUsersIndexRoute: typeof AuthAdminUsersIndexRoute
 }
@@ -331,6 +352,8 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthCategoriesIndexRoute: AuthCategoriesIndexRoute,
   AuthTagsIndexRoute: AuthTagsIndexRoute,
   AuthTrailsIndexRoute: AuthTrailsIndexRoute,
+  AuthAchievementsAchievementIdIndexRoute:
+    AuthAchievementsAchievementIdIndexRoute,
   AuthAdminSettingsIndexRoute: AuthAdminSettingsIndexRoute,
   AuthAdminUsersIndexRoute: AuthAdminUsersIndexRoute,
 }

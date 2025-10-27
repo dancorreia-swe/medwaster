@@ -4,7 +4,6 @@ import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { betterAuthMacro as betterAuth, OpenAPI } from "./lib/auth";
 import { globalErrorHandler } from "./lib/errors";
-import { questions } from "./modules/questions";
 import { adminTags } from "./modules/tags";
 import { audit } from "./modules/audit";
 import { auditMiddleware } from "./middleware/audit";
@@ -94,7 +93,6 @@ export const app = new Elysia({ name: "medwaster-api" })
   .use(adminTags)
   .use(adminCategories)
   .use(adminAchievements)
-  .use(questions)
   .use(audit)
   .use(ai)
   .get("/", () => "OK")

@@ -1,58 +1,203 @@
-CREATE TYPE "public"."achievement_category" AS ENUM('trails', 'wiki', 'questions', 'certification', 'engagement', 'general');--> statement-breakpoint
-CREATE TYPE "public"."achievement_difficulty" AS ENUM('easy', 'medium', 'hard');--> statement-breakpoint
-CREATE TYPE "public"."achievement_status" AS ENUM('active', 'inactive', 'archived');--> statement-breakpoint
-CREATE TYPE "public"."achievement_trigger_type" AS ENUM('complete_trails', 'complete_specific_trail', 'complete_trails_perfect', 'complete_trails_sequence', 'read_category_complete', 'read_articles_count', 'read_time_total', 'read_specific_article', 'bookmark_articles_count', 'question_streak_correct', 'questions_answered_count', 'question_accuracy_rate', 'answer_hard_question', 'complete_quiz_count', 'first_certificate', 'certificate_high_score', 'certificate_fast_approval', 'onboarding_complete', 'first_login', 'login_streak', 'use_ai_assistant', 'manual');--> statement-breakpoint
+CREATE TYPE "public"."achievement_category" AS ENUM('trails', 'wiki', 'questions', 'certification', 'engagement', 'social', 'general');--> statement-breakpoint
+CREATE TYPE "public"."achievement_difficulty" AS ENUM('bronze', 'silver', 'gold', 'platinum', 'diamond');--> statement-breakpoint
+CREATE TYPE "public"."achievement_status" AS ENUM('draft', 'active', 'inactive', 'archived');--> statement-breakpoint
+CREATE TYPE "public"."achievement_type" AS ENUM('milestone', 'progressive', 'streak');--> statement-breakpoint
+CREATE TYPE "public"."achievement_visibility" AS ENUM('public', 'secret');--> statement-breakpoint
 CREATE TYPE "public"."mission_frequency" AS ENUM('daily', 'weekly', 'monthly');--> statement-breakpoint
 CREATE TYPE "public"."mission_status" AS ENUM('active', 'inactive', 'archived');--> statement-breakpoint
 CREATE TYPE "public"."mission_type" AS ENUM('complete_questions', 'complete_quiz', 'complete_trail_content', 'read_article', 'bookmark_articles', 'login_daily', 'achieve_score', 'spend_time_learning', 'complete_streak');--> statement-breakpoint
+CREATE TYPE "public"."question_difficulty" AS ENUM('basic', 'intermediate', 'advanced');--> statement-breakpoint
+CREATE TYPE "public"."question_status" AS ENUM('draft', 'active', 'inactive', 'archived');--> statement-breakpoint
+CREATE TYPE "public"."question_type" AS ENUM('multiple_choice', 'true_false', 'fill_in_the_blank', 'matching');--> statement-breakpoint
 CREATE TYPE "public"."trail_content_type" AS ENUM('question', 'quiz', 'article');--> statement-breakpoint
 CREATE TYPE "public"."trail_difficulty" AS ENUM('basic', 'intermediate', 'advanced');--> statement-breakpoint
 CREATE TYPE "public"."trail_status" AS ENUM('draft', 'published', 'inactive', 'archived');--> statement-breakpoint
+CREATE TYPE "public"."wiki_article_status" AS ENUM('draft', 'published', 'archived');--> statement-breakpoint
+CREATE TYPE "public"."wiki_relationship_type" AS ENUM('related', 'prerequisite', 'continuation', 'reference');--> statement-breakpoint
 CREATE TABLE "achievement_events" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" text NOT NULL,
 	"event_type" text NOT NULL,
-	"event_data" jsonb,
-	"achievements_triggered" integer DEFAULT 0 NOT NULL,
-	"achievements_unlocked" text DEFAULT '[]' NOT NULL,
+	"event_data" jsonb NOT NULL,
+	"processed" boolean DEFAULT false NOT NULL,
+	"processed_at" timestamp with time zone,
+	"achievements_evaluated" integer DEFAULT 0,
+	"achievements_progressed" jsonb DEFAULT '[]'::jsonb,
+	"achievements_unlocked" jsonb DEFAULT '[]'::jsonb,
+	"errors" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "achievement_history" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"achievement_id" integer NOT NULL,
+	"trigger_event" text NOT NULL,
+	"trigger_data" jsonb,
+	"achievement_snapshot" jsonb,
+	"rewards_granted" jsonb,
+	"unlocked_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "achievement_history_user_achievement_unique" UNIQUE("user_id","achievement_id")
+);
+--> statement-breakpoint
+CREATE TABLE "achievement_prerequisites" (
+	"achievement_id" integer NOT NULL,
+	"prerequisite_id" integer NOT NULL,
+	"required" boolean DEFAULT true NOT NULL,
+	"order_index" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "achievement_prerequisites_achievement_id_prerequisite_id_pk" PRIMARY KEY("achievement_id","prerequisite_id")
+);
+--> statement-breakpoint
+CREATE TABLE "achievement_stats" (
+	"achievement_id" integer PRIMARY KEY NOT NULL,
+	"total_users" integer DEFAULT 0 NOT NULL,
+	"unlocked_count" integer DEFAULT 0 NOT NULL,
+	"unlocked_percentage" real DEFAULT 0 NOT NULL,
+	"average_progress" real DEFAULT 0,
+	"median_progress" real DEFAULT 0,
+	"average_time_to_unlock_seconds" integer,
+	"last_calculated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "achievements" (
 	"id" serial PRIMARY KEY NOT NULL,
+	"slug" text NOT NULL,
 	"name" text NOT NULL,
 	"description" text NOT NULL,
+	"long_description" text,
 	"category" "achievement_category" NOT NULL,
-	"difficulty" "achievement_difficulty" DEFAULT 'medium' NOT NULL,
-	"status" "achievement_status" DEFAULT 'active' NOT NULL,
-	"trigger_type" "achievement_trigger_type" NOT NULL,
-	"trigger_config" jsonb,
-	"badge_image_url" text,
-	"badge_svg" text,
-	"custom_message" text,
+	"difficulty" "achievement_difficulty" DEFAULT 'bronze' NOT NULL,
+	"type" "achievement_type" DEFAULT 'milestone' NOT NULL,
+	"status" "achievement_status" DEFAULT 'draft' NOT NULL,
+	"visibility" "achievement_visibility" DEFAULT 'public' NOT NULL,
+	"trigger_config" jsonb NOT NULL,
+	"badge" jsonb NOT NULL,
+	"rewards" jsonb DEFAULT '{}'::jsonb,
 	"display_order" integer DEFAULT 0 NOT NULL,
-	"is_secret" boolean DEFAULT false NOT NULL,
-	"obtained_count" integer DEFAULT 0 NOT NULL,
-	"obtained_percentage" real DEFAULT 0 NOT NULL,
 	"created_by" text NOT NULL,
+	"updated_by" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "achievements_name_unique" UNIQUE("name")
+	CONSTRAINT "achievements_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
 CREATE TABLE "user_achievements" (
 	"user_id" text NOT NULL,
 	"achievement_id" integer NOT NULL,
-	"progress" real DEFAULT 0 NOT NULL,
-	"progress_max" real DEFAULT 100 NOT NULL,
+	"current_value" real DEFAULT 0 NOT NULL,
+	"target_value" real NOT NULL,
+	"progress_percentage" real DEFAULT 0 NOT NULL,
 	"is_unlocked" boolean DEFAULT false NOT NULL,
 	"unlocked_at" timestamp with time zone,
-	"trigger_data" jsonb,
+	"current_streak" integer DEFAULT 0,
+	"longest_streak" integer DEFAULT 0,
+	"last_activity_at" timestamp with time zone,
+	"context" jsonb DEFAULT '{}'::jsonb,
 	"notified_at" timestamp with time zone,
 	"viewed_at" timestamp with time zone,
+	"claimed_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "user_achievements_pk" PRIMARY KEY("user_id","achievement_id")
+	CONSTRAINT "user_achievements_user_id_achievement_id_pk" PRIMARY KEY("user_id","achievement_id")
+);
+--> statement-breakpoint
+CREATE TABLE "audit_log" (
+	"id" text PRIMARY KEY NOT NULL,
+	"event_type" text NOT NULL,
+	"user_id" text,
+	"session_id" text,
+	"timestamp" timestamp DEFAULT now() NOT NULL,
+	"ip_address" text,
+	"user_agent" text,
+	"resource_type" text,
+	"resource_id" text,
+	"old_values" jsonb,
+	"new_values" jsonb,
+	"additional_context" jsonb,
+	"checksum" text NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "rate_limit_monitor" (
+	"id" text PRIMARY KEY NOT NULL,
+	"identifier" text NOT NULL,
+	"endpoint" text NOT NULL,
+	"attempt_count" integer DEFAULT 0,
+	"window_start" timestamp DEFAULT now() NOT NULL,
+	"last_attempt" timestamp DEFAULT now() NOT NULL,
+	"alert_threshold" integer DEFAULT 10
+);
+--> statement-breakpoint
+CREATE TABLE "account" (
+	"id" text PRIMARY KEY NOT NULL,
+	"account_id" text NOT NULL,
+	"provider_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"access_token" text,
+	"refresh_token" text,
+	"id_token" text,
+	"access_token_expires_at" timestamp,
+	"refresh_token_expires_at" timestamp,
+	"scope" text,
+	"password" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "session" (
+	"id" text PRIMARY KEY NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"token" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp NOT NULL,
+	"ip_address" text,
+	"user_agent" text,
+	"user_id" text NOT NULL,
+	"impersonated_by" text,
+	CONSTRAINT "session_token_unique" UNIQUE("token")
+);
+--> statement-breakpoint
+CREATE TABLE "user" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"email" text NOT NULL,
+	"email_verified" boolean DEFAULT false NOT NULL,
+	"image" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"role" text,
+	"banned" boolean DEFAULT false,
+	"ban_reason" text,
+	"ban_expires" timestamp,
+	CONSTRAINT "user_email_unique" UNIQUE("email")
+);
+--> statement-breakpoint
+CREATE TABLE "verification" (
+	"id" text PRIMARY KEY NOT NULL,
+	"identifier" text NOT NULL,
+	"value" text NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "content_categories" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"slug" text NOT NULL,
+	"description" text,
+	"color" text,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "content_categories_slug_unique" UNIQUE("slug")
+);
+--> statement-breakpoint
+CREATE TABLE "embeddings" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"article_id" integer NOT NULL,
+	"content" text NOT NULL,
+	"embedding" vector(1536) NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "missions" (
@@ -130,6 +275,71 @@ CREATE TABLE "user_streaks" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "user_streaks_user_id_unique" UNIQUE("user_id")
+);
+--> statement-breakpoint
+CREATE TABLE "question_fill_blank_answers" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"question_id" integer NOT NULL,
+	"sequence" integer NOT NULL,
+	"placeholder" text,
+	"answer" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "question_matching_pairs" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"question_id" integer NOT NULL,
+	"left_text" text NOT NULL,
+	"right_text" text NOT NULL,
+	"sequence" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "question_options" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"question_id" integer NOT NULL,
+	"label" text NOT NULL,
+	"content" text NOT NULL,
+	"is_correct" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "question_tags" (
+	"question_id" integer NOT NULL,
+	"tag_id" integer NOT NULL,
+	"assigned_by" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "question_tags_pk" PRIMARY KEY("question_id","tag_id")
+);
+--> statement-breakpoint
+CREATE TABLE "questions" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"prompt" text NOT NULL,
+	"explanation" text,
+	"type" "question_type" NOT NULL,
+	"difficulty" "question_difficulty" NOT NULL,
+	"status" "question_status" DEFAULT 'draft' NOT NULL,
+	"category_id" integer,
+	"author_id" text NOT NULL,
+	"image_url" text,
+	"references" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "tags" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"slug" text NOT NULL,
+	"description" text,
+	"color" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "tags_name_unique" UNIQUE("name"),
+	CONSTRAINT "tags_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
 CREATE TABLE "quiz_questions" (
@@ -287,16 +497,86 @@ CREATE TABLE "user_article_reads" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "wiki_article_relationships" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"source_article_id" integer NOT NULL,
+	"target_article_id" integer NOT NULL,
+	"relationship_type" "wiki_relationship_type" NOT NULL,
+	"created_by" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "wiki_article_tags" (
+	"article_id" integer NOT NULL,
+	"tag_id" integer NOT NULL,
+	"assigned_by" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "wiki_article_tags_pk" PRIMARY KEY("article_id","tag_id")
+);
+--> statement-breakpoint
+CREATE TABLE "wiki_articles" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"title" text NOT NULL,
+	"slug" text NOT NULL,
+	"content" jsonb NOT NULL,
+	"content_text" text,
+	"excerpt" text,
+	"reading_time_minutes" integer,
+	"status" "wiki_article_status" DEFAULT 'draft' NOT NULL,
+	"category_id" integer,
+	"author_id" text NOT NULL,
+	"featured_image_url" text,
+	"view_count" integer DEFAULT 0 NOT NULL,
+	"last_viewed_at" timestamp with time zone,
+	"published_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "wiki_articles_slug_unique" UNIQUE("slug")
+);
+--> statement-breakpoint
+CREATE TABLE "wiki_files" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"original_name" text NOT NULL,
+	"stored_filename" text NOT NULL,
+	"mime_type" text NOT NULL,
+	"file_size" integer NOT NULL,
+	"file_path" text NOT NULL,
+	"uploaded_by" text NOT NULL,
+	"associated_article_id" integer,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "wiki_files_stored_filename_unique" UNIQUE("stored_filename")
+);
+--> statement-breakpoint
 ALTER TABLE "achievement_events" ADD CONSTRAINT "achievement_events_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "achievement_history" ADD CONSTRAINT "achievement_history_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "achievement_history" ADD CONSTRAINT "achievement_history_achievement_id_achievements_id_fk" FOREIGN KEY ("achievement_id") REFERENCES "public"."achievements"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "achievement_prerequisites" ADD CONSTRAINT "achievement_prerequisites_achievement_id_achievements_id_fk" FOREIGN KEY ("achievement_id") REFERENCES "public"."achievements"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "achievement_prerequisites" ADD CONSTRAINT "achievement_prerequisites_prerequisite_id_achievements_id_fk" FOREIGN KEY ("prerequisite_id") REFERENCES "public"."achievements"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "achievement_stats" ADD CONSTRAINT "achievement_stats_achievement_id_achievements_id_fk" FOREIGN KEY ("achievement_id") REFERENCES "public"."achievements"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "achievements" ADD CONSTRAINT "achievements_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "achievements" ADD CONSTRAINT "achievements_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_achievements" ADD CONSTRAINT "user_achievements_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_achievements" ADD CONSTRAINT "user_achievements_achievement_id_achievements_id_fk" FOREIGN KEY ("achievement_id") REFERENCES "public"."achievements"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_session_id_session_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."session"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "embeddings" ADD CONSTRAINT "embeddings_article_id_wiki_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."wiki_articles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_daily_activities" ADD CONSTRAINT "user_daily_activities_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_missions" ADD CONSTRAINT "user_missions_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_missions" ADD CONSTRAINT "user_missions_mission_id_missions_id_fk" FOREIGN KEY ("mission_id") REFERENCES "public"."missions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_streak_milestones" ADD CONSTRAINT "user_streak_milestones_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_streak_milestones" ADD CONSTRAINT "user_streak_milestones_milestone_id_streak_milestones_id_fk" FOREIGN KEY ("milestone_id") REFERENCES "public"."streak_milestones"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_streaks" ADD CONSTRAINT "user_streaks_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "question_fill_blank_answers" ADD CONSTRAINT "question_fill_blank_answers_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "question_matching_pairs" ADD CONSTRAINT "question_matching_pairs_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "question_options" ADD CONSTRAINT "question_options_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "question_tags" ADD CONSTRAINT "question_tags_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "question_tags" ADD CONSTRAINT "question_tags_tag_id_tags_id_fk" FOREIGN KEY ("tag_id") REFERENCES "public"."tags"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "question_tags" ADD CONSTRAINT "question_tags_assigned_by_user_id_fk" FOREIGN KEY ("assigned_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "questions" ADD CONSTRAINT "questions_category_id_content_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."content_categories"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "questions" ADD CONSTRAINT "questions_author_id_user_id_fk" FOREIGN KEY ("author_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "quiz_questions" ADD CONSTRAINT "quiz_questions_quiz_id_quizzes_id_fk" FOREIGN KEY ("quiz_id") REFERENCES "public"."quizzes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "quiz_questions" ADD CONSTRAINT "quiz_questions_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "quizzes" ADD CONSTRAINT "quizzes_category_id_content_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."content_categories"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -321,19 +601,42 @@ ALTER TABLE "user_article_bookmarks" ADD CONSTRAINT "user_article_bookmarks_user
 ALTER TABLE "user_article_bookmarks" ADD CONSTRAINT "user_article_bookmarks_article_id_wiki_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."wiki_articles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_article_reads" ADD CONSTRAINT "user_article_reads_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_article_reads" ADD CONSTRAINT "user_article_reads_article_id_wiki_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."wiki_articles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wiki_article_relationships" ADD CONSTRAINT "wiki_article_relationships_source_article_id_wiki_articles_id_fk" FOREIGN KEY ("source_article_id") REFERENCES "public"."wiki_articles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wiki_article_relationships" ADD CONSTRAINT "wiki_article_relationships_target_article_id_wiki_articles_id_fk" FOREIGN KEY ("target_article_id") REFERENCES "public"."wiki_articles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wiki_article_relationships" ADD CONSTRAINT "wiki_article_relationships_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wiki_article_tags" ADD CONSTRAINT "wiki_article_tags_article_id_wiki_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "public"."wiki_articles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wiki_article_tags" ADD CONSTRAINT "wiki_article_tags_tag_id_tags_id_fk" FOREIGN KEY ("tag_id") REFERENCES "public"."tags"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wiki_article_tags" ADD CONSTRAINT "wiki_article_tags_assigned_by_user_id_fk" FOREIGN KEY ("assigned_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wiki_articles" ADD CONSTRAINT "wiki_articles_category_id_content_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."content_categories"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wiki_articles" ADD CONSTRAINT "wiki_articles_author_id_user_id_fk" FOREIGN KEY ("author_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wiki_files" ADD CONSTRAINT "wiki_files_uploaded_by_user_id_fk" FOREIGN KEY ("uploaded_by") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "wiki_files" ADD CONSTRAINT "wiki_files_associated_article_id_wiki_articles_id_fk" FOREIGN KEY ("associated_article_id") REFERENCES "public"."wiki_articles"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "achievement_events_user_idx" ON "achievement_events" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "achievement_events_type_idx" ON "achievement_events" USING btree ("event_type");--> statement-breakpoint
+CREATE INDEX "achievement_events_processed_idx" ON "achievement_events" USING btree ("processed","created_at");--> statement-breakpoint
 CREATE INDEX "achievement_events_created_idx" ON "achievement_events" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "achievement_history_user_idx" ON "achievement_history" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "achievement_history_achievement_idx" ON "achievement_history" USING btree ("achievement_id");--> statement-breakpoint
+CREATE INDEX "achievement_history_unlocked_idx" ON "achievement_history" USING btree ("unlocked_at");--> statement-breakpoint
+CREATE INDEX "achievement_prerequisites_achievement_idx" ON "achievement_prerequisites" USING btree ("achievement_id");--> statement-breakpoint
+CREATE INDEX "achievement_prerequisites_prerequisite_idx" ON "achievement_prerequisites" USING btree ("prerequisite_id");--> statement-breakpoint
+CREATE INDEX "achievement_stats_unlocked_pct_idx" ON "achievement_stats" USING btree ("unlocked_percentage");--> statement-breakpoint
 CREATE INDEX "achievements_category_idx" ON "achievements" USING btree ("category");--> statement-breakpoint
 CREATE INDEX "achievements_difficulty_idx" ON "achievements" USING btree ("difficulty");--> statement-breakpoint
 CREATE INDEX "achievements_status_idx" ON "achievements" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "achievements_trigger_type_idx" ON "achievements" USING btree ("trigger_type");--> statement-breakpoint
+CREATE INDEX "achievements_type_idx" ON "achievements" USING btree ("type");--> statement-breakpoint
+CREATE INDEX "achievements_visibility_idx" ON "achievements" USING btree ("visibility");--> statement-breakpoint
 CREATE INDEX "achievements_display_order_idx" ON "achievements" USING btree ("display_order");--> statement-breakpoint
-CREATE INDEX "achievements_obtained_count_idx" ON "achievements" USING btree ("obtained_count");--> statement-breakpoint
 CREATE INDEX "user_achievements_user_idx" ON "user_achievements" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "user_achievements_achievement_idx" ON "user_achievements" USING btree ("achievement_id");--> statement-breakpoint
 CREATE INDEX "user_achievements_unlocked_idx" ON "user_achievements" USING btree ("is_unlocked","unlocked_at");--> statement-breakpoint
-CREATE INDEX "user_achievements_progress_idx" ON "user_achievements" USING btree ("user_id","progress");--> statement-breakpoint
+CREATE INDEX "user_achievements_progress_idx" ON "user_achievements" USING btree ("user_id","progress_percentage");--> statement-breakpoint
+CREATE INDEX "idx_audit_timestamp" ON "audit_log" USING btree ("timestamp");--> statement-breakpoint
+CREATE INDEX "idx_audit_user" ON "audit_log" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "idx_audit_event_type" ON "audit_log" USING btree ("event_type");--> statement-breakpoint
+CREATE INDEX "idx_monitor_id_endpoint" ON "rate_limit_monitor" USING btree ("identifier","endpoint");--> statement-breakpoint
+CREATE INDEX "content_categories_name_idx" ON "content_categories" USING btree ("name");--> statement-breakpoint
+CREATE INDEX "embedding_index" ON "embeddings" USING hnsw ("embedding" vector_cosine_ops);--> statement-breakpoint
 CREATE INDEX "missions_type_idx" ON "missions" USING btree ("type");--> statement-breakpoint
 CREATE INDEX "missions_frequency_idx" ON "missions" USING btree ("frequency");--> statement-breakpoint
 CREATE INDEX "missions_status_idx" ON "missions" USING btree ("status");--> statement-breakpoint
@@ -353,6 +656,17 @@ CREATE INDEX "user_streaks_user_idx" ON "user_streaks" USING btree ("user_id");-
 CREATE INDEX "user_streaks_current_streak_idx" ON "user_streaks" USING btree ("current_streak");--> statement-breakpoint
 CREATE INDEX "user_streaks_longest_streak_idx" ON "user_streaks" USING btree ("longest_streak");--> statement-breakpoint
 CREATE INDEX "user_streaks_last_activity_idx" ON "user_streaks" USING btree ("last_activity_date");--> statement-breakpoint
+CREATE INDEX "question_fill_blank_sequence_idx" ON "question_fill_blank_answers" USING btree ("question_id","sequence");--> statement-breakpoint
+CREATE INDEX "question_matching_sequence_idx" ON "question_matching_pairs" USING btree ("question_id","sequence");--> statement-breakpoint
+CREATE INDEX "question_options_question_idx" ON "question_options" USING btree ("question_id");--> statement-breakpoint
+CREATE INDEX "questions_type_idx" ON "questions" USING btree ("type");--> statement-breakpoint
+CREATE INDEX "questions_difficulty_idx" ON "questions" USING btree ("difficulty");--> statement-breakpoint
+CREATE INDEX "questions_status_idx" ON "questions" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "questions_category_idx" ON "questions" USING btree ("category_id");--> statement-breakpoint
+CREATE INDEX "questions_author_idx" ON "questions" USING btree ("author_id");--> statement-breakpoint
+CREATE INDEX "questions_created_at_idx" ON "questions" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "questions_updated_at_idx" ON "questions" USING btree ("updated_at");--> statement-breakpoint
+CREATE INDEX "tags_name_idx" ON "tags" USING btree ("name");--> statement-breakpoint
 CREATE INDEX "quiz_questions_quiz_idx" ON "quiz_questions" USING btree ("quiz_id");--> statement-breakpoint
 CREATE INDEX "quiz_questions_question_idx" ON "quiz_questions" USING btree ("question_id");--> statement-breakpoint
 CREATE INDEX "quiz_questions_sequence_idx" ON "quiz_questions" USING btree ("quiz_id","sequence");--> statement-breakpoint
@@ -394,4 +708,25 @@ CREATE INDEX "user_article_reads_user_idx" ON "user_article_reads" USING btree (
 CREATE INDEX "user_article_reads_article_idx" ON "user_article_reads" USING btree ("article_id");--> statement-breakpoint
 CREATE INDEX "user_article_reads_user_article_idx" ON "user_article_reads" USING btree ("user_id","article_id");--> statement-breakpoint
 CREATE INDEX "user_article_reads_is_read_idx" ON "user_article_reads" USING btree ("is_read");--> statement-breakpoint
-CREATE INDEX "user_article_reads_last_read_idx" ON "user_article_reads" USING btree ("last_read_at");
+CREATE INDEX "user_article_reads_last_read_idx" ON "user_article_reads" USING btree ("last_read_at");--> statement-breakpoint
+CREATE INDEX "idx_wiki_relationships_unique" ON "wiki_article_relationships" USING btree ("source_article_id","target_article_id","relationship_type");--> statement-breakpoint
+CREATE INDEX "idx_wiki_relationships_source" ON "wiki_article_relationships" USING btree ("source_article_id");--> statement-breakpoint
+CREATE INDEX "idx_wiki_relationships_target" ON "wiki_article_relationships" USING btree ("target_article_id");--> statement-breakpoint
+CREATE INDEX "idx_wiki_relationships_type" ON "wiki_article_relationships" USING btree ("relationship_type");--> statement-breakpoint
+CREATE INDEX "idx_wiki_article_tags_article" ON "wiki_article_tags" USING btree ("article_id");--> statement-breakpoint
+CREATE INDEX "idx_wiki_article_tags_tag" ON "wiki_article_tags" USING btree ("tag_id");--> statement-breakpoint
+CREATE INDEX "idx_wiki_article_tags_composite" ON "wiki_article_tags" USING btree ("tag_id","article_id");--> statement-breakpoint
+CREATE INDEX "idx_wiki_articles_status" ON "wiki_articles" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "idx_wiki_articles_category" ON "wiki_articles" USING btree ("category_id");--> statement-breakpoint
+CREATE INDEX "idx_wiki_articles_author" ON "wiki_articles" USING btree ("author_id");--> statement-breakpoint
+CREATE INDEX "idx_wiki_articles_published_at" ON "wiki_articles" USING btree ("published_at");--> statement-breakpoint
+CREATE INDEX "idx_wiki_articles_updated_at" ON "wiki_articles" USING btree ("updated_at");--> statement-breakpoint
+CREATE INDEX "idx_wiki_articles_slug" ON "wiki_articles" USING btree ("slug");--> statement-breakpoint
+CREATE INDEX "idx_wiki_articles_status_category" ON "wiki_articles" USING btree ("status","category_id");--> statement-breakpoint
+CREATE INDEX "idx_wiki_articles_status_updated" ON "wiki_articles" USING btree ("status","updated_at");--> statement-breakpoint
+CREATE INDEX "idx_wiki_articles_author_updated" ON "wiki_articles" USING btree ("author_id","updated_at");--> statement-breakpoint
+CREATE INDEX "idx_wiki_articles_views" ON "wiki_articles" USING btree ("view_count","last_viewed_at");--> statement-breakpoint
+CREATE INDEX "idx_wiki_files_article" ON "wiki_files" USING btree ("associated_article_id");--> statement-breakpoint
+CREATE INDEX "idx_wiki_files_uploaded_by" ON "wiki_files" USING btree ("uploaded_by");--> statement-breakpoint
+CREATE INDEX "idx_wiki_files_created_at" ON "wiki_files" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "idx_wiki_files_stored_filename" ON "wiki_files" USING btree ("stored_filename");

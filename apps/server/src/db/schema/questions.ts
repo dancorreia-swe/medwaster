@@ -28,6 +28,7 @@ export const questionDifficultyValues = [
   "intermediate",
   "advanced",
 ] as const;
+
 export const questionDifficultyEnum = pgEnum(
   "question_difficulty",
   questionDifficultyValues,
