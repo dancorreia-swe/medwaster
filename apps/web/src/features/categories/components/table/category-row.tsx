@@ -13,7 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, FileText, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Category, CategoryWikiArticle } from "../../api";
 import { useDeleteCategory, useUpdateCategory } from "../../hooks";
@@ -26,9 +33,11 @@ import { DeleteCategoryDialog } from "./delete-category-dialog";
 
 interface CategoryRowProps {
   category: Category;
+  onEdit?: (category: Category) => void;
+  onDelete?: (category: Category) => void;
 }
 
-export function CategoryRow({ category }: CategoryRowProps) {
+export function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
@@ -36,7 +45,9 @@ export function CategoryRow({ category }: CategoryRowProps) {
   const [localColor, setLocalColor] = useState(category.color || "#3b82f6");
   const [localIsActive, setLocalIsActive] = useState(category.isActive);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const articleCount = category.wikiArticles?.length ?? 0;
+
   const totalContents = articleCount;
 
   const updateCategory = useUpdateCategory({ silent: true, skipRefetch: true });
@@ -50,59 +61,65 @@ export function CategoryRow({ category }: CategoryRowProps) {
     };
   }, []);
 
-  const handleColorChange = useCallback((rgba: number[] | string) => {
-    let hex: string;
+  const handleColorChange = useCallback(
+    (rgba: number[] | string) => {
+      let hex: string;
 
-    if (Array.isArray(rgba)) {
-      const color = Color.rgb(rgba[0], rgba[1], rgba[2], rgba[3] || 1);
-      hex = color.hex();
-    } else {
-      hex = rgba;
-    }
+      if (Array.isArray(rgba)) {
+        const color = Color.rgb(rgba[0], rgba[1], rgba[2], rgba[3] || 1);
+        hex = color.hex();
+      } else {
+        hex = rgba;
+      }
 
-    if (hex === localColor) return;
+      if (hex === localColor) return;
 
-    setLocalColor(hex);
+      setLocalColor(hex);
 
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
 
-    debounceTimerRef.current = setTimeout(() => {
+      debounceTimerRef.current = setTimeout(() => {
+        updateCategory.mutate(
+          {
+            id: category.id,
+            color: hex,
+          },
+          {
+            onError: () => {
+              setLocalColor(category.color || "#3b82f6");
+              toast.error("Erro ao atualizar cor da categoria");
+            },
+          },
+        );
+      }, 500);
+    },
+    [localColor, category.id, category.color, updateCategory],
+  );
+
+  const handleStatusChange = useCallback(
+    (isActive: boolean) => {
+      if (isActive === localIsActive) return;
+
+      setLocalIsActive(isActive);
+      setStatusDropdownOpen(false);
+
       updateCategory.mutate(
         {
           id: category.id,
-          color: hex,
+          isActive,
         },
         {
           onError: () => {
-            setLocalColor(category.color || "#3b82f6");
-            toast.error("Erro ao atualizar cor da categoria");
+            setLocalIsActive(category.isActive);
+            toast.error("Erro ao atualizar status da categoria");
           },
-        }
-      );
-    }, 500);
-  }, [localColor, category.id, category.color, updateCategory]);
-
-  const handleStatusChange = useCallback((isActive: boolean) => {
-    if (isActive === localIsActive) return;
-
-    setLocalIsActive(isActive);
-    setStatusDropdownOpen(false);
-
-    updateCategory.mutate(
-      {
-        id: category.id,
-        isActive,
-      },
-      {
-        onError: () => {
-          setLocalIsActive(category.isActive);
-          toast.error("Erro ao atualizar status da categoria");
         },
-      }
-    );
-  }, [localIsActive, category.id, category.isActive, updateCategory]);
+      );
+    },
+    [localIsActive, category.id, category.isActive, updateCategory],
+  );
 
   const stopPropagation = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -206,7 +223,12 @@ export function CategoryRow({ category }: CategoryRowProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.(category);
+                }}
+              >
                 <Pencil className="mr-2 h-4 w-4" />
                 Editar
               </DropdownMenuItem>
@@ -219,7 +241,11 @@ export function CategoryRow({ category }: CategoryRowProps) {
                 className="text-destructive focus:text-destructive"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setDeleteDialogOpen(true);
+                  if (onDelete) {
+                    onDelete(category);
+                  } else {
+                    setDeleteDialogOpen(true);
+                  }
                 }}
               >
                 <Trash2 className="mr-2 h-4 w-4" />

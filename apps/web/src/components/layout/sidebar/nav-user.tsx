@@ -20,8 +20,6 @@ import type { AuthenticatedUser } from "@/types/user";
 import { useNavigate } from "@tanstack/react-router";
 import { signOut } from "@/lib/utils";
 import { getRoleDisplayName } from "@/lib/rbac";
-import { ThemeSwitcher } from "@/components/ui/shadcn-io/theme-switcher";
-import { useTheme } from "next-themes";
 
 export function NavUser({ user }: { user: AuthenticatedUser }) {
   const { isMobile } = useSidebar();
@@ -48,8 +46,6 @@ export function NavUser({ user }: { user: AuthenticatedUser }) {
 
     navigate({ to: "/login" });
   };
-
-  const { theme, setTheme } = useTheme();
 
   return (
     <SidebarMenu>
