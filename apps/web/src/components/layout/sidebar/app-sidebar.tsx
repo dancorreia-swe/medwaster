@@ -100,7 +100,7 @@ const adminItems = [
       },
       {
         title: "Quizzes",
-        to: "/questions",
+        to: "/quizzes",
         icon: BrainCircuit,
       },
     ],

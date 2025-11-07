@@ -5,6 +5,7 @@ import * as questions from "./schema/questions";
 import * as audit from "./schema/audit";
 import * as wiki from "./schema/wiki";
 import * as achievements from "./schema/achievements";
+import * as quizzes from "./schema/quizzes";
 
 import type { PgColumn, PgSelect } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
@@ -15,6 +16,7 @@ export const db = drizzle(process.env.DATABASE_URL || "", {
     ...achievements,
     ...categories,
     ...questions,
+    ...quizzes,
     ...audit,
     ...wiki,
   },

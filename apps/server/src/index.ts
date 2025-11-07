@@ -14,6 +14,7 @@ import { openapi } from "@elysiajs/openapi";
 import { wiki, adminWiki } from "./modules/wiki";
 import { adminAchievements } from "./modules/achievements";
 import { adminQuestions } from "./modules/questions";
+import { adminQuizzes, studentQuizzes } from "./modules/quizzes";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -96,6 +97,8 @@ export const app = new Elysia({ name: "medwaster-api" })
   .use(adminCategories)
   .use(adminAchievements)
   .use(adminQuestions)
+  .use(adminQuizzes)
+  .use(studentQuizzes)
   .use(audit)
   .use(ai)
   .get("/uploads/questions/:filename", ({ params }) => {

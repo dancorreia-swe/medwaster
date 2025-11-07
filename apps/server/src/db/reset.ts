@@ -8,6 +8,7 @@ async function resetDatabase() {
   await db.execute(sql`create schema if not exists drizzle`);
 
   console.log("✅ Database reset complete.");
+  return process.exit(0);
 }
 
 resetDatabase();

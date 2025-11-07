@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, stripHtml } from "@/lib/utils";
 import {
   QUESTION_DIFFICULTY_LABELS,
   QUESTION_STATUS_LABELS,
@@ -86,7 +86,7 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-sm line-clamp-2 flex-1 leading-relaxed font-medium group-hover:text-primary transition-colors">
-            {question.prompt}
+            {stripHtml(question.prompt)}
           </CardTitle>
           <Badge
             variant="outline"

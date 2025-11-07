@@ -9,6 +9,9 @@ CREATE TYPE "public"."mission_type" AS ENUM('complete_questions', 'complete_quiz
 CREATE TYPE "public"."question_difficulty" AS ENUM('basic', 'intermediate', 'advanced');--> statement-breakpoint
 CREATE TYPE "public"."question_status" AS ENUM('draft', 'active', 'inactive', 'archived');--> statement-breakpoint
 CREATE TYPE "public"."question_type" AS ENUM('multiple_choice', 'true_false', 'fill_in_the_blank', 'matching');--> statement-breakpoint
+CREATE TYPE "public"."quiz_attempt_status" AS ENUM('in_progress', 'completed', 'submitted', 'timed_out', 'abandoned');--> statement-breakpoint
+CREATE TYPE "public"."quiz_difficulty" AS ENUM('basic', 'intermediate', 'advanced', 'mixed');--> statement-breakpoint
+CREATE TYPE "public"."quiz_status" AS ENUM('draft', 'active', 'inactive', 'archived');--> statement-breakpoint
 CREATE TYPE "public"."trail_content_type" AS ENUM('question', 'quiz', 'article');--> statement-breakpoint
 CREATE TYPE "public"."trail_difficulty" AS ENUM('basic', 'intermediate', 'advanced');--> statement-breakpoint
 CREATE TYPE "public"."trail_status" AS ENUM('draft', 'published', 'inactive', 'archived');--> statement-breakpoint
@@ -287,6 +290,15 @@ CREATE TABLE "question_fill_blank_answers" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "question_fill_blank_options" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"blank_id" integer NOT NULL,
+	"text" text NOT NULL,
+	"is_correct" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "question_matching_pairs" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"question_id" integer NOT NULL,
@@ -342,12 +354,43 @@ CREATE TABLE "tags" (
 	CONSTRAINT "tags_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
+CREATE TABLE "quiz_answers" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"attempt_id" integer NOT NULL,
+	"question_id" integer NOT NULL,
+	"quiz_question_id" integer NOT NULL,
+	"selected_options" text,
+	"text_answer" text,
+	"matching_answers" text,
+	"is_correct" boolean,
+	"points_earned" integer DEFAULT 0,
+	"time_spent" integer,
+	"answered_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "quiz_attempts" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"quiz_id" integer NOT NULL,
+	"user_id" text NOT NULL,
+	"status" "quiz_attempt_status" DEFAULT 'in_progress' NOT NULL,
+	"score" integer,
+	"total_points" integer,
+	"earned_points" integer,
+	"started_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"completed_at" timestamp with time zone,
+	"submitted_at" timestamp with time zone,
+	"time_spent" integer,
+	"ip_address" text,
+	"user_agent" text
+);
+--> statement-breakpoint
 CREATE TABLE "quiz_questions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"quiz_id" integer NOT NULL,
 	"question_id" integer NOT NULL,
-	"sequence" integer NOT NULL,
+	"order" integer NOT NULL,
 	"points" integer DEFAULT 1 NOT NULL,
+	"required" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
@@ -355,12 +398,19 @@ CREATE TABLE "quizzes" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"title" text NOT NULL,
 	"description" text,
+	"instructions" text,
+	"difficulty" "quiz_difficulty" NOT NULL,
+	"status" "quiz_status" DEFAULT 'draft' NOT NULL,
 	"category_id" integer,
-	"difficulty" "trail_difficulty" NOT NULL,
-	"time_limit_minutes" integer,
-	"randomize_questions" boolean DEFAULT false NOT NULL,
-	"show_results" boolean DEFAULT true NOT NULL,
 	"author_id" text NOT NULL,
+	"time_limit" integer,
+	"max_attempts" integer DEFAULT 3,
+	"show_results" boolean DEFAULT true NOT NULL,
+	"show_correct_answers" boolean DEFAULT true NOT NULL,
+	"randomize_questions" boolean DEFAULT false NOT NULL,
+	"randomize_options" boolean DEFAULT false NOT NULL,
+	"passing_score" integer DEFAULT 70,
+	"image_url" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -570,6 +620,7 @@ ALTER TABLE "user_streak_milestones" ADD CONSTRAINT "user_streak_milestones_user
 ALTER TABLE "user_streak_milestones" ADD CONSTRAINT "user_streak_milestones_milestone_id_streak_milestones_id_fk" FOREIGN KEY ("milestone_id") REFERENCES "public"."streak_milestones"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_streaks" ADD CONSTRAINT "user_streaks_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "question_fill_blank_answers" ADD CONSTRAINT "question_fill_blank_answers_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "question_fill_blank_options" ADD CONSTRAINT "question_fill_blank_options_blank_id_question_fill_blank_answers_id_fk" FOREIGN KEY ("blank_id") REFERENCES "public"."question_fill_blank_answers"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "question_matching_pairs" ADD CONSTRAINT "question_matching_pairs_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "question_options" ADD CONSTRAINT "question_options_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "question_tags" ADD CONSTRAINT "question_tags_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -577,6 +628,11 @@ ALTER TABLE "question_tags" ADD CONSTRAINT "question_tags_tag_id_tags_id_fk" FOR
 ALTER TABLE "question_tags" ADD CONSTRAINT "question_tags_assigned_by_user_id_fk" FOREIGN KEY ("assigned_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "questions" ADD CONSTRAINT "questions_category_id_content_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."content_categories"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "questions" ADD CONSTRAINT "questions_author_id_user_id_fk" FOREIGN KEY ("author_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "quiz_answers" ADD CONSTRAINT "quiz_answers_attempt_id_quiz_attempts_id_fk" FOREIGN KEY ("attempt_id") REFERENCES "public"."quiz_attempts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "quiz_answers" ADD CONSTRAINT "quiz_answers_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "quiz_answers" ADD CONSTRAINT "quiz_answers_quiz_question_id_quiz_questions_id_fk" FOREIGN KEY ("quiz_question_id") REFERENCES "public"."quiz_questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "quiz_attempts" ADD CONSTRAINT "quiz_attempts_quiz_id_quizzes_id_fk" FOREIGN KEY ("quiz_id") REFERENCES "public"."quizzes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "quiz_attempts" ADD CONSTRAINT "quiz_attempts_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "quiz_questions" ADD CONSTRAINT "quiz_questions_quiz_id_quizzes_id_fk" FOREIGN KEY ("quiz_id") REFERENCES "public"."quizzes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "quiz_questions" ADD CONSTRAINT "quiz_questions_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "quizzes" ADD CONSTRAINT "quizzes_category_id_content_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."content_categories"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -657,6 +713,7 @@ CREATE INDEX "user_streaks_current_streak_idx" ON "user_streaks" USING btree ("c
 CREATE INDEX "user_streaks_longest_streak_idx" ON "user_streaks" USING btree ("longest_streak");--> statement-breakpoint
 CREATE INDEX "user_streaks_last_activity_idx" ON "user_streaks" USING btree ("last_activity_date");--> statement-breakpoint
 CREATE INDEX "question_fill_blank_sequence_idx" ON "question_fill_blank_answers" USING btree ("question_id","sequence");--> statement-breakpoint
+CREATE INDEX "question_fill_blank_options_blank_idx" ON "question_fill_blank_options" USING btree ("blank_id");--> statement-breakpoint
 CREATE INDEX "question_matching_sequence_idx" ON "question_matching_pairs" USING btree ("question_id","sequence");--> statement-breakpoint
 CREATE INDEX "question_options_question_idx" ON "question_options" USING btree ("question_id");--> statement-breakpoint
 CREATE INDEX "questions_type_idx" ON "questions" USING btree ("type");--> statement-breakpoint
@@ -667,12 +724,21 @@ CREATE INDEX "questions_author_idx" ON "questions" USING btree ("author_id");-->
 CREATE INDEX "questions_created_at_idx" ON "questions" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "questions_updated_at_idx" ON "questions" USING btree ("updated_at");--> statement-breakpoint
 CREATE INDEX "tags_name_idx" ON "tags" USING btree ("name");--> statement-breakpoint
-CREATE INDEX "quiz_questions_quiz_idx" ON "quiz_questions" USING btree ("quiz_id");--> statement-breakpoint
-CREATE INDEX "quiz_questions_question_idx" ON "quiz_questions" USING btree ("question_id");--> statement-breakpoint
-CREATE INDEX "quiz_questions_sequence_idx" ON "quiz_questions" USING btree ("quiz_id","sequence");--> statement-breakpoint
-CREATE INDEX "quizzes_category_idx" ON "quizzes" USING btree ("category_id");--> statement-breakpoint
-CREATE INDEX "quizzes_difficulty_idx" ON "quizzes" USING btree ("difficulty");--> statement-breakpoint
-CREATE INDEX "quizzes_author_idx" ON "quizzes" USING btree ("author_id");--> statement-breakpoint
+CREATE INDEX "quiz_answers_attempt_id_idx" ON "quiz_answers" USING btree ("attempt_id");--> statement-breakpoint
+CREATE INDEX "quiz_answers_question_id_idx" ON "quiz_answers" USING btree ("question_id");--> statement-breakpoint
+CREATE INDEX "quiz_answers_quiz_question_id_idx" ON "quiz_answers" USING btree ("quiz_question_id");--> statement-breakpoint
+CREATE INDEX "quiz_attempts_quiz_id_idx" ON "quiz_attempts" USING btree ("quiz_id");--> statement-breakpoint
+CREATE INDEX "quiz_attempts_user_id_idx" ON "quiz_attempts" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "quiz_attempts_status_id_idx" ON "quiz_attempts" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "quiz_attempts_started_at_idx" ON "quiz_attempts" USING btree ("started_at");--> statement-breakpoint
+CREATE INDEX "quiz_questions_quiz_id_idx" ON "quiz_questions" USING btree ("quiz_id");--> statement-breakpoint
+CREATE INDEX "quiz_questions_question_id_idx" ON "quiz_questions" USING btree ("question_id");--> statement-breakpoint
+CREATE INDEX "quiz_questions_quiz_order_idx" ON "quiz_questions" USING btree ("quiz_id","order");--> statement-breakpoint
+CREATE INDEX "quizzes_status_id_idx" ON "quizzes" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "quizzes_difficulty_id_idx" ON "quizzes" USING btree ("difficulty");--> statement-breakpoint
+CREATE INDEX "quizzes_category_id_idx" ON "quizzes" USING btree ("category_id");--> statement-breakpoint
+CREATE INDEX "quizzes_author_id_idx" ON "quizzes" USING btree ("author_id");--> statement-breakpoint
+CREATE INDEX "quizzes_created_at_ts_idx" ON "quizzes" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "trail_content_trail_idx" ON "trail_content" USING btree ("trail_id");--> statement-breakpoint
 CREATE INDEX "trail_content_sequence_idx" ON "trail_content" USING btree ("trail_id","sequence");--> statement-breakpoint
 CREATE INDEX "trail_content_type_idx" ON "trail_content" USING btree ("content_type","content_id");--> statement-breakpoint
