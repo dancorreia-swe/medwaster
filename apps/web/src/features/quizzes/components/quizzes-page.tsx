@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 import type { QuizListQueryParams, QuizListItem } from "../types";
 
 export function QuizzesPage() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<
     QuizListQueryParams & QuizFilters
   >({
@@ -65,8 +66,7 @@ export function QuizzesPage() {
   };
 
   const handleEdit = (quiz: QuizListItem) => {
-    // TODO: Navigate to edit page or open edit modal
-    console.log("Edit quiz:", quiz.id);
+    navigate({ to: "/quizzes/$quizId/edit", params: { quizId: quiz.id.toString() } });
   };
 
   const handleArchive = async (quiz: QuizListItem) => {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useQuery } from "@tanstack/react-query";
@@ -9,9 +9,12 @@ import { QuizForm } from "../components/quiz-form";
 import { QuestionSelector } from "../components/question-selector";
 import { QuizQuestionBuilder } from "../components/quiz-question-builder";
 import { QuizPreview } from "../components/quiz-preview";
-import { Save, Eye, Globe, X, AlertTriangle } from "lucide-react";
+import { Save, Eye, Globe, X, AlertTriangle, Check, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import type { QuestionListItem } from "@/features/questions/types";
+import { quizQueryOptions } from "../api/quizzesQueries";
+import { useCreateQuiz, useUpdateQuiz } from "../api/quizzesApi";
 
 interface QuizBuilderPageProps {
   mode: "create" | "edit";
@@ -63,49 +66,135 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
   const [formData, setFormData] = useState<QuizFormData>(initialFormData);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-  // Mock query for edit mode - replace with actual API call
+  // Track initial load to prevent auto-save on mount
+  const isInitialLoad = useRef(true);
+  const autoSaveTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  // Mutations
+  const createQuiz = useCreateQuiz();
+  const updateQuiz = useUpdateQuiz(quizId || 0); // Pass 0 as placeholder in create mode
+
+  // Fetch existing quiz data for edit mode
   const {
     data: existingQuiz,
     isLoading: isLoadingQuiz,
     error: loadError
   } = useQuery({
-    queryKey: ["quiz", quizId],
-    queryFn: async () => {
-      if (!quizId) return null;
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return {
-        id: quizId,
-        title: "Quiz de Exemplo",
-        description: "Descrição do quiz",
-        // ... other fields
-        questions: []
-      };
-    },
+    ...quizQueryOptions(quizId!),
     enabled: mode === "edit" && !!quizId,
   });
 
   // Load existing quiz data when editing
   useEffect(() => {
     if (existingQuiz && mode === "edit") {
-      setFormData(prev => ({
-        ...prev,
+      setFormData({
         title: existingQuiz.title || "",
         description: existingQuiz.description || "",
-        // ... map other fields
-      }));
-      // TODO: Set questions from existingQuiz.questions
+        instructions: existingQuiz.instructions || "",
+        difficulty: existingQuiz.difficulty,
+        status: existingQuiz.status,
+        categoryId: existingQuiz.categoryId || undefined,
+        timeLimit: existingQuiz.timeLimit || undefined,
+        maxAttempts: existingQuiz.maxAttempts || 3,
+        showResults: existingQuiz.showResults ?? true,
+        showCorrectAnswers: existingQuiz.showCorrectAnswers ?? true,
+        randomizeQuestions: existingQuiz.randomizeQuestions ?? false,
+        randomizeOptions: existingQuiz.randomizeOptions ?? false,
+        passingScore: existingQuiz.passingScore || 70,
+        imageUrl: existingQuiz.imageUrl || undefined,
+      });
+
+      // Map quiz questions to builder format
+      const quizQuestions = (existingQuiz as any).questions;
+      if (quizQuestions && Array.isArray(quizQuestions) && quizQuestions.length > 0) {
+        const mappedQuestions: QuizQuestion[] = quizQuestions.map((q: any) => ({
+          id: `existing-${q.id}`,
+          questionId: q.questionId,
+          order: q.order,
+          points: q.points,
+          required: q.required,
+          question: q.question as QuestionListItem,
+        }));
+        setQuestions(mappedQuestions);
+      }
+
+      // Reset unsaved changes flag after loading
+      setHasUnsavedChanges(false);
+      isInitialLoad.current = false;
     }
   }, [existingQuiz, mode]);
 
   // Track unsaved changes
   useEffect(() => {
-    setHasUnsavedChanges(true);
+    if (!isInitialLoad.current) {
+      setHasUnsavedChanges(true);
+      setAutoSaveStatus("idle");
+    }
   }, [formData, questions]);
+
+  // Auto-save drafts (only in edit mode)
+  useEffect(() => {
+    // Skip auto-save if:
+    // - Initial load
+    // - Create mode (no quiz ID yet)
+    // - Not a draft
+    // - No title
+    // - No unsaved changes
+    if (
+      isInitialLoad.current ||
+      mode !== "edit" ||
+      formData.status !== "draft" ||
+      !formData.title.trim() ||
+      !hasUnsavedChanges
+    ) {
+      return;
+    }
+
+    // Clear existing timeout
+    if (autoSaveTimeout.current) {
+      clearTimeout(autoSaveTimeout.current);
+    }
+
+    // Set up auto-save after 3 seconds of inactivity
+    autoSaveTimeout.current = setTimeout(() => {
+      setAutoSaveStatus("saving");
+
+      const dataToSave = {
+        ...formData,
+        questions: questions.map((q) => ({
+          questionId: q.questionId,
+          order: q.order,
+          points: q.points,
+          required: q.required,
+        })),
+      };
+
+      updateQuiz.mutate(dataToSave, {
+        onSuccess: () => {
+          setAutoSaveStatus("saved");
+          setHasUnsavedChanges(false);
+
+          // Reset to idle after 2 seconds
+          setTimeout(() => setAutoSaveStatus("idle"), 2000);
+        },
+        onError: (error) => {
+          console.error("Auto-save failed:", error);
+          setAutoSaveStatus("idle");
+        },
+      });
+    }, 3000);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (autoSaveTimeout.current) {
+        clearTimeout(autoSaveTimeout.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasUnsavedChanges]);
 
   const handleFormChange = useCallback((data: Partial<QuizFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
@@ -149,17 +238,16 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
 
   const handleSave = useCallback(
     async (publish = false) => {
-      setIsSaving(true);
-      setSaveError(null);
-      
       try {
         // Basic validation
         if (!formData.title.trim()) {
-          throw new Error("Título é obrigatório");
+          toast.error("Título é obrigatório");
+          return;
         }
-        
+
         if (questions.length === 0 && publish) {
-          throw new Error("Adicione pelo menos uma pergunta antes de publicar");
+          toast.error("Adicione pelo menos uma pergunta antes de publicar");
+          return;
         }
 
         const dataToSave = {
@@ -173,26 +261,36 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
           })),
         };
 
-        console.log("Saving quiz:", dataToSave);
+        if (mode === "create") {
+          const result = await createQuiz.mutateAsync(dataToSave);
+          toast.success("Quiz criado com sucesso!");
 
-        // TODO: Replace with actual API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        
+          // After creating, navigate to edit page to continue working
+          if (result && !publish) {
+            navigate({
+              to: "/quizzes/$quizId/edit",
+              params: { quizId: result.id.toString() }
+            });
+            return;
+          }
+        } else {
+          await updateQuiz.mutateAsync(dataToSave);
+          toast.success("Quiz atualizado com sucesso!");
+        }
+
         setHasUnsavedChanges(false);
-        
-        // Navigate back to list on successful publish
+
+        // Only navigate back to list when publishing
         if (publish) {
           navigate({ to: "/quizzes" });
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Erro ao salvar quiz";
-        setSaveError(errorMessage);
+        toast.error(errorMessage);
         console.error("Failed to save quiz:", error);
-      } finally {
-        setIsSaving(false);
       }
     },
-    [formData, questions, navigate],
+    [formData, questions, mode, createQuiz, updateQuiz, navigate],
   );
 
   // Warn about unsaved changes
@@ -275,19 +373,28 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
                 <div className="h-6 w-px bg-border" />
                 <h1 className="text-lg font-semibold">
                   {mode === "create" ? "Criar Quiz" : "Editar Quiz"}
-                  {hasUnsavedChanges && (
-                    <span className="ml-2 text-orange-600 text-sm">•</span>
-                  )}
                 </h1>
                 {formData.title && (
                   <span className="text-sm text-muted-foreground">
                     • {formData.title}
                   </span>
                 )}
-                {hasUnsavedChanges && (
-                  <span className="text-xs text-orange-600">
-                    • Alterações não salvas
-                  </span>
+                {/* Auto-save status indicator - only for drafts in edit mode */}
+                {mode === "edit" && formData.status === "draft" && (
+                  <>
+                    {autoSaveStatus === "saving" && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        • Auto-salvando...
+                      </span>
+                    )}
+                    {autoSaveStatus === "saved" && (
+                      <span className="text-xs text-green-600 flex items-center gap-1">
+                        <Check className="h-3 w-3" />
+                        • Salvo
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -306,17 +413,17 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => handleSave(false)}
-                  disabled={isSaving || !formData.title.trim()}
+                  disabled={(createQuiz.isPending || updateQuiz.isPending) || !formData.title.trim()}
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? "Salvando..." : "Salvar"}
+                  {(createQuiz.isPending || updateQuiz.isPending) ? "Salvando..." : "Salvar"}
                 </Button>
 
                 <Button
                   size="sm"
                   onClick={() => handleSave(true)}
                   disabled={
-                    isSaving || !formData.title.trim() || questions.length === 0
+                    (createQuiz.isPending || updateQuiz.isPending) || !formData.title.trim() || questions.length === 0
                   }
                 >
                   <Globe className="mr-2 h-4 w-4" />
@@ -329,14 +436,6 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
 
         {/* Main Layout */}
         <div className="flex-1 flex flex-col p-4">
-          {/* Save Error Alert */}
-          {saveError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{saveError}</AlertDescription>
-            </Alert>
-          )}
-          
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-h-0">
             {/* Questions Selector Panel */}
             <div className="lg:col-span-1">

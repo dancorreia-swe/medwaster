@@ -25,6 +25,7 @@ import { Route as AuthAchievementsIndexRouteImport } from './routes/_auth/achiev
 import { Route as AuthQuizzesCreateRouteImport } from './routes/_auth/quizzes/create'
 import { Route as AuthQuestionsNewRouteImport } from './routes/_auth/questions/new'
 import { Route as AuthWikiArticleIdIndexRouteImport } from './routes/_auth/wiki/$articleId/index'
+import { Route as AuthQuizzesQuizIdIndexRouteImport } from './routes/_auth/quizzes/$quizId/index'
 import { Route as AuthQuestionsQuestionIdIndexRouteImport } from './routes/_auth/questions/$questionId/index'
 import { Route as AuthAdminUsersIndexRouteImport } from './routes/_auth/admin/users/index'
 import { Route as AuthAdminSettingsIndexRouteImport } from './routes/_auth/admin/settings/index'
@@ -111,6 +112,11 @@ const AuthWikiArticleIdIndexRoute = AuthWikiArticleIdIndexRouteImport.update({
   path: '/$articleId/',
   getParentRoute: () => AuthWikiRouteRoute,
 } as any)
+const AuthQuizzesQuizIdIndexRoute = AuthQuizzesQuizIdIndexRouteImport.update({
+  id: '/quizzes/$quizId/',
+  path: '/quizzes/$quizId/',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthQuestionsQuestionIdIndexRoute =
   AuthQuestionsQuestionIdIndexRouteImport.update({
     id: '/questions/$questionId/',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthAdminSettingsIndexRoute
   '/admin/users': typeof AuthAdminUsersIndexRoute
   '/questions/$questionId': typeof AuthQuestionsQuestionIdIndexRoute
+  '/quizzes/$quizId': typeof AuthQuizzesQuizIdIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -189,6 +196,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthAdminSettingsIndexRoute
   '/admin/users': typeof AuthAdminUsersIndexRoute
   '/questions/$questionId': typeof AuthQuestionsQuestionIdIndexRoute
+  '/quizzes/$quizId': typeof AuthQuizzesQuizIdIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRoutesById {
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/_auth/admin/settings/': typeof AuthAdminSettingsIndexRoute
   '/_auth/admin/users/': typeof AuthAdminUsersIndexRoute
   '/_auth/questions/$questionId/': typeof AuthQuestionsQuestionIdIndexRoute
+  '/_auth/quizzes/$quizId/': typeof AuthQuizzesQuizIdIndexRoute
   '/_auth/wiki/$articleId/': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/users'
     | '/questions/$questionId'
+    | '/quizzes/$quizId'
     | '/wiki/$articleId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/users'
     | '/questions/$questionId'
+    | '/quizzes/$quizId'
     | '/wiki/$articleId'
   id:
     | '__root__'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/_auth/admin/settings/'
     | '/_auth/admin/users/'
     | '/_auth/questions/$questionId/'
+    | '/_auth/quizzes/$quizId/'
     | '/_auth/wiki/$articleId/'
   fileRoutesById: FileRoutesById
 }
@@ -411,6 +423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthWikiArticleIdIndexRouteImport
       parentRoute: typeof AuthWikiRouteRoute
     }
+    '/_auth/quizzes/$quizId/': {
+      id: '/_auth/quizzes/$quizId/'
+      path: '/quizzes/$quizId'
+      fullPath: '/quizzes/$quizId'
+      preLoaderRoute: typeof AuthQuizzesQuizIdIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/questions/$questionId/': {
       id: '/_auth/questions/$questionId/'
       path: '/questions/$questionId'
@@ -485,6 +504,7 @@ interface AuthRouteChildren {
   AuthAdminSettingsIndexRoute: typeof AuthAdminSettingsIndexRoute
   AuthAdminUsersIndexRoute: typeof AuthAdminUsersIndexRoute
   AuthQuestionsQuestionIdIndexRoute: typeof AuthQuestionsQuestionIdIndexRoute
+  AuthQuizzesQuizIdIndexRoute: typeof AuthQuizzesQuizIdIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
@@ -505,6 +525,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthAdminSettingsIndexRoute: AuthAdminSettingsIndexRoute,
   AuthAdminUsersIndexRoute: AuthAdminUsersIndexRoute,
   AuthQuestionsQuestionIdIndexRoute: AuthQuestionsQuestionIdIndexRoute,
+  AuthQuizzesQuizIdIndexRoute: AuthQuizzesQuizIdIndexRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
