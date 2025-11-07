@@ -72,7 +72,7 @@ export const Route = createFileRoute("/_auth/wiki")({
     }).queryKey;
 
     const hasData = queryClient.getQueryData(articlesKey);
-    
+
     if (!hasData) {
       // Only fetch if we don't have data yet
       await queryClient.prefetchQuery(
@@ -87,7 +87,7 @@ export const Route = createFileRoute("/_auth/wiki")({
         }),
       );
     }
-    
+
     // Categories and stats are cached for 30min, no need to refetch often
     queryClient.prefetchQuery(categoriesQueryOptions());
     queryClient.prefetchQuery(wikiStatsQueryOptions());

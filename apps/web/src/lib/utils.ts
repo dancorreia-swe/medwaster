@@ -46,3 +46,21 @@ export function randomColor(): string {
 
   return Color.hsl(hue, saturation, lightness).hex();
 }
+
+/**
+ * Strips HTML tags from a string and decodes HTML entities
+ * Useful for displaying rich text content as plain text
+ *
+ * @param html - The HTML string to strip
+ * @returns Plain text without HTML tags
+ */
+export function stripHtml(html: string): string {
+  if (!html) return "";
+
+  // Create a temporary element to parse HTML
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+
+  // Get text content (automatically decodes HTML entities)
+  return tmp.textContent || tmp.innerText || "";
+}

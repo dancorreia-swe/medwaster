@@ -1,0 +1,1 @@
+export { QuizBuilderPage } from "./quiz-builder-page";

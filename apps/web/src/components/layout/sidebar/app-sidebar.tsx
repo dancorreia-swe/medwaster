@@ -32,7 +32,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { SuperAdminOnly, usePermissions } from "@/components/auth/role-guard";
+import { SuperAdminOnly, usePermissions } from "@/components/auth/role-guard"
 import type { TRoute } from "@/types/routes";
 import { Link, useLocation } from "@tanstack/react-router";
 import { NavUser } from "./nav-user";
@@ -100,7 +100,7 @@ const adminItems = [
       },
       {
         title: "Quizzes",
-        to: "/questions",
+        to: "/quizzes",
         icon: BrainCircuit,
       },
     ],
@@ -145,6 +145,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation();
   const { data } = authClient.useSession();
   const { canAccessSuperAdmin } = usePermissions();
+
+  // Helper function to check if a collapsible item should be open
+  const isCollapsibleOpen = (item: SidebarCollapsibleItem) => {
+    if (item.isActive !== undefined) return item.isActive;
+    
+    // Check if any sub-item matches the current path
+    return item.items.some(
+      (subItem) =>
+        location.pathname === subItem.to ||
+        location.pathname.startsWith(`${subItem.to}/`)
+    );
+  };
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -196,7 +208,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <Collapsible
                       key={item.title}
                       asChild
-                      defaultOpen={item.isActive}
+                      defaultOpen={isCollapsibleOpen(item)}
                       className="group/collapsible"
                     >
                       <SidebarMenuItem>

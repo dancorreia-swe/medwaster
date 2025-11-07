@@ -230,7 +230,7 @@ export function TagsTable({ data, onEdit, onDelete }: TagsTableProps) {
                 <Empty className="py-10">
                   <EmptyHeader>
                     <EmptyMedia variant="icon">
-                      <TagIcon className="size-5" />
+                      <Tag className="size-5" />
                     </EmptyMedia>
                     <EmptyTitle>Nenhuma tag encontrada</EmptyTitle>
                     <EmptyDescription>

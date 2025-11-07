@@ -29,8 +29,12 @@ export const categoriesApi = {
     client.admin.categories({ id: id.toString() }).delete(),
 };
 
-export type Category = Awaited<
+export type CategoriesResponse = Awaited<
   ReturnType<typeof categoriesApi.listCategories>
->["data"][number];
+>;
+
+export type Category = CategoriesResponse["data"] extends (infer U)[]
+  ? U
+  : never;
 
 export type CategoryWikiArticle = Category["wikiArticles"][number];

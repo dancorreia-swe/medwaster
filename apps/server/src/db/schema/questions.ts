@@ -22,16 +22,19 @@ export const questionTypeValues = [
   "matching",
 ] as const;
 export const questionTypeEnum = pgEnum("question_type", questionTypeValues);
+export type QuestionType = (typeof questionTypeValues)[number];
 
 export const questionDifficultyValues = [
   "basic",
   "intermediate",
   "advanced",
 ] as const;
+
 export const questionDifficultyEnum = pgEnum(
   "question_difficulty",
   questionDifficultyValues,
 );
+export type QuestionDifficulty = (typeof questionDifficultyValues)[number];
 
 export const questionStatusValues = [
   "draft",
@@ -43,6 +46,7 @@ export const questionStatusEnum = pgEnum(
   "question_status",
   questionStatusValues,
 );
+export type QuestionStatus = (typeof questionStatusValues)[number];
 
 export const questions = pgTable(
   "questions",
@@ -151,10 +155,42 @@ export const questionFillBlankAnswers = pgTable(
 
 export const questionFillBlankAnswersRelations = relations(
   questionFillBlankAnswers,
-  ({ one }) => ({
+  ({ one, many }) => ({
     question: one(questions, {
       fields: [questionFillBlankAnswers.questionId],
       references: [questions.id],
+    }),
+    options: many(questionFillBlankOptions),
+  }),
+);
+
+export const questionFillBlankOptions = pgTable(
+  "question_fill_blank_options",
+  {
+    id: serial("id").primaryKey(),
+    blankId: integer("blank_id")
+      .notNull()
+      .references(() => questionFillBlankAnswers.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    isCorrect: boolean("is_correct").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("question_fill_blank_options_blank_idx").on(table.blankId),
+  ],
+);
+
+export const questionFillBlankOptionsRelations = relations(
+  questionFillBlankOptions,
+  ({ one }) => ({
+    blank: one(questionFillBlankAnswers, {
+      fields: [questionFillBlankOptions.blankId],
+      references: [questionFillBlankAnswers.id],
     }),
   }),
 );
@@ -256,3 +292,6 @@ export const questionTagsRelations = relations(questionTags, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+export type Question = typeof questions.$inferSelect;
+export type QuestionInsert = typeof questions.$inferInsert;

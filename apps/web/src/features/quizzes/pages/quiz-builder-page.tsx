@@ -1,0 +1,374 @@
+import { useState, useCallback, useEffect } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { QuizForm } from "../components/quiz-form";
+import { QuestionSelector } from "../components/question-selector";
+import { QuizQuestionBuilder } from "../components/quiz-question-builder";
+import { QuizPreview } from "../components/quiz-preview";
+import { Save, Eye, Globe, X, AlertTriangle } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import type { QuestionListItem } from "@/features/questions/types";
+
+interface QuizBuilderPageProps {
+  mode: "create" | "edit";
+  quizId?: number;
+}
+
+interface QuizQuestion {
+  id: string; // temporary ID for new questions
+  questionId: number;
+  order: number;
+  points: number;
+  required: boolean;
+  question: QuestionListItem;
+}
+
+interface QuizFormData {
+  title: string;
+  description: string;
+  instructions: string;
+  difficulty: "basic" | "intermediate" | "advanced" | "mixed";
+  status: "draft" | "active" | "inactive" | "archived";
+  categoryId?: number;
+  timeLimit?: number;
+  maxAttempts: number;
+  showResults: boolean;
+  showCorrectAnswers: boolean;
+  randomizeQuestions: boolean;
+  randomizeOptions: boolean;
+  passingScore: number;
+  imageUrl?: string;
+}
+
+const initialFormData: QuizFormData = {
+  title: "",
+  description: "",
+  instructions: "",
+  difficulty: "basic",
+  status: "draft",
+  maxAttempts: 3,
+  showResults: true,
+  showCorrectAnswers: true,
+  randomizeQuestions: false,
+  randomizeOptions: false,
+  passingScore: 70,
+};
+
+export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState<QuizFormData>(initialFormData);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Mock query for edit mode - replace with actual API call
+  const {
+    data: existingQuiz,
+    isLoading: isLoadingQuiz,
+    error: loadError
+  } = useQuery({
+    queryKey: ["quiz", quizId],
+    queryFn: async () => {
+      if (!quizId) return null;
+      // TODO: Replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return {
+        id: quizId,
+        title: "Quiz de Exemplo",
+        description: "Descrição do quiz",
+        // ... other fields
+        questions: []
+      };
+    },
+    enabled: mode === "edit" && !!quizId,
+  });
+
+  // Load existing quiz data when editing
+  useEffect(() => {
+    if (existingQuiz && mode === "edit") {
+      setFormData(prev => ({
+        ...prev,
+        title: existingQuiz.title || "",
+        description: existingQuiz.description || "",
+        // ... map other fields
+      }));
+      // TODO: Set questions from existingQuiz.questions
+    }
+  }, [existingQuiz, mode]);
+
+  // Track unsaved changes
+  useEffect(() => {
+    setHasUnsavedChanges(true);
+  }, [formData, questions]);
+
+  const handleFormChange = useCallback((data: Partial<QuizFormData>) => {
+    setFormData((prev) => ({ ...prev, ...data }));
+  }, []);
+
+  const handleAddQuestion = useCallback(
+    (questionId: number, questionData: QuestionListItem) => {
+      const newQuestion: QuizQuestion = {
+        id: `temp-${Date.now()}`,
+        questionId,
+        order: questions.length + 1,
+        points: 1,
+        required: true,
+        question: questionData,
+      };
+      setQuestions((prev) => [...prev, newQuestion]);
+    },
+    [questions.length],
+  );
+
+  const handleRemoveQuestion = useCallback((id: string) => {
+    setQuestions((prev) => {
+      const filtered = prev.filter((q) => q.id !== id);
+      // Reorder remaining questions
+      return filtered.map((q, index) => ({ ...q, order: index + 1 }));
+    });
+  }, []);
+
+  const handleReorderQuestions = useCallback((newQuestions: QuizQuestion[]) => {
+    setQuestions(newQuestions.map((q, index) => ({ ...q, order: index + 1 })));
+  }, []);
+
+  const handleUpdateQuestion = useCallback(
+    (id: string, updates: Partial<QuizQuestion>) => {
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === id ? { ...q, ...updates } : q)),
+      );
+    },
+    [],
+  );
+
+  const handleSave = useCallback(
+    async (publish = false) => {
+      setIsSaving(true);
+      setSaveError(null);
+      
+      try {
+        // Basic validation
+        if (!formData.title.trim()) {
+          throw new Error("Título é obrigatório");
+        }
+        
+        if (questions.length === 0 && publish) {
+          throw new Error("Adicione pelo menos uma pergunta antes de publicar");
+        }
+
+        const dataToSave = {
+          ...formData,
+          status: publish ? ("active" as const) : formData.status,
+          questions: questions.map((q) => ({
+            questionId: q.questionId,
+            order: q.order,
+            points: q.points,
+            required: q.required,
+          })),
+        };
+
+        console.log("Saving quiz:", dataToSave);
+
+        // TODO: Replace with actual API call
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        
+        setHasUnsavedChanges(false);
+        
+        // Navigate back to list on successful publish
+        if (publish) {
+          navigate({ to: "/quizzes" });
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Erro ao salvar quiz";
+        setSaveError(errorMessage);
+        console.error("Failed to save quiz:", error);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [formData, questions, navigate],
+  );
+
+  // Warn about unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Loading state for edit mode
+  if (mode === "edit" && isLoadingQuiz) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <div className="space-y-6">
+            <Skeleton className="h-8 w-64" />
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <Skeleton className="h-96" />
+              <Skeleton className="h-96 lg:col-span-2" />
+              <Skeleton className="h-96" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state for edit mode
+  if (mode === "edit" && loadError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Erro ao carregar quiz. Tente novamente ou volte para a lista.
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Button asChild variant="outline">
+              <Link to="/quizzes">Voltar aos Quizzes</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isPreviewMode) {
+    return (
+      <QuizPreview
+        formData={formData}
+        questions={questions}
+        onClose={() => setIsPreviewMode(false)}
+      />
+    );
+  }
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="border-b bg-card shrink-0">
+          <div className="px-4 sm:px-6">
+            <div className="flex h-16 items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/quizzes"
+                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="hidden sm:inline">Voltar aos Quizzes</span>
+                </Link>
+                <div className="h-6 w-px bg-border" />
+                <h1 className="text-lg font-semibold">
+                  {mode === "create" ? "Criar Quiz" : "Editar Quiz"}
+                  {hasUnsavedChanges && (
+                    <span className="ml-2 text-orange-600 text-sm">•</span>
+                  )}
+                </h1>
+                {formData.title && (
+                  <span className="text-sm text-muted-foreground">
+                    • {formData.title}
+                  </span>
+                )}
+                {hasUnsavedChanges && (
+                  <span className="text-xs text-orange-600">
+                    • Alterações não salvas
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPreviewMode(true)}
+                  disabled={questions.length === 0}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Visualizar
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSave(false)}
+                  disabled={isSaving || !formData.title.trim()}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSaving ? "Salvando..." : "Salvar"}
+                </Button>
+
+                <Button
+                  size="sm"
+                  onClick={() => handleSave(true)}
+                  disabled={
+                    isSaving || !formData.title.trim() || questions.length === 0
+                  }
+                >
+                  <Globe className="mr-2 h-4 w-4" />
+                  {formData.status === "active" ? "Atualizar" : "Publicar"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Layout */}
+        <div className="flex-1 flex flex-col p-4">
+          {/* Save Error Alert */}
+          {saveError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{saveError}</AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-h-0">
+            {/* Questions Selector Panel */}
+            <div className="lg:col-span-1">
+              <QuestionSelector 
+                onAddQuestion={handleAddQuestion}
+                addedQuestionIds={new Set(questions.map(q => q.questionId))}
+              />
+            </div>
+
+            {/* Quiz Builder Panel */}
+            <div className="lg:col-span-2">
+              <QuizQuestionBuilder
+                questions={questions}
+                onRemoveQuestion={handleRemoveQuestion}
+                onReorderQuestions={handleReorderQuestions}
+                onUpdateQuestion={handleUpdateQuestion}
+                onAddQuestion={handleAddQuestion}
+              />
+            </div>
+
+            {/* Quiz Form Panel */}
+            <div className="lg:col-span-1">
+              <QuizForm
+                formData={formData}
+                onChange={handleFormChange}
+                questionCount={questions.length}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </DndProvider>
+  );
+}
+

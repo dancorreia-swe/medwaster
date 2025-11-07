@@ -18,9 +18,15 @@ import { CategoryRow } from "./category-row";
 
 interface CategoriesTableProps {
   categories: Category[];
+  onEdit?: (category: Category) => void;
+  onDelete?: (category: Category) => void;
 }
 
-export function CategoriesTable({ categories }: CategoriesTableProps) {
+export function CategoriesTable({
+  categories,
+  onEdit,
+  onDelete,
+}: CategoriesTableProps) {
   if (categories.length === 0) {
     return (
       <Empty>
@@ -51,7 +57,12 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
           </TableHeader>
           <TableBody>
             {categories.map((category) => (
-              <CategoryRow key={category.id} category={category} />
+              <CategoryRow
+                key={category.id}
+                category={category}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
             ))}
           </TableBody>
         </Table>

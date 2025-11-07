@@ -15,6 +15,7 @@ import { relations } from "drizzle-orm";
 import { user } from "./auth";
 import { contentCategories } from "./categories";
 import { questions } from "./questions";
+import { quizzes, quizQuestions } from "./quizzes";
 
 export const trailDifficultyValues = [
   "basic",
@@ -192,86 +193,6 @@ export const trailContentRelations = relations(trailContent, ({ one }) => ({
   }),
 }));
 
-export const quizzes = pgTable(
-  "quizzes",
-  {
-    id: serial("id").primaryKey(),
-    title: text("title").notNull(),
-    description: text("description"),
-
-    categoryId: integer("category_id").references(() => contentCategories.id, {
-      onDelete: "set null",
-    }),
-    difficulty: trailDifficultyEnum("difficulty").notNull(),
-
-    timeLimitMinutes: integer("time_limit_minutes"),
-    randomizeQuestions: boolean("randomize_questions").notNull().default(false),
-    showResults: boolean("show_results").notNull().default(true),
-
-    authorId: text("author_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "restrict" }),
-
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    index("quizzes_category_idx").on(table.categoryId),
-    index("quizzes_difficulty_idx").on(table.difficulty),
-    index("quizzes_author_idx").on(table.authorId),
-  ],
-);
-
-export const quizzesRelations = relations(quizzes, ({ one, many }) => ({
-  author: one(user, {
-    fields: [quizzes.authorId],
-    references: [user.id],
-  }),
-  category: one(contentCategories, {
-    fields: [quizzes.categoryId],
-    references: [contentCategories.id],
-  }),
-  questions: many(quizQuestions),
-}));
-
-export const quizQuestions = pgTable(
-  "quiz_questions",
-  {
-    id: serial("id").primaryKey(),
-    quizId: integer("quiz_id")
-      .notNull()
-      .references(() => quizzes.id, { onDelete: "cascade" }),
-    questionId: integer("question_id")
-      .notNull()
-      .references(() => questions.id, { onDelete: "cascade" }),
-    sequence: integer("sequence").notNull(),
-    points: integer("points").notNull().default(1),
-
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    index("quiz_questions_quiz_idx").on(table.quizId),
-    index("quiz_questions_question_idx").on(table.questionId),
-    index("quiz_questions_sequence_idx").on(table.quizId, table.sequence),
-  ],
-);
-
-export const quizQuestionsRelations = relations(quizQuestions, ({ one }) => ({
-  quiz: one(quizzes, {
-    fields: [quizQuestions.quizId],
-    references: [quizzes.id],
-  }),
-  question: one(questions, {
-    fields: [quizQuestions.questionId],
-    references: [questions.id],
-  }),
-}));
 
 export const userTrailProgress = pgTable(
   "user_trail_progress",
@@ -517,11 +438,6 @@ export type NewTrailPrerequisite = typeof trailPrerequisites.$inferInsert;
 export type TrailContent = typeof trailContent.$inferSelect;
 export type NewTrailContent = typeof trailContent.$inferInsert;
 
-export type Quiz = typeof quizzes.$inferSelect;
-export type NewQuiz = typeof quizzes.$inferInsert;
-
-export type QuizQuestion = typeof quizQuestions.$inferSelect;
-export type NewQuizQuestion = typeof quizQuestions.$inferInsert;
 
 export type UserTrailProgress = typeof userTrailProgress.$inferSelect;
 export type NewUserTrailProgress = typeof userTrailProgress.$inferInsert;

@@ -2,9 +2,9 @@ import "dotenv/config";
 import logixlysia from "logixlysia";
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
+import { join } from "path";
 import { betterAuthMacro as betterAuth, OpenAPI } from "./lib/auth";
 import { globalErrorHandler } from "./lib/errors";
-import { questions } from "./modules/questions";
 import { adminTags } from "./modules/tags";
 import { audit } from "./modules/audit";
 import { auditMiddleware } from "./middleware/audit";
@@ -12,6 +12,9 @@ import { adminCategories } from "./modules/categories";
 import { ai } from "./modules/ai";
 import { openapi } from "@elysiajs/openapi";
 import { wiki, adminWiki } from "./modules/wiki";
+import { adminAchievements } from "./modules/achievements";
+import { adminQuestions } from "./modules/questions";
+import { adminQuizzes, studentQuizzes } from "./modules/quizzes";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -92,9 +95,16 @@ export const app = new Elysia({ name: "medwaster-api" })
   .use(adminWiki)
   .use(adminTags)
   .use(adminCategories)
-  .use(questions)
+  .use(adminAchievements)
+  .use(adminQuestions)
+  .use(adminQuizzes)
+  .use(studentQuizzes)
   .use(audit)
   .use(ai)
+  .get("/uploads/questions/:filename", ({ params }) => {
+    const filePath = join(process.cwd(), "uploads", "questions", params.filename);
+    return Bun.file(filePath);
+  })
   .get("/", () => "OK")
   .listen(process.env.PORT ? Number(process.env.PORT) : 3000);
 

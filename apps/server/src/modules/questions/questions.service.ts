@@ -1,269 +1,363 @@
-import {
-  SQL,
-  and,
-  asc,
-  desc,
-  eq,
-  exists,
-  gte,
-  ilike,
-  inArray,
-  lte,
-  or,
-  sql,
-} from "drizzle-orm";
-
 import { db } from "@/db";
+import type { CreateQuestionBody, UpdateQuestionBody } from "./model";
 import {
-  questionTags,
   questions,
-  tags,
+  questionOptions,
+  questionFillBlankAnswers,
+  questionFillBlankOptions,
+  questionMatchingPairs,
+  questionTags,
+  type QuestionType,
+  type QuestionDifficulty,
+  type QuestionStatus,
 } from "@/db/schema/questions";
-import { contentCategories } from "@/db/schema/categories";
-import { user } from "@/db/schema/auth";
+import { asc, desc, eq, and, sql, ilike, or } from "drizzle-orm";
+import { NotFoundError } from "@/lib/errors";
 
-import type { ListQuestionsParams, SortOption } from "./questions.validators";
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
 
-export interface QuestionListItem {
-  id: number;
-  prompt: string;
-  type: string;
-  difficulty: string;
-  status: string;
-  category: {
-    id: number;
-    name: string;
-    slug: string;
-  } | null;
-  author: {
-    id: string;
-    name: string;
-  } | null;
-  tags: {
-    id: number;
-    name: string;
-    slug: string;
-    color: string | null;
-  }[];
-  usageCount: number;
-  createdAt: string | null;
-  updatedAt: string | null;
-}
+const QUESTION_TYPE_REQUIREMENTS = {
+  multiple_choice: "options",
+  true_false: "options",
+  fill_in_the_blank: "fillInBlanks",
+  matching: "matchingPairs",
+} as const;
 
-export interface ListQuestionsResult {
-  data: QuestionListItem[];
-  meta: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
-}
+function validateQuestionData(data: CreateQuestionBody | UpdateQuestionBody) {
+  const type = data.type;
+  if (!type) return;
 
-export async function listQuestions(params: ListQuestionsParams): Promise<ListQuestionsResult> {
-  validateDateRange(params.dateFrom, params.dateTo);
+  const requiredField = QUESTION_TYPE_REQUIREMENTS[type];
+  const hasRequiredData = data[requiredField as keyof typeof data];
 
-  const filters = buildFilters(params);
-  const whereClause = filters.length ? and(...filters) : undefined;
-
-  const totalQuery = db
-    .select({
-      value: sql<number>`count(*)`,
-    })
-    .from(questions);
-
-  if (whereClause !== undefined) {
-    totalQuery.where(whereClause);
-  }
-
-  const totalResult = await totalQuery;
-
-  const total = Number(totalResult[0]?.value ?? 0);
-
-  const offset = (params.page - 1) * params.pageSize;
-
-  const rowsQuery = db
-    .select({
-      id: questions.id,
-      prompt: questions.prompt,
-      type: questions.type,
-      difficulty: questions.difficulty,
-      status: questions.status,
-      categoryId: questions.categoryId,
-      categoryName: contentCategories.name,
-      categorySlug: contentCategories.slug,
-      authorId: questions.authorId,
-      authorName: user.name,
-      createdAt: questions.createdAt,
-      updatedAt: questions.updatedAt,
-    })
-    .from(questions)
-    .leftJoin(user, eq(user.id, questions.authorId))
-    .leftJoin(contentCategories, eq(contentCategories.id, questions.categoryId))
-    .orderBy(...buildOrderBy(params.sort))
-    .limit(params.pageSize)
-    .offset(offset);
-
-  if (whereClause !== undefined) {
-    rowsQuery.where(whereClause);
-  }
-
-  const rows = await rowsQuery;
-
-  const questionIds = rows.map((row) => row.id);
-
-  const tagsByQuestion = new Map<
-    number,
-    { id: number; name: string; slug: string; color: string | null }[]
-  >();
-
-  if (questionIds.length) {
-    const tagRows = await db
-      .select({
-        questionId: questionTags.questionId,
-        tagId: tags.id,
-        name: tags.name,
-        slug: tags.slug,
-        color: tags.color,
-      })
-      .from(questionTags)
-      .innerJoin(tags, eq(tags.id, questionTags.tagId))
-      .where(inArray(questionTags.questionId, questionIds));
-
-    for (const tag of tagRows) {
-      const list = tagsByQuestion.get(tag.questionId) ?? [];
-      list.push({
-        id: tag.tagId,
-        name: tag.name,
-        slug: tag.slug,
-        color: tag.color,
-      });
-      tagsByQuestion.set(tag.questionId, list);
-    }
-  }
-
-  const data: QuestionListItem[] = rows.map((row) => ({
-    id: row.id,
-    prompt: row.prompt,
-    type: row.type,
-    difficulty: row.difficulty,
-    status: row.status,
-    category: row.categoryId
-      ? {
-          id: row.categoryId,
-          name: row.categoryName ?? "",
-          slug: row.categorySlug ?? "",
-        }
-      : null,
-    author: row.authorId
-      ? {
-          id: row.authorId,
-          name: row.authorName ?? "",
-        }
-      : null,
-    tags: tagsByQuestion.get(row.id) ?? [],
-    usageCount: 0,
-    createdAt: row.createdAt ? row.createdAt.toISOString() : null,
-    updatedAt: row.updatedAt ? row.updatedAt.toISOString() : null,
-  }));
-
-  return {
-    data,
-    meta: {
-      page: params.page,
-      pageSize: params.pageSize,
-      total,
-      totalPages: params.pageSize ? Math.ceil(total / params.pageSize) : 0,
-    },
-  };
-}
-
-function buildFilters(params: ListQuestionsParams) {
-  const filters: SQL<unknown>[] = [];
-
-  if (params.q) {
-    const term = `%${params.q.replace(/%/g, "")}%`;
-    const condition = or(
-      ilike(questions.prompt, term),
-      ilike(questions.explanation, term),
+  if (
+    !hasRequiredData ||
+    (Array.isArray(hasRequiredData) && hasRequiredData.length === 0)
+  ) {
+    throw new Error(
+      `Question type "${type}" requires "${requiredField}" to be provided`,
     );
-
-    if (condition) {
-      filters.push(condition);
-    }
-  }
-
-  if (params.categoryId) {
-    filters.push(eq(questions.categoryId, params.categoryId));
-  }
-
-  if (params.types.length) {
-    filters.push(inArray(questions.type, params.types));
-  }
-
-  if (params.difficulty) {
-    filters.push(eq(questions.difficulty, params.difficulty));
-  }
-
-  if (params.status) {
-    filters.push(eq(questions.status, params.status));
-  }
-
-  if (params.authorId) {
-    filters.push(eq(questions.authorId, params.authorId));
-  }
-
-  if (params.dateFrom) {
-    filters.push(gte(questions.updatedAt, params.dateFrom));
-  }
-
-  if (params.dateTo) {
-    filters.push(lte(questions.updatedAt, params.dateTo));
-  }
-
-  if (params.tags.length) {
-    const tagCondition = and(
-      eq(questionTags.questionId, questions.id),
-      inArray(tags.slug, params.tags),
-    );
-
-    const existsCondition = tagCondition
-      ? exists(
-          db
-            .select({ questionId: questionTags.questionId })
-            .from(questionTags)
-            .innerJoin(tags, eq(tags.id, questionTags.tagId))
-            .where(tagCondition),
-        )
-      : undefined;
-
-    if (existsCondition) {
-      filters.push(existsCondition);
-    }
-  }
-
-  return filters;
-}
-
-function buildOrderBy(sort: SortOption) {
-  switch (sort) {
-    case "created_desc":
-      return [desc(questions.createdAt)];
-    case "name_asc":
-      return [asc(questions.prompt)];
-    case "category_asc":
-      return [asc(contentCategories.name), asc(questions.prompt)];
-    case "modified_desc":
-    default:
-      return [desc(questions.updatedAt)];
   }
 }
 
-function validateDateRange(start?: Date, end?: Date) {
-  if (start && end && start > end) {
-    const error = new Error("Invalid date range: start date must be before end date");
-    (error as { status?: number; code?: string }).status = 400;
-    (error as { status?: number; code?: string }).code = "invalid_date_range";
-    throw error;
+export abstract class QuestionsService {
+  static async getQuestionById(questionId: number) {
+    const question = await db.query.questions.findFirst({
+      where: eq(questions.id, questionId),
+      with: {
+        author: {
+          columns: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        category: true,
+        options: {
+          orderBy: (options) => [asc(options.id)],
+        },
+        fillInBlanks: {
+          orderBy: (blanks) => [asc(blanks.sequence)],
+          with: {
+            options: true,
+          },
+        },
+        matchingPairs: {
+          orderBy: (pairs) => [asc(pairs.sequence)],
+        },
+        tags: {
+          with: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    if (!question) {
+      throw new NotFoundError("Question");
+    }
+
+    return question;
+  }
+
+  static async createQuestion(
+    newQuestion: CreateQuestionBody,
+    authorId: string,
+  ) {
+    validateQuestionData(newQuestion);
+
+    const { options, fillInBlanks, matchingPairs, tagIds, ...questionData } =
+      newQuestion;
+
+    return await db.transaction(async (tx) => {
+      const [question] = await tx
+        .insert(questions)
+        .values({
+          ...questionData,
+          authorId,
+        })
+        .returning();
+
+      if (options && options.length > 0) {
+        await tx.insert(questionOptions).values(
+          options.map((option) => ({
+            questionId: question.id,
+            ...option,
+          })),
+        );
+      }
+
+      if (fillInBlanks && fillInBlanks.length > 0) {
+        for (const blank of fillInBlanks) {
+          const { options: blankOptions, ...blankData } = blank;
+
+          const [createdBlank] = await tx
+            .insert(questionFillBlankAnswers)
+            .values({
+              questionId: question.id,
+              ...blankData,
+            })
+            .returning();
+
+          if (blankOptions && blankOptions.length > 0) {
+            await tx.insert(questionFillBlankOptions).values(
+              blankOptions.map((option) => ({
+                blankId: createdBlank.id,
+                ...option,
+              })),
+            );
+          }
+        }
+      }
+
+      if (matchingPairs && matchingPairs.length > 0) {
+        await tx.insert(questionMatchingPairs).values(
+          matchingPairs.map((pair) => ({
+            questionId: question.id,
+            ...pair,
+          })),
+        );
+      }
+
+      if (tagIds && tagIds.length > 0) {
+        await tx.insert(questionTags).values(
+          tagIds.map((tagId) => ({
+            questionId: question.id,
+            tagId,
+            assignedBy: authorId,
+          })),
+        );
+      }
+
+      return question;
+    });
+  }
+
+  static async updateQuestion(questionId: number, data: UpdateQuestionBody) {
+    const [existing] = await db
+      .select()
+      .from(questions)
+      .where(eq(questions.id, questionId))
+      .limit(1);
+
+    if (!existing) {
+      throw new NotFoundError("Question not found");
+    }
+
+    if (data.type) {
+      validateQuestionData(data);
+    }
+
+    const { options, fillInBlanks, matchingPairs, tagIds, ...questionData } =
+      data;
+
+    return await db.transaction(async (tx) => {
+      const [question] = await tx
+        .update(questions)
+        .set({
+          ...questionData,
+          updatedAt: new Date(),
+        })
+        .where(eq(questions.id, questionId))
+        .returning();
+
+      if (options !== undefined) {
+        await tx
+          .delete(questionOptions)
+          .where(eq(questionOptions.questionId, questionId));
+
+        if (options.length > 0) {
+          await tx.insert(questionOptions).values(
+            options.map((option) => ({
+              questionId,
+              ...option,
+            })),
+          );
+        }
+      }
+
+      if (fillInBlanks !== undefined) {
+        await tx
+          .delete(questionFillBlankAnswers)
+          .where(eq(questionFillBlankAnswers.questionId, questionId));
+
+        if (fillInBlanks.length > 0) {
+          for (const blank of fillInBlanks) {
+            const { options: blankOptions, ...blankData } = blank;
+
+            const [createdBlank] = await tx
+              .insert(questionFillBlankAnswers)
+              .values({
+                questionId,
+                ...blankData,
+              })
+              .returning();
+
+            if (blankOptions && blankOptions.length > 0) {
+              await tx.insert(questionFillBlankOptions).values(
+                blankOptions.map((option) => ({
+                  blankId: createdBlank.id,
+                  ...option,
+                })),
+              );
+            }
+          }
+        }
+      }
+
+      if (matchingPairs !== undefined) {
+        await tx
+          .delete(questionMatchingPairs)
+          .where(eq(questionMatchingPairs.questionId, questionId));
+
+        if (matchingPairs.length > 0) {
+          await tx.insert(questionMatchingPairs).values(
+            matchingPairs.map((pair) => ({
+              questionId,
+              ...pair,
+            })),
+          );
+        }
+      }
+
+      if (tagIds !== undefined) {
+        await tx
+          .delete(questionTags)
+          .where(eq(questionTags.questionId, questionId));
+
+        if (tagIds.length > 0) {
+          await tx.insert(questionTags).values(
+            tagIds.map((tagId) => ({
+              questionId,
+              tagId,
+            })),
+          );
+        }
+      }
+
+      return question;
+    });
+  }
+
+  static async getAllQuestions({
+    page = 1,
+    pageSize = DEFAULT_PAGE_SIZE,
+    type,
+    difficulty,
+    status,
+    categoryId,
+    search,
+  }: {
+    page?: number;
+    pageSize?: number;
+    type?: QuestionType;
+    difficulty?: QuestionDifficulty;
+    status?: QuestionStatus;
+    categoryId?: number;
+    search?: string;
+  } = {}) {
+    const safePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
+    const conditions = [];
+
+    if (type) conditions.push(eq(questions.type, type));
+    if (difficulty) conditions.push(eq(questions.difficulty, difficulty));
+    if (status) conditions.push(eq(questions.status, status));
+    if (categoryId) conditions.push(eq(questions.categoryId, categoryId));
+    
+    // Add search condition
+    if (search && search.trim()) {
+      const searchTerm = `%${search.trim()}%`;
+      conditions.push(
+        or(
+          ilike(questions.prompt, searchTerm),
+          ilike(questions.explanation, searchTerm)
+        )!
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [allQuestions, totalCount] = await Promise.all([
+      db.query.questions.findMany({
+        where: whereClause,
+        with: {
+          author: {
+            columns: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+          category: true,
+          options: {
+            orderBy: (options) => [asc(options.id)],
+          },
+          tags: {
+            with: {
+              tag: true,
+            },
+          },
+        },
+        orderBy: [desc(questions.createdAt)],
+        limit: safePageSize,
+        offset: (page - 1) * safePageSize,
+      }),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(questions)
+        .where(whereClause)
+        .then(([result]) => result?.count ?? 0),
+    ]);
+
+    return {
+      data: allQuestions,
+      meta: {
+        page,
+        pageSize: safePageSize,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / safePageSize),
+      },
+    };
+  }
+
+  static async deleteQuestion(questionId: number) {
+    const [existing] = await db
+      .select()
+      .from(questions)
+      .where(eq(questions.id, questionId))
+      .limit(1);
+
+    if (!existing) {
+      throw new NotFoundError("Question");
+    }
+
+    await db.delete(questions).where(eq(questions.id, questionId));
+
+    return existing;
+  }
+
+  static async archiveQuestion(questionId: number) {
+    return this.updateQuestion(questionId, { status: "archived" });
   }
 }
