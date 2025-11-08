@@ -1,14 +1,19 @@
-import { useState, useRef } from "react";
-import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Upload, X, Image as ImageIcon, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { client } from "@/lib/client";
 
+interface ImageData {
+  url: string;
+  key: string;
+}
+
 interface ImageUploadProps {
   value?: string;
-  onChange: (url: string | null) => void;
+  onChange: (data: ImageData | null) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -16,7 +21,14 @@ interface ImageUploadProps {
 export function ImageUpload({ value, onChange, disabled, className }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(value || null);
+  const [imageError, setImageError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Update preview when value prop changes (important for editing)
+  useEffect(() => {
+    setPreview(value || null);
+    setImageError(false);
+  }, [value]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -35,6 +47,7 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
       return;
     }
 
+    setImageError(false);
     setIsUploading(true);
 
     try {
@@ -55,13 +68,14 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
 
       const result = await response.json();
       const imageUrl = result.data.url;
+      const imageKey = result.data.key;
 
       // Set preview
-      setPreview(URL.createObjectURL(file));
-      
-      // Update form value
-      onChange(imageUrl);
-      
+      setPreview(imageUrl);
+
+      // Update form value with both URL and key
+      onChange({ url: imageUrl, key: imageKey });
+
       toast.success("Imagem enviada com sucesso!");
     } catch (error) {
       console.error("Upload error:", error);
@@ -92,12 +106,16 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
       <Label>Imagem da Questão</Label>
       
       <div className="flex flex-col gap-2">
-        {preview ? (
+        {preview && !imageError ? (
           <div className="relative w-full max-w-md">
             <img
               src={preview}
               alt="Preview"
               className="w-full h-auto rounded-lg border border-border"
+              onError={() => {
+                console.error("Failed to load image:", preview);
+                setImageError(true);
+              }}
             />
             <Button
               type="button"
@@ -109,6 +127,22 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
             >
               <X className="h-4 w-4" />
             </Button>
+          </div>
+        ) : imageError ? (
+          <div className="relative w-full max-w-md p-8 border-2 border-dashed border-destructive rounded-lg">
+            <div className="flex flex-col items-center gap-2">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+              <p className="text-sm text-destructive">Erro ao carregar imagem</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRemove}
+                disabled={disabled || isUploading}
+              >
+                Remover
+              </Button>
+            </div>
           </div>
         ) : (
           <button

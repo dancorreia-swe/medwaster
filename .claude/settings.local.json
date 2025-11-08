@@ -4,7 +4,9 @@
       "Bash(bun run:*)",
       "Bash(bun tsc:*)",
       "Bash(rm:*)",
-      "Bash(bun db:generate:*)"
+      "Bash(bun db:generate:*)",
+      "Bash(curl:*)",
+      "Bash(bun dev)"
     ],
     "deny": []
   }

@@ -13,6 +13,7 @@ import {
 } from "@/db/schema/questions";
 import { asc, desc, eq, and, sql, ilike, or } from "drizzle-orm";
 import { NotFoundError } from "@/lib/errors";
+import { S3StorageService } from "./s3-storage.service";
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
@@ -167,6 +168,10 @@ export abstract class QuestionsService {
 
     if (data.type) {
       validateQuestionData(data);
+    }
+
+    if (data.imageKey && existing.imageKey && data.imageKey !== existing.imageKey) {
+      await S3StorageService.deleteImage(existing.imageKey);
     }
 
     const { options, fillInBlanks, matchingPairs, tagIds, ...questionData } =
@@ -350,6 +355,11 @@ export abstract class QuestionsService {
 
     if (!existing) {
       throw new NotFoundError("Question");
+    }
+
+    // Delete associated image from S3 if exists
+    if (existing.imageKey) {
+      await S3StorageService.deleteImage(existing.imageKey);
     }
 
     await db.delete(questions).where(eq(questions.id, questionId));

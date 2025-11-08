@@ -104,15 +104,11 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
     autoSaving,
     isUpdating,
     selectedTags,
-    availableTags,
-    newTag,
-    setNewTag,
+    setSelectedTags,
     setEditor,
     handleSave,
-    handleRemoveTag,
-    handleSelectTag,
-    handleCreateTag,
     handleEditorChange,
+    handleUploadFile,
     canSave,
   } = useArticleEditor({
     articleId,
@@ -121,7 +117,7 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
   });
 
   return (
-    <div className="flex flex-col">
+    <div className="flex h-full flex-col">
       <ArticleEditorToolbar
         status={status}
         isSaving={isUpdating}
@@ -132,8 +128,8 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
         onPublish={() => handleSave(true)}
       />
 
-      <div className="flex flex-col items-center px-8">
-        <div className="w-full max-w-3xl gap-2 border-b py-4">
+      <div className="flex flex-1 flex-col items-center overflow-y-auto px-8 pb-24">
+        <div className="w-full max-w-3xl border-b py-6">
           <ArticleTitleInput value={title} onChange={setTitle} />
 
           <ArticleMetadata
@@ -142,12 +138,7 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
             categories={categoriesData?.data ?? []}
             categoriesLoading={categoriesLoading}
             selectedTags={selectedTags}
-            availableTags={availableTags}
-            newTag={newTag}
-            onTagSelect={handleSelectTag}
-            onTagRemove={handleRemoveTag}
-            onNewTagChange={setNewTag}
-            onCreateTag={handleCreateTag}
+            onTagsChange={setSelectedTags}
             authorName={user?.name || "Anônimo"}
           />
         </div>
@@ -157,6 +148,7 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
           initialContent={article?.data?.content}
           onEditorReady={setEditor}
           onChange={handleEditorChange}
+          onUploadFile={handleUploadFile}
         />
       </div>
     </div>

@@ -3,7 +3,7 @@ import { questionsSeed } from "./questions";
 
 async function main() {
   await adminSeed();
-  await questionsSeed();
+  // await questionsSeed();
 
   console.log("🌿 Seeding completed.");
   return process.exit(0);

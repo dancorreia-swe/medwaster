@@ -50,6 +50,7 @@ export const createQuestionBody = t.Object({
   ),
   categoryId: t.Optional(t.Nullable(t.Number())),
   imageUrl: t.Optional(t.String()),
+  imageKey: t.Optional(t.String()),
   references: t.Optional(t.String()),
   options: t.Optional(t.Array(questionOptionSchema)),
   fillInBlanks: t.Optional(t.Array(fillBlankAnswerSchema)),
@@ -86,11 +87,11 @@ export const updateQuestionBody = t.Object({
   ),
   categoryId: t.Optional(t.Nullable(t.Number())),
   imageUrl: t.Optional(t.String()),
+  imageKey: t.Optional(t.String()),
   references: t.Optional(t.String()),
   options: t.Optional(t.Array(questionOptionSchema)),
   fillInBlanks: t.Optional(t.Array(fillBlankAnswerSchema)),
   matchingPairs: t.Optional(t.Array(matchingPairSchema)),
   tagIds: t.Optional(t.Array(t.Number())),
 });
-export type UpdateQuestionBody = typeof updateQuestionBody.static;
 export type UpdateQuestionBody = typeof updateQuestionBody.static;

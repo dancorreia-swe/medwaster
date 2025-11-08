@@ -19,5 +19,25 @@ services:
       retries: 5
     restart: unless-stopped
 
+  minio:
+    image: minio/minio
+    networks:
+      - medwaster-network
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - medwaster_minio_data:/data
+    restart: unless-stopped
+
 volumes:
   medwaster_postgres_data:
+  medwaster_minio_data:
+
+networks:
+  medwaster-network:
+    driver: bridge

@@ -101,6 +101,7 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
       status: "draft" as const,
       categoryId: null as number | null,
       imageUrl: "",
+      imageKey: "",
       references: "",
     },
     onSubmit: async ({ value }) => {
@@ -175,6 +176,7 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
       form.setFieldValue("status", existingQuestion.status as any);
       form.setFieldValue("categoryId", existingQuestion.categoryId || null);
       form.setFieldValue("imageUrl", existingQuestion.imageUrl || "");
+      form.setFieldValue("imageKey", (existingQuestion as any).imageKey || "");
       form.setFieldValue("references", existingQuestion.references || "");
 
       if (existingQuestion.options) {
@@ -447,7 +449,15 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
           {(field) => (
             <ImageUpload
               value={field.state.value || undefined}
-              onChange={(url) => field.handleChange(url || "")}
+              onChange={(data) => {
+                if (data) {
+                  field.handleChange(data.url);
+                  form.setFieldValue("imageKey", data.key);
+                } else {
+                  field.handleChange("");
+                  form.setFieldValue("imageKey", "");
+                }
+              }}
               disabled={form.state.isSubmitting}
             />
           )}

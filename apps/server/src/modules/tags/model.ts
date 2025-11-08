@@ -1,26 +1,25 @@
 import { t } from "elysia";
 
 export const createTagBody = t.Object({
-  name: t.String({ 
-    minLength: 1, 
+  name: t.String({
+    minLength: 1,
     maxLength: 50,
-    description: "Tag name (e.g., 'Surgery', 'Cardiology')" 
+    description: "Tag name (e.g., 'Surgery', 'Cardiology')"
   }),
-  slug: t.String({ 
-    minLength: 1, 
+  slug: t.String({
+    minLength: 1,
     maxLength: 50,
     pattern: "^[a-z0-9-]+$",
-    description: "URL-friendly identifier (e.g., 'surgery', 'cardiology')" 
+    description: "URL-friendly identifier (e.g., 'surgery', 'cardiology')"
   }),
-  description: t.Optional(t.String({ 
+  description: t.Optional(t.String({
     maxLength: 500,
-    description: "Brief description of the tag's purpose" 
+    description: "Brief description of the tag's purpose"
   })),
-  color: t.Optional(t.String({ 
+  color: t.Optional(t.String({
     pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$",
-    description: "Hex color code for tag display (e.g., '#FF5733'). Auto-generated if not provided." 
+    description: "Hex color code for tag display (e.g., '#FF5733'). Auto-generated if not provided."
   })),
-  createdAt: t.Optional(t.String()),
 });
 
 export const updateTagBody = t.Object({

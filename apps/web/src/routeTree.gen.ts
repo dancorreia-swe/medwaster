@@ -24,6 +24,7 @@ import { Route as AuthCategoriesIndexRouteImport } from './routes/_auth/categori
 import { Route as AuthAchievementsIndexRouteImport } from './routes/_auth/achievements/index'
 import { Route as AuthQuizzesCreateRouteImport } from './routes/_auth/quizzes/create'
 import { Route as AuthQuestionsNewRouteImport } from './routes/_auth/questions/new'
+import { Route as AuthAdminProfileRouteImport } from './routes/_auth/admin/profile'
 import { Route as AuthWikiArticleIdIndexRouteImport } from './routes/_auth/wiki/$articleId/index'
 import { Route as AuthQuizzesQuizIdIndexRouteImport } from './routes/_auth/quizzes/$quizId/index'
 import { Route as AuthQuestionsQuestionIdIndexRouteImport } from './routes/_auth/questions/$questionId/index'
@@ -107,6 +108,11 @@ const AuthQuestionsNewRoute = AuthQuestionsNewRouteImport.update({
   path: '/questions/new',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthAdminProfileRoute = AuthAdminProfileRouteImport.update({
+  id: '/admin/profile',
+  path: '/admin/profile',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthWikiArticleIdIndexRoute = AuthWikiArticleIdIndexRouteImport.update({
   id: '/$articleId/',
   path: '/$articleId/',
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/wiki': typeof AuthWikiRouteRouteWithChildren
   '/': typeof AuthIndexRoute
+  '/admin/profile': typeof AuthAdminProfileRoute
   '/questions/new': typeof AuthQuestionsNewRoute
   '/quizzes/create': typeof AuthQuizzesCreateRoute
   '/achievements': typeof AuthAchievementsIndexRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/wiki': typeof AuthWikiRouteRouteWithChildren
   '/': typeof AuthIndexRoute
+  '/admin/profile': typeof AuthAdminProfileRoute
   '/questions/new': typeof AuthQuestionsNewRoute
   '/quizzes/create': typeof AuthQuizzesCreateRoute
   '/achievements': typeof AuthAchievementsIndexRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_auth/wiki': typeof AuthWikiRouteRouteWithChildren
   '/_auth/': typeof AuthIndexRoute
+  '/_auth/admin/profile': typeof AuthAdminProfileRoute
   '/_auth/questions/new': typeof AuthQuestionsNewRoute
   '/_auth/quizzes/create': typeof AuthQuizzesCreateRoute
   '/_auth/achievements/': typeof AuthAchievementsIndexRoute
@@ -234,6 +243,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/wiki'
     | '/'
+    | '/admin/profile'
     | '/questions/new'
     | '/quizzes/create'
     | '/achievements'
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/wiki'
     | '/'
+    | '/admin/profile'
     | '/questions/new'
     | '/quizzes/create'
     | '/achievements'
@@ -283,6 +294,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_auth/wiki'
     | '/_auth/'
+    | '/_auth/admin/profile'
     | '/_auth/questions/new'
     | '/_auth/quizzes/create'
     | '/_auth/achievements/'
@@ -416,6 +428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthQuestionsNewRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/admin/profile': {
+      id: '/_auth/admin/profile'
+      path: '/admin/profile'
+      fullPath: '/admin/profile'
+      preLoaderRoute: typeof AuthAdminProfileRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/wiki/$articleId/': {
       id: '/_auth/wiki/$articleId/'
       path: '/$articleId'
@@ -490,6 +509,7 @@ const AuthWikiRouteRouteWithChildren = AuthWikiRouteRoute._addFileChildren(
 interface AuthRouteChildren {
   AuthWikiRouteRoute: typeof AuthWikiRouteRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
+  AuthAdminProfileRoute: typeof AuthAdminProfileRoute
   AuthQuestionsNewRoute: typeof AuthQuestionsNewRoute
   AuthQuizzesCreateRoute: typeof AuthQuizzesCreateRoute
   AuthAchievementsIndexRoute: typeof AuthAchievementsIndexRoute
@@ -510,6 +530,7 @@ interface AuthRouteChildren {
 const AuthRouteChildren: AuthRouteChildren = {
   AuthWikiRouteRoute: AuthWikiRouteRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
+  AuthAdminProfileRoute: AuthAdminProfileRoute,
   AuthQuestionsNewRoute: AuthQuestionsNewRoute,
   AuthQuizzesCreateRoute: AuthQuizzesCreateRoute,
   AuthAchievementsIndexRoute: AuthAchievementsIndexRoute,

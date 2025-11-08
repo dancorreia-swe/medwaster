@@ -15,6 +15,13 @@
       "when": 1762393407413,
       "tag": "0001_productive_sue_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762562735461,
+      "tag": "0002_peaceful_rhino",
+      "breakpoints": true
     }
   ]
 }

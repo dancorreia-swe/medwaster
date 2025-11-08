@@ -62,7 +62,7 @@ export abstract class TagsService {
     }
 
     const parsedTag = Value.Parse(tagsInsertSchema, newTag);
-    const createdTag = await db
+    const [createdTag] = await db
       .insert(tagsSchema)
       .values(parsedTag)
       .returning();

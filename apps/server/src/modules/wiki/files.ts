@@ -1,25 +1,32 @@
 import { Elysia, t } from "elysia";
 import { betterAuthMacro, ROLES } from "@/lib/auth";
-import { S3StorageService } from "./s3-storage.service";
+import { WikiS3StorageService } from "./services/s3-storage.service";
 
 // Configuration
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = [
+  // Images
   "image/jpeg",
   "image/png",
   "image/gif",
   "image/webp",
   "image/svg+xml",
+  // Documents
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
 
-export const questionImages = new Elysia({ prefix: "/images" })
+export const wikiFiles = new Elysia({ prefix: "/files" })
   .use(betterAuthMacro)
   .guard({ auth: true, role: [ROLES.ADMIN, ROLES.SUPER_ADMIN] }, (app) =>
     app
       .post(
         "/upload",
         async ({ body }) => {
-          const result = await S3StorageService.uploadImage(body.image);
+          const result = await WikiS3StorageService.uploadFile(body.file);
           return {
             success: true,
             data: result,
@@ -27,24 +34,24 @@ export const questionImages = new Elysia({ prefix: "/images" })
         },
         {
           body: t.Object({
-            image: t.File({
+            file: t.File({
               type: ALLOWED_MIME_TYPES,
               maxSize: MAX_FILE_SIZE,
             }),
           }),
           detail: {
-            summary: "Upload question image",
-            description: "Upload an image for a question to S3/MinIO (max 5MB, images only)",
+            summary: "Upload wiki file",
+            description: "Upload a file (image or document) for wiki articles to S3/MinIO (max 10MB)",
           },
         }
       )
       .delete(
         "/:key",
         async ({ params }) => {
-          await S3StorageService.deleteImage(params.key);
+          await WikiS3StorageService.deleteFile(params.key);
           return {
             success: true,
-            message: "Image deleted successfully",
+            message: "File deleted successfully",
           };
         },
         {
@@ -52,8 +59,8 @@ export const questionImages = new Elysia({ prefix: "/images" })
             key: t.String(),
           }),
           detail: {
-            summary: "Delete question image",
-            description: "Delete an image from S3/MinIO storage",
+            summary: "Delete wiki file",
+            description: "Delete a file from S3/MinIO storage",
           },
         }
       )

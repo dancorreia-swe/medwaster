@@ -34,9 +34,22 @@ export const wikiApi = {
 
   unpublishArticle: (id: number) => toArticleResource(id).unpublish.post(),
 
-  listCategories: () => client.admin.categories.get(),
+  listCategories: async () => {
+    const response = await client.admin.categories.get();
+    return response.data;
+  },
 
-  listTags: () => client.admin.tags.get(),
+  listTags: async (query?: { search?: string }) => {
+    const response = query
+      ? await client.admin.tags.get({ query })
+      : await client.admin.tags.get();
+    return response.data;
+  },
+
+  createTag: async (body: { name: string; slug: string; description?: string; color?: string }) => {
+    const response = await client.admin.tags.post(body);
+    return response.data;
+  },
 };
 
 export type ListArticlesResponse = Awaited<

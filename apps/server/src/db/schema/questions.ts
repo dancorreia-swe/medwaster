@@ -64,6 +64,7 @@ export const questions = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
     imageUrl: text("image_url"),
+    imageKey: text("image_key"), // S3 key for the image
     references: text("references"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

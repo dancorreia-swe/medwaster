@@ -188,13 +188,37 @@ export const useUnpublishArticle = () => {
   });
 };
 
+export const useSearchTags = (search?: string) =>
+  useQuery({
+    queryKey: [...wikiQueryKeys.tags(), search] as const,
+    queryFn: () => wikiApi.listTags({ search }),
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+    enabled: true,
+  });
+
 export const useTags = () =>
   useQuery({
     queryKey: wikiQueryKeys.tags(),
-    queryFn: wikiApi.listTags,
+    queryFn: () => wikiApi.listTags(),
     staleTime: 30 * 60_000,
     gcTime: 60 * 60_000,
   });
+
+export const useCreateTag = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: wikiApi.createTag,
+    onSuccess: (response) => {
+      // Invalidate all tag queries to refetch with the new tag
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.tags() });
+    },
+    onError: (error) => {
+      console.error("Error creating tag:", error);
+    },
+  });
+};
 
 export const useBulkArticleOperations = () => {
   const queryClient = useQueryClient();
