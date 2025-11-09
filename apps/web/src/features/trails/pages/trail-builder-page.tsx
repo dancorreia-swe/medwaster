@@ -6,6 +6,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -35,6 +36,13 @@ import type {
 interface TrailBuilderPageProps {
   mode: "create" | "edit";
   trailId?: number;
+}
+
+interface ContentToAdd {
+  contentType: ContentType;
+  contentId: number;
+  title: string;
+  position: number;
 }
 
 export function TrailBuilderPage({ mode, trailId }: TrailBuilderPageProps) {
@@ -100,52 +108,78 @@ export function TrailBuilderPage({ mode, trailId }: TrailBuilderPageProps) {
     }
   };
 
-  // Content Management
+  // Batch add content with optimistic updates
+  const handleAddMultipleContent = async (items: ContentToAdd[]) => {
+    if (!localTrailId) {
+      toast.error("Crie a trilha primeiro antes de adicionar conteúdo");
+      return;
+    }
+
+    if (items.length === 0) return;
+
+    // Create optimistic content items
+    const optimisticItems: TrailContent[] = items.map((item, index) => ({
+      id: -1 - index, // Temporary negative IDs for optimistic items
+      trailId: localTrailId,
+      contentType: item.contentType,
+      questionId: item.contentType === "question" ? item.contentId : null,
+      quizId: item.contentType === "quiz" ? item.contentId : null,
+      articleId: item.contentType === "article" ? item.contentId : null,
+      sequence: item.position + index,
+      isRequired: true,
+      createdAt: new Date().toISOString(),
+      // Mock the nested objects
+      question: item.contentType === "question" ? { id: item.contentId, prompt: item.title } as any : null,
+      quiz: item.contentType === "quiz" ? { id: item.contentId, title: item.title } as any : null,
+      article: item.contentType === "article" ? { id: item.contentId, title: item.title } as any : null,
+    }));
+
+    // Optimistically update the UI
+    const previousContent = localContent;
+    setLocalContent([...localContent, ...optimisticItems]);
+
+    toast.loading(`Adicionando ${items.length} ${items.length === 1 ? "item" : "itens"}...`, { id: "batch-add" });
+
+    // Add all items in parallel
+    const results = await Promise.allSettled(
+      items.map((item) =>
+        addContentMutation.mutateAsync({
+          trailId: localTrailId,
+          body: {
+            contentType: item.contentType,
+            contentId: item.contentId,
+            sequence: item.position,
+            isRequired: true,
+          },
+        })
+      )
+    );
+
+    // Check results
+    const failures = results.filter((r) => r.status === "rejected");
+    const successes = results.filter((r) => r.status === "fulfilled");
+
+    if (failures.length > 0) {
+      // Rollback to previous state on any failure
+      setLocalContent(previousContent);
+      toast.error(`Erro ao adicionar ${failures.length} ${failures.length === 1 ? "item" : "itens"}`, { id: "batch-add" });
+      console.error("Failed additions:", failures);
+    } else {
+      toast.success(`${successes.length} ${successes.length === 1 ? "item adicionado" : "itens adicionados"}!`, { id: "batch-add" });
+    }
+
+    // Refetch to get the real data
+    refetchTrail();
+  };
+
+  // Content Management (single item - kept for compatibility)
   const handleAddContent = async (
     contentType: ContentType,
     contentId: number,
     title: string,
     position: number,
   ) => {
-    if (!localTrailId) {
-      toast.error("Crie a trilha primeiro antes de adicionar conteúdo");
-      return;
-    }
-
-    try {
-      // Add the new content at the specified position
-      await addContentMutation.mutateAsync({
-        trailId: localTrailId,
-        body: {
-          contentType,
-          contentId,
-          sequence: position,
-          isRequired: true,
-        },
-      });
-
-      // If inserting in the middle, reorder all content after it
-      if (position < localContent.length) {
-        const contentUpdates = localContent
-          .filter((item) => item.sequence >= position)
-          .map((item) => ({
-            contentId: item.id,
-            sequence: item.sequence + 1,
-          }));
-
-        if (contentUpdates.length > 0) {
-          await reorderContentMutation.mutateAsync({
-            trailId: localTrailId,
-            body: { contentUpdates },
-          });
-        }
-      }
-
-      refetchTrail();
-      toast.success(`Conteúdo adicionado na posição ${position + 1}`);
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao adicionar conteúdo");
-    }
+    handleAddMultipleContent([{ contentType, contentId, title, position }]);
   };
 
   const handleRemoveContent = async (contentId: number) => {
@@ -220,6 +254,45 @@ export function TrailBuilderPage({ mode, trailId }: TrailBuilderPageProps) {
     } catch (error: any) {
       toast.error(error.message || "Erro ao adicionar pré-requisito");
     }
+  };
+
+  const handleAddMultiplePrerequisites = async (prerequisiteTrailIds: number[]) => {
+    if (!localTrailId || prerequisiteTrailIds.length === 0) return;
+
+    toast.loading(
+      `Adicionando ${prerequisiteTrailIds.length} ${prerequisiteTrailIds.length === 1 ? "pré-requisito" : "pré-requisitos"}...`,
+      { id: "batch-add-prereq" }
+    );
+
+    // Add all prerequisites in parallel
+    const results = await Promise.allSettled(
+      prerequisiteTrailIds.map((prerequisiteTrailId) =>
+        addPrerequisiteMutation.mutateAsync({
+          trailId: localTrailId,
+          body: { prerequisiteTrailId },
+        })
+      )
+    );
+
+    // Check results
+    const failures = results.filter((r) => r.status === "rejected");
+    const successes = results.filter((r) => r.status === "fulfilled");
+
+    if (failures.length > 0) {
+      toast.error(
+        `Erro ao adicionar ${failures.length} ${failures.length === 1 ? "pré-requisito" : "pré-requisitos"}`,
+        { id: "batch-add-prereq" }
+      );
+      console.error("Failed additions:", failures);
+    } else {
+      toast.success(
+        `${successes.length} ${successes.length === 1 ? "pré-requisito adicionado" : "pré-requisitos adicionados"}!`,
+        { id: "batch-add-prereq" }
+      );
+    }
+
+    // Refetch to get the real data
+    refetchTrail();
   };
 
   const handleRemovePrerequisite = async (prerequisiteTrailId: number) => {
@@ -334,13 +407,19 @@ export function TrailBuilderPage({ mode, trailId }: TrailBuilderPageProps) {
           <TabsContent value="content" className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold">Conteúdo da Trilha</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-semibold">Conteúdo da Trilha</h2>
+                  <Badge variant="secondary" className="text-sm">
+                    {localContent.length} {localContent.length === 1 ? "item" : "itens"}
+                  </Badge>
+                </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   Adicione e organize questões, quizzes e artigos
                 </p>
               </div>
               <ContentSelector
                 onSelect={handleAddContent}
+                onBatchSelect={handleAddMultipleContent}
                 existingContentIds={existingContentIds}
                 existingContent={localContent}
               />
@@ -362,6 +441,7 @@ export function TrailBuilderPage({ mode, trailId }: TrailBuilderPageProps) {
                   ?.prerequisites || []
               }
               onAdd={handleAddPrerequisite}
+              onBatchAdd={handleAddMultiplePrerequisites}
               onRemove={handleRemovePrerequisite}
             />
           </TabsContent>

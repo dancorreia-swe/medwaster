@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Plus, BookOpen, HelpCircle, FileText } from "lucide-react";
+import { Search, Plus, BookOpen, HelpCircle, FileText, Check, Loader2 } from "lucide-react";
+import { useDebounce } from "@/hooks/use-debounce";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -30,6 +32,7 @@ import type { ContentType, TrailContent } from "../types";
 
 interface ContentSelectorProps {
   onSelect: (contentType: ContentType, contentId: number, title: string, position: number) => void;
+  onBatchSelect?: (items: Array<{ contentType: ContentType; contentId: number; title: string; position: number }>) => void;
   existingContentIds: Map<ContentType, Set<number>>;
   existingContent: TrailContent[];
 }
@@ -44,34 +47,38 @@ type ContentItem = {
 
 export function ContentSelector({
   onSelect,
+  onBatchSelect,
   existingContentIds,
   existingContent,
 }: ContentSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [contentType, setContentType] = useState<ContentType>("question");
   const [search, setSearch] = useState("");
-  const [insertPosition, setInsertPosition] = useState<string>("end");
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
-  // Sort existing content by sequence for display
-  const sortedExistingContent = [...existingContent].sort(
-    (a, b) => a.sequence - b.sequence
-  );
+  // Debounce search to avoid too many API calls
+  const debouncedSearch = useDebounce(search, 300);
 
   // Fetch content based on type
-  const { data: questions } = useQuery({
-    ...questionsListQueryOptions({ search, status: ["active"], pageSize: 50 }),
+  const { data: questions, isLoading: isLoadingQuestions } = useQuery({
+    ...questionsListQueryOptions({ search: debouncedSearch, status: ["active"], pageSize: 50 }),
     enabled: contentType === "question" && isOpen,
   });
 
-  const { data: quizzes } = useQuery({
-    ...quizzesListQueryOptions({ search, status: ["active"], pageSize: 50 }),
+  const { data: quizzes, isLoading: isLoadingQuizzes } = useQuery({
+    ...quizzesListQueryOptions({ search: debouncedSearch, status: ["active"], pageSize: 50 }),
     enabled: contentType === "quiz" && isOpen,
   });
 
-  const { data: articles } = useQuery({
-    ...articlesQueryOptions({ search, status: "published", pageSize: 50 }),
+  const { data: articles, isLoading: isLoadingArticles } = useQuery({
+    ...articlesQueryOptions({ search: debouncedSearch, status: "published", limit: 50 }),
     enabled: contentType === "article" && isOpen,
   });
+
+  const isLoading =
+    (contentType === "question" && isLoadingQuestions) ||
+    (contentType === "quiz" && isLoadingQuizzes) ||
+    (contentType === "article" && isLoadingArticles);
 
   const getContentList = (): ContentItem[] => {
     if (contentType === "question" && questions?.data) {
@@ -94,8 +101,8 @@ export function ContentSelector({
       }));
     }
 
-    if (contentType === "article" && articles?.data) {
-      return articles.data.map((a) => ({
+    if (contentType === "article" && articles?.data?.data.articles) {
+      return articles.data.data.articles.map((a: any) => ({
         id: a.id,
         title: a.title,
         type: "article" as ContentType,
@@ -111,33 +118,51 @@ export function ContentSelector({
     (item) => !existingContentIds.get(item.type)?.has(item.id)
   );
 
-  // Debug logging
-  console.log('[ContentSelector] Debug:', {
-    contentType,
-    isOpen,
-    questionsData: questions,
-    quizzesData: quizzes,
-    articlesData: articles,
-    articlesRaw: JSON.stringify(articles),
-    contentListLength: contentList.length,
-    filteredContentLength: filteredContent.length,
-  });
-
-  const handleSelect = (item: ContentItem) => {
-    const position = insertPosition === "end"
-      ? sortedExistingContent.length
-      : parseInt(insertPosition);
-    onSelect(item.type, item.id, item.title, position);
-    setSearch("");
-    setInsertPosition("end");
-    setIsOpen(false);
+  const toggleSelection = (item: ContentItem) => {
+    const itemKey = `${item.type}-${item.id}`;
+    setSelectedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemKey)) {
+        newSet.delete(itemKey);
+      } else {
+        newSet.add(itemKey);
+      }
+      return newSet;
+    });
   };
 
-  const getContentTitle = (content: TrailContent): string => {
-    if (content.question) return content.question.prompt;
-    if (content.quiz) return content.quiz.title;
-    if (content.article) return content.article.title;
-    return "Unknown";
+  const handleAddSelected = () => {
+    if (selectedItems.size === 0) return;
+
+    let position = existingContent.length;
+
+    // Collect all items to add
+    const itemsToAdd: Array<{ contentType: ContentType; contentId: number; title: string; position: number }> = [];
+
+    selectedItems.forEach((itemKey) => {
+      const [type, idStr] = itemKey.split('-');
+      const id = parseInt(idStr);
+      const item = contentList.find(i => i.type === type && i.id === id);
+
+      if (item) {
+        itemsToAdd.push({ contentType: item.type, contentId: item.id, title: item.title, position });
+        position++;
+      }
+    });
+
+    // Use batch select if available for better performance
+    if (onBatchSelect && itemsToAdd.length > 1) {
+      onBatchSelect(itemsToAdd);
+    } else {
+      // Fallback to individual adds
+      itemsToAdd.forEach(({ contentType, contentId, title, position }) => {
+        onSelect(contentType, contentId, title, position);
+      });
+    }
+
+    setSelectedItems(new Set());
+    setSearch("");
+    setIsOpen(false);
   };
 
   const getIcon = (type: ContentType) => {
@@ -172,7 +197,7 @@ export function ContentSelector({
           Adicionar Conteúdo
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="min-w-2xl w-full">
         <DialogHeader>
           <DialogTitle>Adicionar Conteúdo à Trilha</DialogTitle>
           <DialogDescription>
@@ -238,85 +263,143 @@ export function ContentSelector({
             </div>
           </div>
 
-          {sortedExistingContent.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="insert-position">Posição de Inserção</Label>
-              <Select value={insertPosition} onValueChange={setInsertPosition}>
-                <SelectTrigger id="insert-position">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">
-                    <span className="font-medium">1.</span> No início
-                  </SelectItem>
-                  {sortedExistingContent.map((content, index) => (
-                    <SelectItem key={content.id} value={(index + 1).toString()}>
-                      <span className="font-medium">{index + 2}.</span> Depois de:{" "}
-                      {getContentTitle(content).substring(0, 35)}
-                      {getContentTitle(content).length > 35 ? "..." : ""}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="end">
-                    <span className="font-medium">{sortedExistingContent.length + 1}.</span> No
-                    final
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           <ScrollArea className="h-[400px] rounded-md border">
             <div className="p-4 space-y-2">
-              {filteredContent.length === 0 ? (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Carregando...</p>
+                  </div>
+                </div>
+              ) : filteredContent.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   {contentList.length === 0
                     ? "Nenhum conteúdo encontrado"
                     : "Todos os itens já foram adicionados"}
                 </div>
               ) : (
-                filteredContent.map((item) => (
-                  <Card
-                    key={`${item.type}-${item.id}`}
-                    className="p-4 hover:bg-accent cursor-pointer transition-colors"
-                    onClick={() => handleSelect(item)}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className="mt-1">{getIcon(item.type)}</div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium line-clamp-2 text-sm">
-                            {item.title}
-                          </h4>
-                          {item.description && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                              {item.description}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-2 mt-2">
-                            {item.difficulty && (
-                              <Badge
-                                variant={getDifficultyColor(item.difficulty)}
-                                className="text-xs"
-                              >
-                                {item.difficulty === "basic"
-                                  ? "Básico"
-                                  : item.difficulty === "intermediate"
-                                  ? "Intermediário"
-                                  : "Avançado"}
-                              </Badge>
+                filteredContent.map((item) => {
+                  const itemKey = `${item.type}-${item.id}`;
+                  const isSelected = selectedItems.has(itemKey);
+
+                  return (
+                    <Card
+                      key={itemKey}
+                      className={`p-4 cursor-pointer transition-colors ${
+                        isSelected ? "bg-accent border-primary" : "hover:bg-accent"
+                      }`}
+                      onClick={() => toggleSelection(item)}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className="mt-1 flex items-center gap-2">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleSelection(item)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            {getIcon(item.type)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium line-clamp-2 text-sm">
+                              {item.title}
+                            </h4>
+                            {item.description && (
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                {item.description}
+                              </p>
                             )}
+                            <div className="flex items-center gap-2 mt-2">
+                              {item.difficulty && (
+                                <Badge
+                                  variant={getDifficultyColor(item.difficulty)}
+                                  className="text-xs"
+                                >
+                                  {item.difficulty === "basic"
+                                    ? "Básico"
+                                    : item.difficulty === "intermediate"
+                                    ? "Intermediário"
+                                    : "Avançado"}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        {isSelected && (
+                          <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                        )}
                       </div>
-                      <Button size="sm" variant="ghost">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))
+                    </Card>
+                  );
+                })
               )}
             </div>
           </ScrollArea>
+
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              {selectedItems.size > 0 ? (
+                <div className="flex items-center gap-3">
+                  <span className="font-medium">
+                    {selectedItems.size} {selectedItems.size === 1 ? "item selecionado" : "itens selecionados"}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const counts = { question: 0, quiz: 0, article: 0 };
+                      selectedItems.forEach((key) => {
+                        const [type] = key.split('-');
+                        counts[type as ContentType]++;
+                      });
+                      return (
+                        <>
+                          {counts.question > 0 && (
+                            <Badge variant="outline" className="gap-1">
+                              <HelpCircle className="h-3 w-3" />
+                              {counts.question}
+                            </Badge>
+                          )}
+                          {counts.quiz > 0 && (
+                            <Badge variant="outline" className="gap-1">
+                              <BookOpen className="h-3 w-3" />
+                              {counts.quiz}
+                            </Badge>
+                          )}
+                          {counts.article > 0 && (
+                            <Badge variant="outline" className="gap-1">
+                              <FileText className="h-3 w-3" />
+                              {counts.article}
+                            </Badge>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              ) : (
+                <span>Nenhum item selecionado</span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedItems(new Set());
+                  setSearch("");
+                  setIsOpen(false);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleAddSelected}
+                disabled={selectedItems.size === 0}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar {selectedItems.size > 0 ? `(${selectedItems.size})` : ""}
+              </Button>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

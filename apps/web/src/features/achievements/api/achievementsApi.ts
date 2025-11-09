@@ -19,7 +19,6 @@ export const achievementsApi = {
     triggerType: string;
     triggerConfig?: any;
     badgeImageUrl?: string;
-    badgeSvg?: string;
     customMessage?: string;
     displayOrder?: number;
     isSecret?: boolean;
@@ -36,7 +35,6 @@ export const achievementsApi = {
       triggerType?: string;
       triggerConfig?: any;
       badgeImageUrl?: string;
-      badgeSvg?: string;
       customMessage?: string;
       displayOrder?: number;
       isSecret?: boolean;

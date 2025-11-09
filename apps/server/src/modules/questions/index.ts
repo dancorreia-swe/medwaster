@@ -22,6 +22,7 @@ export const adminQuestions = new Elysia({ prefix: "/admin/questions" })
             status: query.status,
             categoryId: query.categoryId,
             search: query.search,
+            tags: query.tags,
           });
 
           return status(200, questions);
@@ -30,11 +31,12 @@ export const adminQuestions = new Elysia({ prefix: "/admin/questions" })
           query: t.Object({
             page: t.Optional(t.Number({ minimum: 1 })),
             pageSize: t.Optional(t.Number({ minimum: 1, maximum: 100 })),
-            type: t.Optional(t.String()),
+            type: t.Optional(t.Union([t.String(), t.Array(t.String())])),
             difficulty: t.Optional(t.String()),
             status: t.Optional(t.String()),
             categoryId: t.Optional(t.Number()),
             search: t.Optional(t.String()),
+            tags: t.Optional(t.Union([t.String(), t.Array(t.String())])),
           }),
           detail: {
             summary: "Get all questions",

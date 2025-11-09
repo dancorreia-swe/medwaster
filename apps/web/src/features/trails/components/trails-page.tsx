@@ -27,7 +27,7 @@ export function TrailsPage() {
   });
 
   const { data, isLoading, isFetching, error } = useQuery(
-    trailsListQueryOptions(filters)
+    trailsListQueryOptions(filters),
   );
 
   const archiveMutation = useArchiveTrail();
@@ -105,17 +105,6 @@ export function TrailsPage() {
     }
   };
 
-  const handleUpdateOrder = async (trailId: number, newOrder: number | null) => {
-    try {
-      await updateMutation.mutateAsync({
-        id: trailId,
-        body: { unlockOrder: newOrder },
-      });
-    } catch (error) {
-      console.error("Error updating trail order:", error);
-    }
-  };
-
   const handleBulkReorder = async (reorderedTrails: Trail[]) => {
     try {
       toast.loading("Salvando nova ordem...", { id: "bulk-reorder" });
@@ -125,7 +114,7 @@ export function TrailsPage() {
         updateMutation.mutateAsync({
           id: trail.id,
           body: { unlockOrder: index + 1 },
-        })
+        }),
       );
 
       await Promise.all(updates);
@@ -134,7 +123,9 @@ export function TrailsPage() {
       });
     } catch (error) {
       console.error("Error bulk reordering trails:", error);
-      toast.error("Erro ao atualizar ordem das trilhas", { id: "bulk-reorder" });
+      toast.error("Erro ao atualizar ordem das trilhas", {
+        id: "bulk-reorder",
+      });
     }
   };
 
@@ -206,7 +197,6 @@ export function TrailsPage() {
                     onArchive={handleArchive}
                     onDelete={handleDelete}
                     onPublish={handlePublish}
-                    onUpdateOrder={handleUpdateOrder}
                   />
                 ))}
               </div>
@@ -251,10 +241,7 @@ function TrailsSkeleton() {
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: 12 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-lg border bg-card p-6 space-y-4"
-          >
+          <div key={i} className="rounded-lg border bg-card p-6 space-y-4">
             <div className="flex items-start justify-between gap-2">
               <Skeleton className="h-5 w-3/4" />
               <Skeleton className="h-5 w-12" />

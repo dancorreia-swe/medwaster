@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
 import { useUpdateArticle } from "../api/wikiQueries";
 import type { BlockNoteEditor } from "@blocknote/core";
+import { toast } from "sonner";
 
 const MIN_TITLE_LENGTH = 5;
 
@@ -30,6 +31,7 @@ export function useArticleEditor({
   const [categoryId, setCategoryId] = useState<number | undefined>();
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [autoSaving, setAutoSaving] = useState(false);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [editor, setEditor] = useState<BlockNoteEditor | null>(null);
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
 
@@ -53,6 +55,7 @@ export function useArticleEditor({
     setStatus(newStatus);
     setCategoryId(newCategoryId);
     setLastSavedAt(newLastSavedAt);
+    setHasPendingChanges(false);
 
     // Extract tag IDs from article
     const newSelectedTags = article.tags?.map((tag: any) => tag.id) ?? [];
@@ -67,17 +70,23 @@ export function useArticleEditor({
   }, [articleId, article]);
 
   const handleSave = useCallback(
-    async (publish = false) => {
+    async (publish = false): Promise<boolean> => {
       if (title.trim().length < MIN_TITLE_LENGTH) {
         if (publish) {
-          alert(`O título deve ter ao menos ${MIN_TITLE_LENGTH} caracteres.`);
+          toast.error(`O título deve ter ao menos ${MIN_TITLE_LENGTH} caracteres.`);
         }
-        return;
+        return false;
+      }
+
+      if (publish && !categoryId) {
+        toast.error("Selecione uma categoria antes de publicar o artigo.");
+        return false;
       }
 
       if (!editor) {
         console.error("Editor not initialized");
-        return;
+        toast.error("Editor não inicializado. Recarregue a página e tente novamente.");
+        return false;
       }
 
       try {
@@ -95,6 +104,7 @@ export function useArticleEditor({
 
         if (publish) {
           setStatus("published");
+          setHasPendingChanges(false);
           onPublish();
         } else {
           setLastSavedAt(new Date());
@@ -103,10 +113,17 @@ export function useArticleEditor({
             categoryId,
             selectedTags,
           };
+          setHasPendingChanges(false);
         }
+        return true;
       } catch (error) {
         console.error("Erro ao salvar artigo:", error);
-        alert("Não foi possível salvar o artigo. Tente novamente.");
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Não foi possível salvar o artigo. Verifique os campos e tente novamente.";
+        toast.error(message);
+        return false;
       }
     },
     [title, editor, articleId, categoryId, selectedTags, status, updateArticle, onPublish],
@@ -116,7 +133,7 @@ export function useArticleEditor({
     if (title.trim().length < MIN_TITLE_LENGTH) return;
     setAutoSaving(true);
     handleSave(false).finally(() => setAutoSaving(false));
-  }, 2000);
+  }, 1000);
 
   // Check if current state differs from server state
   const hasChanges = useCallback(() => {
@@ -129,12 +146,20 @@ export function useArticleEditor({
 
   // Auto-save on changes (only if different from server state)
   useEffect(() => {
-    if (!hasChanges()) return;
+    const dirty = hasChanges();
+    setHasPendingChanges(dirty);
+
+    if (!dirty) {
+      debouncedAutoSave.cancel();
+      return;
+    }
+
     debouncedAutoSave();
     return debouncedAutoSave.cancel;
   }, [title, categoryId, selectedTags, hasChanges, debouncedAutoSave]);
 
   const handleEditorChange = useCallback(() => {
+    setHasPendingChanges(true);
     // Editor changes are always considered changes
     debouncedAutoSave();
   }, [debouncedAutoSave]);
@@ -169,6 +194,7 @@ export function useArticleEditor({
     title,
     setTitle,
     status,
+    setStatus,
     categoryId,
     setCategoryId,
     lastSavedAt,
@@ -181,6 +207,7 @@ export function useArticleEditor({
     handleSave,
     handleEditorChange,
     handleUploadFile,
-    canSave: title.trim().length >= MIN_TITLE_LENGTH,
+    hasPendingChanges,
+    canPublish: title.trim().length >= MIN_TITLE_LENGTH && Boolean(categoryId),
   };
 }

@@ -88,10 +88,10 @@ export const adminAchievements = new Elysia({
         .post(
           "/",
           async ({ body, status, user }) => {
-            const achievement = await AchievementsService.createAchievement({
-              ...body,
-              createdBy: user!.id,
-            });
+            const achievement = await AchievementsService.createAchievement(
+              body,
+              user!.id,
+            );
 
             return status(201, achievement);
           },
@@ -107,10 +107,11 @@ export const adminAchievements = new Elysia({
         )
         .patch(
           "/:id",
-          async ({ params: { id }, body, status }) => {
+          async ({ params: { id }, body, status, user }) => {
             const achievement = await AchievementsService.updateAchievement(
               id,
               body,
+              user!.id,
             );
 
             return status(200, achievement);

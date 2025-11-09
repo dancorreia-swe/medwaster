@@ -20,6 +20,21 @@ interface ArticleTagsInputProps {
   onTagsChange: (tagIds: number[]) => void;
 }
 
+function normalizeTags(raw: unknown): any[] {
+  if (Array.isArray(raw)) {
+    return raw;
+  }
+
+  if (raw && typeof raw === "object" && "data" in raw) {
+    const maybeData = (raw as { data?: unknown }).data;
+    if (Array.isArray(maybeData)) {
+      return maybeData;
+    }
+  }
+
+  return [];
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -58,8 +73,8 @@ export function ArticleTagsInput({ selectedTags, onTagsChange }: ArticleTagsInpu
   const { data: allTagsData } = useSearchTags("");
   const createTagMutation = useCreateTag();
 
-  const searchResultTags = searchTagsData?.data || [];
-  const allTags = allTagsData?.data || [];
+  const searchResultTags = normalizeTags(searchTagsData);
+  const allTags = normalizeTags(allTagsData);
 
   const debouncedSetSearch = useDebouncedCallback((value: string) => {
     setDebouncedSearch(value);

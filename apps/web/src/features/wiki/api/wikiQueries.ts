@@ -97,7 +97,16 @@ export const useUpdateArticle = () => {
       id: number;
       data: UpdateArticleInput;
     }) => {
-      return await client.admin.wiki.articles({ id }).put(data);
+      const response = await client.admin.wiki.articles({ id }).put(data);
+      if (response && typeof response === "object" && "error" in response && response.error) {
+        const errorDetail = (response as any).error;
+        const message =
+          typeof errorDetail === "string"
+            ? errorDetail
+            : errorDetail?.message ?? "Erro ao atualizar artigo.";
+        throw new Error(message);
+      }
+      return response;
     },
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: wikiQueryKeys.article(id) });

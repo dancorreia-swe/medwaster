@@ -159,6 +159,7 @@ export function useAddContent() {
     onSuccess: (_, variables) => {
       toast.success("Conteúdo adicionado com sucesso!", { id: "add-content" });
       queryClient.invalidateQueries({ queryKey: ["trails", variables.trailId] });
+      queryClient.invalidateQueries({ queryKey: ["trails", "list"] });
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao adicionar conteúdo", { id: "add-content" });
@@ -185,6 +186,7 @@ export function useUpdateContent() {
     onSuccess: (_, variables) => {
       toast.success("Conteúdo atualizado com sucesso!", { id: "update-content" });
       queryClient.invalidateQueries({ queryKey: ["trails", variables.trailId] });
+      queryClient.invalidateQueries({ queryKey: ["trails", "list"] });
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao atualizar conteúdo", { id: "update-content" });
@@ -204,6 +206,7 @@ export function useRemoveContent() {
     onSuccess: (_, variables) => {
       toast.success("Conteúdo removido com sucesso!", { id: "remove-content" });
       queryClient.invalidateQueries({ queryKey: ["trails", variables.trailId] });
+      queryClient.invalidateQueries({ queryKey: ["trails", "list"] });
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao remover conteúdo", { id: "remove-content" });
@@ -223,6 +226,7 @@ export function useReorderContent() {
     onSuccess: (_, variables) => {
       toast.success("Conteúdo reordenado com sucesso!", { id: "reorder-content" });
       queryClient.invalidateQueries({ queryKey: ["trails", variables.trailId] });
+      queryClient.invalidateQueries({ queryKey: ["trails", "list"] });
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao reordenar conteúdo", { id: "reorder-content" });
@@ -246,6 +250,7 @@ export function useAddPrerequisite() {
     onSuccess: (_, variables) => {
       toast.success("Pré-requisito adicionado com sucesso!", { id: "add-prerequisite" });
       queryClient.invalidateQueries({ queryKey: ["trails", variables.trailId] });
+      queryClient.invalidateQueries({ queryKey: ["trails", "list"] });
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao adicionar pré-requisito", {
@@ -272,6 +277,7 @@ export function useRemovePrerequisite() {
     onSuccess: (_, variables) => {
       toast.success("Pré-requisito removido com sucesso!", { id: "remove-prerequisite" });
       queryClient.invalidateQueries({ queryKey: ["trails", variables.trailId] });
+      queryClient.invalidateQueries({ queryKey: ["trails", "list"] });
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao remover pré-requisito", {

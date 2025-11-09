@@ -115,6 +115,17 @@ export abstract class TrailsService {
             },
           },
           category: true,
+          content: {
+            columns: {
+              id: true,
+              sequence: true,
+            },
+          },
+          prerequisites: {
+            columns: {
+              prerequisiteTrailId: true,
+            },
+          },
         },
       }),
       db

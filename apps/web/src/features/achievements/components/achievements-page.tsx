@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Plus, Trophy } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Loader from "@/components/loader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from "sonner";
 import { useAchievements } from "../hooks";
 import {
   Empty,
@@ -12,13 +14,38 @@ import {
   EmptyDescription,
 } from "@/components/ui/empty";
 import { AchievementGrid } from "./achievement-grid";
+import { achievementsApi } from "../api/achievementsApi";
 import type { Achievement } from "@server/db/schema/achievements";
 
 export function AchievementsPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data, isLoading, isError, error } = useAchievements();
 
   const achievements = data?.data ?? [];
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: any }) =>
+      achievementsApi.updateAchievement(id, body),
+    onMutate: ({ body }) => {
+      if (body.displayOrder !== undefined) {
+        toast.loading("Atualizando ordem...", { id: "update-achievement" });
+      }
+    },
+    onSuccess: (_, variables) => {
+      if (variables.body.displayOrder !== undefined) {
+        toast.success(`Ordem atualizada para #${variables.body.displayOrder}!`, {
+          id: "update-achievement",
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["achievements"] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao atualizar conquista", {
+        id: "update-achievement",
+      });
+    },
+  });
 
   const handleEdit = (achievement: Achievement) => {
     navigate({
@@ -32,6 +59,17 @@ export function AchievementsPage() {
       to: "/achievements/$achievementId",
       params: { achievementId: "new" },
     });
+  };
+
+  const handleUpdateOrder = async (achievementId: number, newOrder: number | null) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: achievementId,
+        body: { displayOrder: newOrder ?? 0 },
+      });
+    } catch (error) {
+      console.error("Error updating achievement order:", error);
+    }
   };
 
   return (
@@ -84,7 +122,11 @@ export function AchievementsPage() {
       )}
 
       {!isLoading && !isError && achievements.length > 0 && (
-        <AchievementGrid achievements={achievements} onEdit={handleEdit} />
+        <AchievementGrid
+          achievements={achievements}
+          onEdit={handleEdit}
+          onUpdateOrder={handleUpdateOrder}
+        />
       )}
     </div>
   );

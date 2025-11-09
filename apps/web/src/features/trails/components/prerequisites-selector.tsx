@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Plus, X, Lock } from "lucide-react";
+import { Search, Plus, X, Lock, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,7 @@ interface PrerequisitesSelectorProps {
   trailId?: number;
   prerequisites: TrailPrerequisite[];
   onAdd: (trailId: number) => void;
+  onBatchAdd?: (trailIds: number[]) => void;
   onRemove: (prerequisiteTrailId: number) => void;
 }
 
@@ -30,10 +32,12 @@ export function PrerequisitesSelector({
   trailId,
   prerequisites,
   onAdd,
+  onBatchAdd,
   onRemove,
 }: PrerequisitesSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [selectedTrailIds, setSelectedTrailIds] = useState<Set<number>>(new Set());
 
   // Fetch available trails
   const { data: trails } = useQuery({
@@ -55,10 +59,34 @@ export function PrerequisitesSelector({
         trail.id !== trailId && !existingPrerequisiteIds.has(trail.id)
     ) || [];
 
-  const handleAdd = (trail: Trail) => {
-    onAdd(trail.id);
-    setIsOpen(false);
+  const toggleSelection = (trailId: number) => {
+    setSelectedTrailIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(trailId)) {
+        newSet.delete(trailId);
+      } else {
+        newSet.add(trailId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleAddSelected = () => {
+    if (selectedTrailIds.size === 0) return;
+
+    const trailIdsArray = Array.from(selectedTrailIds);
+
+    // Use batch add if available for better performance
+    if (onBatchAdd && trailIdsArray.length > 1) {
+      onBatchAdd(trailIdsArray);
+    } else {
+      // Fallback to individual adds
+      trailIdsArray.forEach((id) => onAdd(id));
+    }
+
+    setSelectedTrailIds(new Set());
     setSearch("");
+    setIsOpen(false);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -123,54 +151,96 @@ export function PrerequisitesSelector({
                         : "Todas as trilhas já foram adicionadas"}
                     </div>
                   ) : (
-                    availableTrails.map((trail) => (
-                      <Card
-                        key={trail.id}
-                        className="p-4 hover:bg-accent cursor-pointer transition-colors"
-                        onClick={() => handleAdd(trail)}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            <div className="mt-1">
-                              <Lock className="h-4 w-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium line-clamp-2 text-sm">
-                                {trail.name}
-                              </h4>
-                              {trail.description && (
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                  {trail.description}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-2 mt-2">
-                                <Badge
-                                  variant={getDifficultyColor(trail.difficulty)}
-                                  className="text-xs"
-                                >
-                                  {trail.difficulty === "basic"
-                                    ? "Básico"
-                                    : trail.difficulty === "intermediate"
-                                    ? "Intermediário"
-                                    : "Avançado"}
-                                </Badge>
-                                {trail.unlockOrder !== null && (
-                                  <Badge variant="outline" className="text-xs">
-                                    #{trail.unlockOrder}
-                                  </Badge>
+                    availableTrails.map((trail) => {
+                      const isSelected = selectedTrailIds.has(trail.id);
+
+                      return (
+                        <Card
+                          key={trail.id}
+                          className={`p-4 cursor-pointer transition-colors ${
+                            isSelected ? "bg-accent border-primary" : "hover:bg-accent"
+                          }`}
+                          onClick={() => toggleSelection(trail.id)}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className="mt-1 flex items-center gap-2">
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleSelection(trail.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                                <Lock className="h-4 w-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium line-clamp-2 text-sm">
+                                  {trail.name}
+                                </h4>
+                                {trail.description && (
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                    {trail.description}
+                                  </p>
                                 )}
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Badge
+                                    variant={getDifficultyColor(trail.difficulty)}
+                                    className="text-xs"
+                                  >
+                                    {trail.difficulty === "basic"
+                                      ? "Básico"
+                                      : trail.difficulty === "intermediate"
+                                      ? "Intermediário"
+                                      : "Avançado"}
+                                  </Badge>
+                                  {trail.unlockOrder !== null && (
+                                    <Badge variant="outline" className="text-xs">
+                                      #{trail.unlockOrder}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
+                            {isSelected && (
+                              <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                            )}
                           </div>
-                          <Button size="sm" variant="ghost">
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </Card>
-                    ))
+                        </Card>
+                      );
+                    })
                   )}
                 </div>
               </ScrollArea>
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  {selectedTrailIds.size > 0 ? (
+                    <span className="font-medium">
+                      {selectedTrailIds.size} {selectedTrailIds.size === 1 ? "trilha selecionada" : "trilhas selecionadas"}
+                    </span>
+                  ) : (
+                    <span>Nenhuma trilha selecionada</span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedTrailIds(new Set());
+                      setSearch("");
+                      setIsOpen(false);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleAddSelected}
+                    disabled={selectedTrailIds.size === 0}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar {selectedTrailIds.size > 0 ? `(${selectedTrailIds.size})` : ""}
+                  </Button>
+                </div>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

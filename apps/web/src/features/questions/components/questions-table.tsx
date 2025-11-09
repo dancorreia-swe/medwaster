@@ -88,10 +88,10 @@ export function QuestionsTable({
           <span>Itens por página:</span>
           <Select value={pageSize.toString()} onValueChange={(value) => onPageSizeChange(Number(value))}>
             <SelectTrigger className="w-[70px]">
-              <SelectValue />
+              <SelectValue placeholder={pageSize.toString()} />
             </SelectTrigger>
             <SelectContent>
-              {[12, 24, 48].map((size) => (
+              {[12, 20, 24, 48].map((size) => (
                 <SelectItem key={size} value={size.toString()}>
                   {size}
                 </SelectItem>

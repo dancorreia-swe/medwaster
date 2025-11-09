@@ -83,7 +83,7 @@ export interface QuestionListResponse {
 export interface QuestionListQueryParams {
   q?: string;
   categoryId?: number;
-  types?: QuestionType[];
+  type?: QuestionType | QuestionType[];
   difficulty?: QuestionDifficulty;
   tags?: string[];
   status?: QuestionStatus;

@@ -87,6 +87,7 @@ export function QuestionsPage() {
           difficulty: filters.difficulty,
           status: filters.status,
           categoryId: filters.categoryId,
+          tags: filters.tags,
         }}
         onFiltersChange={handleFiltersChange}
       />

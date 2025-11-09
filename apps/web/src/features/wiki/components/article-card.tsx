@@ -94,16 +94,21 @@ export function ArticleCard({ article }: ArticleCardProps) {
     article.title && article.title.trim().length > 0
       ? article.title
       : "Sem título";
+
   const deleteTarget = article.title ?? displayTitle;
+
   const statusValue = article.status ?? undefined;
+
   const statusMeta =
     statusValue && statusValue in STATUS_META
       ? STATUS_META[statusValue as keyof typeof STATUS_META]
       : FALLBACK_STATUS_META;
+
   const excerpt =
     article.excerpt && article.excerpt.trim().length > 0
       ? article.excerpt
       : DEFAULT_EXCERPT;
+
   const readingTime = article.readingTimeMinutes ?? 0;
   const lastUpdated = article.updatedAt
     ? new Date(article.updatedAt).toLocaleDateString("pt-BR", {
@@ -111,6 +116,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
         month: "2-digit",
       })
     : null;
+
   const viewCount = article.viewCount ?? 0;
 
   const isDeleting = deleteMutation.isPending;
