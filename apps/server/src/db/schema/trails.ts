@@ -53,7 +53,7 @@ export const trails = pgTable(
     difficulty: trailDifficultyEnum("difficulty").notNull(),
     status: trailStatusEnum("status").notNull().default("draft"),
 
-    unlockOrder: integer("unlock_order").notNull().unique(),
+    unlockOrder: integer("unlock_order"),
 
     passPercentage: real("pass_percentage").notNull().default(70),
     attemptsAllowed: integer("attempts_allowed").notNull().default(3),

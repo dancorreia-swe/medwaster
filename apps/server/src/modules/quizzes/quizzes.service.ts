@@ -14,7 +14,7 @@ import {
   type QuizDifficulty,
 } from "@/db/schema/quizzes";
 import { questions, questionOptions } from "@/db/schema/questions";
-import { asc, desc, eq, and, sql, ilike, or, count } from "drizzle-orm";
+import { asc, desc, eq, ne, and, sql, ilike, or, count, inArray } from "drizzle-orm";
 import { NotFoundError } from "@/lib/errors";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -146,17 +146,45 @@ export abstract class QuizzesService {
   }: {
     page?: number;
     pageSize?: number;
-    status?: QuizStatus;
-    difficulty?: QuizDifficulty;
-    categoryId?: number;
+    status?: QuizStatus | QuizStatus[];
+    difficulty?: QuizDifficulty | QuizDifficulty[];
+    categoryId?: number | number[];
     search?: string;
   } = {}) {
     const safePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
     const conditions = [];
 
-    if (status) conditions.push(eq(quizzes.status, status));
-    if (difficulty) conditions.push(eq(quizzes.difficulty, difficulty));
-    if (categoryId) conditions.push(eq(quizzes.categoryId, categoryId));
+    // Handle array or single value filters
+    if (status) {
+      if (Array.isArray(status) && status.length > 0) {
+        conditions.push(inArray(quizzes.status, status));
+      } else if (!Array.isArray(status)) {
+        conditions.push(eq(quizzes.status, status));
+      }
+    }
+
+    if (difficulty) {
+      if (Array.isArray(difficulty) && difficulty.length > 0) {
+        conditions.push(inArray(quizzes.difficulty, difficulty));
+      } else if (!Array.isArray(difficulty)) {
+        conditions.push(eq(quizzes.difficulty, difficulty));
+      }
+    }
+
+    if (categoryId) {
+      if (Array.isArray(categoryId) && categoryId.length > 0) {
+        conditions.push(inArray(quizzes.categoryId, categoryId));
+      } else if (!Array.isArray(categoryId)) {
+        conditions.push(eq(quizzes.categoryId, categoryId));
+      }
+    }
+    
+    // Exclude archived items by default unless:
+    // - A specific status filter is applied (including archived)
+    // - A search query is provided (search should include all items)
+    if (!status && !search) {
+      conditions.push(ne(quizzes.status, "archived"));
+    }
     
     if (search && search.trim()) {
       const searchTerm = `%${search.trim()}%`;

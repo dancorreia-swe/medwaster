@@ -9,6 +9,7 @@ import {
 import { relations } from "drizzle-orm";
 import { wikiArticles } from "./wiki";
 import { questions } from "./questions";
+import { quizzes } from "./quizzes";
 
 export const contentCategories = pgTable(
   "content_categories",
@@ -26,9 +27,7 @@ export const contentCategories = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [
-    index("content_categories_name_idx").on(table.name),
-  ],
+  (table) => [index("content_categories_name_idx").on(table.name)],
 );
 
 export const contentCategoriesRelations = relations(
@@ -36,6 +35,7 @@ export const contentCategoriesRelations = relations(
   ({ many }) => ({
     wikiArticles: many(wikiArticles),
     questions: many(questions),
+    quizzes: many(quizzes),
   }),
 );
 

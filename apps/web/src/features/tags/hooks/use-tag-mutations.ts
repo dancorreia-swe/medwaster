@@ -10,7 +10,9 @@ export function useDeleteTag() {
     mutationFn: (tagId: number) => deleteTag(tagId),
     onSuccess: () => {
       toast.success("Tag excluída com sucesso.");
+      // Invalidate both tags page queries and wiki/article page queries
       queryClient.invalidateQueries({ queryKey: tagsQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["wiki", "tags"] });
     },
     onError: (error: unknown) => {
       const message =
@@ -29,7 +31,9 @@ export function useCreateTag() {
     mutationFn: (values: TagFormValues) => createTag(values),
     onSuccess: () => {
       toast.success("Tag criada com sucesso.");
+      // Invalidate both tags page queries and wiki/article page queries
       queryClient.invalidateQueries({ queryKey: tagsQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["wiki", "tags"] });
     },
     onError: (error: unknown) => {
       const message =
@@ -54,7 +58,9 @@ export function useUpdateTag(tagId?: number) {
     },
     onSuccess: () => {
       toast.success("Tag atualizada com sucesso.");
+      // Invalidate both tags page queries and wiki/article page queries
       queryClient.invalidateQueries({ queryKey: tagsQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["wiki", "tags"] });
     },
     onError: (error: unknown) => {
       const message =

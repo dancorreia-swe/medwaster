@@ -15,8 +15,8 @@ export const quizzesListQueryOptions = (params?: QuizListQueryParams) =>
   queryOptions({
     queryKey: quizzesQueryKeys.list(params),
     queryFn: () => quizzesApi.listQuizzes(params),
-    staleTime: 5 * 60_000, // 5 minutes
-    gcTime: 10 * 60_000, // 10 minutes
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
     placeholderData: (previousData) => previousData, // Keep previous data while fetching
   });
 
@@ -27,3 +27,4 @@ export const quizQueryOptions = (id: number) =>
     enabled: Number.isFinite(id) && id > 0,
     staleTime: 5 * 60_000,
   });
+

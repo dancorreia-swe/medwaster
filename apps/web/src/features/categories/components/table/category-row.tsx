@@ -20,6 +20,8 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
+  HelpCircle,
+  ClipboardList,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Category, CategoryWikiArticle } from "../../api";
@@ -29,6 +31,8 @@ import Color from "color";
 import { CategoryColorPicker } from "./category-color-picker";
 import { CategoryStatusDropdown } from "./category-status-dropdown";
 import { ArticleListItem } from "./article-list-item";
+import { QuestionListItem } from "./question-list-item";
+import { QuizListItem } from "./quiz-list-item";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
 
 interface CategoryRowProps {
@@ -47,8 +51,10 @@ export function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const articleCount = category.wikiArticles?.length ?? 0;
+  const questionCount = category.questions?.length ?? 0;
+  const quizCount = category.quizzes?.length ?? 0;
 
-  const totalContents = articleCount;
+  const totalContents = articleCount + questionCount + quizCount;
 
   const updateCategory = useUpdateCategory({ silent: true, skipRefetch: true });
   const deleteCategory = useDeleteCategory();
@@ -193,6 +199,36 @@ export function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
                   </TooltipContent>
                 </Tooltip>
               )}
+              {questionCount > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground cursor-help">
+                      <HelpCircle className="h-4 w-4" />
+                      <span>{questionCount}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {questionCount} {questionCount === 1 ? "questão" : "questões"}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {quizCount > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground cursor-help">
+                      <ClipboardList className="h-4 w-4" />
+                      <span>{quizCount}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {quizCount} {quizCount === 1 ? "quiz" : "quizzes"}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {totalContents === 0 && (
                 <span className="text-xs text-muted-foreground">
                   Nenhum conteúdo
@@ -262,7 +298,13 @@ export function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
             <div className="bg-muted/50 py-3">
               <div className="grid gap-2 px-4 sm:px-8 md:px-12 max-w-full">
                 {category.wikiArticles?.map((article) => (
-                  <ArticleListItem key={article.id} article={article} />
+                  <ArticleListItem key={`article-${article.id}`} article={article} />
+                ))}
+                {category.questions?.map((question) => (
+                  <QuestionListItem key={`question-${question.id}`} question={question} />
+                ))}
+                {category.quizzes?.map((quiz) => (
+                  <QuizListItem key={`quiz-${quiz.id}`} quiz={quiz} />
                 ))}
               </div>
             </div>

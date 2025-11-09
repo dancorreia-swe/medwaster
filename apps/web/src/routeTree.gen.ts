@@ -22,15 +22,18 @@ import { Route as AuthQuizzesIndexRouteImport } from './routes/_auth/quizzes/ind
 import { Route as AuthQuestionsIndexRouteImport } from './routes/_auth/questions/index'
 import { Route as AuthCategoriesIndexRouteImport } from './routes/_auth/categories/index'
 import { Route as AuthAchievementsIndexRouteImport } from './routes/_auth/achievements/index'
+import { Route as AuthTrailsCreateRouteImport } from './routes/_auth/trails/create'
 import { Route as AuthQuizzesCreateRouteImport } from './routes/_auth/quizzes/create'
 import { Route as AuthQuestionsNewRouteImport } from './routes/_auth/questions/new'
 import { Route as AuthAdminProfileRouteImport } from './routes/_auth/admin/profile'
 import { Route as AuthWikiArticleIdIndexRouteImport } from './routes/_auth/wiki/$articleId/index'
+import { Route as AuthTrailsTrailIdIndexRouteImport } from './routes/_auth/trails/$trailId/index'
 import { Route as AuthQuizzesQuizIdIndexRouteImport } from './routes/_auth/quizzes/$quizId/index'
 import { Route as AuthQuestionsQuestionIdIndexRouteImport } from './routes/_auth/questions/$questionId/index'
 import { Route as AuthAdminUsersIndexRouteImport } from './routes/_auth/admin/users/index'
 import { Route as AuthAdminSettingsIndexRouteImport } from './routes/_auth/admin/settings/index'
 import { Route as AuthAchievementsAchievementIdIndexRouteImport } from './routes/_auth/achievements/$achievementId/index'
+import { Route as AuthTrailsTrailIdEditRouteImport } from './routes/_auth/trails/$trailId/edit'
 import { Route as AuthQuizzesQuizIdEditRouteImport } from './routes/_auth/quizzes/$quizId/edit'
 import { Route as AuthQuestionsQuestionIdEditRouteImport } from './routes/_auth/questions/$questionId/edit'
 
@@ -98,6 +101,11 @@ const AuthAchievementsIndexRoute = AuthAchievementsIndexRouteImport.update({
   path: '/achievements/',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthTrailsCreateRoute = AuthTrailsCreateRouteImport.update({
+  id: '/trails/create',
+  path: '/trails/create',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthQuizzesCreateRoute = AuthQuizzesCreateRouteImport.update({
   id: '/quizzes/create',
   path: '/quizzes/create',
@@ -117,6 +125,11 @@ const AuthWikiArticleIdIndexRoute = AuthWikiArticleIdIndexRouteImport.update({
   id: '/$articleId/',
   path: '/$articleId/',
   getParentRoute: () => AuthWikiRouteRoute,
+} as any)
+const AuthTrailsTrailIdIndexRoute = AuthTrailsTrailIdIndexRouteImport.update({
+  id: '/trails/$trailId/',
+  path: '/trails/$trailId/',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthQuizzesQuizIdIndexRoute = AuthQuizzesQuizIdIndexRouteImport.update({
   id: '/quizzes/$quizId/',
@@ -145,6 +158,11 @@ const AuthAchievementsAchievementIdIndexRoute =
     path: '/achievements/$achievementId/',
     getParentRoute: () => AuthRoute,
   } as any)
+const AuthTrailsTrailIdEditRoute = AuthTrailsTrailIdEditRouteImport.update({
+  id: '/trails/$trailId/edit',
+  path: '/trails/$trailId/edit',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthQuizzesQuizIdEditRoute = AuthQuizzesQuizIdEditRouteImport.update({
   id: '/quizzes/$quizId/edit',
   path: '/quizzes/$quizId/edit',
@@ -167,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/admin/profile': typeof AuthAdminProfileRoute
   '/questions/new': typeof AuthQuestionsNewRoute
   '/quizzes/create': typeof AuthQuizzesCreateRoute
+  '/trails/create': typeof AuthTrailsCreateRoute
   '/achievements': typeof AuthAchievementsIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
   '/questions': typeof AuthQuestionsIndexRoute
@@ -175,11 +194,13 @@ export interface FileRoutesByFullPath {
   '/trails': typeof AuthTrailsIndexRoute
   '/questions/$questionId/edit': typeof AuthQuestionsQuestionIdEditRoute
   '/quizzes/$quizId/edit': typeof AuthQuizzesQuizIdEditRoute
+  '/trails/$trailId/edit': typeof AuthTrailsTrailIdEditRoute
   '/achievements/$achievementId': typeof AuthAchievementsAchievementIdIndexRoute
   '/admin/settings': typeof AuthAdminSettingsIndexRoute
   '/admin/users': typeof AuthAdminUsersIndexRoute
   '/questions/$questionId': typeof AuthQuestionsQuestionIdIndexRoute
   '/quizzes/$quizId': typeof AuthQuizzesQuizIdIndexRoute
+  '/trails/$trailId': typeof AuthTrailsTrailIdIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -192,6 +213,7 @@ export interface FileRoutesByTo {
   '/admin/profile': typeof AuthAdminProfileRoute
   '/questions/new': typeof AuthQuestionsNewRoute
   '/quizzes/create': typeof AuthQuizzesCreateRoute
+  '/trails/create': typeof AuthTrailsCreateRoute
   '/achievements': typeof AuthAchievementsIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
   '/questions': typeof AuthQuestionsIndexRoute
@@ -200,11 +222,13 @@ export interface FileRoutesByTo {
   '/trails': typeof AuthTrailsIndexRoute
   '/questions/$questionId/edit': typeof AuthQuestionsQuestionIdEditRoute
   '/quizzes/$quizId/edit': typeof AuthQuizzesQuizIdEditRoute
+  '/trails/$trailId/edit': typeof AuthTrailsTrailIdEditRoute
   '/achievements/$achievementId': typeof AuthAchievementsAchievementIdIndexRoute
   '/admin/settings': typeof AuthAdminSettingsIndexRoute
   '/admin/users': typeof AuthAdminUsersIndexRoute
   '/questions/$questionId': typeof AuthQuestionsQuestionIdIndexRoute
   '/quizzes/$quizId': typeof AuthQuizzesQuizIdIndexRoute
+  '/trails/$trailId': typeof AuthTrailsTrailIdIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRoutesById {
@@ -219,6 +243,7 @@ export interface FileRoutesById {
   '/_auth/admin/profile': typeof AuthAdminProfileRoute
   '/_auth/questions/new': typeof AuthQuestionsNewRoute
   '/_auth/quizzes/create': typeof AuthQuizzesCreateRoute
+  '/_auth/trails/create': typeof AuthTrailsCreateRoute
   '/_auth/achievements/': typeof AuthAchievementsIndexRoute
   '/_auth/categories/': typeof AuthCategoriesIndexRoute
   '/_auth/questions/': typeof AuthQuestionsIndexRoute
@@ -227,11 +252,13 @@ export interface FileRoutesById {
   '/_auth/trails/': typeof AuthTrailsIndexRoute
   '/_auth/questions/$questionId/edit': typeof AuthQuestionsQuestionIdEditRoute
   '/_auth/quizzes/$quizId/edit': typeof AuthQuizzesQuizIdEditRoute
+  '/_auth/trails/$trailId/edit': typeof AuthTrailsTrailIdEditRoute
   '/_auth/achievements/$achievementId/': typeof AuthAchievementsAchievementIdIndexRoute
   '/_auth/admin/settings/': typeof AuthAdminSettingsIndexRoute
   '/_auth/admin/users/': typeof AuthAdminUsersIndexRoute
   '/_auth/questions/$questionId/': typeof AuthQuestionsQuestionIdIndexRoute
   '/_auth/quizzes/$quizId/': typeof AuthQuizzesQuizIdIndexRoute
+  '/_auth/trails/$trailId/': typeof AuthTrailsTrailIdIndexRoute
   '/_auth/wiki/$articleId/': typeof AuthWikiArticleIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -246,6 +273,7 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/questions/new'
     | '/quizzes/create'
+    | '/trails/create'
     | '/achievements'
     | '/categories'
     | '/questions'
@@ -254,11 +282,13 @@ export interface FileRouteTypes {
     | '/trails'
     | '/questions/$questionId/edit'
     | '/quizzes/$quizId/edit'
+    | '/trails/$trailId/edit'
     | '/achievements/$achievementId'
     | '/admin/settings'
     | '/admin/users'
     | '/questions/$questionId'
     | '/quizzes/$quizId'
+    | '/trails/$trailId'
     | '/wiki/$articleId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -271,6 +301,7 @@ export interface FileRouteTypes {
     | '/admin/profile'
     | '/questions/new'
     | '/quizzes/create'
+    | '/trails/create'
     | '/achievements'
     | '/categories'
     | '/questions'
@@ -279,11 +310,13 @@ export interface FileRouteTypes {
     | '/trails'
     | '/questions/$questionId/edit'
     | '/quizzes/$quizId/edit'
+    | '/trails/$trailId/edit'
     | '/achievements/$achievementId'
     | '/admin/settings'
     | '/admin/users'
     | '/questions/$questionId'
     | '/quizzes/$quizId'
+    | '/trails/$trailId'
     | '/wiki/$articleId'
   id:
     | '__root__'
@@ -297,6 +330,7 @@ export interface FileRouteTypes {
     | '/_auth/admin/profile'
     | '/_auth/questions/new'
     | '/_auth/quizzes/create'
+    | '/_auth/trails/create'
     | '/_auth/achievements/'
     | '/_auth/categories/'
     | '/_auth/questions/'
@@ -305,11 +339,13 @@ export interface FileRouteTypes {
     | '/_auth/trails/'
     | '/_auth/questions/$questionId/edit'
     | '/_auth/quizzes/$quizId/edit'
+    | '/_auth/trails/$trailId/edit'
     | '/_auth/achievements/$achievementId/'
     | '/_auth/admin/settings/'
     | '/_auth/admin/users/'
     | '/_auth/questions/$questionId/'
     | '/_auth/quizzes/$quizId/'
+    | '/_auth/trails/$trailId/'
     | '/_auth/wiki/$articleId/'
   fileRoutesById: FileRoutesById
 }
@@ -414,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAchievementsIndexRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/trails/create': {
+      id: '/_auth/trails/create'
+      path: '/trails/create'
+      fullPath: '/trails/create'
+      preLoaderRoute: typeof AuthTrailsCreateRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/quizzes/create': {
       id: '/_auth/quizzes/create'
       path: '/quizzes/create'
@@ -441,6 +484,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/wiki/$articleId'
       preLoaderRoute: typeof AuthWikiArticleIdIndexRouteImport
       parentRoute: typeof AuthWikiRouteRoute
+    }
+    '/_auth/trails/$trailId/': {
+      id: '/_auth/trails/$trailId/'
+      path: '/trails/$trailId'
+      fullPath: '/trails/$trailId'
+      preLoaderRoute: typeof AuthTrailsTrailIdIndexRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_auth/quizzes/$quizId/': {
       id: '/_auth/quizzes/$quizId/'
@@ -475,6 +525,13 @@ declare module '@tanstack/react-router' {
       path: '/achievements/$achievementId'
       fullPath: '/achievements/$achievementId'
       preLoaderRoute: typeof AuthAchievementsAchievementIdIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/trails/$trailId/edit': {
+      id: '/_auth/trails/$trailId/edit'
+      path: '/trails/$trailId/edit'
+      fullPath: '/trails/$trailId/edit'
+      preLoaderRoute: typeof AuthTrailsTrailIdEditRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/quizzes/$quizId/edit': {
@@ -512,6 +569,7 @@ interface AuthRouteChildren {
   AuthAdminProfileRoute: typeof AuthAdminProfileRoute
   AuthQuestionsNewRoute: typeof AuthQuestionsNewRoute
   AuthQuizzesCreateRoute: typeof AuthQuizzesCreateRoute
+  AuthTrailsCreateRoute: typeof AuthTrailsCreateRoute
   AuthAchievementsIndexRoute: typeof AuthAchievementsIndexRoute
   AuthCategoriesIndexRoute: typeof AuthCategoriesIndexRoute
   AuthQuestionsIndexRoute: typeof AuthQuestionsIndexRoute
@@ -520,11 +578,13 @@ interface AuthRouteChildren {
   AuthTrailsIndexRoute: typeof AuthTrailsIndexRoute
   AuthQuestionsQuestionIdEditRoute: typeof AuthQuestionsQuestionIdEditRoute
   AuthQuizzesQuizIdEditRoute: typeof AuthQuizzesQuizIdEditRoute
+  AuthTrailsTrailIdEditRoute: typeof AuthTrailsTrailIdEditRoute
   AuthAchievementsAchievementIdIndexRoute: typeof AuthAchievementsAchievementIdIndexRoute
   AuthAdminSettingsIndexRoute: typeof AuthAdminSettingsIndexRoute
   AuthAdminUsersIndexRoute: typeof AuthAdminUsersIndexRoute
   AuthQuestionsQuestionIdIndexRoute: typeof AuthQuestionsQuestionIdIndexRoute
   AuthQuizzesQuizIdIndexRoute: typeof AuthQuizzesQuizIdIndexRoute
+  AuthTrailsTrailIdIndexRoute: typeof AuthTrailsTrailIdIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
@@ -533,6 +593,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthAdminProfileRoute: AuthAdminProfileRoute,
   AuthQuestionsNewRoute: AuthQuestionsNewRoute,
   AuthQuizzesCreateRoute: AuthQuizzesCreateRoute,
+  AuthTrailsCreateRoute: AuthTrailsCreateRoute,
   AuthAchievementsIndexRoute: AuthAchievementsIndexRoute,
   AuthCategoriesIndexRoute: AuthCategoriesIndexRoute,
   AuthQuestionsIndexRoute: AuthQuestionsIndexRoute,
@@ -541,12 +602,14 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthTrailsIndexRoute: AuthTrailsIndexRoute,
   AuthQuestionsQuestionIdEditRoute: AuthQuestionsQuestionIdEditRoute,
   AuthQuizzesQuizIdEditRoute: AuthQuizzesQuizIdEditRoute,
+  AuthTrailsTrailIdEditRoute: AuthTrailsTrailIdEditRoute,
   AuthAchievementsAchievementIdIndexRoute:
     AuthAchievementsAchievementIdIndexRoute,
   AuthAdminSettingsIndexRoute: AuthAdminSettingsIndexRoute,
   AuthAdminUsersIndexRoute: AuthAdminUsersIndexRoute,
   AuthQuestionsQuestionIdIndexRoute: AuthQuestionsQuestionIdIndexRoute,
   AuthQuizzesQuizIdIndexRoute: AuthQuizzesQuizIdIndexRoute,
+  AuthTrailsTrailIdIndexRoute: AuthTrailsTrailIdIndexRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

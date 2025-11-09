@@ -109,7 +109,36 @@ export abstract class CategoriesService {
             title: true,
             excerpt: true,
             status: true,
+            updatedAt: true,
           },
+          where: (articles, { ne }) => ne(articles.status, "archived"),
+          limit: 5,
+        },
+        questions: {
+          columns: {
+            id: true,
+            prompt: true,
+            explanation: true,
+            type: true,
+            difficulty: true,
+            status: true,
+            updatedAt: true,
+          },
+          where: (questions, { ne }) => ne(questions.status, "archived"),
+          limit: 5,
+        },
+        quizzes: {
+          columns: {
+            id: true,
+            title: true,
+            description: true,
+            difficulty: true,
+            status: true,
+            timeLimit: true,
+            passingScore: true,
+            updatedAt: true,
+          },
+          where: (quizzes, { ne }) => ne(quizzes.status, "archived"),
           limit: 5,
         },
       },
@@ -117,6 +146,8 @@ export abstract class CategoriesService {
       limit: pageSize,
       offset: (page - 1) * pageSize,
     });
+
+    console.log(categories);
 
     return categories;
   }
@@ -132,7 +163,9 @@ export abstract class CategoriesService {
       throw new NotFoundError("Category");
     }
 
-    await db.delete(contentCategories).where(eq(contentCategories.id, categoryId));
+    await db
+      .delete(contentCategories)
+      .where(eq(contentCategories.id, categoryId));
 
     return existing;
   }

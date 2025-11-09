@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
   queryOptions,
+  keepPreviousData,
 } from "@tanstack/react-query";
 import { wikiApi } from "./wikiApi";
 import { client } from "@/lib/client";
@@ -194,6 +195,7 @@ export const useSearchTags = (search?: string) =>
     queryFn: () => wikiApi.listTags({ search }),
     staleTime: 10 * 60_000,
     gcTime: 30 * 60_000,
+    placeholderData: keepPreviousData,
     enabled: true,
   });
 
@@ -213,6 +215,8 @@ export const useCreateTag = () => {
     onSuccess: (response) => {
       // Invalidate all tag queries to refetch with the new tag
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.tags() });
+      // Also invalidate tags page queries for cross-page synchronization
+      queryClient.invalidateQueries({ queryKey: ["tags"] });
     },
     onError: (error) => {
       console.error("Error creating tag:", error);

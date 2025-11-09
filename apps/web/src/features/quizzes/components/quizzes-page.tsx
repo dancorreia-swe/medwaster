@@ -55,10 +55,16 @@ export function QuizzesPage() {
       
       // Add new filters that have defined values
       Object.entries(newFilters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        // Check for non-empty values (including arrays)
+        const hasValue = value !== undefined && 
+                        value !== null && 
+                        value !== '' &&
+                        (!Array.isArray(value) || value.length > 0);
+        
+        if (hasValue) {
           (updated as any)[key] = value;
         }
-        // If value is undefined/null/empty, we intentionally don't add it (which removes it)
+        // If value is undefined/null/empty array, we intentionally don't add it (which removes it)
       });
       
       return updated;

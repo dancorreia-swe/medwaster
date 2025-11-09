@@ -6,7 +6,8 @@
       "Bash(rm:*)",
       "Bash(bun db:generate:*)",
       "Bash(curl:*)",
-      "Bash(bun dev)"
+      "Bash(bun dev)",
+      "Bash(bun check-types:*)"
     ],
     "deny": []
   }

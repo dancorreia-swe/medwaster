@@ -53,9 +53,9 @@ export function QuizCard({ quiz, onEdit, onArchive, onDelete }: QuizCardProps) {
   };
 
   return (
-    <Card className="group hover:shadow-md transition-shadow cursor-pointer" onClick={handleCardClick}>
+    <Card className="group hover:shadow-md transition-shadow cursor-pointer gap-1" onClick={handleCardClick}>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between">
           <CardTitle className="text-base font-medium leading-tight line-clamp-2">
             {quiz.title}
           </CardTitle>

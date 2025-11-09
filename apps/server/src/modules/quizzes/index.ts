@@ -17,12 +17,29 @@ export const adminQuizzes = new Elysia({ prefix: "/admin/quizzes" })
       .get(
         "/",
         async ({ query, status }) => {
+          // Parse array parameters from query string
+          const parseArray = (value: string | string[] | undefined) => {
+            if (!value) return undefined;
+            if (Array.isArray(value)) return value;
+            return value.includes(',') ? value.split(',') : [value];
+          };
+
+          const parseNumberArray = (value: string | string[] | number | number[] | undefined) => {
+            if (!value) return undefined;
+            if (typeof value === 'number') return [value];
+            if (Array.isArray(value)) {
+              return value.map(v => typeof v === 'number' ? v : Number(v));
+            }
+            const arr = parseArray(value as string);
+            return arr?.map(Number);
+          };
+
           const quizzes = await QuizzesService.getAllQuizzes({
             page: query.page,
             pageSize: query.pageSize,
-            status: query.status as any,
-            difficulty: query.difficulty as any,
-            categoryId: query.categoryId,
+            status: parseArray(query.status) as any,
+            difficulty: parseArray(query.difficulty) as any,
+            categoryId: parseNumberArray(query.categoryId),
             search: query.search,
           });
 
@@ -32,9 +49,9 @@ export const adminQuizzes = new Elysia({ prefix: "/admin/quizzes" })
           query: t.Object({
             page: t.Optional(t.Number({ minimum: 1 })),
             pageSize: t.Optional(t.Number({ minimum: 1, maximum: 100 })),
-            status: t.Optional(t.String()),
-            difficulty: t.Optional(t.String()),
-            categoryId: t.Optional(t.Number()),
+            status: t.Optional(t.Union([t.String(), t.Array(t.String())])),
+            difficulty: t.Optional(t.Union([t.String(), t.Array(t.String())])),
+            categoryId: t.Optional(t.Union([t.Number(), t.Array(t.Number())])),
             search: t.Optional(t.String()),
           }),
           detail: {

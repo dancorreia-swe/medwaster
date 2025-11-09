@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Tags,
   TagsContent,
@@ -29,15 +29,36 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+const DEFAULT_COLOR = "#94a3b8";
+
+// Helper function to determine if a color is light or dark
+function getContrastColor(hexColor: string): string {
+  // Remove # if present
+  const hex = hexColor.replace("#", "");
+
+  // Convert to RGB
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  // Calculate relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  // Return black for light colors, white for dark colors
+  return luminance > 0.5 ? "#000000" : "#ffffff";
+}
+
 export function ArticleTagsInput({ selectedTags, onTagsChange }: ArticleTagsInputProps) {
   const [searchValue, setSearchValue] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
+  // Fetch filtered tags for dropdown based on search
   const { data: searchTagsData, isLoading: isSearching } = useSearchTags(debouncedSearch);
+  // Fetch all tags separately to always display selected tags correctly
   const { data: allTagsData } = useSearchTags("");
   const createTagMutation = useCreateTag();
 
-  const searchedTags = searchTagsData?.data || [];
+  const searchResultTags = searchTagsData?.data || [];
   const allTags = allTagsData?.data || [];
 
   const debouncedSetSearch = useDebouncedCallback((value: string) => {
@@ -92,20 +113,33 @@ export function ArticleTagsInput({ selectedTags, onTagsChange }: ArticleTagsInpu
     }
   };
 
-  const filteredTags = searchedTags;
-
-  const selectedTagsData = allTags.filter((tag: any) => selectedTags.includes(tag.id));
+  // Memoize selected tags to avoid recalculation on every render
+  const selectedTagsData = useMemo(() => {
+    return allTags.filter((tag: any) => selectedTags.includes(tag.id));
+  }, [allTags, selectedTags]);
 
   return (
     <div className="flex items-center gap-2">
       <Tag size={16} className="text-muted-foreground" />
       <Tags className="max-w-lg">
         <TagsTrigger className="h-8 border-0 px-1 font-normal shadow-none focus:ring-0 focus:ring-offset-0">
-          {selectedTagsData.map((tag: any) => (
-            <TagsValue key={tag.id} onRemove={() => handleTagRemove(tag.id)}>
-              {tag.name}
-            </TagsValue>
-          ))}
+          {selectedTagsData.map((tag: any) => {
+            const color = tag.color || DEFAULT_COLOR;
+            const textColor = getContrastColor(color);
+            return (
+              <TagsValue
+                key={tag.id}
+                onRemove={() => handleTagRemove(tag.id)}
+                className="border-transparent [&>div]:hover:opacity-70"
+                style={{
+                  backgroundColor: color,
+                  color: textColor,
+                }}
+              >
+                {tag.name}
+              </TagsValue>
+            );
+          })}
         </TagsTrigger>
         <TagsContent>
           <TagsInput
@@ -115,11 +149,11 @@ export function ArticleTagsInput({ selectedTags, onTagsChange }: ArticleTagsInpu
             onKeyDown={handleKeyDown}
           />
           <TagsList>
-            {isSearching ? (
+            {isSearching && debouncedSearch !== searchValue ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
-            ) : filteredTags.length === 0 && searchValue ? (
+            ) : searchResultTags.length === 0 && searchValue ? (
               <TagsEmpty>
                 <button
                   className="mx-auto flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors"
@@ -137,14 +171,24 @@ export function ArticleTagsInput({ selectedTags, onTagsChange }: ArticleTagsInpu
               </TagsEmpty>
             ) : (
               <TagsGroup>
-                {filteredTags.map((tag: any) => (
-                  <TagsItem key={tag.id} onSelect={handleTagSelect} value={tag.id.toString()}>
-                    <span className="flex-1">{tag.name}</span>
-                    {selectedTags.includes(tag.id) && (
-                      <CheckIcon className="text-muted-foreground ml-auto" size={14} />
-                    )}
-                  </TagsItem>
-                ))}
+                {searchResultTags.map((tag: any) => {
+                  const color = tag.color || DEFAULT_COLOR;
+                  return (
+                    <TagsItem key={tag.id} onSelect={handleTagSelect} value={tag.id.toString()}>
+                      <span className="flex items-center gap-2 flex-1">
+                        <span
+                          aria-hidden
+                          className="inline-flex h-3 w-3 rounded-full border border-border"
+                          style={{ backgroundColor: color }}
+                        />
+                        {tag.name}
+                      </span>
+                      {selectedTags.includes(tag.id) && (
+                        <CheckIcon className="text-muted-foreground ml-auto" size={14} />
+                      )}
+                    </TagsItem>
+                  );
+                })}
               </TagsGroup>
             )}
           </TagsList>

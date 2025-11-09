@@ -21,57 +21,46 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { categoriesListQueryOptions } from "@/features/questions/api/categoriesAndTagsQueries";
-import type { QuizFilters } from "../types";
+import type { TrailStatus, TrailDifficulty } from "../types";
 
-// Type for category from API
-interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  description?: string;
+export interface TrailFilters {
+  search?: string;
+  status?: TrailStatus[];
+  difficulty?: TrailDifficulty[];
+  categoryId?: number[];
 }
 
-interface QuizFiltersBarProps {
-  /** Current filter values */
-  filters: QuizFilters;
-  /** Callback fired when filters change */
-  onFiltersChange: (filters: QuizFilters) => void;
+interface TrailFiltersBarProps {
+  filters: TrailFilters;
+  onFiltersChange: (filters: TrailFilters) => void;
 }
 
 const difficultyOptions = [
   { value: "basic", label: "Básico" },
   { value: "intermediate", label: "Intermediário" },
   { value: "advanced", label: "Avançado" },
-  { value: "mixed", label: "Misto" },
-];
+] as const;
 
 const statusOptions = [
   { value: "draft", label: "Rascunho" },
-  { value: "active", label: "Ativo" },
+  { value: "published", label: "Publicado" },
   { value: "inactive", label: "Inativo" },
   { value: "archived", label: "Arquivado" },
-];
+] as const;
 
-/**
- * Quiz filters bar component with search, status, difficulty, and category filters.
- * 
- * Features:
- * - Real-time search with form submission
- * - Multi-select dropdown filters for status, difficulty, and category
- * - Clear all filters functionality
- * - Loading states and error handling for categories
- * - Visual badges showing active filter counts
- */
-export function QuizFiltersBar({ filters, onFiltersChange }: QuizFiltersBarProps) {
+export function TrailFiltersBar({
+  filters,
+  onFiltersChange,
+}: TrailFiltersBarProps) {
   const [localSearch, setLocalSearch] = useState(filters.search || "");
   const [statusOpen, setStatusOpen] = useState(false);
   const [difficultyOpen, setDifficultyOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
 
-  const { 
-    data: categories = [], 
+  const {
+    data: categories = [],
     isLoading: categoriesLoading,
-    error: categoriesError 
+    error: categoriesError,
   } = useQuery(categoriesListQueryOptions());
 
   const handleSearchSubmit = useCallback(
@@ -79,7 +68,7 @@ export function QuizFiltersBar({ filters, onFiltersChange }: QuizFiltersBarProps
       e.preventDefault();
       onFiltersChange({ ...filters, search: localSearch.trim() || undefined });
     },
-    [filters, localSearch, onFiltersChange],
+    [filters, localSearch, onFiltersChange]
   );
 
   const handleSearchChange = useCallback(
@@ -90,22 +79,22 @@ export function QuizFiltersBar({ filters, onFiltersChange }: QuizFiltersBarProps
         onFiltersChange({ ...filters, search: undefined });
       }
     },
-    [filters, onFiltersChange],
+    [filters, onFiltersChange]
   );
 
   const toggleFilterValue = useCallback(
-    <T,>(filterKey: keyof QuizFilters, value: T) => {
+    <T,>(filterKey: keyof TrailFilters, value: T) => {
       const currentValues = (filters[filterKey] as T[]) || [];
       const newValues = currentValues.includes(value)
         ? currentValues.filter((v) => v !== value)
         : [...currentValues, value];
-      
+
       onFiltersChange({
         ...filters,
         [filterKey]: newValues.length > 0 ? newValues : undefined,
       });
     },
-    [filters, onFiltersChange],
+    [filters, onFiltersChange]
   );
 
   const clearFilters = useCallback(() => {
@@ -114,10 +103,10 @@ export function QuizFiltersBar({ filters, onFiltersChange }: QuizFiltersBarProps
   }, [onFiltersChange]);
 
   const hasActiveFilters = Boolean(
-    filters.search || 
-    (filters.status && filters.status.length > 0) || 
-    (filters.difficulty && filters.difficulty.length > 0) || 
-    (filters.categoryId && filters.categoryId.length > 0)
+    filters.search ||
+      (filters.status && filters.status.length > 0) ||
+      (filters.difficulty && filters.difficulty.length > 0) ||
+      (filters.categoryId && filters.categoryId.length > 0)
   );
 
   const selectedStatusCount = filters.status?.length || 0;
@@ -129,13 +118,13 @@ export function QuizFiltersBar({ filters, onFiltersChange }: QuizFiltersBarProps
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <form onSubmit={handleSearchSubmit} className="flex-1 max-w-sm">
           <Label htmlFor="search" className="sr-only">
-            Pesquisar quizzes
+            Pesquisar trilhas
           </Label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="search"
-              placeholder="Pesquisar quizzes..."
+              placeholder="Pesquisar trilhas..."
               value={localSearch}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-9"
@@ -150,7 +139,10 @@ export function QuizFiltersBar({ filters, onFiltersChange }: QuizFiltersBarProps
               <Button variant="outline" className="min-w-[140px] justify-between">
                 Status
                 {selectedStatusCount > 0 && (
-                  <Badge variant="secondary" className="ml-2 rounded-full px-1.5 py-0.5 text-xs">
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 rounded-full px-1.5 py-0.5 text-xs"
+                  >
                     {selectedStatusCount}
                   </Badge>
                 )}
@@ -163,7 +155,8 @@ export function QuizFiltersBar({ filters, onFiltersChange }: QuizFiltersBarProps
                   <CommandEmpty>Nenhum status encontrado.</CommandEmpty>
                   <CommandGroup>
                     {statusOptions.map((option) => {
-                      const isSelected = filters.status?.includes(option.value) || false;
+                      const isSelected =
+                        filters.status?.includes(option.value) || false;
                       return (
                         <CommandItem
                           key={option.value}
@@ -195,7 +188,10 @@ export function QuizFiltersBar({ filters, onFiltersChange }: QuizFiltersBarProps
               <Button variant="outline" className="min-w-[140px] justify-between">
                 Dificuldade
                 {selectedDifficultyCount > 0 && (
-                  <Badge variant="secondary" className="ml-2 rounded-full px-1.5 py-0.5 text-xs">
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 rounded-full px-1.5 py-0.5 text-xs"
+                  >
                     {selectedDifficultyCount}
                   </Badge>
                 )}
@@ -208,11 +204,14 @@ export function QuizFiltersBar({ filters, onFiltersChange }: QuizFiltersBarProps
                   <CommandEmpty>Nenhuma dificuldade encontrada.</CommandEmpty>
                   <CommandGroup>
                     {difficultyOptions.map((option) => {
-                      const isSelected = filters.difficulty?.includes(option.value) || false;
+                      const isSelected =
+                        filters.difficulty?.includes(option.value) || false;
                       return (
                         <CommandItem
                           key={option.value}
-                          onSelect={() => toggleFilterValue("difficulty", option.value)}
+                          onSelect={() =>
+                            toggleFilterValue("difficulty", option.value)
+                          }
                         >
                           <div
                             className={cn(
@@ -237,18 +236,21 @@ export function QuizFiltersBar({ filters, onFiltersChange }: QuizFiltersBarProps
           {/* Category Filter */}
           <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
             <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="min-w-[140px] justify-between"
                 disabled={categoriesLoading}
               >
-                {categoriesLoading 
-                  ? "Carregando..." 
-                  : categoriesError 
-                  ? "Erro ao carregar" 
+                {categoriesLoading
+                  ? "Carregando..."
+                  : categoriesError
+                  ? "Erro ao carregar"
                   : "Categoria"}
                 {selectedCategoryCount > 0 && (
-                  <Badge variant="secondary" className="ml-2 rounded-full px-1.5 py-0.5 text-xs">
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 rounded-full px-1.5 py-0.5 text-xs"
+                  >
                     {selectedCategoryCount}
                   </Badge>
                 )}
@@ -260,27 +262,31 @@ export function QuizFiltersBar({ filters, onFiltersChange }: QuizFiltersBarProps
                 <CommandList>
                   <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
                   <CommandGroup>
-                    {Array.isArray(categories) && categories.map((category) => {
-                      const isSelected = filters.categoryId?.includes(category.id) || false;
-                      return (
-                        <CommandItem
-                          key={category.id}
-                          onSelect={() => toggleFilterValue("categoryId", category.id)}
-                        >
-                          <div
-                            className={cn(
-                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                              isSelected
-                                ? "bg-primary text-primary-foreground"
-                                : "opacity-50 [&_svg]:invisible"
-                            )}
+                    {Array.isArray(categories) &&
+                      categories.map((category) => {
+                        const isSelected =
+                          filters.categoryId?.includes(category.id) || false;
+                        return (
+                          <CommandItem
+                            key={category.id}
+                            onSelect={() =>
+                              toggleFilterValue("categoryId", category.id)
+                            }
                           >
-                            <Check className="h-4 w-4" />
-                          </div>
-                          <span>{category.name}</span>
-                        </CommandItem>
-                      );
-                    })}
+                            <div
+                              className={cn(
+                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                isSelected
+                                  ? "bg-primary text-primary-foreground"
+                                  : "opacity-50 [&_svg]:invisible"
+                              )}
+                            >
+                              <Check className="h-4 w-4" />
+                            </div>
+                            <span>{category.name}</span>
+                          </CommandItem>
+                        );
+                      })}
                   </CommandGroup>
                 </CommandList>
               </Command>

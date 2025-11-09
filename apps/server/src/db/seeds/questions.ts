@@ -6,7 +6,6 @@ export async function questionsSeed() {
   console.log("🌱 Seeding questions...");
 
   try {
-    // First, let's create some categories if they don't exist
     const existingCategories = await db.select().from(categories).limit(5);
 
     let categoryIds: number[] = [];

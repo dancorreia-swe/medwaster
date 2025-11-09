@@ -37,6 +37,15 @@ const STATUS_TABS = [
   { value: "archived", label: "Arquivados" },
 ];
 
+const ARTICLE_STATES = {
+  pending: ArticleGridSkeleton,
+  error: () => (
+    <div className="text-sm text-red-600">Erro ao carregar artigos.</div>
+  ),
+  empty: EmptyState,
+  success: ArticleGrid,
+} as const;
+
 type WikiSearchParams = {
   q?: string;
   status?: string;
@@ -74,7 +83,6 @@ export const Route = createFileRoute("/_auth/wiki")({
     const hasData = queryClient.getQueryData(articlesKey);
 
     if (!hasData) {
-      // Only fetch if we don't have data yet
       await queryClient.prefetchQuery(
         articlesQueryOptions({
           page: 1,
@@ -103,7 +111,7 @@ function RouteComponent() {
   const status = (search.status as string) ?? "all";
 
   // Data is preloaded by loader - these hooks return cached data instantly
-  const { data, isPending, isError } = useArticles({
+  const articlesQuery = useArticles({
     page: 1,
     limit: 12,
     status,
@@ -116,7 +124,10 @@ function RouteComponent() {
   const statsQuery = useWikiStats();
   const categoriesQuery = useCategories();
 
-  const articles = data?.data?.data.articles ?? data?.data ?? [];
+  const articles =
+    articlesQuery.isSuccess && articlesQuery.data?.data?.data?.articles
+      ? articlesQuery.data.data.data.articles
+      : [];
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,17 +221,18 @@ function RouteComponent() {
           ))}
         </TabsList>
         <TabsContent value={status} className="mt-4">
-          {isPending ? (
-            <ArticleGridSkeleton />
-          ) : isError ? (
-            <div className="text-sm text-red-600">
-              Erro ao carregar artigos.
-            </div>
-          ) : articles.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <ArticleGrid articles={articles} />
-          )}
+          {(() => {
+            const state = articlesQuery.isPending
+              ? "pending"
+              : articlesQuery.isError
+                ? "error"
+                : articlesQuery.isSuccess && articles.length === 0
+                  ? "empty"
+                  : "success";
+
+            const Component = ARTICLE_STATES[state];
+            return <Component articles={articles} />;
+          })()}
         </TabsContent>
       </Tabs>
     </div>

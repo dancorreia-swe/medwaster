@@ -15,6 +15,7 @@ import { wiki, adminWiki } from "./modules/wiki";
 import { adminAchievements } from "./modules/achievements";
 import { adminQuestions } from "./modules/questions";
 import { adminQuizzes, studentQuizzes } from "./modules/quizzes";
+import { adminTrails, studentTrails } from "./modules/trails";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -99,6 +100,8 @@ export const app = new Elysia({ name: "medwaster-api" })
   .use(adminQuestions)
   .use(adminQuizzes)
   .use(studentQuizzes)
+  .use(adminTrails)
+  .use(studentTrails)
   .use(audit)
   .use(ai)
   .get("/uploads/questions/:filename", ({ params }) => {

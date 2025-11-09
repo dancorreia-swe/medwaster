@@ -138,8 +138,12 @@ export function useCreateQuiz() {
         });
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["quizzes"] });
+    onSuccess: () => {
+      // Invalidate to fetch the real quiz from server with proper IDs and fields
+      queryClient.invalidateQueries({ 
+        queryKey: ["quizzes", "list"],
+        refetchType: "active"
+      });
     },
   });
 }
@@ -151,13 +155,15 @@ export function useUpdateQuiz(id: number) {
     mutationFn: (body: QuizUpdateBody) => quizzesApi.updateQuiz(id, body),
 
     onMutate: async (updatedQuiz) => {
+      // Cancel all quiz-related queries
       await queryClient.cancelQueries({ queryKey: ["quizzes"] });
 
-      const previousList = queryClient.getQueryData(["quizzes", "list"]);
+      // Snapshot all list queries (with different params) and detail query
+      const previousQueries = queryClient.getQueriesData({ queryKey: ["quizzes", "list"] });
       const previousDetail = queryClient.getQueryData(["quizzes", "detail", id]);
 
-      // Optimistically update the list
-      queryClient.setQueryData(["quizzes", "list"], (old: any) => {
+      // Optimistically update ALL list queries
+      queryClient.setQueriesData({ queryKey: ["quizzes", "list"] }, (old: any) => {
         if (!old?.data) return old;
 
         return {
@@ -175,7 +181,7 @@ export function useUpdateQuiz(id: number) {
         };
       });
 
-      // Optimistically update the detail
+      // Optimistically update the detail query
       queryClient.setQueryData(["quizzes", "detail", id], (old: any) => {
         if (!old) return old;
 
@@ -206,33 +212,82 @@ export function useUpdateQuiz(id: number) {
         };
       });
 
-      return { previousList, previousDetail };
+      return { previousQueries, previousDetail, questionsUpdated: !!updatedQuiz.questions };
     },
 
     onError: (_err, _vars, ctx) => {
-      if (ctx?.previousList)
-        queryClient.setQueryData(["quizzes", "list"], ctx.previousList);
-      if (ctx?.previousDetail)
+      // Rollback all list queries
+      if (ctx?.previousQueries) {
+        ctx.previousQueries.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      // Rollback detail query
+      if (ctx?.previousDetail) {
         queryClient.setQueryData(["quizzes", "detail", id], ctx.previousDetail);
+      }
     },
 
-    onSuccess: (data) => {
-      // Use backend response to finalize cache, without refetch
-      queryClient.setQueryData(["quizzes", "detail", id], data);
-      queryClient.setQueryData(["quizzes", "list"], (old: any) => {
+    onSuccess: (data, variables, context) => {
+      // Guard against null data
+      if (!data) return;
+      
+      // If questions were updated, invalidate to fetch fresh data with new questions
+      if (context?.questionsUpdated) {
+        queryClient.invalidateQueries({ 
+          queryKey: ["quizzes", "detail", id],
+          refetchType: "active"
+        });
+      } else {
+        // Only metadata was updated - merge with existing data to preserve questions
+        queryClient.setQueryData(["quizzes", "detail", id], (old: any) => {
+          if (!old) return data;
+          
+          // Merge update response with existing detail data
+          // Keep questions and other nested data from old cache
+          return {
+            ...old,
+            ...data,
+            // Preserve nested data that update endpoint doesn't return
+            questions: old.questions,
+            author: old.author,
+            category: old.category,
+          };
+        });
+      }
+      
+      // Update ALL list queries - map detail response to list item format
+      queryClient.setQueriesData({ queryKey: ["quizzes", "list"] }, (old: any) => {
         if (!old?.data) return old;
+        
         return {
           ...old,
-          data: old.data.map((quiz: any) =>
-            quiz.id === id ? data : quiz
-          ),
+          data: old.data.map((quiz: any) => {
+            if (quiz.id !== id) return quiz;
+            
+            // Map detail response fields to list item format
+            return {
+              ...quiz,
+              title: data.title,
+              description: data.description,
+              difficulty: data.difficulty,
+              status: data.status,
+              categoryId: data.categoryId,
+              timeLimit: data.timeLimit,
+              maxAttempts: data.maxAttempts,
+              passingScore: data.passingScore,
+              imageUrl: data.imageUrl,
+              updatedAt: data.updatedAt,
+              // Update question count if questions were changed
+              questionCount: context?.questionsUpdated 
+                ? (variables.questions?.length ?? quiz.questionCount)
+                : quiz.questionCount,
+              author: quiz.author,
+              category: quiz.category,
+            };
+          }),
         };
       });
-    },
-
-    onSettled: () => {
-      // Optional — lightweight background refresh, if needed
-      // queryClient.invalidateQueries({ queryKey: ["quizzes", "list"], refetchType: "inactive" });
     },
   });
 }
@@ -273,9 +328,9 @@ export function useDeleteQuiz() {
         });
       }
     },
-    onSettled: () => {
-      // Always refetch after error or success
-      queryClient.invalidateQueries({ queryKey: ["quizzes"] });
+    onSuccess: () => {
+      // No invalidation needed - optimistic update already removed the item
+      // The cache is consistent with the server state after deletion
     },
   });
 }
@@ -334,9 +389,33 @@ export function useArchiveQuiz() {
         queryClient.setQueryData(["quizzes", "detail", quizId], context.previousQuiz);
       }
     },
-    onSettled: () => {
-      // Always refetch after error or success
-      queryClient.invalidateQueries({ queryKey: ["quizzes"] });
+    onSuccess: (data, quizId) => {
+      // Guard against null data
+      if (!data) return;
+      
+      // Update detail query with server response
+      queryClient.setQueryData(["quizzes", "detail", quizId], data);
+      
+      // Update all list queries with archived status - map properly
+      queryClient.setQueriesData({ queryKey: ["quizzes", "list"] }, (old: any) => {
+        if (!old?.data) return old;
+        
+        return {
+          ...old,
+          data: old.data.map((quiz: any) => {
+            if (quiz.id !== quizId) return quiz;
+            
+            // Update only the status field, keep other list item fields intact
+            return {
+              ...quiz,
+              status: data.status,
+              updatedAt: data.updatedAt,
+            };
+          }),
+        };
+      });
+      
+      // No invalidation needed - cache is already updated with fresh data
     },
   });
 }

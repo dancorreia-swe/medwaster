@@ -1,9 +1,9 @@
 export interface QuizListQueryParams {
   page?: number;
   pageSize?: number;
-  status?: "draft" | "active" | "inactive" | "archived";
-  difficulty?: "basic" | "intermediate" | "advanced" | "mixed";
-  categoryId?: number;
+  status?: string | string[];
+  difficulty?: string | string[];
+  categoryId?: number | number[];
   search?: string;
 }
 
@@ -36,7 +36,7 @@ export interface QuizListItem {
 
 export interface QuizFilters {
   search?: string;
-  status?: string;
-  difficulty?: string;
-  categoryId?: number;
+  status?: string[];
+  difficulty?: string[];
+  categoryId?: number[];
 }
