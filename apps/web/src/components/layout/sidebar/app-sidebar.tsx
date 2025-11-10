@@ -119,6 +119,11 @@ const adminItems = [
     icon: Trophy,
   },
   {
+    title: "Usuários",
+    to: "/admin/users",
+    icon: Users,
+  },
+  {
     title: "Certificados",
     to: "/certificates",
     icon: BadgeCheck,
@@ -130,12 +135,6 @@ const superAdminItems = [
     title: "Configurações do Sistema",
     to: "/admin/settings",
     icon: Settings,
-  },
-  {
-    title: "Gerenciar Usuários",
-    to: "/admin/users",
-    icon: Users,
-    requiresSuperAdmin: true,
   },
 ] as const satisfies readonly SidebarSingleItem[];
 

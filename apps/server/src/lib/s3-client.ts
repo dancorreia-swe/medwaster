@@ -20,6 +20,7 @@ export const S3_BUCKETS = {
   QUESTIONS: process.env.S3_BUCKET_QUESTIONS || "questions",
   WIKI: process.env.S3_BUCKET_WIKI || "wiki",
   AVATARS: process.env.S3_BUCKET_AVATARS || "avatars",
+  ACHIEVEMENTS: process.env.S3_BUCKET_ACHIEVEMENTS || "achievements",
 } as const;
 
 export const S3_CONFIG = {

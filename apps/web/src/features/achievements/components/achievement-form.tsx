@@ -324,9 +324,9 @@ export function AchievementForm({
                       onChange={(e) => field.handleChange(e.target.value)}
                       placeholder="Ex: Primeiro Passo"
                     />
-                    {field.state.meta.errors.map((error) => (
-                      <p key={error} className="text-sm text-destructive">
-                        {error}
+                    {field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-sm text-destructive">
+                        {typeof error === 'string' ? error : error?.message || 'Erro de validação'}
                       </p>
                     ))}
                   </div>
@@ -353,9 +353,9 @@ export function AchievementForm({
                       placeholder="Descreva como desbloquear esta conquista..."
                       rows={4}
                     />
-                    {field.state.meta.errors.map((error) => (
-                      <p key={error} className="text-sm text-destructive">
-                        {error}
+                    {field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-sm text-destructive">
+                        {typeof error === 'string' ? error : error?.message || 'Erro de validação'}
                       </p>
                     ))}
                   </div>
@@ -384,9 +384,9 @@ export function AchievementForm({
                           ))}
                         </SelectContent>
                       </Select>
-                      {field.state.meta.errors.map((error) => (
-                        <p key={error} className="text-sm text-destructive">
-                          {error}
+                      {field.state.meta.errors.map((error, index) => (
+                        <p key={index} className="text-sm text-destructive">
+                          {typeof error === 'string' ? error : error?.message || 'Erro de validação'}
                         </p>
                       ))}
                     </div>

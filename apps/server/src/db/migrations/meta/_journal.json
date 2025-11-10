@@ -29,6 +29,13 @@
       "when": 1762644016261,
       "tag": "0003_optimal_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1762717616083,
+      "tag": "0004_lethal_shockwave",
+      "breakpoints": true
     }
   ]
 }

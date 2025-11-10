@@ -120,6 +120,7 @@ export const achievements = pgTable(
       animation?: "pulse" | "glow" | "rotate"
     }
     */
+    badgeImageKey: text("badge_image_key"), // S3 key for the badge image (for cleanup)
 
     // Rewards
     rewards: jsonb("rewards").default({}),

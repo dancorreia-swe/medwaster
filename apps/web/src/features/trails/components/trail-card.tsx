@@ -63,8 +63,11 @@ export function TrailCard({
   const difficulty = difficultyConfig[trail.difficulty];
   const status = statusConfig[trail.status];
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    navigate({ to: "/trails/$trailId", params: { trailId: trail.id.toString() } });
+  const handleCardClick = () => {
+    navigate({
+      to: "/trails/$trailId",
+      params: { trailId: trail.id.toString() },
+    });
   };
 
   const contentCount = trail.content?.length || 0;
@@ -80,7 +83,10 @@ export function TrailCard({
           <CardTitle className="text-base font-medium leading-tight line-clamp-2">
             {trail.name}
           </CardTitle>
-          <Badge variant="outline" className="inline-flex items-center gap-1 text-xs">
+          <Badge
+            variant="outline"
+            className="inline-flex items-center gap-1 text-xs"
+          >
             <Hash className="h-3 w-3 text-muted-foreground" />
             {trail.unlockOrder ?? "?"}
           </Badge>
@@ -163,7 +169,10 @@ export function TrailCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
             <DropdownMenuItem asChild>
-              <Link to="/trails/$trailId" params={{ trailId: trail.id.toString() }}>
+              <Link
+                to="/trails/$trailId"
+                params={{ trailId: trail.id.toString() }}
+              >
                 <Eye className="mr-2 h-4 w-4" />
                 Visualizar
               </Link>

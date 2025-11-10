@@ -4,6 +4,7 @@ import { createAchievementBody, updateAchievementBody } from "./model";
 import { AchievementsService } from "./achievements.service";
 import { NotFoundError } from "@/lib/errors";
 import { success } from "@/lib/responses";
+import { achievementImages } from "./images";
 
 export const adminAchievements = new Elysia({
   prefix: "admin/achievements",
@@ -14,6 +15,7 @@ export const adminAchievements = new Elysia({
   },
 })
   .use(betterAuthMacro)
+  .use(achievementImages)
   .guard(
     {
       auth: true,

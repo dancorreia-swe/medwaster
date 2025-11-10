@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Trophy } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -14,6 +15,7 @@ import {
   EmptyDescription,
 } from "@/components/ui/empty";
 import { AchievementGrid } from "./achievement-grid";
+import { AchievementOrderManager } from "./achievement-order-manager";
 import { achievementsApi } from "../api/achievementsApi";
 import type { Achievement } from "@server/db/schema/achievements";
 
@@ -23,6 +25,16 @@ export function AchievementsPage() {
   const { data, isLoading, isError, error } = useAchievements();
 
   const achievements = data?.data ?? [];
+  const orderedAchievements = useMemo(() => {
+    return [...achievements].sort((a, b) => {
+      const aOrder = a.displayOrder ?? Number.MAX_SAFE_INTEGER;
+      const bOrder = b.displayOrder ?? Number.MAX_SAFE_INTEGER;
+      if (aOrder === bOrder) {
+        return a.name.localeCompare(b.name);
+      }
+      return aOrder - bOrder;
+    });
+  }, [achievements]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, body }: { id: number; body: any }) =>
@@ -61,14 +73,27 @@ export function AchievementsPage() {
     });
   };
 
-  const handleUpdateOrder = async (achievementId: number, newOrder: number | null) => {
+  const handleBulkReorder = async (reordered: Achievement[]) => {
     try {
-      await updateMutation.mutateAsync({
-        id: achievementId,
-        body: { displayOrder: newOrder ?? 0 },
+      toast.loading("Salvando nova ordem...", { id: "achievements-reorder" });
+
+      const updates = reordered.map((achievement, index) =>
+        updateMutation.mutateAsync({
+          id: achievement.id,
+          body: { displayOrder: index + 1 },
+        }),
+      );
+
+      await Promise.all(updates);
+      await queryClient.invalidateQueries({ queryKey: ["achievements"] });
+      toast.success("Ordem das conquistas atualizada!", {
+        id: "achievements-reorder",
       });
     } catch (error) {
       console.error("Error updating achievement order:", error);
+      toast.error("Erro ao atualizar ordem das conquistas", {
+        id: "achievements-reorder",
+      });
     }
   };
 
@@ -83,10 +108,18 @@ export function AchievementsPage() {
             objetivos alcançáveis.
           </p>
         </header>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova conquista
-        </Button>
+        <div className="flex items-center gap-2">
+          {orderedAchievements.length > 1 && (
+            <AchievementOrderManager
+              achievements={orderedAchievements}
+              onSave={handleBulkReorder}
+            />
+          )}
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova conquista
+          </Button>
+        </div>
       </div>
 
       {isError && (
@@ -106,7 +139,7 @@ export function AchievementsPage() {
         </div>
       )}
 
-      {!isLoading && !isError && achievements.length === 0 && (
+      {!isLoading && !isError && orderedAchievements.length === 0 && (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -121,11 +154,10 @@ export function AchievementsPage() {
         </Empty>
       )}
 
-      {!isLoading && !isError && achievements.length > 0 && (
+      {!isLoading && !isError && orderedAchievements.length > 0 && (
         <AchievementGrid
-          achievements={achievements}
+          achievements={orderedAchievements}
           onEdit={handleEdit}
-          onUpdateOrder={handleUpdateOrder}
         />
       )}
     </div>

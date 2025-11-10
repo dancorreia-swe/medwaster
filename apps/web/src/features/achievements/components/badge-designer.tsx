@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload, Search, Trophy, X } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,11 @@ export function BadgeDesigner({
   const [mode, setMode] = useState<BadgeMode>(badgeImageUrl ? "image" : "icon");
   const [iconSearch, setIconSearch] = useState("");
 
+  // Update mode when badgeImageUrl changes (for edit mode)
+  useEffect(() => {
+    setMode(badgeImageUrl ? "image" : "icon");
+  }, [badgeImageUrl]);
+
   // Get the current icon component
   const CurrentIcon = (LucideIcons as any)[
     badgeIcon
@@ -91,9 +96,9 @@ export function BadgeDesigner({
       return;
     }
 
-    // Validate file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("O arquivo deve ter no máximo 10MB");
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("O arquivo deve ter no máximo 5MB");
       e.target.value = ""; // Reset input
       return;
     }
@@ -101,12 +106,12 @@ export function BadgeDesigner({
     setIsUploading(true);
 
     try {
-      // Upload to S3 via the wiki files endpoint
+      // Upload to S3 via the achievements images endpoint
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("image", file);
 
       const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/admin/wiki/files/upload`,
+        `${import.meta.env.VITE_SERVER_URL}/admin/achievements/images/upload`,
         {
           method: "POST",
           body: formData,
@@ -233,7 +238,7 @@ export function BadgeDesigner({
             <div className="flex-1">
               <div className="font-medium">Imagem</div>
               <div className="text-xs text-muted-foreground">
-                Upload de PNG ou SVG
+                Upload de imagem (PNG, JPG, GIF, WebP, SVG)
               </div>
             </div>
           </button>
@@ -368,7 +373,7 @@ export function BadgeDesigner({
                   {isUploading ? "Fazendo upload..." : "Clique para fazer upload"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  PNG ou SVG até 10MB
+                  Imagem até 5MB (PNG, JPG, GIF, WebP, SVG)
                 </p>
               </div>
             </div>
@@ -376,7 +381,7 @@ export function BadgeDesigner({
           <input
             id="badge-upload"
             type="file"
-            accept="image/png,image/svg+xml"
+            accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
             className="hidden"
             onChange={handleImageUpload}
             disabled={isUploading}

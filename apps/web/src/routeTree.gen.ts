@@ -36,6 +36,7 @@ import { Route as AuthAchievementsAchievementIdIndexRouteImport } from './routes
 import { Route as AuthTrailsTrailIdEditRouteImport } from './routes/_auth/trails/$trailId/edit'
 import { Route as AuthQuizzesQuizIdEditRouteImport } from './routes/_auth/quizzes/$quizId/edit'
 import { Route as AuthQuestionsQuestionIdEditRouteImport } from './routes/_auth/questions/$questionId/edit'
+import { Route as AuthAdminUsersUserIdIndexRouteImport } from './routes/_auth/admin/users/$userId/index'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -174,6 +175,12 @@ const AuthQuestionsQuestionIdEditRoute =
     path: '/questions/$questionId/edit',
     getParentRoute: () => AuthRoute,
   } as any)
+const AuthAdminUsersUserIdIndexRoute =
+  AuthAdminUsersUserIdIndexRouteImport.update({
+    id: '/admin/users/$userId/',
+    path: '/admin/users/$userId/',
+    getParentRoute: () => AuthRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/access-denied': typeof AccessDeniedRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/quizzes/$quizId': typeof AuthQuizzesQuizIdIndexRoute
   '/trails/$trailId': typeof AuthTrailsTrailIdIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
+  '/admin/users/$userId': typeof AuthAdminUsersUserIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/access-denied': typeof AccessDeniedRoute
@@ -230,6 +238,7 @@ export interface FileRoutesByTo {
   '/quizzes/$quizId': typeof AuthQuizzesQuizIdIndexRoute
   '/trails/$trailId': typeof AuthTrailsTrailIdIndexRoute
   '/wiki/$articleId': typeof AuthWikiArticleIdIndexRoute
+  '/admin/users/$userId': typeof AuthAdminUsersUserIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -260,6 +269,7 @@ export interface FileRoutesById {
   '/_auth/quizzes/$quizId/': typeof AuthQuizzesQuizIdIndexRoute
   '/_auth/trails/$trailId/': typeof AuthTrailsTrailIdIndexRoute
   '/_auth/wiki/$articleId/': typeof AuthWikiArticleIdIndexRoute
+  '/_auth/admin/users/$userId/': typeof AuthAdminUsersUserIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -290,6 +300,7 @@ export interface FileRouteTypes {
     | '/quizzes/$quizId'
     | '/trails/$trailId'
     | '/wiki/$articleId'
+    | '/admin/users/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/access-denied'
@@ -318,6 +329,7 @@ export interface FileRouteTypes {
     | '/quizzes/$quizId'
     | '/trails/$trailId'
     | '/wiki/$articleId'
+    | '/admin/users/$userId'
   id:
     | '__root__'
     | '/_auth'
@@ -347,6 +359,7 @@ export interface FileRouteTypes {
     | '/_auth/quizzes/$quizId/'
     | '/_auth/trails/$trailId/'
     | '/_auth/wiki/$articleId/'
+    | '/_auth/admin/users/$userId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -548,6 +561,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthQuestionsQuestionIdEditRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/admin/users/$userId/': {
+      id: '/_auth/admin/users/$userId/'
+      path: '/admin/users/$userId'
+      fullPath: '/admin/users/$userId'
+      preLoaderRoute: typeof AuthAdminUsersUserIdIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
@@ -585,6 +605,7 @@ interface AuthRouteChildren {
   AuthQuestionsQuestionIdIndexRoute: typeof AuthQuestionsQuestionIdIndexRoute
   AuthQuizzesQuizIdIndexRoute: typeof AuthQuizzesQuizIdIndexRoute
   AuthTrailsTrailIdIndexRoute: typeof AuthTrailsTrailIdIndexRoute
+  AuthAdminUsersUserIdIndexRoute: typeof AuthAdminUsersUserIdIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
@@ -610,6 +631,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthQuestionsQuestionIdIndexRoute: AuthQuestionsQuestionIdIndexRoute,
   AuthQuizzesQuizIdIndexRoute: AuthQuizzesQuizIdIndexRoute,
   AuthTrailsTrailIdIndexRoute: AuthTrailsTrailIdIndexRoute,
+  AuthAdminUsersUserIdIndexRoute: AuthAdminUsersUserIdIndexRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

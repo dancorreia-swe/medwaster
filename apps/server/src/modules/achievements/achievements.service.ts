@@ -3,6 +3,45 @@ import type { CreateAchievementBody, UpdateAchievementBody } from "./model";
 import { achievements } from "@/db/schema/achievements";
 import { asc, eq } from "drizzle-orm";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { AchievementS3StorageService } from "./s3-storage.service";
+
+// Transform achievement to flatten badge data and trigger config for frontend
+function transformAchievement(achievement: any) {
+  const badge = achievement.badge as any || {};
+  const triggerConfig = achievement.triggerConfig as any || {};
+  const conditions = triggerConfig.conditions || {};
+
+  // Map difficulty from database to frontend
+  const difficultyMap: Record<string, string> = {
+    bronze: "easy",
+    silver: "medium",
+    gold: "hard",
+    platinum: "hard",
+    diamond: "hard",
+  };
+
+  return {
+    ...achievement,
+    // Difficulty mapping
+    difficulty: difficultyMap[achievement.difficulty] || "medium",
+    // Badge fields
+    badgeIcon: badge.type === "icon" ? badge.value : "trophy",
+    badgeColor: badge.color || "#fbbf24",
+    badgeImageUrl: badge.type === "image" ? badge.value : undefined,
+    badgeSvg: badge.type === "svg" ? badge.value : undefined,
+    // Trigger fields
+    triggerType: triggerConfig.type || "manual",
+    targetCount: conditions.count,
+    targetResourceId: conditions.resourceId,
+    targetAccuracy: conditions.accuracyPercentage,
+    targetTimeSeconds: conditions.timeSeconds,
+    targetStreakDays: conditions.streakDays,
+    requirePerfectScore: conditions.perfectScore || false,
+    requireSequential: conditions.sequential || false,
+    // Visibility
+    isSecret: achievement.visibility === "secret",
+  };
+}
 
 export abstract class AchievementsService {
   static async isNameTaken(name: string, excludeId?: number) {
@@ -37,7 +76,7 @@ export abstract class AchievementsService {
       throw new NotFoundError("Achievement");
     }
 
-    return achievement;
+    return transformAchievement(achievement);
   }
 
   static async createAchievement(newAchievement: CreateAchievementBody, createdBy: string) {
@@ -67,6 +106,12 @@ export abstract class AchievementsService {
       value: newAchievement.badgeImageUrl || newAchievement.badgeIcon || "trophy",
       color: newAchievement.badgeColor || "#fbbf24",
     };
+
+    // Extract S3 key from badge image URL if present
+    let badgeImageKey: string | null = null;
+    if (newAchievement.badgeImageUrl) {
+      badgeImageKey = AchievementS3StorageService.extractKeyFromUrl(newAchievement.badgeImageUrl);
+    }
 
     // Transform trigger fields into nested config
     const triggerConfig: any = {
@@ -110,13 +155,14 @@ export abstract class AchievementsService {
         status: newAchievement.status || "draft",
         visibility: visibility as any,
         badge,
+        badgeImageKey,
         triggerConfig,
         displayOrder: newAchievement.displayOrder || 0,
         createdBy,
       })
       .returning();
 
-    return achievement;
+    return transformAchievement(achievement);
   }
 
   static async updateAchievement(
@@ -179,6 +225,20 @@ export abstract class AchievementsService {
         value: data.badgeImageUrl || data.badgeIcon || currentBadge.value || "trophy",
         color: data.badgeColor || currentBadge.color || "#fbbf24",
       };
+
+      // Handle S3 image changes
+      if (data.badgeImageUrl !== undefined) {
+        const newImageKey = data.badgeImageUrl
+          ? AchievementS3StorageService.extractKeyFromUrl(data.badgeImageUrl)
+          : null;
+
+        // If the image changed, delete the old one
+        if (existing.badgeImageKey && newImageKey !== existing.badgeImageKey) {
+          await AchievementS3StorageService.deleteImage(existing.badgeImageKey);
+        }
+
+        updateData.badgeImageKey = newImageKey;
+      }
     }
 
     // Update trigger config if any trigger fields are provided
@@ -234,7 +294,7 @@ export abstract class AchievementsService {
       .where(eq(achievements.id, achievementId))
       .returning();
 
-    return achievement;
+    return transformAchievement(achievement);
   }
 
   static async getAllAchievements({ page = 1, pageSize = 50 } = {}) {
@@ -253,7 +313,7 @@ export abstract class AchievementsService {
       offset: (page - 1) * pageSize,
     });
 
-    return allAchievements;
+    return allAchievements.map(transformAchievement);
   }
 
   static async deleteAchievement(achievementId: number) {
@@ -265,6 +325,11 @@ export abstract class AchievementsService {
 
     if (!existing) {
       throw new NotFoundError("Achievement");
+    }
+
+    // Delete S3 image if it exists
+    if (existing.badgeImageKey) {
+      await AchievementS3StorageService.deleteImage(existing.badgeImageKey);
     }
 
     await db.delete(achievements).where(eq(achievements.id, achievementId));

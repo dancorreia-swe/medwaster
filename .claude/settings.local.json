@@ -7,7 +7,9 @@
       "Bash(bun db:generate:*)",
       "Bash(curl:*)",
       "Bash(bun dev)",
-      "Bash(bun check-types:*)"
+      "Bash(bun check-types:*)",
+      "Bash(bun db:migrate:*)",
+      "mcp__Framelink_Figma_MCP__get_figma_data"
     ],
     "deny": []
   }
