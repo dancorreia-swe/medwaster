@@ -21,6 +21,9 @@ import { toast } from "sonner";
 import { ArrowLeft, Save } from "lucide-react";
 import { achievementsApi } from "../api/achievementsApi";
 import { achievementQueryOptions } from "../api/achievementQueries";
+import { BadgeDesigner } from "./badge-designer";
+import { trailsListQueryOptions } from "@/features/trails/api/trailsQueries";
+import { categoriesQueryOptions } from "@/features/wiki/api/wikiQueries";
 
 interface AchievementFormProps {
   achievementId?: number;
@@ -45,7 +48,6 @@ const achievementFormSchema = z.object({
   badgeIcon: z.string().min(1, "Ícone é obrigatório"),
   badgeColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida"),
   badgeImageUrl: z.string().optional(),
-  badgeSvg: z.string().optional(),
   customMessage: z.string().optional(),
   displayOrder: z.number(),
   isSecret: z.boolean(),
@@ -113,6 +115,14 @@ export function AchievementForm({
     enabled: isEditing,
   });
 
+  // Fetch trails for trail-related triggers
+  const { data: trailsData } = useQuery({
+    ...trailsListQueryOptions({ status: ["published"], pageSize: 100 }),
+  });
+
+  // Fetch categories for category-related triggers
+  const { data: categoriesData } = useQuery(categoriesQueryOptions());
+
   const createMutation = useMutation({
     mutationFn: achievementsApi.createAchievement,
     onSuccess: () => {
@@ -159,7 +169,6 @@ export function AchievementForm({
       badgeIcon: "trophy",
       badgeColor: "#fbbf24",
       badgeImageUrl: undefined as string | undefined,
-      badgeSvg: undefined as string | undefined,
       customMessage: undefined as string | undefined,
       displayOrder: 0,
       isSecret: false,
@@ -182,7 +191,6 @@ export function AchievementForm({
         badgeIcon: value.badgeIcon,
         badgeColor: value.badgeColor,
         badgeImageUrl: value.badgeImageUrl,
-        badgeSvg: value.badgeSvg,
         customMessage: value.customMessage,
         displayOrder: value.displayOrder,
         isSecret: value.isSecret,
@@ -216,7 +224,6 @@ export function AchievementForm({
       form.setFieldValue("badgeIcon", achievement.badgeIcon || "trophy");
       form.setFieldValue("badgeColor", achievement.badgeColor || "#fbbf24");
       form.setFieldValue("badgeImageUrl", achievement.badgeImageUrl);
-      form.setFieldValue("badgeSvg", achievement.badgeSvg);
       form.setFieldValue("customMessage", achievement.customMessage);
       form.setFieldValue("displayOrder", achievement.displayOrder || 0);
       form.setFieldValue("isSecret", achievement.isSecret || false);
@@ -317,9 +324,9 @@ export function AchievementForm({
                       onChange={(e) => field.handleChange(e.target.value)}
                       placeholder="Ex: Primeiro Passo"
                     />
-                    {field.state.meta.errors.map((error) => (
-                      <p key={error} className="text-sm text-destructive">
-                        {error}
+                    {field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-sm text-destructive">
+                        {typeof error === 'string' ? error : error?.message || 'Erro de validação'}
                       </p>
                     ))}
                   </div>
@@ -346,9 +353,9 @@ export function AchievementForm({
                       placeholder="Descreva como desbloquear esta conquista..."
                       rows={4}
                     />
-                    {field.state.meta.errors.map((error) => (
-                      <p key={error} className="text-sm text-destructive">
-                        {error}
+                    {field.state.meta.errors.map((error, index) => (
+                      <p key={index} className="text-sm text-destructive">
+                        {typeof error === 'string' ? error : error?.message || 'Erro de validação'}
                       </p>
                     ))}
                   </div>
@@ -377,9 +384,9 @@ export function AchievementForm({
                           ))}
                         </SelectContent>
                       </Select>
-                      {field.state.meta.errors.map((error) => (
-                        <p key={error} className="text-sm text-destructive">
-                          {error}
+                      {field.state.meta.errors.map((error, index) => (
+                        <p key={index} className="text-sm text-destructive">
+                          {typeof error === 'string' ? error : error?.message || 'Erro de validação'}
                         </p>
                       ))}
                     </div>
@@ -476,19 +483,76 @@ export function AchievementForm({
                       </form.Field>
                     )}
 
-                    {(triggerType === "complete_specific_trail" ||
-                      triggerType === "read_specific_article" ||
-                      triggerType === "read_category_complete") && (
+                    {triggerType === "complete_specific_trail" && (
                       <form.Field name="targetResourceId">
                         {(field) => (
                           <div className="space-y-2">
-                            <Label htmlFor={field.name}>ID do Recurso Alvo</Label>
+                            <Label htmlFor={field.name}>Trilha Específica</Label>
+                            <Select
+                              value={field.state.value ?? ""}
+                              onValueChange={(v) => field.handleChange(v)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione uma trilha" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {trailsData?.data?.map((trail: any) => (
+                                  <SelectItem key={trail.id} value={trail.id.toString()}>
+                                    {trail.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                              Selecione a trilha que deve ser completada
+                            </p>
+                          </div>
+                        )}
+                      </form.Field>
+                    )}
+
+                    {triggerType === "read_category_complete" && (
+                      <form.Field name="targetResourceId">
+                        {(field) => (
+                          <div className="space-y-2">
+                            <Label htmlFor={field.name}>Categoria</Label>
+                            <Select
+                              value={field.state.value ?? ""}
+                              onValueChange={(v) => field.handleChange(v)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione uma categoria" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categoriesData?.data?.map((category: any) => (
+                                  <SelectItem key={category.id} value={category.id.toString()}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                              Selecione a categoria que deve ser completada
+                            </p>
+                          </div>
+                        )}
+                      </form.Field>
+                    )}
+
+                    {triggerType === "read_specific_article" && (
+                      <form.Field name="targetResourceId">
+                        {(field) => (
+                          <div className="space-y-2">
+                            <Label htmlFor={field.name}>ID do Artigo Específico</Label>
                             <Input
                               id={field.name}
                               value={field.state.value ?? ""}
                               onChange={(e) => field.handleChange(e.target.value)}
-                              placeholder="ID do recurso específico"
+                              placeholder="ID do artigo"
                             />
+                            <p className="text-xs text-muted-foreground">
+                              Digite o ID do artigo específico
+                            </p>
                           </div>
                         )}
                       </form.Field>
@@ -614,74 +678,28 @@ export function AchievementForm({
             </div>
             <Separator />
 
-            <div className="space-y-4">
-              <form.Field name="badgeIcon">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>
-                      Ícone <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id={field.name}
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      placeholder="trophy"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Nome do ícone do Lucide React
-                    </p>
-                  </div>
-                )}
-              </form.Field>
+            <form.Subscribe
+              selector={(state) => ({
+                badgeIcon: state.values.badgeIcon,
+                badgeColor: state.values.badgeColor,
+                badgeImageUrl: state.values.badgeImageUrl,
+              })}
+            >
+              {({ badgeIcon, badgeColor, badgeImageUrl }) => (
+                <BadgeDesigner
+                  badgeIcon={badgeIcon}
+                  badgeColor={badgeColor}
+                  badgeImageUrl={badgeImageUrl}
+                  onBadgeIconChange={(icon) => form.setFieldValue("badgeIcon", icon)}
+                  onBadgeColorChange={(color) => form.setFieldValue("badgeColor", color)}
+                  onBadgeImageUrlChange={(url) =>
+                    form.setFieldValue("badgeImageUrl", url)
+                  }
+                />
+              )}
+            </form.Subscribe>
 
-              <form.Field name="badgeColor">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>Cor</Label>
-                    <Input
-                      id={field.name}
-                      type="color"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                    />
-                  </div>
-                )}
-              </form.Field>
-
-              <form.Field name="badgeImageUrl">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>URL da Imagem (Avançado)</Label>
-                    <Input
-                      id={field.name}
-                      type="url"
-                      value={field.state.value ?? ""}
-                      onChange={(e) => field.handleChange(e.target.value || undefined)}
-                      placeholder="https://..."
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Opcional: substitui o ícone padrão por uma imagem
-                    </p>
-                  </div>
-                )}
-              </form.Field>
-
-              <form.Field name="badgeSvg">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>SVG do Badge (Avançado)</Label>
-                    <Textarea
-                      id={field.name}
-                      value={field.state.value ?? ""}
-                      onChange={(e) => field.handleChange(e.target.value || undefined)}
-                      placeholder="<svg>...</svg>"
-                      rows={6}
-                      className="font-mono text-sm"
-                    />
-                  </div>
-                )}
-              </form.Field>
-
+            <div className="pt-4">
               <form.Field name="customMessage">
                 {(field) => (
                   <div className="space-y-2">
@@ -690,9 +708,12 @@ export function AchievementForm({
                       id={field.name}
                       value={field.state.value ?? ""}
                       onChange={(e) => field.handleChange(e.target.value || undefined)}
-                      placeholder="Mensagem exibida ao desbloquear..."
+                      placeholder="Mensagem exibida ao desbloquear a conquista..."
                       rows={3}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Opcional: mensagem especial mostrada quando o usuário ganha a conquista
+                    </p>
                   </div>
                 )}
               </form.Field>

@@ -1,20 +1,4 @@
-import { useMemo, useState } from "react";
-
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Empty,
   EmptyDescription,
@@ -22,23 +6,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { cn, formatDate } from "@/lib/utils";
-import {
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import type { ColumnDef, SortingState } from "@tanstack/react-table";
-import {
-  ChevronDown,
-  ChevronsUpDown,
-  ChevronUp,
-  MoreHorizontal,
-  Pencil,
-  Tag,
-  Trash2,
-} from "lucide-react";
+import { Tag } from "lucide-react";
+import { TagRow } from "./table/tag-row";
 
 export interface TagTableItem {
   id: number | string;
@@ -47,6 +16,22 @@ export interface TagTableItem {
   description?: string | null;
   color?: string | null;
   createdAt?: Date | string | null;
+  questions?: Array<{
+    id: number;
+    prompt: string;
+    explanation?: string | null;
+    type: string;
+    difficulty: string;
+    status: string;
+    updatedAt: Date | string;
+  }>;
+  wikiArticles?: Array<{
+    id: number;
+    title: string;
+    excerpt?: string | null;
+    status: string;
+    updatedAt: Date | string;
+  }>;
 }
 
 interface TagsTableProps {
@@ -55,178 +40,34 @@ interface TagsTableProps {
   onDelete?: (tag: TagTableItem) => void;
 }
 
-const DEFAULT_COLOR = "#94a3b8";
-
 export function TagsTable({ data, onEdit, onDelete }: TagsTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([
-    {
-      id: "name",
-      desc: false,
-    },
-  ]);
-
-  const columns = useMemo<ColumnDef<TagTableItem>[]>(
-    () => [
-      {
-        id: "color",
-        header: "",
-        size: 48,
-        cell: ({ row }) => {
-          const color = row.original.color || DEFAULT_COLOR;
-
-          return (
-            <div className="flex items-center justify-center w-full">
-              <span
-                aria-hidden
-                className="inline-flex h-4 w-4 rounded-full border border-border"
-                style={{ backgroundColor: color }}
-              />
-            </div>
-          );
-        },
-        enableSorting: false,
-      },
-      {
-        accessorKey: "name",
-        header: "Nome",
-        enableSorting: true,
-        cell: ({ row }) => (
-          <div className="flex flex-col">
-            <span className="font-medium text-foreground">
-              {row.original.name}
-            </span>
-            {row.original.description ? (
-              <span className="text-xs text-muted-foreground">
-                {row.original.description}
-              </span>
-            ) : null}
-          </div>
-        ),
-      },
-      {
-        accessorKey: "slug",
-        header: () => (
-          <span className="text-sm font-medium flex items-center gap-2">
-            <Tag className="size-3.5" /> Identificador
-          </span>
-        ),
-        enableSorting: true,
-        cell: ({ row }) => (
-          <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded font-mono">
-            {row.original.slug}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "createdAt",
-        header: "Criada em",
-        enableSorting: false,
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
-            {formatDate(row.original.createdAt)}
-          </span>
-        ),
-      },
-      {
-        id: "actions",
-        header: "Ações",
-        enableSorting: false,
-        cell: ({ row }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">Abrir ações</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem
-                onClick={() => onEdit?.(row.original)}
-                className={cn(!onEdit && "pointer-events-none opacity-50")}
-              >
-                <Pencil className="mr-2 h-4 w-4" />
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onDelete?.(row.original)}
-                className={cn(!onDelete && "pointer-events-none opacity-50")}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Excluir
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ),
-      },
-    ],
-    [onDelete, onEdit],
-  );
-
-  const table = useReactTable({
-    data,
-    columns,
-    state: {
-      sorting,
-    },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  });
-
   return (
     <div className="rounded-md border border-border bg-card">
       <Table>
         <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                const canSort = header.column.getCanSort();
-
-                return (
-                  <TableHead key={header.id} colSpan={header.colSpan}>
-                    {header.isPlaceholder ? null : canSort ? (
-                      <button
-                        type="button"
-                        onClick={header.column.getToggleSortingHandler()}
-                        className={cn(
-                          "flex items-center gap-1 text-sm font-medium",
-                          header.column.getIsSorted()
-                            ? "text-foreground"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                        <SortIcon direction={header.column.getIsSorted()} />
-                      </button>
-                    ) : (
-                      flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )
-                    )}
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          ))}
+          <TableRow>
+            <TableHead className="w-12"></TableHead>
+            <TableHead className="w-12"></TableHead>
+            <TableHead>Nome</TableHead>
+            <TableHead>Identificador</TableHead>
+            <TableHead>Conteúdo</TableHead>
+            <TableHead>Criada em</TableHead>
+            <TableHead className="w-20">Ações</TableHead>
+          </TableRow>
         </TableHeader>
         <TableBody>
-          {table.getRowModel().rows.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
+          {data.length ? (
+            data.map((tag) => (
+              <TagRow
+                key={tag.id}
+                tag={tag}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="p-6">
+              <TableCell colSpan={7} className="p-6">
                 <Empty className="py-10">
                   <EmptyHeader>
                     <EmptyMedia variant="icon">
@@ -245,17 +86,4 @@ export function TagsTable({ data, onEdit, onDelete }: TagsTableProps) {
       </Table>
     </div>
   );
-}
-
-function SortIcon({ direction }: { direction: false | "asc" | "desc" }) {
-  const icons = {
-    asc: <ChevronUp className="size-4" />,
-    desc: <ChevronDown className="size-4" />,
-  } as const;
-
-  if (!direction) {
-    return <ChevronsUpDown className="size-4 text-muted-foreground" />;
-  }
-
-  return icons[direction];
 }

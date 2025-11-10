@@ -129,24 +129,26 @@ function QuestionCard({ question, index, onRemove, onUpdate, onMove }: QuestionC
           </div>
           
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              {getQuestionTypeIcon(question.question.type)}
-              <Badge variant="secondary" className={getDifficultyColor(question.question.difficulty)}>
-                {getDifficultyLabel(question.question.difficulty)}
-              </Badge>
-            </div>
+            {question.question && (
+              <>
+                <div className="flex items-center gap-2 mb-2">
+                  {getQuestionTypeIcon(question.question.type)}
+                  <Badge variant="secondary" className={getDifficultyColor(question.question.difficulty)}>
+                    {getDifficultyLabel(question.question.difficulty)}
+                  </Badge>
+                </div>
 
-            <p className="text-sm font-medium line-clamp-2 mb-2">
-              {stripHtml(question.question.prompt)}
-            </p>
+                <p className="text-sm font-medium line-clamp-2 mb-2">
+                  {stripHtml(question.question.prompt)}
+                </p>
 
-            {question.question.category && (
-              <Badge variant="outline" className="text-xs mb-2">
-                {question.question.category.name}
-              </Badge>
-            )}
-            
-            {question.question.tags && question.question.tags.length > 0 && (
+                {question.question.category && (
+                  <Badge variant="outline" className="text-xs mb-2">
+                    {question.question.category.name}
+                  </Badge>
+                )}
+
+                {question.question.tags && question.question.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-2">
                 {question.question.tags.slice(0, 2).map((tag) => (
                   <Badge 
@@ -164,6 +166,13 @@ function QuestionCard({ question, index, onRemove, onUpdate, onMove }: QuestionC
                   </Badge>
                 )}
               </div>
+            )}
+              </>
+            )}
+            {!question.question && (
+              <p className="text-sm text-muted-foreground">
+                Questão ID: {question.questionId}
+              </p>
             )}
           </div>
           

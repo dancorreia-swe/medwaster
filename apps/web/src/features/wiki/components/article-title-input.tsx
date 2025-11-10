@@ -10,12 +10,20 @@ export function ArticleTitleInput({
   placeholder = "Título do artigo",
 }: ArticleTitleInputProps) {
   return (
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-transparent text-4xl font-bold outline-none placeholder:opacity-40"
-      placeholder={placeholder}
-    />
+    <div className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-transparent text-4xl font-bold outline-none placeholder:text-muted-foreground/40 focus:placeholder:text-muted-foreground/60 transition-colors"
+        placeholder={placeholder}
+        autoFocus
+      />
+      {value.length > 0 && (
+        <div className="mt-1 text-xs text-muted-foreground">
+          {value.length} caracteres
+        </div>
+      )}
+    </div>
   );
 }

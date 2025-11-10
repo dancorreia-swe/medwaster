@@ -1,4 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useRouter,
+  useCanGoBack,
+} from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/components/auth/role-guard";
 import {
@@ -6,6 +11,9 @@ import {
   categoriesQueryOptions,
   useArticle,
   useCategories,
+  useArchiveArticle,
+  useDeleteArticle,
+  useUnpublishArticle,
 } from "@/features/wiki/api/wikiQueries";
 import {
   ArticleEditorToolbar,
@@ -14,6 +22,7 @@ import {
   ArticleContentEditor,
 } from "@/features/wiki/components";
 import { useArticleEditor } from "@/features/wiki/hooks/use-article-editor";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/wiki/$articleId/")({
   loader: async ({ context: { queryClient }, params: { articleId } }) => {
@@ -78,7 +87,9 @@ function RouteComponent() {
     <ArticleEditor
       articleId={numericArticleId}
       article={article}
-      onPublish={() => navigate({ to: "/wiki" })}
+      onPublish={() => {
+        toast.success("Artigo publicado com sucesso.");
+      }}
     />
   );
 }
@@ -93,61 +104,104 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
   const { user } = usePermissions();
   const { data: categoriesData, isPending: categoriesLoading } =
     useCategories();
+  const archiveMutation = useArchiveArticle();
+  const unpublishMutation = useUnpublishArticle();
+  const deleteMutation = useDeleteArticle();
+  const navigate = useNavigate();
+  const router = useRouter();
+  const canGoBack = useCanGoBack();
+  const categoriesList = Array.isArray(categoriesData)
+    ? categoriesData
+    : categoriesData?.data ?? [];
 
   const {
     title,
     setTitle,
     status,
+    setStatus,
     categoryId,
     setCategoryId,
     lastSavedAt,
     autoSaving,
     isUpdating,
+    hasPendingChanges,
     selectedTags,
-    availableTags,
-    newTag,
-    setNewTag,
+    setSelectedTags,
     setEditor,
     handleSave,
-    handleRemoveTag,
-    handleSelectTag,
-    handleCreateTag,
     handleEditorChange,
-    canSave,
+    handleUploadFile,
+    canPublish,
   } = useArticleEditor({
     articleId,
     article: article.data,
     onPublish,
   });
+  const handleArchiveArticle = async () => {
+    try {
+      await archiveMutation.mutateAsync(articleId);
+      toast.success("Artigo arquivado com sucesso.");
+      navigate({ to: "/wiki" });
+    } catch (error) {
+      console.error("Archive error:", error);
+      toast.error("Não foi possível arquivar o artigo.");
+    }
+  };
+
+  const handleUnpublishArticle = async () => {
+    try {
+      await unpublishMutation.mutateAsync(articleId);
+      setStatus("draft");
+      toast.success("Artigo movido para rascunho.");
+    } catch (error) {
+      console.error("Unpublish error:", error);
+      toast.error("Não foi possível despublicar o artigo.");
+    }
+  };
+
+  const handleDeleteArticle = async () => {
+    try {
+      await deleteMutation.mutateAsync(articleId);
+      toast.success("Artigo excluído com sucesso.");
+      navigate({ to: "/wiki" });
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Não foi possível excluir o artigo.");
+      throw error;
+    }
+  };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex h-full flex-col">
       <ArticleEditorToolbar
         status={status}
         isSaving={isUpdating}
         autoSaving={autoSaving}
         lastSavedAt={lastSavedAt}
-        canSave={canSave}
-        onSave={() => handleSave(false)}
+        hasPendingChanges={hasPendingChanges}
+        canPublish={canPublish}
+        articleTitle={title}
         onPublish={() => handleSave(true)}
+        onUnpublish={handleUnpublishArticle}
+        onArchive={handleArchiveArticle}
+        onDelete={handleDeleteArticle}
+        isArchiving={archiveMutation.isPending}
+        isUnpublishing={unpublishMutation.isPending}
+        isDeleting={deleteMutation.isPending}
+        onBack={canGoBack ? () => router.history.back() : undefined}
       />
 
-      <div className="flex flex-col items-center px-8">
-        <div className="w-full max-w-3xl gap-2 border-b py-4">
+      <div className="flex flex-1 flex-col items-center overflow-y-auto px-8 pb-24">
+        <div className="w-full max-w-3xl border-b py-6">
           <ArticleTitleInput value={title} onChange={setTitle} />
 
           <ArticleMetadata
             categoryId={categoryId}
             onCategoryChange={setCategoryId}
-            categories={categoriesData?.data ?? []}
+            categories={categoriesList}
             categoriesLoading={categoriesLoading}
             selectedTags={selectedTags}
-            availableTags={availableTags}
-            newTag={newTag}
-            onTagSelect={handleSelectTag}
-            onTagRemove={handleRemoveTag}
-            onNewTagChange={setNewTag}
-            onCreateTag={handleCreateTag}
+            onTagsChange={setSelectedTags}
             authorName={user?.name || "Anônimo"}
           />
         </div>
@@ -157,6 +211,7 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
           initialContent={article?.data?.content}
           onEditorReady={setEditor}
           onChange={handleEditorChange}
+          onUploadFile={handleUploadFile}
         />
       </div>
     </div>

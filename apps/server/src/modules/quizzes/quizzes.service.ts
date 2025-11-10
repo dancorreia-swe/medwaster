@@ -14,7 +14,7 @@ import {
   type QuizDifficulty,
 } from "@/db/schema/quizzes";
 import { questions, questionOptions } from "@/db/schema/questions";
-import { asc, desc, eq, and, sql, ilike, or, count } from "drizzle-orm";
+import { asc, desc, eq, ne, and, sql, ilike, or, count, inArray } from "drizzle-orm";
 import { NotFoundError } from "@/lib/errors";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -146,17 +146,45 @@ export abstract class QuizzesService {
   }: {
     page?: number;
     pageSize?: number;
-    status?: QuizStatus;
-    difficulty?: QuizDifficulty;
-    categoryId?: number;
+    status?: QuizStatus | QuizStatus[];
+    difficulty?: QuizDifficulty | QuizDifficulty[];
+    categoryId?: number | number[];
     search?: string;
   } = {}) {
     const safePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
     const conditions = [];
 
-    if (status) conditions.push(eq(quizzes.status, status));
-    if (difficulty) conditions.push(eq(quizzes.difficulty, difficulty));
-    if (categoryId) conditions.push(eq(quizzes.categoryId, categoryId));
+    // Handle array or single value filters
+    if (status) {
+      if (Array.isArray(status) && status.length > 0) {
+        conditions.push(inArray(quizzes.status, status));
+      } else if (!Array.isArray(status)) {
+        conditions.push(eq(quizzes.status, status));
+      }
+    }
+
+    if (difficulty) {
+      if (Array.isArray(difficulty) && difficulty.length > 0) {
+        conditions.push(inArray(quizzes.difficulty, difficulty));
+      } else if (!Array.isArray(difficulty)) {
+        conditions.push(eq(quizzes.difficulty, difficulty));
+      }
+    }
+
+    if (categoryId) {
+      if (Array.isArray(categoryId) && categoryId.length > 0) {
+        conditions.push(inArray(quizzes.categoryId, categoryId));
+      } else if (!Array.isArray(categoryId)) {
+        conditions.push(eq(quizzes.categoryId, categoryId));
+      }
+    }
+    
+    // Exclude archived items by default unless:
+    // - A specific status filter is applied (including archived)
+    // - A search query is provided (search should include all items)
+    if (!status && !search) {
+      conditions.push(ne(quizzes.status, "archived"));
+    }
     
     if (search && search.trim()) {
       const searchTerm = `%${search.trim()}%`;
@@ -321,13 +349,26 @@ export abstract class QuizzesService {
     };
   }
 
+  /**
+   * Shuffles an array using Fisher-Yates algorithm
+   */
+  private static shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
   static async startQuizAttempt(
-    quizId: number, 
-    userId: string, 
+    quizId: number,
+    userId: string,
     data: StartQuizAttemptBody
   ) {
-    const quiz = await this.getQuizById(quizId, false);
-    
+    // Fetch quiz with questions and options
+    const quiz = await this.getQuizById(quizId, true);
+
     if (quiz.status !== "active") {
       throw new Error("Quiz is not available");
     }
@@ -348,6 +389,7 @@ export abstract class QuizzesService {
       throw new Error("Maximum attempts exceeded");
     }
 
+    // Create the attempt
     const [attempt] = await db
       .insert(quizAttempts)
       .values({
@@ -358,7 +400,38 @@ export abstract class QuizzesService {
       })
       .returning();
 
-    return attempt;
+    // Apply randomization if enabled
+    let quizQuestions = quiz.questions || [];
+
+    // Randomize question order
+    if (quiz.randomizeQuestions) {
+      quizQuestions = this.shuffleArray(quizQuestions);
+    }
+
+    // Randomize options within each question
+    if (quiz.randomizeOptions) {
+      quizQuestions = quizQuestions.map((qq: any) => {
+        if (qq.question?.options && Array.isArray(qq.question.options)) {
+          return {
+            ...qq,
+            question: {
+              ...qq.question,
+              options: this.shuffleArray(qq.question.options),
+            },
+          };
+        }
+        return qq;
+      });
+    }
+
+    // Return attempt with randomized quiz data
+    return {
+      attempt,
+      quiz: {
+        ...quiz,
+        questions: quizQuestions,
+      },
+    };
   }
 
   static async submitQuizAttempt(
@@ -400,6 +473,27 @@ export abstract class QuizzesService {
 
     if (attempt.status !== "in_progress") {
       throw new Error("Attempt is not in progress");
+    }
+
+    // Check time limit if set
+    if (attempt.quiz.timeLimit) {
+      const startedAt = new Date(attempt.startedAt);
+      const now = new Date();
+      const elapsedMinutes = (now.getTime() - startedAt.getTime()) / (1000 * 60);
+
+      if (elapsedMinutes > attempt.quiz.timeLimit) {
+        // Mark as timed out and reject submission
+        await db
+          .update(quizAttempts)
+          .set({
+            status: "timed_out",
+            completedAt: now,
+            timeSpent: Math.floor(elapsedMinutes * 60), // Convert to seconds
+          })
+          .where(eq(quizAttempts.id, attemptId));
+
+        throw new Error("Time limit exceeded for this quiz");
+      }
     }
 
     return await db.transaction(async (tx) => {

@@ -35,7 +35,7 @@ function RouteComponent() {
 
   if (!isNew && Number.isNaN(numericAchievementId)) {
     return (
-      <div className="flex h-full min-h-[320px] items-center justify-center">
+      <div className="flex h-full min-h-80 items-center justify-center">
         <div className="text-sm text-destructive">ID da conquista inválido.</div>
       </div>
     );

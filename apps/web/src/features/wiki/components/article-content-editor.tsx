@@ -27,7 +27,7 @@ export function ArticleContentEditor({
   const editor = useMemo(() => {
     // Track that we're creating editor for this article
     previousArticleId.current = articleId ?? null;
-    
+
     return BlockNoteEditor.create({
       dictionary: {
         ...pt,
@@ -35,7 +35,7 @@ export function ArticleContentEditor({
       uploadFile: onUploadFile,
       initialContent: initialContent || undefined,
     });
-  }, [articleId]); // Only recreate when articleId changes
+  }, [articleId, onUploadFile]); // Recreate when articleId or upload function changes
 
   useEffect(() => {
     if (editor && onEditorReady) {

@@ -93,7 +93,7 @@ export function NavUser({ user }: { user: AuthenticatedUser }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate({ to: "/admin/profile" })}>
                 <User />
                 Minha conta
               </DropdownMenuItem>
@@ -101,7 +101,7 @@ export function NavUser({ user }: { user: AuthenticatedUser }) {
                 <Bell />
                 Notificações
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate({ to: "/admin/settings" })}>
                 <Settings />
                 Configurações
               </DropdownMenuItem>

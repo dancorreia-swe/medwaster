@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, GripVertical, Trophy } from "lucide-react";
+import { Eye, EyeOff, Trophy, Hash } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Achievement } from "@server/db/schema/achievements";
@@ -30,16 +30,19 @@ const difficultyLabels = {
 
 export function AchievementCard({ achievement, onEdit }: AchievementCardProps) {
   const isActive = achievement.status === "active";
-  
   const badgeIcon = achievement.badgeIcon || "trophy";
   const badgeColor = achievement.badgeColor || "#fbbf24";
-  
+
   const Icon = (LucideIcons as any)[
-    badgeIcon.split("-").map((s, i) => 
-      i === 0 ? s.charAt(0).toUpperCase() + s.slice(1) : 
+    badgeIcon.split("-").map((s, i) =>
+      i === 0 ? s.charAt(0).toUpperCase() + s.slice(1) :
       s.charAt(0).toUpperCase() + s.slice(1)
     ).join("")
   ] || Trophy;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    onEdit?.(achievement);
+  };
 
   return (
     <Card
@@ -47,7 +50,7 @@ export function AchievementCard({ achievement, onEdit }: AchievementCardProps) {
         "group relative overflow-hidden transition-all hover:shadow-md cursor-pointer flex flex-col",
         !isActive && "opacity-60",
       )}
-      onClick={() => onEdit?.(achievement)}
+      onClick={handleCardClick}
     >
       <div className="absolute top-3 right-3 flex items-center gap-2">
         {achievement.isSecret && (
@@ -104,10 +107,10 @@ export function AchievementCard({ achievement, onEdit }: AchievementCardProps) {
             <Badge variant="outline" className="text-xs">
               {difficultyLabels[achievement.difficulty]}
             </Badge>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <GripVertical className="h-4 w-4" />
-              <span>{achievement.displayOrder}</span>
-            </div>
+            <Badge variant="outline" className="inline-flex items-center gap-1 text-xs">
+              <Hash className="h-3 w-3 text-muted-foreground" />
+              #{achievement.displayOrder ?? "?"}
+            </Badge>
             {achievement.isSecret ? (
               <EyeOff className="h-4 w-4 text-muted-foreground" />
             ) : (

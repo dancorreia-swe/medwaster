@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 import type { QuizListQueryParams, QuizListItem } from "../types";
 
 export function QuizzesPage() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<
     QuizListQueryParams & QuizFilters
   >({
@@ -54,10 +55,16 @@ export function QuizzesPage() {
       
       // Add new filters that have defined values
       Object.entries(newFilters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        // Check for non-empty values (including arrays)
+        const hasValue = value !== undefined && 
+                        value !== null && 
+                        value !== '' &&
+                        (!Array.isArray(value) || value.length > 0);
+        
+        if (hasValue) {
           (updated as any)[key] = value;
         }
-        // If value is undefined/null/empty, we intentionally don't add it (which removes it)
+        // If value is undefined/null/empty array, we intentionally don't add it (which removes it)
       });
       
       return updated;
@@ -65,8 +72,7 @@ export function QuizzesPage() {
   };
 
   const handleEdit = (quiz: QuizListItem) => {
-    // TODO: Navigate to edit page or open edit modal
-    console.log("Edit quiz:", quiz.id);
+    navigate({ to: "/quizzes/$quizId/edit", params: { quizId: quiz.id.toString() } });
   };
 
   const handleArchive = async (quiz: QuizListItem) => {

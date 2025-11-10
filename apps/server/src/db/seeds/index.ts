@@ -1,11 +1,15 @@
 import { adminSeed } from "./user";
 import { questionsSeed } from "./questions";
+import { trailsSeed } from "./trails";
 
 async function main() {
-  await adminSeed();
-  await questionsSeed();
+  console.log("🌱 Starting database seeding...\n");
 
-  console.log("🌿 Seeding completed.");
+  await adminSeed();
+  // await questionsSeed();
+  await trailsSeed();
+
+  console.log("\n🌿 Seeding completed successfully!");
   return process.exit(0);
 }
 

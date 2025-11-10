@@ -1,5 +1,6 @@
 import {
   boolean,
+  check,
   index,
   integer,
   pgEnum,
@@ -11,11 +12,13 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import { user } from "./auth";
 import { contentCategories } from "./categories";
 import { questions } from "./questions";
 import { quizzes, quizQuestions } from "./quizzes";
+import { wikiArticles } from "./wiki";
 
 export const trailDifficultyValues = [
   "basic",
@@ -35,12 +38,6 @@ export const trailStatusValues = [
 ] as const;
 export const trailStatusEnum = pgEnum("trail_status", trailStatusValues);
 
-export const trailContentTypeValues = ["question", "quiz", "article"] as const;
-export const trailContentTypeEnum = pgEnum(
-  "trail_content_type",
-  trailContentTypeValues,
-);
-
 export const trails = pgTable(
   "trails",
   {
@@ -56,7 +53,7 @@ export const trails = pgTable(
     difficulty: trailDifficultyEnum("difficulty").notNull(),
     status: trailStatusEnum("status").notNull().default("draft"),
 
-    unlockOrder: integer("unlock_order").notNull().unique(),
+    unlockOrder: integer("unlock_order"),
 
     passPercentage: real("pass_percentage").notNull().default(70),
     attemptsAllowed: integer("attempts_allowed").notNull().default(3),
@@ -167,8 +164,17 @@ export const trailContent = pgTable(
     trailId: integer("trail_id")
       .notNull()
       .references(() => trails.id, { onDelete: "cascade" }),
-    contentType: trailContentTypeEnum("content_type").notNull(),
-    contentId: integer("content_id").notNull(),
+
+    questionId: integer("question_id").references(() => questions.id, {
+      onDelete: "cascade",
+    }),
+    quizId: integer("quiz_id").references(() => quizzes.id, {
+      onDelete: "cascade",
+    }),
+    articleId: integer("article_id").references(() => wikiArticles.id, {
+      onDelete: "cascade",
+    }),
+
     sequence: integer("sequence").notNull(),
     isRequired: boolean("is_required").notNull().default(true),
 
@@ -182,7 +188,17 @@ export const trailContent = pgTable(
   (table) => [
     index("trail_content_trail_idx").on(table.trailId),
     index("trail_content_sequence_idx").on(table.trailId, table.sequence),
-    index("trail_content_type_idx").on(table.contentType, table.contentId),
+    index("trail_content_question_idx").on(table.questionId),
+    index("trail_content_quiz_idx").on(table.quizId),
+    index("trail_content_article_idx").on(table.articleId),
+    check(
+      "trail_content_type_check",
+      sql`(
+        (${table.questionId} IS NOT NULL)::int + 
+        (${table.quizId} IS NOT NULL)::int + 
+        (${table.articleId} IS NOT NULL)::int
+      ) = 1`,
+    ),
   ],
 );
 
@@ -190,6 +206,18 @@ export const trailContentRelations = relations(trailContent, ({ one }) => ({
   trail: one(trails, {
     fields: [trailContent.trailId],
     references: [trails.id],
+  }),
+  question: one(questions, {
+    fields: [trailContent.questionId],
+    references: [questions.id],
+  }),
+  quiz: one(quizzes, {
+    fields: [trailContent.quizId],
+    references: [quizzes.id],
+  }),
+  article: one(wikiArticles, {
+    fields: [trailContent.articleId],
+    references: [wikiArticles.id],
   }),
 }));
 
@@ -430,13 +458,21 @@ export type Trail = typeof trails.$inferSelect;
 export type NewTrail = typeof trails.$inferInsert;
 export type TrailDifficulty = (typeof trailDifficultyValues)[number];
 export type TrailStatus = (typeof trailStatusValues)[number];
-export type TrailContentType = (typeof trailContentTypeValues)[number];
 
 export type TrailPrerequisite = typeof trailPrerequisites.$inferSelect;
 export type NewTrailPrerequisite = typeof trailPrerequisites.$inferInsert;
 
 export type TrailContent = typeof trailContent.$inferSelect;
 export type NewTrailContent = typeof trailContent.$inferInsert;
+
+export type TrailContentType = "question" | "quiz" | "article";
+
+export const getTrailContentType = (content: TrailContent): TrailContentType => {
+  if (content.questionId !== null) return "question";
+  if (content.quizId !== null) return "quiz";
+  if (content.articleId !== null) return "article";
+  throw new Error("Invalid trail content: no content type set");
+};
 
 
 export type UserTrailProgress = typeof userTrailProgress.$inferSelect;

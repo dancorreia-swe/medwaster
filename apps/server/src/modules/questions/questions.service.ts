@@ -7,12 +7,14 @@ import {
   questionFillBlankOptions,
   questionMatchingPairs,
   questionTags,
+  tags,
   type QuestionType,
   type QuestionDifficulty,
   type QuestionStatus,
 } from "@/db/schema/questions";
-import { asc, desc, eq, and, sql, ilike, or } from "drizzle-orm";
+import { asc, desc, eq, and, sql, ilike, or, inArray } from "drizzle-orm";
 import { NotFoundError } from "@/lib/errors";
+import { S3StorageService } from "./s3-storage.service";
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
@@ -169,6 +171,10 @@ export abstract class QuestionsService {
       validateQuestionData(data);
     }
 
+    if (data.imageKey && existing.imageKey && data.imageKey !== existing.imageKey) {
+      await S3StorageService.deleteImage(existing.imageKey);
+    }
+
     const { options, fillInBlanks, matchingPairs, tagIds, ...questionData } =
       data;
 
@@ -268,23 +274,33 @@ export abstract class QuestionsService {
     status,
     categoryId,
     search,
+    tags: tagFilter,
   }: {
     page?: number;
     pageSize?: number;
-    type?: QuestionType;
+    type?: QuestionType | QuestionType[] | string | string[];
     difficulty?: QuestionDifficulty;
     status?: QuestionStatus;
     categoryId?: number;
     search?: string;
+    tags?: string | string[];
   } = {}) {
     const safePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
     const conditions = [];
 
-    if (type) conditions.push(eq(questions.type, type));
+    // Handle type filtering (single or multiple)
+    if (type) {
+      if (Array.isArray(type)) {
+        conditions.push(inArray(questions.type, type as QuestionType[]));
+      } else {
+        conditions.push(eq(questions.type, type as QuestionType));
+      }
+    }
+
     if (difficulty) conditions.push(eq(questions.difficulty, difficulty));
     if (status) conditions.push(eq(questions.status, status));
     if (categoryId) conditions.push(eq(questions.categoryId, categoryId));
-    
+
     // Add search condition
     if (search && search.trim()) {
       const searchTerm = `%${search.trim()}%`;
@@ -294,6 +310,45 @@ export abstract class QuestionsService {
           ilike(questions.explanation, searchTerm)
         )!
       );
+    }
+
+    // Handle tag filtering (supports both array and comma-separated string)
+    if (tagFilter) {
+      let tagNames: string[] = [];
+
+      if (Array.isArray(tagFilter)) {
+        tagNames = tagFilter.filter((tag) => tag && tag.trim().length > 0);
+      } else if (typeof tagFilter === 'string' && tagFilter.trim()) {
+        tagNames = tagFilter
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0);
+      }
+
+      if (tagNames.length > 0) {
+        const tagResults = await db
+          .select({ questionId: questionTags.questionId })
+          .from(questionTags)
+          .leftJoin(tags, eq(questionTags.tagId, tags.id))
+          .where(inArray(tags.name, tagNames));
+
+        const tagQuestionIds = tagResults.map((r) => r.questionId);
+
+        if (tagQuestionIds.length > 0) {
+          conditions.push(inArray(questions.id, tagQuestionIds));
+        } else {
+          // No questions found with these tags, return empty result
+          return {
+            data: [],
+            meta: {
+              page,
+              pageSize: safePageSize,
+              total: 0,
+              totalPages: 0,
+            },
+          };
+        }
+      }
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -350,6 +405,11 @@ export abstract class QuestionsService {
 
     if (!existing) {
       throw new NotFoundError("Question");
+    }
+
+    // Delete associated image from S3 if exists
+    if (existing.imageKey) {
+      await S3StorageService.deleteImage(existing.imageKey);
     }
 
     await db.delete(questions).where(eq(questions.id, questionId));

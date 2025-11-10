@@ -19,7 +19,7 @@ import {
   Eye,
   BookOpen,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { QuizListItem } from "../types";
 
 interface QuizCardProps {
@@ -44,13 +44,18 @@ const statusConfig = {
 };
 
 export function QuizCard({ quiz, onEdit, onArchive, onDelete }: QuizCardProps) {
+  const navigate = useNavigate();
   const difficulty = difficultyConfig[quiz.difficulty];
   const status = statusConfig[quiz.status];
 
+  const handleCardClick = () => {
+    navigate({ to: "/quizzes/$quizId", params: { quizId: quiz.id.toString() } });
+  };
+
   return (
-    <Card className="group hover:shadow-md transition-shadow">
+    <Card className="group hover:shadow-md transition-shadow cursor-pointer gap-1" onClick={handleCardClick}>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between">
           <CardTitle className="text-base font-medium leading-tight line-clamp-2">
             {quiz.title}
           </CardTitle>
@@ -60,14 +65,15 @@ export function QuizCard({ quiz, onEdit, onArchive, onDelete }: QuizCardProps) {
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="h-4 w-4" />
                 <span className="sr-only">Abrir menu</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem asChild>
-                <Link to="/quizzes/$id" params={{ id: quiz.id.toString() }}>
+                <Link to="/quizzes/$quizId" params={{ quizId: quiz.id.toString() }}>
                   <Eye className="mr-2 h-4 w-4" />
                   Visualizar
                 </Link>

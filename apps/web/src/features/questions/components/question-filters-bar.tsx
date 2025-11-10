@@ -3,6 +3,7 @@ import { Search, X, Filter, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useQuery } from "@tanstack/react-query";
-import { categoriesListQueryOptions } from "../api/categoriesAndTagsQueries";
+import { categoriesListQueryOptions, tagsListQueryOptions } from "../api/categoriesAndTagsQueries";
 import { QUESTION_TYPE_OPTIONS, DIFFICULTY_LEVEL_OPTIONS } from "../constants";
 
 const STATUS_OPTIONS = [
@@ -27,10 +28,11 @@ const STATUS_OPTIONS = [
 
 export interface QuestionFilters {
   search?: string;
-  type?: string;
+  type?: string | string[];
   difficulty?: string;
   status?: string;
   categoryId?: number;
+  tags?: string[];
 }
 
 interface QuestionFiltersBarProps {
@@ -44,6 +46,7 @@ export function QuestionFiltersBar({
 }: QuestionFiltersBarProps) {
   const [searchInput, setSearchInput] = useState(filters.search || "");
   const { data: categories = [] } = useQuery(categoriesListQueryOptions());
+  const { data: tags = [] } = useQuery(tagsListQueryOptions());
 
   // Debounce search
   useEffect(() => {
@@ -138,22 +141,33 @@ export function QuestionFiltersBar({
               {/* Type Filter */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Tipo</label>
-                <Select
-                  value={filters.type ?? "all"}
-                  onValueChange={(v) => handleFilterChange("type", v === "all" ? undefined : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os tipos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os tipos</SelectItem>
-                    {QUESTION_TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {QUESTION_TYPE_OPTIONS.map((option) => {
+                    const selectedTypes = Array.isArray(filters.type) ? filters.type : (filters.type ? [filters.type] : []);
+                    const isChecked = selectedTypes.includes(option.value);
+
+                    return (
+                      <label key={option.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            const currentTypes = Array.isArray(filters.type) ? filters.type : (filters.type ? [filters.type] : []);
+                            let newTypes: string[];
+
+                            if (checked) {
+                              newTypes = [...currentTypes, option.value];
+                            } else {
+                              newTypes = currentTypes.filter(t => t !== option.value);
+                            }
+
+                            handleFilterChange("type", newTypes.length > 0 ? newTypes : undefined);
+                          }}
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Difficulty Filter */}
@@ -227,6 +241,46 @@ export function QuestionFiltersBar({
                 </Select>
               </div>
 
+              {/* Tag Filter */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tags</label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {(tags?.data || []).map((tag: any) => {
+                    const selectedTags = filters.tags || [];
+                    const isChecked = selectedTags.includes(tag.name);
+
+                    return (
+                      <label key={tag.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            const currentTags = filters.tags || [];
+                            let newTags: string[];
+
+                            if (checked) {
+                              newTags = [...currentTags, tag.name];
+                            } else {
+                              newTags = currentTags.filter(t => t !== tag.name);
+                            }
+
+                            handleFilterChange("tags", newTags.length > 0 ? newTags : undefined);
+                          }}
+                        />
+                        <span
+                          className="inline-flex items-center gap-1.5"
+                        >
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: tag.color || "#6b7280" }}
+                          />
+                          {tag.name}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
               {activeFilterCount > 0 && (
                 <Button
                   variant="outline"
@@ -264,27 +318,33 @@ export function QuestionFiltersBar({
               </Button>
             </Badge>
           )}
-          {filters.type && (
-            <Badge variant="secondary" className="gap-1">
-              Tipo:{" "}
-              {
-                QUESTION_TYPE_OPTIONS.find((o) => o.value === filters.type)
-                  ?.label
-              }
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-4 w-4 p-0 hover:bg-transparent"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  handleFilterChange("type", undefined);
-                }}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          )}
+{(() => {
+            const selectedTypes = Array.isArray(filters.type) ? filters.type : (filters.type ? [filters.type] : []);
+
+            return selectedTypes.length > 0 && selectedTypes.map((typeValue) => {
+              const typeOption = QUESTION_TYPE_OPTIONS.find((o) => o.value === typeValue);
+
+              return (
+                <Badge key={typeValue} variant="secondary" className="gap-1">
+                  Tipo: {typeOption?.label || typeValue}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4 p-0 hover:bg-transparent"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      const currentTypes = Array.isArray(filters.type) ? filters.type : (filters.type ? [filters.type] : []);
+                      const newTypes = currentTypes.filter(t => t !== typeValue);
+                      handleFilterChange("type", newTypes.length > 0 ? newTypes : undefined);
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              );
+            });
+          })()}
           {filters.difficulty && (
             <Badge variant="secondary" className="gap-1">
               Dificuldade:{" "}
@@ -344,6 +404,24 @@ export function QuestionFiltersBar({
               </Button>
             </Badge>
           )}
+{filters.tags && filters.tags.length > 0 && filters.tags.map((tagName) => (
+            <Badge key={tagName} variant="secondary" className="gap-1">
+              Tag: {tagName}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 p-0 hover:bg-transparent"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  const newTags = (filters.tags || []).filter(t => t !== tagName);
+                  handleFilterChange("tags", newTags.length > 0 ? newTags : undefined);
+                }}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
         </div>
       )}
     </div>

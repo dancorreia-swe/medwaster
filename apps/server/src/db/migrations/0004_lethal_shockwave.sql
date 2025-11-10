@@ -1,0 +1,1 @@
+ALTER TABLE "achievements" ADD COLUMN "badge_image_key" text;

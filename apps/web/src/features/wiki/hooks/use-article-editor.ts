@@ -2,24 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
 import { useUpdateArticle } from "../api/wikiQueries";
 import type { BlockNoteEditor } from "@blocknote/core";
-import type { TagOption } from "../components/article-tags-input";
-
-const DEFAULT_TAG_OPTIONS: TagOption[] = [
-  { id: "react", label: "React" },
-  { id: "typescript", label: "TypeScript" },
-  { id: "javascript", label: "JavaScript" },
-  { id: "nextjs", label: "Next.js" },
-  { id: "vuejs", label: "Vue.js" },
-  { id: "angular", label: "Angular" },
-  { id: "svelte", label: "Svelte" },
-  { id: "nodejs", label: "Node.js" },
-  { id: "python", label: "Python" },
-  { id: "ruby", label: "Ruby" },
-  { id: "java", label: "Java" },
-  { id: "csharp", label: "C#" },
-  { id: "php", label: "PHP" },
-  { id: "go", label: "Go" },
-];
+import { toast } from "sonner";
 
 const MIN_TITLE_LENGTH = 5;
 
@@ -48,22 +31,21 @@ export function useArticleEditor({
   const [categoryId, setCategoryId] = useState<number | undefined>();
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [autoSaving, setAutoSaving] = useState(false);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [editor, setEditor] = useState<BlockNoteEditor | null>(null);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState<TagOption[]>(DEFAULT_TAG_OPTIONS);
-  const [newTag, setNewTag] = useState("");
+  const [selectedTags, setSelectedTags] = useState<number[]>([]);
 
   // Track initial values from server to detect actual changes
   const serverState = useRef({
     title: "",
     categoryId: undefined as number | undefined,
-    selectedTags: [] as string[],
+    selectedTags: [] as number[],
   });
 
   // Initialize state from article data once per article
   useEffect(() => {
     if (!article) return;
-    
+
     const newTitle = article.title ?? "";
     const newStatus = article.status === "published" ? "published" : "draft";
     const newCategoryId = article.category?.id;
@@ -73,22 +55,11 @@ export function useArticleEditor({
     setStatus(newStatus);
     setCategoryId(newCategoryId);
     setLastSavedAt(newLastSavedAt);
+    setHasPendingChanges(false);
 
-    const articleTags = article.tags?.map((tag: any) => ({
-      id: String(tag.id),
-      label: tag.name,
-    })) ?? [];
-
-    const newSelectedTags = articleTags.map((tag: TagOption) => tag.id);
+    // Extract tag IDs from article
+    const newSelectedTags = article.tags?.map((tag: any) => tag.id) ?? [];
     setSelectedTags(newSelectedTags);
-    
-    const combined = [...DEFAULT_TAG_OPTIONS];
-    articleTags.forEach((tag: TagOption) => {
-      if (!combined.find((t) => t.id === tag.id)) {
-        combined.push(tag);
-      }
-    });
-    setAvailableTags(combined);
 
     // Store server state
     serverState.current = {
@@ -99,17 +70,23 @@ export function useArticleEditor({
   }, [articleId, article]);
 
   const handleSave = useCallback(
-    async (publish = false) => {
+    async (publish = false): Promise<boolean> => {
       if (title.trim().length < MIN_TITLE_LENGTH) {
         if (publish) {
-          alert(`O título deve ter ao menos ${MIN_TITLE_LENGTH} caracteres.`);
+          toast.error(`O título deve ter ao menos ${MIN_TITLE_LENGTH} caracteres.`);
         }
-        return;
+        return false;
+      }
+
+      if (publish && !categoryId) {
+        toast.error("Selecione uma categoria antes de publicar o artigo.");
+        return false;
       }
 
       if (!editor) {
         console.error("Editor not initialized");
-        return;
+        toast.error("Editor não inicializado. Recarregue a página e tente novamente.");
+        return false;
       }
 
       try {
@@ -119,6 +96,7 @@ export function useArticleEditor({
             title: title.trim(),
             content: editor.document,
             categoryId,
+            tagIds: selectedTags,
             status: publish ? "published" : status,
             metaDescription: undefined,
           },
@@ -126,6 +104,7 @@ export function useArticleEditor({
 
         if (publish) {
           setStatus("published");
+          setHasPendingChanges(false);
           onPublish();
         } else {
           setLastSavedAt(new Date());
@@ -134,10 +113,17 @@ export function useArticleEditor({
             categoryId,
             selectedTags,
           };
+          setHasPendingChanges(false);
         }
+        return true;
       } catch (error) {
         console.error("Erro ao salvar artigo:", error);
-        alert("Não foi possível salvar o artigo. Tente novamente.");
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Não foi possível salvar o artigo. Verifique os campos e tente novamente.";
+        toast.error(message);
+        return false;
       }
     },
     [title, editor, articleId, categoryId, selectedTags, status, updateArticle, onPublish],
@@ -147,7 +133,7 @@ export function useArticleEditor({
     if (title.trim().length < MIN_TITLE_LENGTH) return;
     setAutoSaving(true);
     handleSave(false).finally(() => setAutoSaving(false));
-  }, 2000);
+  }, 1000);
 
   // Check if current state differs from server state
   const hasChanges = useCallback(() => {
@@ -160,56 +146,68 @@ export function useArticleEditor({
 
   // Auto-save on changes (only if different from server state)
   useEffect(() => {
-    if (!hasChanges()) return;
+    const dirty = hasChanges();
+    setHasPendingChanges(dirty);
+
+    if (!dirty) {
+      debouncedAutoSave.cancel();
+      return;
+    }
+
     debouncedAutoSave();
     return debouncedAutoSave.cancel;
   }, [title, categoryId, selectedTags, hasChanges, debouncedAutoSave]);
 
   const handleEditorChange = useCallback(() => {
+    setHasPendingChanges(true);
     // Editor changes are always considered changes
     debouncedAutoSave();
   }, [debouncedAutoSave]);
 
-  const handleRemoveTag = useCallback((value: string) => {
-    setSelectedTags((prev) => prev.filter((tag) => tag !== value));
-  }, []);
+  const handleUploadFile = useCallback(async (file: File): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-  const handleSelectTag = useCallback((value: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(value)
-        ? prev.filter((tag) => tag !== value)
-        : [...prev, value],
-    );
-  }, []);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/admin/wiki/files/upload`,
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
 
-  const handleCreateTag = useCallback(() => {
-    if (!newTag.trim()) return;
-    const tag = { id: newTag, label: newTag };
-    setAvailableTags((prev) => [...prev, tag]);
-    setSelectedTags((prev) => [...prev, tag.id]);
-    setNewTag("");
-  }, [newTag]);
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const result = await response.json();
+      return result.data.url;
+    } catch (error) {
+      console.error("File upload error:", error);
+      throw new Error("Failed to upload file");
+    }
+  }, []);
 
   return {
     title,
     setTitle,
     status,
+    setStatus,
     categoryId,
     setCategoryId,
     lastSavedAt,
     autoSaving,
     isUpdating,
     selectedTags,
-    availableTags,
-    newTag,
-    setNewTag,
+    setSelectedTags,
     editor,
     setEditor,
     handleSave,
-    handleRemoveTag,
-    handleSelectTag,
-    handleCreateTag,
     handleEditorChange,
-    canSave: title.trim().length >= MIN_TITLE_LENGTH,
+    handleUploadFile,
+    hasPendingChanges,
+    canPublish: title.trim().length >= MIN_TITLE_LENGTH && Boolean(categoryId),
   };
 }

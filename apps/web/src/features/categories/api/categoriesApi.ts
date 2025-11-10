@@ -38,3 +38,7 @@ export type Category = CategoriesResponse["data"] extends (infer U)[]
   : never;
 
 export type CategoryWikiArticle = Category["wikiArticles"][number];
+
+
+export type CategoryQuestion = NonNullable<Category["questions"]>[number];
+export type CategoryQuiz = NonNullable<Category["quizzes"]>[number];

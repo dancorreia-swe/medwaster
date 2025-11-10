@@ -32,13 +32,17 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { SuperAdminOnly, usePermissions } from "@/components/auth/role-guard"
+import { SuperAdminOnly, usePermissions } from "@/components/auth/role-guard";
 import type { TRoute } from "@/types/routes";
 import { Link, useLocation } from "@tanstack/react-router";
 import { NavUser } from "./nav-user";
 import type { AuthenticatedUser } from "@/types/user";
 import { authClient } from "@/lib/auth-client";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface BaseSidebarItem {
   title: string;
@@ -72,22 +76,16 @@ const adminItems = [
     to: "/",
     icon: Home,
   },
+
   {
-    title: "Wiki",
-    isActive: true,
-    icon: BookOpen,
-    items: [
-      {
-        title: "Artigos",
-        to: "/wiki",
-        icon: BookType,
-      },
-      {
-        title: "Categorias",
-        to: "/categories",
-        icon: Shapes,
-      },
-    ],
+    title: "Artigos",
+    to: "/wiki",
+    icon: BookType,
+  },
+  {
+    title: "Categorias",
+    to: "/categories",
+    icon: Shapes,
   },
   {
     title: "Questões e Quizzes",
@@ -121,10 +119,15 @@ const adminItems = [
     icon: Trophy,
   },
   {
+    title: "Usuários",
+    to: "/admin/users",
+    icon: Users,
+  },
+  {
     title: "Certificados",
     to: "/certificates",
-    icon: BadgeCheck
-  }
+    icon: BadgeCheck,
+  },
 ] as const satisfies readonly SidebarItem[];
 
 const superAdminItems = [
@@ -132,12 +135,6 @@ const superAdminItems = [
     title: "Configurações do Sistema",
     to: "/admin/settings",
     icon: Settings,
-  },
-  {
-    title: "Gerenciar Usuários",
-    to: "/admin/users",
-    icon: Users,
-    requiresSuperAdmin: true,
   },
 ] as const satisfies readonly SidebarSingleItem[];
 
@@ -149,12 +146,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Helper function to check if a collapsible item should be open
   const isCollapsibleOpen = (item: SidebarCollapsibleItem) => {
     if (item.isActive !== undefined) return item.isActive;
-    
+
     // Check if any sub-item matches the current path
     return item.items.some(
       (subItem) =>
         location.pathname === subItem.to ||
-        location.pathname.startsWith(`${subItem.to}/`)
+        location.pathname.startsWith(`${subItem.to}/`),
     );
   };
 
@@ -226,7 +223,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 <SidebarMenuSubButton
                                   isActive={
                                     location.pathname === subItem.to ||
-                                    location.pathname.startsWith(`${subItem.to}/`)
+                                    location.pathname.startsWith(
+                                      `${subItem.to}/`,
+                                    )
                                   }
                                   asChild
                                 >

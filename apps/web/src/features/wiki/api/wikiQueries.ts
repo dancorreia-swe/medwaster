@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
   queryOptions,
+  keepPreviousData,
 } from "@tanstack/react-query";
 import { wikiApi } from "./wikiApi";
 import { client } from "@/lib/client";
@@ -96,7 +97,16 @@ export const useUpdateArticle = () => {
       id: number;
       data: UpdateArticleInput;
     }) => {
-      return await client.admin.wiki.articles({ id }).put(data);
+      const response = await client.admin.wiki.articles({ id }).put(data);
+      if (response && typeof response === "object" && "error" in response && response.error) {
+        const errorDetail = (response as any).error;
+        const message =
+          typeof errorDetail === "string"
+            ? errorDetail
+            : errorDetail?.message ?? "Erro ao atualizar artigo.";
+        throw new Error(message);
+      }
+      return response;
     },
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: wikiQueryKeys.article(id) });
@@ -188,13 +198,40 @@ export const useUnpublishArticle = () => {
   });
 };
 
+export const useSearchTags = (search?: string) =>
+  useQuery({
+    queryKey: [...wikiQueryKeys.tags(), search] as const,
+    queryFn: () => wikiApi.listTags({ search }),
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+    placeholderData: keepPreviousData,
+    enabled: true,
+  });
+
 export const useTags = () =>
   useQuery({
     queryKey: wikiQueryKeys.tags(),
-    queryFn: wikiApi.listTags,
+    queryFn: () => wikiApi.listTags(),
     staleTime: 30 * 60_000,
     gcTime: 60 * 60_000,
   });
+
+export const useCreateTag = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: wikiApi.createTag,
+    onSuccess: (response) => {
+      // Invalidate all tag queries to refetch with the new tag
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.tags() });
+      // Also invalidate tags page queries for cross-page synchronization
+      queryClient.invalidateQueries({ queryKey: ["tags"] });
+    },
+    onError: (error) => {
+      console.error("Error creating tag:", error);
+    },
+  });
+};
 
 export const useBulkArticleOperations = () => {
   const queryClient = useQueryClient();

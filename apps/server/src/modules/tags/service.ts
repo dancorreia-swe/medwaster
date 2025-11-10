@@ -1,4 +1,4 @@
-import { eq, ilike, or, type SQL } from "drizzle-orm";
+import { eq, ilike, or, ne, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { tagsInsertSchema, tags as tagsSchema } from "@/db/schema/questions";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
@@ -8,8 +8,6 @@ import { Value } from "@sinclair/typebox/value";
 
 export abstract class TagsService {
   static async getAll(query?: ListTagsQuery) {
-    const baseQuery = db.select().from(tagsSchema);
-
     const searchTerm = query?.search?.trim();
     const allowedKeys = query?.keys?.length ? query.keys : undefined;
     let whereCondition: SQL<unknown> | undefined;
@@ -39,11 +37,53 @@ export abstract class TagsService {
       }
     }
 
-    const tags = await (whereCondition
-      ? baseQuery.where(whereCondition)
-      : baseQuery);
+    // Fetch tags with related content using db.query for relational data
+    const tags = await db.query.tags.findMany({
+      where: whereCondition,
+      with: {
+        questionTags: {
+          with: {
+            question: {
+              columns: {
+                id: true,
+                prompt: true,
+                explanation: true,
+                type: true,
+                difficulty: true,
+                status: true,
+                updatedAt: true,
+              },
+            },
+          },
+          limit: 5,
+        },
+        wikiArticleTags: {
+          with: {
+            article: {
+              columns: {
+                id: true,
+                title: true,
+                excerpt: true,
+                status: true,
+                updatedAt: true,
+              },
+            },
+          },
+          limit: 5,
+        },
+      },
+    });
 
-    return tags;
+    // Transform the data to flatten the junction tables
+    return tags.map((tag) => ({
+      ...tag,
+      questions: tag.questionTags
+        .map((qt) => qt.question)
+        .filter((q) => q && q.status !== "archived"),
+      wikiArticles: tag.wikiArticleTags
+        .map((wat) => wat.article)
+        .filter((a) => a && a.status !== "archived"),
+    }));
   }
 
   static async getByName(name: string) {
@@ -62,7 +102,7 @@ export abstract class TagsService {
     }
 
     const parsedTag = Value.Parse(tagsInsertSchema, newTag);
-    const createdTag = await db
+    const [createdTag] = await db
       .insert(tagsSchema)
       .values(parsedTag)
       .returning();
