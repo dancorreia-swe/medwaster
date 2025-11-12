@@ -132,6 +132,8 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
     handleEditorChange,
     handleUploadFile,
     canPublish,
+    icon,
+    setIcon,
   } = useArticleEditor({
     articleId,
     article: article.data,
@@ -193,7 +195,12 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
 
       <div className="flex flex-1 flex-col items-center overflow-y-auto px-8 pb-24">
         <div className="w-full max-w-3xl border-b py-6">
-          <ArticleTitleInput value={title} onChange={setTitle} />
+          <ArticleTitleInput
+            value={title}
+            onChange={setTitle}
+            icon={icon}
+            onIconChange={setIcon}
+          />
 
           <ArticleMetadata
             categoryId={categoryId}

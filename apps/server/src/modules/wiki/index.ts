@@ -1,6 +1,8 @@
 import Elysia from "elysia";
 import { adminArticles, userArticles } from "./articles";
 import { wikiFiles } from "./files";
+import { success } from "@/lib/responses";
+import { ArticleService } from "./services/article-service";
 
 export const adminWiki = new Elysia({
   prefix: "/admin/wiki",
@@ -20,4 +22,20 @@ export const wiki = new Elysia({
     description:
       "Student endpoints for reading articles, managing bookmarks, and tracking progress",
   },
-}).use(userArticles);
+})
+  .use(userArticles)
+  .get(
+    "/categories",
+    async () => {
+      const categories = await ArticleService.listStudentCategories();
+      return success(categories);
+    },
+    {
+      detail: {
+        summary: "List active categories",
+        description:
+          "Retrieve active categories with their published article counts for student filtering.",
+        tags: ["Student - Wiki Articles"],
+      },
+    },
+  );

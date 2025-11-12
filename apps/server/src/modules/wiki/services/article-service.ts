@@ -30,12 +30,177 @@ import type {
   ArticleListQuery,
   ArticleListItem,
   ArticleDetail,
+  StudentArticleListItem,
+  StudentArticleDetail,
+  StudentArticleProgress,
+  StudentArticleDifficulty,
+  ArticleDifficultyValue,
 } from "../types/article";
 import { ragQueue } from "@/lib/queue";
 import { NoCategoryError } from "../exceptions/no-category-error";
 
 export class ArticleService {
   private static editor: ServerBlockNoteEditor = ServerBlockNoteEditor.create();
+  private static readonly difficultyDescriptors: Array<{
+    value: ArticleDifficultyValue;
+    label: string;
+    color: string;
+    maxMinutes: number;
+  }> = [
+    {
+      value: "basic",
+      label: "Básico",
+      color: "#22c55e",
+      maxMinutes: 5,
+    },
+    {
+      value: "intermediate",
+      label: "Intermediário",
+      color: "#f97316",
+      maxMinutes: 10,
+    },
+    {
+      value: "advanced",
+      label: "Avançado",
+      color: "#ef4444",
+      maxMinutes: Number.POSITIVE_INFINITY,
+    },
+  ];
+
+  private static determineDifficulty(
+    readingTimeMinutes?: number | null,
+  ): StudentArticleDifficulty {
+    const minutes = Math.max(1, readingTimeMinutes ?? 1);
+
+    const descriptor =
+      this.difficultyDescriptors.find(({ maxMinutes }) => minutes <= maxMinutes) ??
+      this.difficultyDescriptors[this.difficultyDescriptors.length - 1];
+
+    return {
+      value: descriptor.value,
+      label: descriptor.label,
+      color: descriptor.color,
+    };
+  }
+
+  private static defaultProgress(): StudentArticleProgress {
+    return {
+      isRead: false,
+      readPercentage: 0,
+      timeSpentSeconds: 0,
+      lastReadAt: null,
+    };
+  }
+
+  private static mapProgressRecord(record?: {
+    isRead: boolean | null;
+    readPercentage: number | null;
+    timeSpentSeconds: number | null;
+    lastReadAt: Date | null;
+  }): StudentArticleProgress {
+    if (!record) {
+      return this.defaultProgress();
+    }
+
+    return {
+      isRead: Boolean(record.isRead),
+      readPercentage: record.readPercentage ?? 0,
+      timeSpentSeconds: record.timeSpentSeconds ?? 0,
+      lastReadAt: record.lastReadAt ? record.lastReadAt.toISOString() : null,
+    };
+  }
+
+  private static async getStudentArticleMetadata(
+    articleIds: number[],
+    userId: string,
+  ): Promise<{
+    bookmarks: Set<number>;
+    progressMap: Map<number, StudentArticleProgress>;
+  }> {
+    if (articleIds.length === 0) {
+      return {
+        bookmarks: new Set(),
+        progressMap: new Map(),
+      };
+    }
+
+    const [bookmarks, reads] = await Promise.all([
+      db
+        .select({
+          articleId: userArticleBookmarks.articleId,
+        })
+        .from(userArticleBookmarks)
+        .where(
+          and(
+            eq(userArticleBookmarks.userId, userId),
+            inArray(userArticleBookmarks.articleId, articleIds),
+          ),
+        ),
+      db
+        .select({
+          articleId: userArticleReads.articleId,
+          isRead: userArticleReads.isRead,
+          readPercentage: userArticleReads.readPercentage,
+          timeSpentSeconds: userArticleReads.timeSpentSeconds,
+          lastReadAt: userArticleReads.lastReadAt,
+        })
+        .from(userArticleReads)
+        .where(
+          and(
+            eq(userArticleReads.userId, userId),
+            inArray(userArticleReads.articleId, articleIds),
+          ),
+        ),
+    ]);
+
+    const bookmarkSet = new Set<number>(bookmarks.map((b) => b.articleId));
+    const progressMap = new Map<number, StudentArticleProgress>();
+
+    for (const read of reads) {
+      progressMap.set(
+        read.articleId,
+        this.mapProgressRecord({
+          isRead: read.isRead,
+          readPercentage: read.readPercentage,
+          timeSpentSeconds: read.timeSpentSeconds,
+          lastReadAt: read.lastReadAt,
+        }),
+      );
+    }
+
+    return {
+      bookmarks: bookmarkSet,
+      progressMap,
+    };
+  }
+
+  private static mapStudentArticle(
+    article: ArticleListItem,
+    metadata: {
+      bookmarks: Set<number>;
+      progressMap: Map<number, StudentArticleProgress>;
+    },
+  ): StudentArticleListItem {
+    const difficulty = this.determineDifficulty(article.readingTimeMinutes);
+    const progress =
+      metadata.progressMap.get(article.id) ?? this.defaultProgress();
+
+    return {
+      id: article.id,
+      title: article.title,
+      slug: article.slug,
+      icon: article.icon ?? null,
+      excerpt: article.excerpt,
+      readingTimeMinutes: article.readingTimeMinutes,
+      featuredImageUrl: article.featuredImageUrl ?? null,
+      category: article.category,
+      tags: article.tags,
+      difficulty,
+      isBookmarked: metadata.bookmarks.has(article.id),
+      progress,
+    };
+  }
+
 
   /**
    * Create a new wiki article
@@ -164,6 +329,7 @@ export class ArticleService {
     if (data.featuredImageUrl !== undefined)
       updateData.featuredImageUrl = data.featuredImageUrl;
     if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+    if (data.icon !== undefined) updateData.icon = data.icon;
 
     if (data.status) {
       const oldStatus = existingArticle[0].status;
@@ -304,9 +470,11 @@ export class ArticleService {
       id: article.id,
       title: article.title,
       slug: article.slug,
-      content: article.content as object,
+      icon: article.icon || null,
+      content: article.content as any[],
       contentText: article.contentText || "",
       excerpt: article.excerpt || "",
+      metaDescription: null,
       featuredImageUrl: article.featuredImageUrl,
       status: article.status,
       readingTimeMinutes: article.readingTimeMinutes || 1,
@@ -503,10 +671,12 @@ export class ArticleService {
         id: article.id,
         title: article.title,
         slug: article.slug,
+        icon: article.icon || null,
         excerpt: article.excerpt || "",
         status: article.status,
         readingTimeMinutes: article.readingTimeMinutes || 1,
         viewCount: article.viewCount,
+        featuredImageUrl: article.featuredImageUrl ?? null,
         category: category
           ? {
               id: category.id,
@@ -783,24 +953,65 @@ export class ArticleService {
   /**
    * List published articles only (for students)
    */
-  static async listPublishedArticles(query: ArticleListQuery) {
-    return this.listArticles({
+  static async listPublishedArticles(
+    query: ArticleListQuery,
+    userId: string,
+  ): Promise<{
+    articles: StudentArticleListItem[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }> {
+    const baseResult = await this.listArticles({
       ...query,
       status: "published",
     });
+
+    const metadata = await this.getStudentArticleMetadata(
+      baseResult.articles.map((article) => article.id),
+      userId,
+    );
+
+    return {
+      articles: baseResult.articles.map((article) =>
+        this.mapStudentArticle(article, metadata),
+      ),
+      pagination: baseResult.pagination,
+    };
   }
 
   /**
    * Get published article by ID (for students)
    */
-  static async getPublishedArticleById(id: number, userId: string) {
+  static async getPublishedArticleById(
+    id: number,
+    userId: string,
+  ): Promise<StudentArticleDetail> {
     const article = await this.getArticleById(id);
 
     if (article.status !== "published") {
       throw new NotFoundError("Article");
     }
 
-    // Track view
+    // Convert BlockNote content to markdown for mobile rendering
+    let contentMarkdown = article.contentText;
+    if (
+      !contentMarkdown ||
+      (Array.isArray(article.content) && article.content.length > 0)
+    ) {
+      try {
+        contentMarkdown = await this.editor.blocksToMarkdownLossy(
+          article.content as any[],
+        );
+      } catch (error) {
+        console.error("Failed to convert content to markdown:", error);
+        contentMarkdown = article.contentText || "";
+      }
+    }
+
     await db
       .update(wikiArticles)
       .set({
@@ -809,9 +1020,14 @@ export class ArticleService {
       })
       .where(eq(wikiArticles.id, id));
 
-    // Create or update reading progress
-    const [existingRead] = await db
-      .select()
+    const existingRead = await db
+      .select({
+        id: userArticleReads.id,
+        isRead: userArticleReads.isRead,
+        readPercentage: userArticleReads.readPercentage,
+        timeSpentSeconds: userArticleReads.timeSpentSeconds,
+        lastReadAt: userArticleReads.lastReadAt,
+      })
       .from(userArticleReads)
       .where(
         and(
@@ -821,15 +1037,27 @@ export class ArticleService {
       )
       .limit(1);
 
-    if (!existingRead) {
-      await db.insert(userArticleReads).values({
-        userId,
-        articleId: id,
-        readPercentage: 0,
-        timeSpentSeconds: 0,
-      });
+    let progressRecord: StudentArticleProgress;
+
+    if (existingRead.length === 0) {
+      const [createdProgress] = await db
+        .insert(userArticleReads)
+        .values({
+          userId,
+          articleId: id,
+          readPercentage: 0,
+          timeSpentSeconds: 0,
+        })
+        .returning({
+          isRead: userArticleReads.isRead,
+          readPercentage: userArticleReads.readPercentage,
+          timeSpentSeconds: userArticleReads.timeSpentSeconds,
+          lastReadAt: userArticleReads.lastReadAt,
+        });
+
+      progressRecord = this.mapProgressRecord(createdProgress);
     } else {
-      await db
+      const [updatedProgress] = await db
         .update(userArticleReads)
         .set({
           lastReadAt: new Date(),
@@ -840,10 +1068,98 @@ export class ArticleService {
             eq(userArticleReads.userId, userId),
             eq(userArticleReads.articleId, id),
           ),
-        );
+        )
+        .returning({
+          isRead: userArticleReads.isRead,
+          readPercentage: userArticleReads.readPercentage,
+          timeSpentSeconds: userArticleReads.timeSpentSeconds,
+          lastReadAt: userArticleReads.lastReadAt,
+        });
+
+      progressRecord = this.mapProgressRecord(updatedProgress);
     }
 
-    return article;
+    const [bookmark] = await db
+      .select({
+        articleId: userArticleBookmarks.articleId,
+      })
+      .from(userArticleBookmarks)
+      .where(
+        and(
+          eq(userArticleBookmarks.userId, userId),
+          eq(userArticleBookmarks.articleId, id),
+        ),
+      )
+      .limit(1);
+
+    // Override contentText with properly formatted markdown
+    const articleWithMarkdown = {
+      ...article,
+      contentText: contentMarkdown,
+    };
+
+    return {
+      article: articleWithMarkdown,
+      difficulty: this.determineDifficulty(article.readingTimeMinutes),
+      isBookmarked: Boolean(bookmark),
+      progress: progressRecord,
+    };
+  }
+
+  static async listStudentCategories(): Promise<
+    Array<{
+      id: number;
+      name: string;
+      slug: string;
+      color: string;
+      articleCount: number;
+    }>
+  > {
+    const rows = await db
+      .select({
+        id: contentCategories.id,
+        name: contentCategories.name,
+        slug: contentCategories.slug,
+        color: contentCategories.color,
+        isActive: contentCategories.isActive,
+        articleId: wikiArticles.id,
+      })
+      .from(contentCategories)
+      .leftJoin(
+        wikiArticles,
+        and(
+          eq(wikiArticles.categoryId, contentCategories.id),
+          eq(wikiArticles.status, "published" as WikiArticleStatus),
+        ),
+      )
+      .where(eq(contentCategories.isActive, true));
+
+    const summaries = new Map<
+      number,
+      { id: number; name: string; slug: string; color: string; articleCount: number }
+    >();
+
+    for (const row of rows) {
+      const existing =
+        summaries.get(row.id) ??
+        {
+          id: row.id,
+          name: row.name,
+          slug: row.slug,
+          color: row.color || "#3b82f6",
+          articleCount: 0,
+        };
+
+      if (row.articleId) {
+        existing.articleCount += 1;
+      }
+
+      summaries.set(row.id, existing);
+    }
+
+    return Array.from(summaries.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
   }
 
   /**

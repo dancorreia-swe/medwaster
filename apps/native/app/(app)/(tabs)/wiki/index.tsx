@@ -1,187 +1,144 @@
-import { View, ScrollView } from "react-native";
+import {
+  View,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+  Text,
+} from "react-native";
 import { Container } from "@/components/container";
-import { useState, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import {
   WikiHeader,
   WikiFilterTabs,
   WikiSearchBar,
   WikiArticlesList,
   CategoryFilterBottomSheet,
-  type Article,
 } from "@/features/wiki/components";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { useArticleStore } from "@/lib/stores/article-store";
+import {
+  useStudentArticles,
+  useStudentCategories,
+  useToggleFavorite,
+} from "@/features/wiki/hooks";
+import type { StudentArticleListItem } from "@server/modules/wiki/types/article";
 
 type TabType = "todos" | "favoritos" | "lidos" | "categorias";
 
-const articles: Article[] = [
-  {
-    id: "1",
-    emoji: "💉",
-    title: "Descarte de Perfurocortantes",
-    description:
-      "Guia completo sobre como descartar agulhas, seringas e outros materiais perfurocortantes de forma segura",
-    level: "Básico",
-    duration: "5 min",
-  },
-  {
-    id: "2",
-    emoji: "🧪",
-    title: "Resíduos Químicos Hospitalares",
-    description:
-      "Aprenda a identificar e descartar corretamente resíduos químicos, reagentes e solventes usados em laboratórios",
-    level: "Intermediário",
-    duration: "8 min",
-  },
-  {
-    id: "3",
-    emoji: "🎨",
-    title: "Sistema de Cores para Descarte",
-    description:
-      "Entenda o código de cores dos recipientes: vermelho, amarelo, branco, azul e suas aplicações específicas",
-    level: "Básico",
-    duration: "4 min",
-  },
-  {
-    id: "4",
-    emoji: "💊",
-    title: "Medicamentos Oncológicos",
-    description:
-      "Protocolos específicos para descarte de medicamentos quimioterápicos e citotóxicos de alta periculosidade",
-    level: "Avançado",
-    duration: "10 min",
-  },
-  {
-    id: "5",
-    emoji: "🦠",
-    title: "Resíduos Infectantes",
-    description:
-      "Como manusear e descartar materiais contaminados com agentes biológicos, sangue e fluidos corporais",
-    level: "Intermediário",
-    duration: "7 min",
-  },
-  {
-    id: "6",
-    emoji: "📋",
-    title: "Gerenciamento de Resíduos",
-    description:
-      "Plano completo de gerenciamento desde a segregação até o descarte final, conforme RDC 222/2018",
-    level: "Avançado",
-    duration: "12 min",
-  },
-  {
-    id: "7",
-    emoji: "🧤",
-    title: "EPIs para Descarte",
-    description:
-      "Equipamentos de proteção individual necessários para cada tipo de resíduo e situação de manuseio",
-    level: "Básico",
-    duration: "6 min",
-  },
-  {
-    id: "8",
-    emoji: "🚨",
-    title: "Acidentes e Emergências",
-    description:
-      "Procedimentos de emergência para acidentes com materiais biológicos, químicos e perfurocortantes",
-    level: "Intermediário",
-    duration: "9 min",
-  },
-  {
-    id: "9",
-    emoji: "⚠️",
-    title: "Protocolo de Perfuração Acidental",
-    description:
-      "Passo a passo para atendimento imediato em casos de perfuração com agulhas contaminadas",
-    level: "Intermediário",
-    duration: "5 min",
-  },
-  {
-    id: "10",
-    emoji: "🧬",
-    title: "Descarte de Quimioterápicos",
-    description:
-      "Normas específicas para descarte seguro de medicamentos antineoplásicos e imunossupressores",
-    level: "Avançado",
-    duration: "11 min",
-  },
-  {
-    id: "11",
-    emoji: "⚗️",
-    title: "Neutralização de Químicos",
-    description:
-      "Técnicas seguras para neutralizar ácidos, bases e outras substâncias químicas antes do descarte",
-    level: "Avançado",
-    duration: "9 min",
-  },
-  {
-    id: "12",
-    emoji: "🧹",
-    title: "Limpeza de Derramamentos",
-    description:
-      "Procedimentos de contenção e limpeza de derramamentos de fluidos corporais e químicos",
-    level: "Intermediário",
-    duration: "7 min",
-  },
-];
+const ARTICLES_QUERY = {
+  limit: 50,
+} as const;
 
 export default function WikiScreen() {
   const [activeTab, setActiveTab] = useState<TabType>("todos");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
-  const { isRead, isFavorite, toggleFavorite } = useArticleStore();
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  const handleLevelToggle = (level: string) => {
-    setSelectedLevels((prev) =>
-      prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level],
+  const isRead = useArticleStore((state) => state.isRead);
+  const isFavorite = useArticleStore((state) => state.isFavorite);
+  const addFavorite = useArticleStore((state) => state.addFavorite);
+  const removeFavorite = useArticleStore((state) => state.removeFavorite);
+  const setFavoriteArticles = useArticleStore(
+    (state) => state.setFavoriteArticles,
+  );
+  const setReadArticles = useArticleStore((state) => state.setReadArticles);
+
+  const {
+    data: articlesResponse,
+    isPending,
+    isRefetching,
+    isError,
+    refetch,
+  } = useStudentArticles(ARTICLES_QUERY);
+
+  const { data: categoriesResponse } = useStudentCategories();
+  const toggleFavoriteMutation = useToggleFavorite();
+
+  useEffect(() => {
+    if (!articlesResponse) return;
+
+    setFavoriteArticles(
+      articlesResponse.articles
+        .filter((article) => article.isBookmarked)
+        .map((article) => article.id),
     );
-  };
 
-  const handleCategoryToggle = (category: string) => {
-    const newCategories = selectedCategories.includes(category)
-      ? selectedCategories.filter((c) => c !== category)
-      : [...selectedCategories, category];
+    setReadArticles(
+      articlesResponse.articles
+        .filter(
+          (article) =>
+            article.progress.isRead ||
+            article.progress.readPercentage >= 100,
+        )
+        .map((article) => article.id),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [articlesResponse]);
 
-    setSelectedCategories(newCategories);
+  const articles = articlesResponse?.articles ?? [];
+  const categories = categoriesResponse ?? [];
 
-    if (newCategories.length > 0) {
-      setActiveTab("categorias");
-    }
-  };
+  const handleLevelToggle = useCallback((level: string) => {
+    setSelectedLevels((prev) =>
+      prev.includes(level)
+        ? prev.filter((item) => item !== level)
+        : [...prev, level],
+    );
+  }, []);
 
-  const handleOpenCategories = () => {
-    // If there are selected categories and we're already viewing them, open bottom sheet
-    // Otherwise, always open bottom sheet to select categories
+  const handleCategoryToggle = useCallback((categoryId: number) => {
+    setSelectedCategories((prev) => {
+      const exists = prev.includes(categoryId);
+      const updated = exists
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId];
+
+      if (updated.length > 0) {
+        setActiveTab("categorias");
+      }
+
+      return updated;
+    });
+  }, []);
+
+  const handleOpenCategories = useCallback(() => {
     if (activeTab === "categorias" && selectedCategories.length > 0) {
       bottomSheetRef.current?.expand();
     } else if (selectedCategories.length > 0) {
-      // Just switch to categorias tab to view filtered results
       setActiveTab("categorias");
     } else {
-      // No categories selected, open bottom sheet to select some
       bottomSheetRef.current?.expand();
     }
-  };
+  }, [activeTab, selectedCategories]);
 
-  const handleFavoriteToggle = (articleId: string) => {
-    toggleFavorite(articleId);
-  };
+  const handleFavoriteToggle = useCallback(
+    (article: StudentArticleListItem) => {
+      toggleFavoriteMutation.mutate(
+        {
+          articleId: article.id,
+          isFavorite: article.isBookmarked || isFavorite(article.id),
+        },
+        {
+          onSuccess: ({ isFavorite: nowFavorite }) => {
+            if (nowFavorite) {
+              addFavorite(article.id);
+            } else {
+              removeFavorite(article.id);
+            }
+          },
+        },
+      );
+    },
+    [toggleFavoriteMutation, addFavorite, removeFavorite, isFavorite],
+  );
 
-  const filteredArticles = () => {
-    if (activeTab === "favoritos") {
-      return articles.filter((article) => isFavorite(article.id));
-    }
-    
-    if (activeTab === "lidos") {
-      return articles.filter((article) => isRead(article.id));
-    }
-
-    return articles;
-  };
+  const handleRefresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   useEffect(() => {
     if (selectedCategories.length === 0 && activeTab === "categorias") {
@@ -189,12 +146,72 @@ export default function WikiScreen() {
     }
   }, [selectedCategories, activeTab]);
 
+  const filteredArticles = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    return articles.filter((article) => {
+      const matchesSearch = normalizedQuery
+        ? article.title.toLowerCase().includes(normalizedQuery) ||
+          article.excerpt.toLowerCase().includes(normalizedQuery)
+        : true;
+
+      const matchesLevel =
+        selectedLevels.length === 0 ||
+        selectedLevels.includes(article.difficulty.label);
+
+      const matchesCategory =
+        selectedCategories.length === 0 ||
+        (!!article.category &&
+          selectedCategories.includes(article.category.id));
+
+      if (!matchesSearch || !matchesLevel || !matchesCategory) {
+        return false;
+      }
+
+      if (activeTab === "favoritos") {
+        return article.isBookmarked || isFavorite(article.id);
+      }
+
+      if (activeTab === "lidos") {
+        return (
+          article.progress.isRead ||
+          article.progress.readPercentage >= 100 ||
+          isRead(article.id)
+        );
+      }
+
+      if (activeTab === "categorias") {
+        return selectedCategories.length === 0
+          ? true
+          : !!article.category &&
+              selectedCategories.includes(article.category.id);
+      }
+
+      return true;
+    });
+  }, [
+    articles,
+    searchQuery,
+    selectedLevels,
+    selectedCategories,
+    activeTab,
+    isFavorite,
+    isRead,
+  ]);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Container className="flex-1 bg-gray-50">
-        <ScrollView 
-          className="flex-1" 
+        <ScrollView
+          className="flex-1"
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={handleRefresh}
+              colors={["#155DFC"]}
+            />
+          }
         >
           <View className="px-6 pt-4 pb-2">
             <WikiHeader />
@@ -206,20 +223,31 @@ export default function WikiScreen() {
               selectedCategoriesCount={selectedCategories.length}
             />
 
-            <WikiSearchBar
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
+            <WikiSearchBar value={searchQuery} onChangeText={setSearchQuery} />
           </View>
 
-          <WikiArticlesList
-            articles={filteredArticles()}
-            onFavoriteToggle={handleFavoriteToggle}
-          />
+          {isPending ? (
+            <View className="py-16 items-center justify-center">
+              <ActivityIndicator size="large" color="#155DFC" />
+            </View>
+          ) : isError ? (
+            <View className="py-16 px-6">
+              <Text className="text-center text-base text-red-500">
+                Não foi possível carregar os artigos. Tente novamente em alguns
+                instantes.
+              </Text>
+            </View>
+          ) : (
+            <WikiArticlesList
+              articles={filteredArticles}
+              onFavoriteToggle={handleFavoriteToggle}
+            />
+          )}
         </ScrollView>
 
         <CategoryFilterBottomSheet
           ref={bottomSheetRef}
+          categories={categories}
           selectedLevels={selectedLevels}
           onLevelToggle={handleLevelToggle}
           selectedCategories={selectedCategories}

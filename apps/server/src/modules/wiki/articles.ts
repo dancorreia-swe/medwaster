@@ -345,8 +345,11 @@ export const userArticles = new Elysia({
   })
   .get(
     "/",
-    async ({ query }) => {
-      const result = await ArticleService.listPublishedArticles(query);
+    async ({ query, user }) => {
+      const result = await ArticleService.listPublishedArticles(
+        query,
+        user.id,
+      );
       return success(result);
     },
     {

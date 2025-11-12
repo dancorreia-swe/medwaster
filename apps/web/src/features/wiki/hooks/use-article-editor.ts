@@ -34,12 +34,14 @@ export function useArticleEditor({
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [editor, setEditor] = useState<BlockNoteEditor | null>(null);
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
+  const [icon, setIcon] = useState<string | undefined>();
 
   // Track initial values from server to detect actual changes
   const serverState = useRef({
     title: "",
     categoryId: undefined as number | undefined,
     selectedTags: [] as number[],
+    icon: undefined as string | undefined,
   });
 
   // Initialize state from article data once per article
@@ -50,12 +52,14 @@ export function useArticleEditor({
     const newStatus = article.status === "published" ? "published" : "draft";
     const newCategoryId = article.category?.id;
     const newLastSavedAt = article.updatedAt ? new Date(article.updatedAt) : null;
+    const newIcon = article.icon;
 
     setTitle(newTitle);
     setStatus(newStatus);
     setCategoryId(newCategoryId);
     setLastSavedAt(newLastSavedAt);
     setHasPendingChanges(false);
+    setIcon(newIcon);
 
     // Extract tag IDs from article
     const newSelectedTags = article.tags?.map((tag: any) => tag.id) ?? [];
@@ -66,6 +70,7 @@ export function useArticleEditor({
       title: newTitle,
       categoryId: newCategoryId,
       selectedTags: newSelectedTags,
+      icon: newIcon,
     };
   }, [articleId, article]);
 
@@ -99,6 +104,7 @@ export function useArticleEditor({
             tagIds: selectedTags,
             status: publish ? "published" : status,
             metaDescription: undefined,
+            icon,
           },
         } as any);
 
@@ -112,6 +118,7 @@ export function useArticleEditor({
             title: title.trim(),
             categoryId,
             selectedTags,
+            icon,
           };
           setHasPendingChanges(false);
         }
@@ -126,7 +133,7 @@ export function useArticleEditor({
         return false;
       }
     },
-    [title, editor, articleId, categoryId, selectedTags, status, updateArticle, onPublish],
+    [title, editor, articleId, categoryId, selectedTags, status, updateArticle, onPublish, icon],
   );
 
   const debouncedAutoSave = useDebouncedCallback(() => {
@@ -140,9 +147,10 @@ export function useArticleEditor({
     return (
       title !== serverState.current.title ||
       categoryId !== serverState.current.categoryId ||
-      !arraysEqual(selectedTags, serverState.current.selectedTags)
+      !arraysEqual(selectedTags, serverState.current.selectedTags) ||
+      icon !== serverState.current.icon
     );
-  }, [title, categoryId, selectedTags]);
+  }, [title, categoryId, selectedTags, icon]);
 
   // Auto-save on changes (only if different from server state)
   useEffect(() => {
@@ -156,7 +164,7 @@ export function useArticleEditor({
 
     debouncedAutoSave();
     return debouncedAutoSave.cancel;
-  }, [title, categoryId, selectedTags, hasChanges, debouncedAutoSave]);
+  }, [title, categoryId, selectedTags, icon, hasChanges, debouncedAutoSave]);
 
   const handleEditorChange = useCallback(() => {
     setHasPendingChanges(true);
@@ -209,5 +217,7 @@ export function useArticleEditor({
     handleUploadFile,
     hasPendingChanges,
     canPublish: title.trim().length >= MIN_TITLE_LENGTH && Boolean(categoryId),
+    icon,
+    setIcon,
   };
 }

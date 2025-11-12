@@ -45,6 +45,7 @@ type ArticleStatus = "draft" | "published" | "archived";
 export interface ArticleCardArticle {
   id: number;
   title?: string | null;
+  icon?: string | null;
   status?: ArticleStatus | null;
   excerpt?: string | null;
   readingTimeMinutes?: number | null;

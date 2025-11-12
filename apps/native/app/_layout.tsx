@@ -9,11 +9,12 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
 import { NAV_THEME } from "@/lib/constants";
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useColorScheme } from "@/lib/use-color-scheme";
 import { Platform } from "react-native";
 import { setAndroidNavigationBar } from "@/lib/android-navigation-bar";
 import { SessionProvider } from "@/lib/auth-context";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const LIGHT_THEME: Theme = {
   ...DefaultTheme,
@@ -32,6 +33,7 @@ export default function RootLayout() {
   const hasMounted = useRef(false);
   const { colorScheme, isDarkColorScheme } = useColorScheme();
   const [isColorSchemeLoaded, setIsColorSchemeLoaded] = React.useState(false);
+  const [queryClient] = useState(() => new QueryClient());
 
   useIsomorphicLayoutEffect(() => {
     if (hasMounted.current) {
@@ -53,16 +55,18 @@ export default function RootLayout() {
     <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
       <StatusBar style={isDarkColorScheme ? "light" : "dark"} />
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SessionProvider>
-          <Stack>
-            <Stack.Screen name="(app)" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="modal"
-              options={{ title: "Modal", presentation: "modal" }}
-            />
-          </Stack>
-        </SessionProvider>
+        <QueryClientProvider client={queryClient}>
+          <SessionProvider>
+            <Stack>
+              <Stack.Screen name="(app)" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="modal"
+                options={{ title: "Modal", presentation: "modal" }}
+              />
+            </Stack>
+          </SessionProvider>
+        </QueryClientProvider>
       </GestureHandlerRootView>
     </ThemeProvider>
   );

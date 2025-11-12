@@ -45,6 +45,7 @@ export const wikiArticles = pgTable(
     id: serial("id").primaryKey(),
     title: text("title").notNull(),
     slug: text("slug").notNull().unique(),
+    icon: text("icon"), // Emoji or icon identifier
     content: jsonb("content").notNull(), // BlockNote JSON content
     contentText: text("content_text"), // Plain text for search indexing
     excerpt: text("excerpt"), // Manual or auto-generated summary

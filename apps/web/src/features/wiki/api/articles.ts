@@ -69,6 +69,7 @@ export type ArticleListItem = {
   status: "draft" | "published" | "archived";
   excerpt?: string;
   readingTimeMinutes?: number;
+  icon?: string;
   category?: {
     id: number;
     name: string;

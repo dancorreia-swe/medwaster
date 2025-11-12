@@ -1,164 +1,69 @@
 import { Container } from "@/components/container";
-import { Text, View, TouchableOpacity, Animated, ScrollView } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  ChevronLeft,
-  Heart,
   BookOpenCheck,
+  ChevronLeft,
   Headphones,
+  Heart,
   Pause,
-  Square,
   Play,
+  Square,
 } from "lucide-react-native";
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMarkdown } from "react-native-marked";
 import * as Speech from "expo-speech";
 import { useArticleStore } from "@/lib/stores/article-store";
+import {
+  useStudentArticleDetail,
+  useToggleFavorite,
+} from "@/features/wiki/hooks";
+import { markArticleAsRead } from "@/features/wiki/api";
 
-const articlesData = {
-  "1": {
-    title: "Descarte de Perfurocortantes",
-    emoji: "💉",
-    content: `# Descarte de Resíduos Perfurocortantes
-
-Os resíduos perfurocortantes são materiais que podem causar cortes ou perfurações e representam um risco significativo de transmissão de doenças infecciosas.
-
-## Classificação
-
-Os materiais perfurocortantes incluem:
-
-- Agulhas hipodérmicas
-- Lâminas de bisturi
-- Lancetas
-- Pipetas de vidro
-- Lâminas e lamínulas de microscopia
-- Ampolas de vidro
-
-## Procedimento de Descarte
-
-### 1. Coletores Apropriados
-
-> **Importante:** Utilize sempre coletores rígidos, impermeáveis e resistentes a perfurações, devidamente identificados com o símbolo de risco biológico.
-
-Os coletores devem atender aos seguintes critérios:
-
-1. **Material:** Plástico rígido resistente ou papelão especial
-2. **Capacidade:** Nunca ultrapassar 2/3 da capacidade total
-3. **Identificação:** Símbolo de risco biológico visível
-4. **Cor:** Amarelo ou branco leitoso conforme norma
-
-### 2. Técnica de Descarte
-
-**NUNCA** reencape agulhas! O descarte deve ser feito da seguinte forma:
-
-- Descarte imediatamente após o uso
-- Introduza a agulha diretamente no coletor
-- Não force o material para dentro do recipiente
-- Mantenha o coletor próximo ao local de uso
-
-### 3. Procedimento em Caso de Acidentes
-
-Se ocorrer perfuração acidental:
-
-1. Lave imediatamente a área com água e sabão
-2. Notifique seu supervisor imediatamente
-3. Procure atendimento médico
-4. Preencha o relatório de acidente de trabalho
-
-## Legislação
-
-A RDC nº 222/2018 da ANVISA estabelece as diretrizes para o gerenciamento de resíduos de serviços de saúde.
-
-## Responsabilidades
-
-Todo profissional de saúde deve:
-
-- Conhecer os protocolos de descarte
-- Utilizar EPIs adequados
-- Relatar não conformidades
-- Participar de treinamentos regulares`,
-  },
-  "2": {
-    title: "Classificação de Resíduos",
-    emoji: "📋",
-    content: `# Classificação de Resíduos de Serviços de Saúde
-
-A classificação adequada dos resíduos de serviços de saúde é fundamental para garantir o manejo correto e a segurança de todos os envolvidos no processo.
-
-## Grupos de Resíduos
-
-De acordo com a RDC nº 222/2018 da ANVISA, os resíduos são classificados em grupos:
-
-### Grupo A - Resíduos Infectantes
-
-Resíduos com possível presença de agentes biológicos que podem apresentar risco de infecção:
-
-- **A1:** Culturas e estoques de microrganismos
-- **A2:** Carcaças, peças anatômicas, vísceras
-- **A3:** Peças anatômicas do ser humano
-- **A4:** Kits de linhas arteriais, filtros de ar
-- **A5:** Órgãos, tecidos e fluidos orgânicos com suspeita de príons
-
-### Grupo B - Resíduos Químicos
-
-Resíduos contendo substâncias químicas que podem apresentar risco à saúde ou ao meio ambiente:
-
-- Produtos farmacêuticos
-- Resíduos de saneantes
-- Desinfetantes
-- Resíduos contendo metais pesados
-- Reagentes para laboratório
-
-### Grupo C - Resíduos Radioativos
-
-Quaisquer materiais resultantes de atividades humanas que contenham radionuclídeos em quantidades superiores aos limites de eliminação.
-
-### Grupo D - Resíduos Comuns
-
-Resíduos que não apresentam risco biológico, químico ou radiológico à saúde ou ao meio ambiente:
-
-- Papel e papelão
-- Resíduos de varrição
-- Resíduos de podas de jardim
-- Restos alimentares
-
-### Grupo E - Perfurocortantes
-
-Objetos e instrumentos contendo cantos, bordas, pontos ou protuberâncias rígidas e agudas capazes de cortar ou perfurar.
-
-## Identificação Visual
-
-Cada grupo possui uma cor específica para identificação:
-
-- **Grupo A:** Branco
-- **Grupo B:** Laranja
-- **Grupo D:** Preto, azul ou verde (conforme segregação)
-- **Grupo E:** Amarelo ou branco leitoso
-
-## Importância da Classificação Correta
-
-A classificação adequada permite:
-
-- Segregação correta na origem
-- Acondicionamento apropriado
-- Transporte seguro
-- Destinação final adequada
-- Redução de custos operacionais
-- Minimização de riscos ambientais e à saúde`,
-  },
-};
+const FALLBACK_CATEGORY_COLOR = "#155DFC";
 
 export default function WikiArticle() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id?: string }>();
   const router = useRouter();
-  const article = articlesData[id as keyof typeof articlesData];
-  
-  const { isRead, markAsRead, markAsUnread, isFavorite, toggleFavorite } = useArticleStore();
-  const articleIsRead = isRead(id);
-  const articleIsFavorite = isFavorite(id);
-  
+  const articleId = Number(id);
+
+  const isRead = useArticleStore((state) => state.isRead);
+  const setRead = useArticleStore((state) => state.markAsRead);
+  const unsetRead = useArticleStore((state) => state.markAsUnread);
+  const isFavorite = useArticleStore((state) => state.isFavorite);
+  const addFavorite = useArticleStore((state) => state.addFavorite);
+  const removeFavorite = useArticleStore((state) => state.removeFavorite);
+
+  const {
+    data,
+    isPending,
+    isError,
+    refetch: refetchArticle,
+  } = useStudentArticleDetail(articleId);
+  const toggleFavoriteMutation = useToggleFavorite();
+
+  const article = data?.article;
+  const articleProgress = data?.progress;
+  const articleDifficulty = data?.difficulty;
+  const favoriteFromServer = data?.isBookmarked ?? false;
+
+  const articleIsRead =
+    isRead(articleId) ||
+    (articleProgress?.isRead ?? (articleProgress?.readPercentage ?? 0) >= 100);
+  const articleIsFavorite =
+    isFavorite(articleId) || favoriteFromServer || false;
+
   const [isReading, setIsReading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [hasReachedEnd, setHasReachedEnd] = useState(false);
+  const [canScroll, setCanScroll] = useState(true);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
@@ -166,27 +71,80 @@ export default function WikiArticle() {
   const pauseButtonScale = useRef(new Animated.Value(0)).current;
   const pauseButtonTranslateY = useRef(new Animated.Value(100)).current;
   const isAnimating = useRef(false);
+  const contentHeight = useRef(0);
+  const scrollViewHeight = useRef(0);
+  const autoMarkAsReadTriggered = useRef(false);
 
-  const handleAudioReading = async () => {
+  useEffect(() => {
+    if (!articleProgress) return;
+    if (
+      articleProgress.isRead ||
+      (articleProgress.readPercentage ?? 0) >= 100
+    ) {
+      setRead(articleId);
+    }
+  }, [articleProgress, articleId, setRead]);
+
+  // Reset auto-mark trigger when article changes
+  useEffect(() => {
+    autoMarkAsReadTriggered.current = false;
+    setHasReachedEnd(false);
+    setCanScroll(true);
+    fabTranslateY.setValue(0);
+  }, [articleId, fabTranslateY]);
+
+  const contentText = useMemo(
+    () => article?.contentText ?? "Conteúdo indisponível no momento.",
+    [article?.contentText],
+  );
+
+  const handleMarkAsRead = useCallback(async () => {
+    if (!article || !Number.isFinite(articleId)) return;
+    try {
+      await markArticleAsRead(articleId);
+      setRead(articleId);
+    } catch (error) {
+      console.error("Erro ao marcar artigo como lido:", error);
+      autoMarkAsReadTriggered.current = false;
+    }
+  }, [article, articleId, setRead]);
+
+  // Auto-mark as read when user reaches the end or content is too short
+  useEffect(() => {
+    if (
+      !articleIsRead &&
+      hasReachedEnd &&
+      !autoMarkAsReadTriggered.current &&
+      article &&
+      Number.isFinite(articleId)
+    ) {
+      autoMarkAsReadTriggered.current = true;
+      // Use void to explicitly handle the promise
+      void handleMarkAsRead().catch((err) => {
+        console.error("Failed to auto-mark article as read:", err);
+        autoMarkAsReadTriggered.current = false;
+      });
+    }
+  }, [hasReachedEnd, articleIsRead, article, articleId, handleMarkAsRead]);
+
+  const handleAudioReading = useCallback(async () => {
+    if (!article) return;
+
     if (isReading) {
-      // Stop reading completely
       await Speech.stop();
       setIsReading(false);
       setIsPaused(false);
     } else {
-      // Start reading - clean markdown and read article
-      const textToRead = article.content
-        .replace(/[#*>`_\-\[\]()]/g, "") // Remove markdown syntax
-        .replace(/\n\n+/g, ". ") // Replace multiple newlines with period
-        .replace(/\n/g, " "); // Replace single newlines with space
-      
+      const textToRead = contentText.replace(/\s+/g, " ").trim();
+      if (textToRead.length === 0) return;
+
       setIsReading(true);
       setIsPaused(false);
-      
+
       Speech.speak(`${article.title}. ${textToRead}`, {
-        language: "pt-BR", // Brazilian Portuguese
+        language: "pt-BR",
         pitch: 1.0,
-        rate: 0.9, // Slightly slower for better comprehension
+        rate: 0.9,
         onDone: () => {
           setIsReading(false);
           setIsPaused(false);
@@ -201,9 +159,9 @@ export default function WikiArticle() {
         },
       });
     }
-  };
+  }, [article, contentText, isReading]);
 
-  const handlePauseResume = async () => {
+  const handlePauseResume = useCallback(async () => {
     if (isPaused) {
       await Speech.resume();
       setIsPaused(false);
@@ -211,11 +169,10 @@ export default function WikiArticle() {
       await Speech.pause();
       setIsPaused(true);
     }
-  };
+  }, [isPaused]);
 
   useEffect(() => {
     if (isReading) {
-      // Animate pause button in
       Animated.parallel([
         Animated.spring(pauseButtonScale, {
           toValue: 1,
@@ -231,7 +188,6 @@ export default function WikiArticle() {
         }),
       ]).start();
     } else {
-      // Animate pause button out
       Animated.parallel([
         Animated.spring(pauseButtonScale, {
           toValue: 0,
@@ -247,46 +203,119 @@ export default function WikiArticle() {
         }),
       ]).start();
     }
-  }, [isReading]);
+  }, [isReading, pauseButtonScale, pauseButtonTranslateY]);
 
-  const markdownElements = useMarkdown(article?.content || "", {
+  const markdownElements = useMarkdown(contentText, {
     styles: {
       text: {
         color: "#111827",
-        lineHeight: 24,
+        fontSize: 16,
+        lineHeight: 26,
       },
       paragraph: {
-        marginBottom: 4,
+        marginBottom: 16,
+        fontSize: 16,
+        lineHeight: 26,
+        color: "#111827",
       },
       h1: {
-        fontWeight: "bold",
-        marginTop: 8,
-        marginBottom: 12,
+        fontSize: 28,
+        fontWeight: "700",
+        color: "#111827",
+        marginTop: 24,
+        marginBottom: 16,
+        lineHeight: 34,
       },
       h2: {
-        fontWeight: "bold",
-        marginTop: 8,
-        marginBottom: 10,
+        fontSize: 24,
+        fontWeight: "700",
+        color: "#111827",
+        marginTop: 20,
+        marginBottom: 12,
+        lineHeight: 30,
       },
       h3: {
+        fontSize: 20,
         fontWeight: "600",
-        marginTop: 8,
+        color: "#111827",
+        marginTop: 16,
+        marginBottom: 10,
+        lineHeight: 26,
+      },
+      h4: {
+        fontSize: 18,
+        fontWeight: "600",
+        color: "#111827",
+        marginTop: 14,
         marginBottom: 8,
+        lineHeight: 24,
       },
       list: {
+        marginBottom: 16,
+        marginLeft: 8,
+      },
+      listItem: {
         marginBottom: 8,
+        fontSize: 16,
+        lineHeight: 26,
+        color: "#111827",
+      },
+      bullet: {
+        color: "#155DFC",
+        fontSize: 20,
       },
       blockquote: {
-        borderLeftWidth: 3,
-        borderLeftColor: "#3B82F6",
+        borderLeftWidth: 4,
+        borderLeftColor: "#155DFC",
         paddingLeft: 16,
-        marginVertical: 12,
-        backgroundColor: "#F0F7FF",
+        marginVertical: 16,
+        backgroundColor: "#EFF6FF",
         paddingVertical: 12,
+        paddingRight: 12,
         borderRadius: 8,
       },
+      blockquoteText: {
+        fontSize: 16,
+        lineHeight: 26,
+        color: "#1e40af",
+        fontStyle: "italic",
+      },
+      code: {
+        backgroundColor: "#F3F4F6",
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        fontFamily: "monospace",
+        fontSize: 14,
+        color: "#DC2626",
+      },
+      codeBlock: {
+        backgroundColor: "#1F2937",
+        padding: 16,
+        borderRadius: 8,
+        marginVertical: 16,
+      },
+      codeBlockText: {
+        fontFamily: "monospace",
+        fontSize: 14,
+        lineHeight: 20,
+        color: "#F9FAFB",
+      },
       strong: {
-        fontWeight: "bold",
+        fontWeight: "700",
+        color: "#111827",
+      },
+      em: {
+        fontStyle: "italic",
+      },
+      link: {
+        color: "#155DFC",
+        textDecorationLine: "underline",
+      },
+      hr: {
+        backgroundColor: "#E5E7EB",
+        height: 1,
+        marginVertical: 24,
       },
     },
   });
@@ -297,12 +326,21 @@ export default function WikiArticle() {
       useNativeDriver: true,
       listener: (event: any) => {
         const currentScrollY = event.nativeEvent.contentOffset.y;
+        const layoutHeight = event.nativeEvent.layoutMeasurement.height;
+        const contentSize = event.nativeEvent.contentSize.height;
         const diff = currentScrollY - lastScrollY.current;
 
-        if (isAnimating.current) return;
+        // Check if user has scrolled to the bottom (within 50px threshold)
+        const isAtBottom = layoutHeight + currentScrollY >= contentSize - 50;
+
+        if (isAtBottom && !hasReachedEnd) {
+          setHasReachedEnd(true);
+        }
+
+        // Only hide/show FAB if content is scrollable
+        if (!canScroll || isAnimating.current) return;
 
         if (diff > 10 && currentScrollY > 100) {
-          // Scrolling down - hide FAB
           isAnimating.current = true;
           Animated.timing(fabTranslateY, {
             toValue: 150,
@@ -312,7 +350,6 @@ export default function WikiArticle() {
             isAnimating.current = false;
           });
         } else if (diff < -10) {
-          // Scrolling up - show FAB
           isAnimating.current = true;
           Animated.timing(fabTranslateY, {
             toValue: 0,
@@ -328,58 +365,114 @@ export default function WikiArticle() {
     },
   );
 
-  const headerComponent = () => (
-    <View>
-      <View className="px-6 pt-4 pb-6 bg-white border-b border-gray-100">
-        {/* Navigation Row */}
-        <View className="flex-row items-center justify-between mb-6 mt-1">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center"
-            accessibilityRole="button"
-            accessibilityLabel="Voltar"
-          >
-            <ChevronLeft size={24} color="#364153" strokeWidth={2} />
-          </TouchableOpacity>
+  const handleContentSizeChange = useCallback(
+    (width: number, height: number) => {
+      contentHeight.current = height;
 
-          <TouchableOpacity
-            onPress={() => toggleFavorite(id)}
-            className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center"
-            accessibilityRole="button"
-            accessibilityLabel={
-              articleIsFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
-            }
-          >
-            <Heart
-              size={22}
-              color={articleIsFavorite ? "#ef4444" : "#6B7280"}
-              fill={articleIsFavorite ? "#ef4444" : "none"}
-              strokeWidth={2}
-            />
-          </TouchableOpacity>
-        </View>
+      // If content is shorter than viewport, mark as reached end automatically
+      if (scrollViewHeight.current > 0) {
+        const isScrollable = height > scrollViewHeight.current;
+        setCanScroll(isScrollable);
 
-        {/* Title */}
-        <View className="flex-row items-center gap-4">
-          <View className="w-16 h-16 bg-blue-50 rounded-2xl items-center justify-center">
-            <Text className="text-[32px]">{article.emoji}</Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-2xl font-bold text-gray-900 leading-tight">
-              {article.title}
-            </Text>
-          </View>
-        </View>
-      </View>
-      {/* Content wrapper with padding */}
-      <View style={{ paddingHorizontal: 24, paddingTop: 24 }} />
-    </View>
+        if (!isScrollable) {
+          setHasReachedEnd(true);
+          // Ensure FAB is visible for non-scrollable content
+          fabTranslateY.setValue(0);
+        }
+      }
+    },
+    [fabTranslateY],
   );
 
-  if (!article) {
+  const handleLayout = useCallback(
+    (event: any) => {
+      scrollViewHeight.current = event.nativeEvent.layout.height;
+
+      // Check again if content is too short
+      if (contentHeight.current > 0) {
+        const isScrollable = contentHeight.current > scrollViewHeight.current;
+        setCanScroll(isScrollable);
+
+        if (!isScrollable) {
+          setHasReachedEnd(true);
+          // Ensure FAB is visible for non-scrollable content
+          fabTranslateY.setValue(0);
+        }
+      }
+    },
+    [fabTranslateY],
+  );
+
+  const handleFavoriteToggle = useCallback(() => {
+    if (!article) return;
+
+    toggleFavoriteMutation.mutate(
+      {
+        articleId,
+        isFavorite: articleIsFavorite,
+      },
+      {
+        onSuccess: ({ isFavorite: nowFavorite }) => {
+          if (nowFavorite) {
+            addFavorite(articleId);
+          } else {
+            removeFavorite(articleId);
+          }
+        },
+      },
+    );
+  }, [
+    article,
+    toggleFavoriteMutation,
+    articleId,
+    articleIsFavorite,
+    addFavorite,
+    removeFavorite,
+  ]);
+
+  const handleMarkAsUnread = useCallback(() => {
+    unsetRead(articleId);
+  }, [articleId, unsetRead]);
+
+  const categoryName = article?.category?.name;
+  const categoryColor = article?.category?.color ?? FALLBACK_CATEGORY_COLOR;
+  const categoryInitial = categoryName
+    ? categoryName.charAt(0).toUpperCase()
+    : "W";
+  const readingTimeMinutes = article?.readingTimeMinutes
+    ? Math.max(1, Math.round(article.readingTimeMinutes))
+    : null;
+
+  if (!Number.isFinite(articleId)) {
     return (
       <Container className="flex-1 bg-gray-50 items-center justify-center">
-        <Text className="text-gray-600 text-base">Artigo não encontrado</Text>
+        <Text className="text-gray-600 text-base">
+          Artigo inválido. Volte e selecione novamente.
+        </Text>
+      </Container>
+    );
+  }
+
+  if (isPending) {
+    return (
+      <Container className="flex-1 bg-gray-50 items-center justify-center">
+        <ActivityIndicator size="large" color={FALLBACK_CATEGORY_COLOR} />
+      </Container>
+    );
+  }
+
+  if (isError || !article) {
+    return (
+      <Container className="flex-1 bg-gray-50 items-center justify-center gap-4">
+        <Text className="text-gray-600 text-base">
+          Não foi possível carregar o artigo.
+        </Text>
+        <TouchableOpacity
+          onPress={() => refetchArticle()}
+          className="px-4 py-2 rounded-full bg-primary"
+        >
+          <Text className="text-white font-semibold">Tentar novamente</Text>
+        </TouchableOpacity>
       </Container>
     );
   }
@@ -390,13 +483,13 @@ export default function WikiArticle() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
+        onContentSizeChange={handleContentSizeChange}
+        onLayout={handleLayout}
         contentContainerStyle={{
           paddingBottom: 100,
         }}
       >
-        {/* Header */}
         <View className="px-6 pt-4 pb-6 bg-white border-b border-gray-100">
-          {/* Navigation Row */}
           <View className="flex-row items-center justify-between mb-6 mt-1">
             <TouchableOpacity
               onPress={() => router.back()}
@@ -408,11 +501,13 @@ export default function WikiArticle() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => toggleFavorite(id)}
+              onPress={handleFavoriteToggle}
               className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center"
               accessibilityRole="button"
               accessibilityLabel={
-                articleIsFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
+                articleIsFavorite
+                  ? "Remover dos favoritos"
+                  : "Adicionar aos favoritos"
               }
             >
               <Heart
@@ -424,22 +519,75 @@ export default function WikiArticle() {
             </TouchableOpacity>
           </View>
 
-          {/* Title */}
           <View className="flex-row items-center gap-4">
-            <View className="w-16 h-16 bg-blue-50 rounded-2xl items-center justify-center">
-              <Text className="text-[32px]">{article.emoji}</Text>
+            <View
+              className="w-16 h-16 rounded-2xl items-center justify-center border"
+              style={{
+                backgroundColor: "#F9FAFB",
+                borderColor: categoryColor,
+              }}
+            >
+              {article.icon ? (
+                <Text className="text-3xl">{article.icon}</Text>
+              ) : (
+                <Text
+                  className="text-2xl font-semibold"
+                  style={{ color: categoryColor }}
+                >
+                  {categoryInitial}
+                </Text>
+              )}
             </View>
             <View className="flex-1">
               <Text className="text-2xl font-bold text-gray-900 leading-tight">
                 {article.title}
               </Text>
+              <View className="flex-row flex-wrap gap-2 mt-3">
+                {articleDifficulty ? (
+                  <View
+                    className="px-3 py-1 rounded-full"
+                    style={{ backgroundColor: `${articleDifficulty.color}20` }}
+                  >
+                    <Text
+                      className="text-xs font-semibold text-gray-900 uppercase"
+                      style={{ color: articleDifficulty.color }}
+                    >
+                      {articleDifficulty.label}
+                    </Text>
+                  </View>
+                ) : null}
+                {readingTimeMinutes ? (
+                  <View className="px-3 py-1 rounded-full bg-gray-100">
+                    <Text className="text-xs font-semibold text-gray-600 uppercase">
+                      {readingTimeMinutes} min
+                    </Text>
+                  </View>
+                ) : null}
+                {categoryName ? (
+                  <View className="px-3 py-1 rounded-full bg-blue-50">
+                    <Text className="text-xs font-semibold text-blue-700 uppercase">
+                      {categoryName}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
           </View>
         </View>
 
-        {/* Markdown Content */}
         <View className="px-6 pt-6">
           {markdownElements}
+
+          {hasReachedEnd && articleIsRead && (
+            <View className="mt-8 mb-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+              <View className="flex-row items-center justify-center gap-2">
+                <BookOpenCheck size={20} color="#16a34a" strokeWidth={2} />
+                <Text className="text-green-700 font-semibold text-center">
+                  Artigo concluído!
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       </Animated.ScrollView>
 
@@ -448,32 +596,39 @@ export default function WikiArticle() {
           transform: [{ translateY: fabTranslateY }],
           position: "absolute",
           bottom: 32,
-          left: "50%",
-          marginLeft: -68,
+          alignSelf: "center",
         }}
         className="bg-primary rounded-full shadow-2xl"
       >
-        <View className="flex-row items-center px-2 py-2.5">
-          {/* Stop Button */}
+        <View className="flex-row items-center px-3 py-2.5 gap-2">
           <TouchableOpacity
             onPress={handleAudioReading}
             className={`w-11 h-11 rounded-full items-center justify-center ${
               isReading ? "bg-red-500" : ""
             }`}
             accessibilityRole="button"
-            accessibilityLabel={isReading ? "Parar leitura em áudio" : "Iniciar leitura em áudio"}
+            accessibilityLabel={
+              isReading ? "Parar leitura em áudio" : "Iniciar leitura em áudio"
+            }
           >
             {isReading ? (
-              <Square size={18} color="#FFFFFF" strokeWidth={2} fill="#FFFFFF" />
+              <Square
+                size={18}
+                color="#FFFFFF"
+                strokeWidth={2}
+                fill="#FFFFFF"
+              />
             ) : (
               <Headphones size={20} color="#FFFFFF" strokeWidth={2} />
             )}
           </TouchableOpacity>
 
-          <View className="w-[1px] h-8 bg-white/20 mx-2" />
+          <View className="w-[1px] h-8 bg-white/20" />
 
           <TouchableOpacity
-            onPress={() => articleIsRead ? markAsUnread(id) : markAsRead(id)}
+            onPress={() =>
+              articleIsRead ? handleMarkAsUnread() : handleMarkAsRead()
+            }
             className={`w-11 h-11 rounded-full items-center justify-center ${
               articleIsRead ? "bg-green-500/70" : "bg-white/20"
             }`}
@@ -487,7 +642,6 @@ export default function WikiArticle() {
         </View>
       </Animated.View>
 
-      {/* Pause/Play Button - Separate Floating Button */}
       <Animated.View
         style={{
           transform: [
@@ -497,10 +651,9 @@ export default function WikiArticle() {
           opacity: pauseButtonScale,
           position: "absolute",
           bottom: 35,
-          left: "50%",
-          marginLeft: -148,
+          left: 24,
         }}
-        className="bg-primary rounded-full shadow-2xl"
+        className="bg-blue-600 rounded-full shadow-2xl"
         pointerEvents={isReading ? "auto" : "none"}
       >
         <TouchableOpacity

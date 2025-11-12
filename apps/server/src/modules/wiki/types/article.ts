@@ -8,6 +8,7 @@ export const createArticleSchema = t.Object({
   featuredImageUrl: t.Optional(t.String()),
   categoryId: t.Optional(t.Number()),
   tagIds: t.Optional(t.Array(t.Number())),
+  icon: t.Optional(t.String()),
   status: t.Optional(
     t.Union([
       t.Literal("draft"),
@@ -26,6 +27,7 @@ export const updateArticleSchema = t.Object({
   featuredImageUrl: t.Optional(t.String()),
   categoryId: t.Optional(t.Number()),
   tagIds: t.Optional(t.Array(t.Number())),
+  icon: t.Optional(t.String()),
   status: t.Optional(
     t.Union([
       t.Literal("draft"),
@@ -89,6 +91,8 @@ export const articleListItemSchema = t.Object({
   status: t.String(),
   readingTimeMinutes: t.Number(),
   viewCount: t.Number(),
+  featuredImageUrl: t.Union([t.String(), t.Null()]),
+  icon: t.Union([t.String(), t.Null()]),
   category: t.Union([
     t.Object({
       id: t.Number(),
@@ -123,6 +127,7 @@ export const articleDetailSchema = t.Object({
   excerpt: t.String(),
   metaDescription: t.Union([t.String(), t.Null()]),
   featuredImageUrl: t.Union([t.String(), t.Null()]),
+  icon: t.Union([t.String(), t.Null()]),
   status: t.String(),
   readingTimeMinutes: t.Number(),
   viewCount: t.Number(),
@@ -178,9 +183,68 @@ export const articleDetailSchema = t.Object({
   lastViewedAt: t.Union([t.String(), t.Null()]),
 });
 
+export const articleDifficultyValues = ["basic", "intermediate", "advanced"] as const;
+
+export const articleDifficultySchema = t.Union(
+  articleDifficultyValues.map((difficulty) => t.Literal(difficulty)),
+);
+
+export const studentArticleDifficultySchema = t.Object({
+  value: articleDifficultySchema,
+  label: t.String(),
+  color: t.String(),
+});
+
+export const studentArticleProgressSchema = t.Object({
+  isRead: t.Boolean(),
+  readPercentage: t.Number(),
+  timeSpentSeconds: t.Number(),
+  lastReadAt: t.Union([t.String(), t.Null()]),
+});
+
+export const studentArticleListItemSchema = t.Object({
+  id: t.Number(),
+  title: t.String(),
+  slug: t.String(),
+  icon: t.Union([t.String(), t.Null()]),
+  excerpt: t.String(),
+  readingTimeMinutes: t.Number(),
+  featuredImageUrl: t.Union([t.String(), t.Null()]),
+  category: t.Union([
+    t.Object({
+      id: t.Number(),
+      name: t.String(),
+      color: t.String(),
+    }),
+    t.Null(),
+  ]),
+  tags: t.Array(
+    t.Object({
+      id: t.Number(),
+      name: t.String(),
+      color: t.String(),
+    }),
+  ),
+  difficulty: studentArticleDifficultySchema,
+  isBookmarked: t.Boolean(),
+  progress: studentArticleProgressSchema,
+});
+
+export const studentArticleDetailSchema = t.Object({
+  article: articleDetailSchema,
+  difficulty: studentArticleDifficultySchema,
+  isBookmarked: t.Boolean(),
+  progress: studentArticleProgressSchema,
+});
+
 export type CreateArticleData = typeof createArticleSchema.static;
 export type UpdateArticleData = typeof updateArticleSchema.static;
 export type ArticleListQuery = typeof articleListQuerySchema.static;
 export type BulkOperationData = typeof bulkOperationSchema.static;
 export type ArticleListItem = typeof articleListItemSchema.static;
 export type ArticleDetail = typeof articleDetailSchema.static;
+export type ArticleDifficultyValue = (typeof articleDifficultyValues)[number];
+export type StudentArticleDifficulty = typeof studentArticleDifficultySchema.static;
+export type StudentArticleProgress = typeof studentArticleProgressSchema.static;
+export type StudentArticleListItem = typeof studentArticleListItemSchema.static;
+export type StudentArticleDetail = typeof studentArticleDetailSchema.static;

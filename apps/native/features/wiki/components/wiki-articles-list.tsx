@@ -1,42 +1,44 @@
-import { View } from "react-native";
+import { View, Text } from "react-native";
 import { ArticleCard } from "./article-card";
 import { useRouter } from "expo-router";
-import { useArticleStore } from "@/lib/stores/article-store";
-
-export interface Article {
-  id: string;
-  emoji: string;
-  title: string;
-  description: string;
-  level: string;
-  duration: string;
-}
+import type { StudentArticleListItem } from "@server/modules/wiki/types/article";
 
 interface WikiArticlesListProps {
-  articles: Article[];
-  favoriteIds?: string[];
-  onFavoriteToggle: (articleId: string) => void;
+  articles: StudentArticleListItem[];
+  onFavoriteToggle: (article: StudentArticleListItem) => void;
 }
 
-export function WikiArticlesList({ 
-  articles, 
-  onFavoriteToggle 
+export function WikiArticlesList({
+  articles,
+  onFavoriteToggle,
 }: WikiArticlesListProps) {
   const router = useRouter();
-  const { isFavorite } = useArticleStore();
+
+  if (articles.length === 0) {
+    return (
+      <View className="px-6 pt-16 pb-20 items-center">
+        <Text className="text-base text-gray-500 text-center">
+          Nenhum artigo encontrado com os filtros selecionados.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View className="px-6 pt-6 pb-8 gap-4">
       {articles.map((article) => (
         <ArticleCard
           key={article.id}
-          emoji={article.emoji}
           title={article.title}
-          description={article.description}
-          level={article.level}
-          duration={article.duration}
-          isFavorite={isFavorite(article.id)}
-          onFavoriteToggle={() => onFavoriteToggle(article.id)}
+          excerpt={article.excerpt}
+          icon={article.icon}
+          categoryName={article.category?.name}
+          categoryColor={article.category?.color}
+          difficultyLabel={article.difficulty.label}
+          difficultyColor={article.difficulty.color}
+          readingTimeMinutes={article.readingTimeMinutes}
+          isFavorite={article.isBookmarked}
+          onFavoriteToggle={() => onFavoriteToggle(article)}
           onPress={() => router.push(`/article/${article.id}`)}
         />
       ))}
