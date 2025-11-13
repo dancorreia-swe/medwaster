@@ -9,7 +9,12 @@
       "Bash(bun dev)",
       "Bash(bun check-types:*)",
       "Bash(bun db:migrate:*)",
-      "mcp__Framelink_Figma_MCP__get_figma_data"
+      "mcp__Framelink_Figma_MCP__get_figma_data",
+      "Bash(bun:*)",
+      "Bash(ls:*)",
+      "Bash(timeout 30 bun dev:*)",
+      "Bash(timeout 10 bun dev:*)",
+      "Bash(npx tsc --noEmit)"
     ],
     "deny": []
   }

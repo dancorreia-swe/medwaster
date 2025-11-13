@@ -56,7 +56,7 @@ export function ArticleTitleInput({
                   setIsOpen(false);
                 }}
               >
-                <EmojiPickerSearch placeholder="Pesquisar..."/>
+                <EmojiPickerSearch placeholder="Pesquisar..." />
                 <EmojiPickerContent />
                 <EmojiPickerFooter />
               </EmojiPicker>
@@ -68,7 +68,7 @@ export function ArticleTitleInput({
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full bg-transparent text-4xl font-bold outline-none placeholder:text-muted-foreground/40 focus:placeholder:text-muted-foreground/60 transition-colors"
+            className="w-full bg-transparent text-4xl font-bold leading-1.5 outline-none placeholder:text-muted-foreground/40 focus:placeholder:text-muted-foreground/60 transition-colors py-1"
             placeholder={placeholder}
             autoFocus
           />

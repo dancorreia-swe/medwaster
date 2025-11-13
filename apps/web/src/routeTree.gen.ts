@@ -20,6 +20,7 @@ import { Route as AuthTrailsIndexRouteImport } from './routes/_auth/trails/index
 import { Route as AuthTagsIndexRouteImport } from './routes/_auth/tags/index'
 import { Route as AuthQuizzesIndexRouteImport } from './routes/_auth/quizzes/index'
 import { Route as AuthQuestionsIndexRouteImport } from './routes/_auth/questions/index'
+import { Route as AuthCertificatesIndexRouteImport } from './routes/_auth/certificates/index'
 import { Route as AuthCategoriesIndexRouteImport } from './routes/_auth/categories/index'
 import { Route as AuthAchievementsIndexRouteImport } from './routes/_auth/achievements/index'
 import { Route as AuthTrailsCreateRouteImport } from './routes/_auth/trails/create'
@@ -90,6 +91,11 @@ const AuthQuizzesIndexRoute = AuthQuizzesIndexRouteImport.update({
 const AuthQuestionsIndexRoute = AuthQuestionsIndexRouteImport.update({
   id: '/questions/',
   path: '/questions/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthCertificatesIndexRoute = AuthCertificatesIndexRouteImport.update({
+  id: '/certificates/',
+  path: '/certificates/',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthCategoriesIndexRoute = AuthCategoriesIndexRouteImport.update({
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/trails/create': typeof AuthTrailsCreateRoute
   '/achievements': typeof AuthAchievementsIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
+  '/certificates': typeof AuthCertificatesIndexRoute
   '/questions': typeof AuthQuestionsIndexRoute
   '/quizzes': typeof AuthQuizzesIndexRoute
   '/tags': typeof AuthTagsIndexRoute
@@ -224,6 +231,7 @@ export interface FileRoutesByTo {
   '/trails/create': typeof AuthTrailsCreateRoute
   '/achievements': typeof AuthAchievementsIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
+  '/certificates': typeof AuthCertificatesIndexRoute
   '/questions': typeof AuthQuestionsIndexRoute
   '/quizzes': typeof AuthQuizzesIndexRoute
   '/tags': typeof AuthTagsIndexRoute
@@ -255,6 +263,7 @@ export interface FileRoutesById {
   '/_auth/trails/create': typeof AuthTrailsCreateRoute
   '/_auth/achievements/': typeof AuthAchievementsIndexRoute
   '/_auth/categories/': typeof AuthCategoriesIndexRoute
+  '/_auth/certificates/': typeof AuthCertificatesIndexRoute
   '/_auth/questions/': typeof AuthQuestionsIndexRoute
   '/_auth/quizzes/': typeof AuthQuizzesIndexRoute
   '/_auth/tags/': typeof AuthTagsIndexRoute
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
     | '/trails/create'
     | '/achievements'
     | '/categories'
+    | '/certificates'
     | '/questions'
     | '/quizzes'
     | '/tags'
@@ -315,6 +325,7 @@ export interface FileRouteTypes {
     | '/trails/create'
     | '/achievements'
     | '/categories'
+    | '/certificates'
     | '/questions'
     | '/quizzes'
     | '/tags'
@@ -345,6 +356,7 @@ export interface FileRouteTypes {
     | '/_auth/trails/create'
     | '/_auth/achievements/'
     | '/_auth/categories/'
+    | '/_auth/certificates/'
     | '/_auth/questions/'
     | '/_auth/quizzes/'
     | '/_auth/tags/'
@@ -447,6 +459,13 @@ declare module '@tanstack/react-router' {
       path: '/questions'
       fullPath: '/questions'
       preLoaderRoute: typeof AuthQuestionsIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/certificates/': {
+      id: '/_auth/certificates/'
+      path: '/certificates'
+      fullPath: '/certificates'
+      preLoaderRoute: typeof AuthCertificatesIndexRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/categories/': {
@@ -592,6 +611,7 @@ interface AuthRouteChildren {
   AuthTrailsCreateRoute: typeof AuthTrailsCreateRoute
   AuthAchievementsIndexRoute: typeof AuthAchievementsIndexRoute
   AuthCategoriesIndexRoute: typeof AuthCategoriesIndexRoute
+  AuthCertificatesIndexRoute: typeof AuthCertificatesIndexRoute
   AuthQuestionsIndexRoute: typeof AuthQuestionsIndexRoute
   AuthQuizzesIndexRoute: typeof AuthQuizzesIndexRoute
   AuthTagsIndexRoute: typeof AuthTagsIndexRoute
@@ -617,6 +637,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthTrailsCreateRoute: AuthTrailsCreateRoute,
   AuthAchievementsIndexRoute: AuthAchievementsIndexRoute,
   AuthCategoriesIndexRoute: AuthCategoriesIndexRoute,
+  AuthCertificatesIndexRoute: AuthCertificatesIndexRoute,
   AuthQuestionsIndexRoute: AuthQuestionsIndexRoute,
   AuthQuizzesIndexRoute: AuthQuizzesIndexRoute,
   AuthTagsIndexRoute: AuthTagsIndexRoute,

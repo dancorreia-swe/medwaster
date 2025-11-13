@@ -12,6 +12,7 @@ interface ArticleCardProps {
   difficultyColor: string;
   readingTimeMinutes: number;
   isFavorite?: boolean;
+  isRead?: boolean;
   onFavoriteToggle?: () => void;
   onPress?: () => void;
 }
@@ -36,6 +37,7 @@ export function ArticleCard({
   difficultyColor,
   readingTimeMinutes,
   isFavorite = false,
+  isRead = false,
   onFavoriteToggle,
   onPress,
 }: ArticleCardProps) {
@@ -52,16 +54,19 @@ export function ArticleCard({
       onPress={onPress}
       className="bg-white rounded-2xl shadow-sm shadow-black/10 border border-gray-100"
       accessibilityRole="button"
-      accessibilityLabel={`${title}. ${excerpt}. ${difficultyLabel}, ${readingTime} de leitura.`}
+      accessibilityLabel={`${title}. ${excerpt}. ${difficultyLabel}, ${readingTime} de leitura.${isRead ? " Já lido." : ""}`}
       accessibilityHint="Toque para ler o artigo"
     >
       <View className="flex-row gap-4 px-5 py-5">
         {/* Category Badge or Icon */}
         <View
-          className="w-16 h-16 rounded-2xl items-center justify-center border"
+          className="w-16 h-16 rounded-2xl items-center justify-center"
           style={{
             backgroundColor: "#F9FAFB",
-            borderColor: categoryColor ?? "#E5E7EB",
+            ...(isRead && {
+              borderWidth: 1,
+              borderColor: "#22c55e",
+            }),
           }}
         >
           {icon ? (

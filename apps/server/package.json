@@ -22,7 +22,8 @@
     "db:start": "docker compose up -d",
     "db:watch": "docker compose up",
     "db:stop": "docker compose stop",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "gamification:assign-missions": "bun run src/scripts/assign-missions.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.52",

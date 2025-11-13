@@ -43,6 +43,13 @@
       "when": 1762841741176,
       "tag": "0005_common_changeling",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1763045771823,
+      "tag": "0006_fantastic_swordsman",
+      "breakpoints": true
     }
   ]
 }

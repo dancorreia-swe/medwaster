@@ -89,7 +89,8 @@ export function useToggleFavorite() {
 
       const previousArticleQueries =
         queryClient.getQueriesData<ArticlesQueryData>({
-          queryKey: wikiKeys.articles(),
+          queryKey: ["wiki", "articles"],
+          exact: false,
         });
 
       const previousDetail = queryClient.getQueryData<StudentArticleDetail>(
@@ -130,8 +131,15 @@ export function useToggleFavorite() {
         );
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: wikiKeys.all });
+    onSettled: (_result, _error, variables) => {
+      if (!variables) return;
+      queryClient.invalidateQueries({
+        queryKey: wikiKeys.article(variables.articleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: wikiKeys.articles(),
+        refetchType: "inactive",
+      });
     },
   }) as ReturnType<
     typeof useMutation<

@@ -14,6 +14,10 @@ import {
   submitQuestionAnswerBody,
   trackTimeBody,
 } from "./model";
+import {
+  startQuizAttemptBody,
+  submitQuizAttemptBody,
+} from "../quizzes/model";
 
 // ===================================
 // Admin Routes
@@ -486,6 +490,84 @@ export const studentTrails = new Elysia({ prefix: "/trails" })
           detail: {
             summary: "Submit question answer",
             description: "Submit answer for a standalone question in trail",
+            tags: ["Trails - Student"],
+          },
+        },
+      )
+
+      // Start quiz attempt in trail
+      .post(
+        "/:id/content/:contentId/quiz/start",
+        async ({ params: { id, contentId }, body, user, status }) => {
+          const result = await ProgressService.startQuizInTrail(
+            user!.id,
+            id,
+            contentId,
+            body,
+          );
+          return status(200, success(result));
+        },
+        {
+          params: t.Object({
+            id: t.Number(),
+            contentId: t.Number(),
+          }),
+          body: startQuizAttemptBody,
+          detail: {
+            summary: "Start quiz in trail",
+            description: "Start a quiz attempt for a quiz content item in trail",
+            tags: ["Trails - Student"],
+          },
+        },
+      )
+
+      // Submit quiz attempt in trail
+      .post(
+        "/:id/content/:contentId/quiz/submit/:attemptId",
+        async ({ params: { id, contentId, attemptId }, body, user, status }) => {
+          const result = await ProgressService.submitQuizInTrail(
+            user!.id,
+            id,
+            contentId,
+            attemptId,
+            body,
+          );
+          return status(200, success(result));
+        },
+        {
+          params: t.Object({
+            id: t.Number(),
+            contentId: t.Number(),
+            attemptId: t.Number(),
+          }),
+          body: submitQuizAttemptBody,
+          detail: {
+            summary: "Submit quiz in trail",
+            description: "Submit answers for a quiz attempt in trail and update trail progress",
+            tags: ["Trails - Student"],
+          },
+        },
+      )
+
+      // Mark article as read in trail
+      .post(
+        "/:id/content/:contentId/article/mark-read",
+        async ({ params: { id, contentId }, user, status }) => {
+          const result = await ProgressService.markArticleReadInTrail(
+            user!.id,
+            id,
+            contentId,
+          );
+          return status(200, success(result));
+        },
+        {
+          params: t.Object({
+            id: t.Number(),
+            contentId: t.Number(),
+          }),
+          detail: {
+            summary: "Mark article as read in trail",
+            description: "Mark an article content item as read and update trail progress",
             tags: ["Trails - Student"],
           },
         },

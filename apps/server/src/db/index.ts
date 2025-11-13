@@ -7,6 +7,8 @@ import * as wiki from "./schema/wiki";
 import * as achievements from "./schema/achievements";
 import * as quizzes from "./schema/quizzes";
 import * as trails from "./schema/trails";
+import * as gamification from "./schema/gamification";
+import * as certificates from "./schema/certificates";
 
 import type { PgColumn, PgSelect } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
@@ -21,6 +23,8 @@ export const db = drizzle(process.env.DATABASE_URL || "", {
     ...audit,
     ...wiki,
     ...trails,
+    ...gamification,
+    ...certificates,
   },
 });
 

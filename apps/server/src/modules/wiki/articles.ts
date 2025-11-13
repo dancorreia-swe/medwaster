@@ -410,13 +410,13 @@ export const userArticles = new Elysia({
 
   .delete(
     "/:id/bookmark",
-    async ({ params: { id }, user, status }) => {
+    async ({ params: { id }, user }) => {
       if (isNaN(id)) {
         throw new BadRequestError("Invalid article ID");
       }
 
       await ArticleService.removeBookmark(user.id, id);
-      return status("No Content", success({ removed: true }));
+      return success({ removed: true });
     },
     {
       params: t.Object({
@@ -501,6 +501,29 @@ export const userArticles = new Elysia({
         summary: "Mark article as read",
         description:
           "Manually mark an article as fully read. Sets read percentage to 100% and records completion timestamp.",
+        tags: ["Student - Wiki Articles"],
+      },
+    },
+  )
+
+  .delete(
+    "/:id/mark-read",
+    async ({ params: { id }, user }) => {
+      if (isNaN(id)) {
+        throw new BadRequestError("Invalid article ID");
+      }
+
+      const progress = await ArticleService.markAsUnread(user.id, id);
+      return success(progress);
+    },
+    {
+      params: t.Object({
+        id: t.Number({ description: "Article ID" }),
+      }),
+      detail: {
+        summary: "Mark article as unread",
+        description:
+          "Mark an article as unread. Resets read percentage to 0% and clears completion timestamp.",
         tags: ["Student - Wiki Articles"],
       },
     },

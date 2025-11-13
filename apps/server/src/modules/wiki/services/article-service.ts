@@ -1352,6 +1352,29 @@ export class ArticleService {
   }
 
   /**
+   * Mark article as unread
+   */
+  static async markAsUnread(userId: string, articleId: number) {
+    const [progress] = await db
+      .update(userArticleReads)
+      .set({
+        isRead: false,
+        readPercentage: 0,
+        markedReadAt: null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.articleId, articleId),
+        ),
+      )
+      .returning();
+
+    return progress;
+  }
+
+  /**
    * Get reading list (articles in progress or not started)
    */
   static async getReadingList(userId: string) {

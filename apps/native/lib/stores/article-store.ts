@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface ArticleState {
   readArticles: Set<number>;
+  unreadArticles: Set<number>; // Explicitly marked as unread by user
   favoriteArticles: Set<number>;
 
   setReadArticles: (articleIds: number[]) => void;
@@ -12,6 +13,7 @@ interface ArticleState {
   markAsRead: (articleId: number) => void;
   markAsUnread: (articleId: number) => void;
   isRead: (articleId: number) => boolean;
+  isExplicitlyUnread: (articleId: number) => boolean;
 
   addFavorite: (articleId: number) => void;
   removeFavorite: (articleId: number) => void;
@@ -30,6 +32,7 @@ export const useArticleStore = create<ArticleState>()(
   persist(
     (set, get) => ({
       readArticles: new Set<number>(),
+      unreadArticles: new Set<number>(),
       favoriteArticles: new Set<number>(),
 
       setReadArticles: (articleIds: number[]) =>
@@ -52,19 +55,25 @@ export const useArticleStore = create<ArticleState>()(
 
       markAsRead: (articleId: number) =>
         set((state) => {
-          const updated = new Set(state.readArticles);
-          updated.add(articleId);
-          return { readArticles: updated };
+          const updatedRead = new Set(state.readArticles);
+          const updatedUnread = new Set(state.unreadArticles);
+          updatedRead.add(articleId);
+          updatedUnread.delete(articleId); // Remove from unread if it was there
+          return { readArticles: updatedRead, unreadArticles: updatedUnread };
         }),
 
       markAsUnread: (articleId: number) =>
         set((state) => {
-          const updated = new Set(state.readArticles);
-          updated.delete(articleId);
-          return { readArticles: updated };
+          const updatedRead = new Set(state.readArticles);
+          const updatedUnread = new Set(state.unreadArticles);
+          updatedRead.delete(articleId); // Remove from read
+          updatedUnread.add(articleId); // Add to explicitly unread
+          return { readArticles: updatedRead, unreadArticles: updatedUnread };
         }),
 
       isRead: (articleId: number) => get().readArticles.has(articleId),
+      
+      isExplicitlyUnread: (articleId: number) => get().unreadArticles.has(articleId),
 
       addFavorite: (articleId: number) =>
         set((state) => {
@@ -88,11 +97,13 @@ export const useArticleStore = create<ArticleState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         readArticles: Array.from(state.readArticles),
+        unreadArticles: Array.from(state.unreadArticles),
         favoriteArticles: Array.from(state.favoriteArticles),
       }),
       merge: (persistedState, currentState) => {
         const persisted = persistedState as {
           readArticles?: number[];
+          unreadArticles?: number[];
           favoriteArticles?: number[];
         } | null;
 
@@ -100,6 +111,9 @@ export const useArticleStore = create<ArticleState>()(
           ...currentState,
           readArticles: new Set<number>(
             Array.isArray(persisted?.readArticles) ? persisted.readArticles : []
+          ),
+          unreadArticles: new Set<number>(
+            Array.isArray(persisted?.unreadArticles) ? persisted.unreadArticles : []
           ),
           favoriteArticles: new Set<number>(
             Array.isArray(persisted?.favoriteArticles)

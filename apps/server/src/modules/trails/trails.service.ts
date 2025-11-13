@@ -147,68 +147,81 @@ export abstract class TrailsService {
   }
 
   static async getTrailById(trailId: number, includeContent = true) {
-    const trail = await db.query.trails.findFirst({
-      where: eq(trails.id, trailId),
-      with: {
-        author: {
-          columns: {
-            id: true,
-            name: true,
-            image: true,
-          },
+    // Build the with clause conditionally
+    const withClause: any = {
+      author: {
+        columns: {
+          id: true,
+          name: true,
+          image: true,
         },
-        category: true,
-        content: includeContent
-          ? {
-              orderBy: [asc(trailContent.sequence)],
-              with: {
-                question: {
-                  columns: {
-                    id: true,
-                    prompt: true,
-                    type: true,
-                    difficulty: true,
-                  },
-                },
-                quiz: {
-                  columns: {
-                    id: true,
-                    title: true,
-                    difficulty: true,
-                    timeLimit: true,
-                  },
-                },
-                article: {
-                  columns: {
-                    id: true,
-                    title: true,
-                    excerpt: true,
-                    readingTimeMinutes: true,
-                  },
-                },
-              },
-            }
-          : false,
-        prerequisites: {
-          with: {
-            prerequisiteTrail: {
-              columns: {
-                id: true,
-                name: true,
-                difficulty: true,
-                status: true,
-              },
+      },
+      category: true,
+    };
+
+    // Only include content if requested
+    if (includeContent) {
+      withClause.content = {
+        orderBy: [asc(trailContent.sequence)],
+        with: {
+          question: {
+            columns: {
+              id: true,
+              prompt: true,
+              type: true,
+              difficulty: true,
+            },
+          },
+          quiz: {
+            columns: {
+              id: true,
+              title: true,
+              difficulty: true,
+              timeLimit: true,
+            },
+          },
+          article: {
+            columns: {
+              id: true,
+              title: true,
+              excerpt: true,
+              readingTimeMinutes: true,
             },
           },
         },
-      },
+      };
+    }
+
+    // Fetch trail without prerequisites first
+    const trail = await db.query.trails.findFirst({
+      where: eq(trails.id, trailId),
+      with: withClause,
     });
 
     if (!trail) {
       throw new NotFoundError("Trail");
     }
 
-    return trail;
+    // Fetch prerequisites separately to avoid nested relation issues
+    const prerequisitesData = await db.query.trailPrerequisites.findMany({
+      where: eq(trailPrerequisites.trailId, trailId),
+      with: {
+        prerequisiteTrail: {
+          columns: {
+            id: true,
+            name: true,
+            difficulty: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    // Combine the results
+    return {
+      ...trail,
+      prerequisites: prerequisitesData,
+    };
   }
 
   static async createTrail(newTrail: CreateTrailBody, authorId: string) {

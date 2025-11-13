@@ -109,15 +109,15 @@ export function TrailsPage() {
     try {
       toast.loading("Salvando nova ordem...", { id: "bulk-reorder" });
 
-      // Update each trail with its new order (position + 1)
-      const updates = reorderedTrails.map((trail, index) =>
-        updateMutation.mutateAsync({
+      // Update each trail sequentially to avoid race conditions
+      for (let index = 0; index < reorderedTrails.length; index++) {
+        const trail = reorderedTrails[index];
+        await updateMutation.mutateAsync({
           id: trail.id,
           body: { unlockOrder: index + 1 },
-        }),
-      );
+        });
+      }
 
-      await Promise.all(updates);
       toast.success("Ordem das trilhas atualizada com sucesso!", {
         id: "bulk-reorder",
       });

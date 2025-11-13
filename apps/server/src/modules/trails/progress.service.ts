@@ -8,13 +8,19 @@ import {
   userQuestionAttempts,
 } from "@/db/schema/trails";
 import { questions, questionOptions } from "@/db/schema/questions";
+import { quizzes, quizAttempts } from "@/db/schema/quizzes";
+import { articles } from "@/db/schema/wiki";
 import type { SubmitQuestionAnswerBody } from "./model";
-import { eq, and, sql, inArray, isNull, desc } from "drizzle-orm";
+import { eq, and, sql, inArray, isNull, desc, asc } from "drizzle-orm";
 import {
   NotFoundError,
   BusinessLogicError,
   BadRequestError,
 } from "@/lib/errors";
+import { QuizzesService } from "../quizzes/quizzes.service";
+import type { StartQuizAttemptBody, SubmitQuizAttemptBody } from "../quizzes/model";
+import { DailyActivitiesService } from "../gamification/daily-activities.service";
+import { CertificateService } from "../certificates/certificates.service";
 
 export abstract class ProgressService {
   // ===================================
@@ -175,24 +181,29 @@ export abstract class ProgressService {
     }
 
     // Get trail details
-    const trail = await db.query.trails.findFirst({
+    const trailRecord = await db.query.trails.findFirst({
       where: eq(trails.id, trailId),
-      with: {
-        content: {
-          orderBy: [(content) => content.sequence],
-        },
-      },
     });
 
-    if (!trail) {
+    if (!trailRecord) {
       throw new NotFoundError("Trail");
     }
 
+    const contentItems = await db.query.trailContent.findMany({
+      where: eq(trailContent.trailId, trailId),
+      orderBy: [asc(trailContent.sequence)],
+    });
+
     const completedIds = JSON.parse(progress.completedContentIds || "[]");
-    const totalContent = trail.content.length;
+    const totalContent = contentItems.length;
     const completedContent = completedIds.length;
     const progressPercentage =
       totalContent > 0 ? Math.round((completedContent / totalContent) * 100) : 0;
+
+    const trail = {
+      ...trailRecord,
+      content: contentItems,
+    };
 
     return {
       ...progress,
@@ -221,24 +232,29 @@ export abstract class ProgressService {
       throw new BusinessLogicError("Not enrolled in this trail", "NOT_ENROLLED");
     }
 
-    // Get trail with content
+    // Get trail metadata
     const trail = await db.query.trails.findFirst({
       where: eq(trails.id, trailId),
-      with: {
-        content: {
-          orderBy: [(content) => content.sequence],
-          with: {
-            question: true,
-            quiz: true,
-            article: true,
-          },
-        },
+      columns: {
+        id: true,
+        allowSkipQuestions: true,
       },
     });
 
     if (!trail) {
       throw new NotFoundError("Trail");
     }
+
+    // Fetch ordered content items with their linked records
+    const contentItems = await db.query.trailContent.findMany({
+      where: eq(trailContent.trailId, trailId),
+      orderBy: [asc(trailContent.sequence)],
+      with: {
+        question: true,
+        quiz: true,
+        article: true,
+      },
+    });
 
     // Get user's content progress
     const contentProgress = await db.query.userContentProgress.findMany({
@@ -251,21 +267,35 @@ export abstract class ProgressService {
 
     // Attach progress to each content item
     const completedIds = JSON.parse(progress.completedContentIds || "[]");
-    const contentWithProgress = trail.content.map((item, index) => {
+    const contentWithProgress = contentItems.map((item, index) => {
       const itemProgress = progressMap.get(item.id);
+
+      // Derive content type from foreign keys
+      let contentType: "question" | "quiz" | "article";
+      if (item.questionId) {
+        contentType = "question";
+      } else if (item.quizId) {
+        contentType = "quiz";
+      } else if (item.articleId) {
+        contentType = "article";
+      } else {
+        throw new Error(`Invalid trail content item: ${item.id}`);
+      }
 
       // Determine if item is accessible
       let isAccessible = true;
       if (!trail.allowSkipQuestions) {
         // Sequential mode: can only access if previous items are completed
-        isAccessible = index === 0 || completedIds.includes(trail.content[index - 1].id);
+        isAccessible =
+          index === 0 || completedIds.includes(contentItems[index - 1].id);
       }
 
       return {
         ...item,
+        contentType,
         isAccessible,
         isCompleted: completedIds.includes(item.id),
-        userProgress: itemProgress
+        progress: itemProgress
           ? {
               isCompleted: itemProgress.isCompleted,
               score: itemProgress.score,
@@ -276,11 +306,8 @@ export abstract class ProgressService {
       };
     });
 
-    return {
-      trail,
-      content: contentWithProgress,
-      userProgress: progress,
-    };
+    // Return just the content array (not nested object)
+    return contentWithProgress;
   }
 
   static async markContentComplete(
@@ -447,6 +474,8 @@ export abstract class ProgressService {
       where: eq(questions.id, questionId),
       with: {
         options: true,
+        fillInBlanks: true,
+        matchingPairs: true,
       },
     });
 
@@ -511,6 +540,25 @@ export abstract class ProgressService {
       });
     }
 
+    // Record activity for gamification
+    await DailyActivitiesService.recordActivity(userId, {
+      type: "trail_content",
+      metadata: {
+        trailContentId: content.id,
+        questionId: question.id,
+        timeSpentMinutes: Math.ceil((answer.timeSpentSeconds || 0) / 60),
+      },
+    });
+
+    // Also record as question activity for question-specific missions
+    await DailyActivitiesService.recordActivity(userId, {
+      type: "question",
+      metadata: {
+        questionId: question.id,
+        timeSpentMinutes: Math.ceil((answer.timeSpentSeconds || 0) / 60),
+      },
+    });
+
     // If correct, mark as complete
     if (isCorrect) {
       await this.markContentComplete(userId, trailId, content.id);
@@ -521,6 +569,275 @@ export abstract class ProgressService {
       correctAnswer,
       explanation: question.explanation,
     };
+  }
+
+  /**
+   * Start a quiz attempt within a trail
+   */
+  static async startQuizInTrail(
+    userId: string,
+    trailId: number,
+    contentId: number,
+    data: StartQuizAttemptBody,
+  ) {
+    // Check enrollment
+    const progress = await db.query.userTrailProgress.findFirst({
+      where: and(
+        eq(userTrailProgress.userId, userId),
+        eq(userTrailProgress.trailId, trailId),
+      ),
+    });
+
+    if (!progress?.isEnrolled) {
+      throw new BusinessLogicError("Not enrolled in this trail", "NOT_ENROLLED");
+    }
+
+    // Find the content item and verify it's a quiz
+    const content = await db.query.trailContent.findFirst({
+      where: and(
+        eq(trailContent.id, contentId),
+        eq(trailContent.trailId, trailId),
+      ),
+      with: {
+        quiz: true,
+      },
+    });
+
+    if (!content) {
+      throw new NotFoundError("Trail content");
+    }
+
+    if (content.contentType !== "quiz" || !content.quizId) {
+      throw new BadRequestError("Content is not a quiz");
+    }
+
+    // Start the quiz attempt with trailContentId
+    const result = await QuizzesService.startQuizAttempt(
+      content.quizId,
+      userId,
+      data,
+    );
+
+    // Update the attempt record with trailContentId
+    await db
+      .update(quizAttempts)
+      .set({ trailContentId: contentId })
+      .where(eq(quizAttempts.id, result.attempt.id));
+
+    return result;
+  }
+
+  /**
+   * Submit a quiz attempt within a trail
+   */
+  static async submitQuizInTrail(
+    userId: string,
+    trailId: number,
+    contentId: number,
+    attemptId: number,
+    data: SubmitQuizAttemptBody,
+  ) {
+    // Check enrollment
+    const progress = await db.query.userTrailProgress.findFirst({
+      where: and(
+        eq(userTrailProgress.userId, userId),
+        eq(userTrailProgress.trailId, trailId),
+      ),
+    });
+
+    if (!progress?.isEnrolled) {
+      throw new BusinessLogicError("Not enrolled in this trail", "NOT_ENROLLED");
+    }
+
+    // Find the content item and verify it's a quiz
+    const content = await db.query.trailContent.findFirst({
+      where: and(
+        eq(trailContent.id, contentId),
+        eq(trailContent.trailId, trailId),
+      ),
+    });
+
+    if (!content) {
+      throw new NotFoundError("Trail content");
+    }
+
+    if (content.contentType !== "quiz") {
+      throw new BadRequestError("Content is not a quiz");
+    }
+
+    // Verify the attempt belongs to this content
+    const attempt = await db.query.quizAttempts.findFirst({
+      where: and(
+        eq(quizAttempts.id, attemptId),
+        eq(quizAttempts.userId, userId),
+      ),
+    });
+
+    if (!attempt) {
+      throw new NotFoundError("Quiz attempt");
+    }
+
+    if (attempt.trailContentId !== contentId) {
+      throw new BadRequestError("Attempt does not belong to this trail content");
+    }
+
+    // Submit the quiz
+    const result = await QuizzesService.submitQuizAttempt(attemptId, userId, data);
+
+    // Update or create content progress
+    const existingProgress = await db.query.userContentProgress.findFirst({
+      where: and(
+        eq(userContentProgress.userId, userId),
+        eq(userContentProgress.trailContentId, contentId),
+      ),
+    });
+
+    const attempts = (existingProgress?.attempts || 0) + 1;
+    const timeSpent = (existingProgress?.timeSpent || 0) + (data.timeSpent || 0);
+    const score = result.scorePercentage;
+    const isCompleted = score >= (content.passingScore || 70); // Use content passing score or default to 70%
+
+    if (existingProgress) {
+      await db
+        .update(userContentProgress)
+        .set({
+          score,
+          attempts,
+          timeSpent,
+          isCompleted,
+          completedAt: isCompleted ? new Date() : existingProgress.completedAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(userContentProgress.id, existingProgress.id));
+    } else {
+      await db.insert(userContentProgress).values({
+        userId,
+        trailContentId: contentId,
+        score,
+        attempts,
+        timeSpent,
+        isCompleted,
+        completedAt: isCompleted ? new Date() : undefined,
+      });
+    }
+
+    // Record activity for gamification
+    await DailyActivitiesService.recordActivity(userId, {
+      type: "trail_content",
+      metadata: {
+        trailContentId: contentId,
+        quizId: content.quizId!,
+        score: result.scorePercentage,
+        timeSpentMinutes: Math.ceil((data.timeSpent || 0) / 60),
+      },
+    });
+
+    // Also record as quiz activity for quiz-specific missions
+    await DailyActivitiesService.recordActivity(userId, {
+      type: "quiz",
+      metadata: {
+        quizId: content.quizId!,
+        score: result.scorePercentage,
+        timeSpentMinutes: Math.ceil((data.timeSpent || 0) / 60),
+      },
+    });
+
+    // Mark content as complete if passed
+    if (isCompleted) {
+      await this.markContentComplete(userId, trailId, contentId);
+    }
+
+    return result;
+  }
+
+  /**
+   * Mark an article in trail as read
+   */
+  static async markArticleReadInTrail(
+    userId: string,
+    trailId: number,
+    contentId: number,
+  ) {
+    // Check enrollment
+    const progress = await db.query.userTrailProgress.findFirst({
+      where: and(
+        eq(userTrailProgress.userId, userId),
+        eq(userTrailProgress.trailId, trailId),
+      ),
+    });
+
+    if (!progress?.isEnrolled) {
+      throw new BusinessLogicError("Not enrolled in this trail", "NOT_ENROLLED");
+    }
+
+    // Find the content item and verify it's an article
+    const content = await db.query.trailContent.findFirst({
+      where: and(
+        eq(trailContent.id, contentId),
+        eq(trailContent.trailId, trailId),
+      ),
+    });
+
+    if (!content) {
+      throw new NotFoundError("Trail content");
+    }
+
+    // Verify it's an article by checking if articleId is set and others are not
+    if (!content.articleId || content.questionId || content.quizId) {
+      throw new BadRequestError("Content is not an article");
+    }
+
+    // Update or create content progress
+    const existingProgress = await db.query.userContentProgress.findFirst({
+      where: and(
+        eq(userContentProgress.userId, userId),
+        eq(userContentProgress.trailContentId, contentId),
+      ),
+    });
+
+    if (existingProgress) {
+      await db
+        .update(userContentProgress)
+        .set({
+          score: 100, // Articles are binary - read or not read
+          isCompleted: true,
+          completedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(userContentProgress.id, existingProgress.id));
+    } else {
+      await db.insert(userContentProgress).values({
+        userId,
+        trailContentId: contentId,
+        score: 100,
+        attempts: 1,
+        timeSpent: 0, // Time tracking is separate
+        isCompleted: true,
+        completedAt: new Date(),
+      });
+    }
+
+    // Record activity for gamification
+    await DailyActivitiesService.recordActivity(userId, {
+      type: "trail_content",
+      metadata: {
+        trailContentId: contentId,
+        articleId: content.articleId,
+      },
+    });
+
+    // Also record as article activity for article-specific missions
+    await DailyActivitiesService.recordActivity(userId, {
+      type: "article",
+      metadata: {
+        articleId: content.articleId,
+      },
+    });
+
+    // Mark content as complete in trail
+    await this.markContentComplete(userId, trailId, contentId);
+
+    return { success: true };
   }
 
   // ===================================
@@ -555,7 +872,7 @@ export abstract class ProgressService {
   }
 
   private static async checkAndCompleteTrail(userId: string, trailId: number) {
-    const [progress, trail] = await Promise.all([
+    const [progress, trailRecord, contentItems] = await Promise.all([
       db.query.userTrailProgress.findFirst({
         where: and(
           eq(userTrailProgress.userId, userId),
@@ -564,29 +881,62 @@ export abstract class ProgressService {
       }),
       db.query.trails.findFirst({
         where: eq(trails.id, trailId),
-        with: {
-          content: true,
-        },
+      }),
+      db.query.trailContent.findMany({
+        where: eq(trailContent.trailId, trailId),
       }),
     ]);
 
-    if (!progress || !trail) return;
+    if (!progress || !trailRecord) return;
 
     // Check if all required content is completed
     const completedIds: number[] = JSON.parse(
       progress.completedContentIds || "[]",
     );
-    const requiredContent = trail.content.filter((c) => c.isRequired);
+    const requiredContent = contentItems.filter((c) => c.isRequired);
     const allRequiredCompleted = requiredContent.every((c) =>
       completedIds.includes(c.id),
     );
 
     if (!allRequiredCompleted) return;
 
-    // Calculate score (placeholder - would need actual scoring logic)
-    const score = 100; // TODO: Calculate based on quiz/question scores
+    // Calculate trail score based on completed content
+    let totalScore = 0;
+    let totalPossiblePoints = 0;
 
-    const isPassed = score >= trail.passPercentage;
+    // Get content progress for all required content
+    const contentProgressRecords = await db.query.userContentProgress.findMany({
+      where: and(
+        eq(userContentProgress.userId, userId),
+        inArray(
+          userContentProgress.trailContentId,
+          requiredContent.map((c) => c.id),
+        ),
+      ),
+    });
+
+    // Create a map for quick lookup
+    const progressMap = new Map(
+      contentProgressRecords.map((p) => [p.trailContentId, p]),
+    );
+
+    // Calculate weighted score
+    for (const content of requiredContent) {
+      const contentProgress = progressMap.get(content.id);
+      const points = content.points || 1; // Default to 1 point if not specified
+      const contentScore = contentProgress?.score || 0;
+
+      totalScore += (contentScore * points) / 100; // Convert percentage to actual points
+      totalPossiblePoints += points;
+    }
+
+    // Calculate final percentage score
+    const score =
+      totalPossiblePoints > 0
+        ? Math.round((totalScore / totalPossiblePoints) * 100)
+        : 0;
+
+    const isPassed = score >= trailRecord.passPercentage;
 
     // Mark trail as complete
     await db
@@ -604,8 +954,18 @@ export abstract class ProgressService {
       // Unlock dependent trails
       await this.unlockDependentTrails(userId, trailId);
 
+      // Check if user completed ALL trails and generate certificate
+      try {
+        const hasCompletedAll = await CertificateService.hasCompletedAllTrails(userId);
+        if (hasCompletedAll) {
+          await CertificateService.generateCertificate(userId);
+        }
+      } catch (error) {
+        console.error("Failed to generate certificate:", error);
+        // Don't fail the trail completion if certificate generation fails
+      }
+
       // TODO: Trigger achievement integration
-      // TODO: Generate certificate if customCertificate is true
     }
   }
 
@@ -674,7 +1034,29 @@ export abstract class ProgressService {
         }
         break;
 
-      // TODO: Implement grading for fill_in_the_blank and matching
+      case "fill_in_the_blank":
+        // Case-insensitive text comparison with any accepted answer
+        correctAnswer = question.fillInBlanks.map((blank: any) => blank.answer);
+        isCorrect = question.fillInBlanks.some((blank: any) =>
+          blank.answer.toLowerCase().trim() ===
+          (userAnswer || "").toLowerCase().trim()
+        );
+        break;
+
+      case "matching":
+        // Verify all matching pairs are correct
+        correctAnswer = question.matchingPairs.reduce((acc: any, pair: any) => {
+          acc[pair.leftText] = pair.rightText;
+          return acc;
+        }, {});
+
+        if (userAnswer && typeof userAnswer === "object") {
+          isCorrect = question.matchingPairs.every((pair: any) =>
+            userAnswer[pair.leftText] === pair.rightText
+          );
+        }
+        break;
+
       default:
         throw new BadRequestError("Question type not supported for grading");
     }

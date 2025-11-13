@@ -5,26 +5,42 @@ import {
   View,
   TouchableOpacity,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import {
+  ChevronLeft,
+  CheckCircle2,
+  Circle,
+  Edit3,
+  Link2,
+  ListChecks,
+} from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect } from "react";
-import { useTrailStore } from "@/stores/trail-store";
+import {
+  useTrail,
+  useTrailProgress,
+  useTrailContent,
+  useEnrollInTrail,
+} from "@/features/trails/hooks";
 
 type ModuleStatus = "completed" | "current" | "locked";
 type ModuleType = "quiz" | "article" | "question";
 
 interface Module {
   id: string;
+  contentId: number;
+  trailId: number;
   emoji: string;
   title: string;
   instructor: string;
   status: ModuleStatus;
-  progress?: number;
+  progress?: any;
   questions?: number;
-  type?: ModuleType;
-  resourceLink?: string;
+  type: ModuleType;
+  isRequired: boolean;
+  points: number | null;
+  questionType?: "multiple_choice" | "true_false" | "fill_in_the_blank" | "matching";
 }
 
 const moduleStyles = {
@@ -54,124 +70,141 @@ const moduleStyles = {
   },
 };
 
-const journeyData = {
-  "1": {
-    title: "Descarte de Medicamentos",
-    description:
-      "Aprenda técnicas seguras e protocolos essenciais para o descarte correto de medicamentos hospitalares",
-    modules: [
-      {
-        id: "1",
-        emoji: "📚",
-        resourceLink: "article/1",
-        title: "Introdução ao Descarte Seguro",
-        instructor: "Prof. Ana Silva",
-        status: "completed" as const,
-        type: "article" as const,
-      },
-      {
-        id: "2",
-        emoji: "📋",
-        resourceLink: "article/2",
-        title: "Classificação de Resíduos",
-        instructor: "Dr. Carlos Mendes",
-        status: "completed" as const,
-        type: "article" as const,
-      },
-      {
-        id: "3",
-        emoji: "❓",
-        resourceLink: "questions/3",
-        title: "Pergunta Rápida: Resíduos Classe A",
-        instructor: "",
-        status: "current" as const,
-        questions: 1,
-        type: "question" as const,
-      },
-      {
-        id: "4",
-        emoji: "🏷️",
-        title: "Recipientes e Containers",
-        instructor: "Dra. Maria Santos",
-        status: "locked" as const,
-        type: "article" as const,
-      },
-      {
-        id: "5",
-        emoji: "🎯",
-        title: "Quiz: Identificação Básica",
-        instructor: "",
-        status: "locked" as const,
-        questions: 8,
-        type: "quiz" as const,
-      },
+const getContentTitle = (content: any) => {
+  // Check by ID presence since contentType doesn't exist in DB
+  if (content.questionId && content.question) {
+    return content.question.prompt || content.question.questionText || "Questão";
+  }
+  if (content.quizId && content.quiz) {
+    return content.quiz.title || "Quiz";
+  }
+  if (content.articleId && content.article) {
+    return content.article.title || "Artigo";
+  }
+  return "Conteúdo";
+};
 
-      {
-        id: "6",
-        emoji: "🚨",
-        title: "Protocolos Hospitalares",
-        instructor: "Prof. João Costa",
-        status: "locked" as const,
-        type: "article" as const,
-      },
-      {
-        id: "7",
-        emoji: "💡",
-        title: "Medicamentos Oncológicos",
-        instructor: "Dra. Paula Almeida",
-        status: "locked" as const,
-        type: "article" as const,
-      },
-      {
-        id: "8",
-        emoji: "🎯",
-        title: "Quiz: Procedimentos",
-        instructor: "",
-        status: "locked" as const,
-        questions: 12,
-        type: "quiz" as const,
-      },
-      {
-        id: "9",
-        emoji: "🏆",
-        title: "Avaliação Final",
-        instructor: "",
-        status: "locked" as const,
-        questions: 25,
-        type: "quiz" as const,
-      },
-    ],
-  },
+const getContentEmoji = (content: any) => {
+  // Derive type from ID presence
+  if (content.questionId) return "❓";
+  if (content.quizId) return "🎯";
+  if (content.articleId) return "📚";
+  return "📄";
+};
+
+const getQuestionCount = (content: any) => {
+  if (content.quizId && content.quiz) {
+    return content.quiz.questions?.length || 0;
+  }
+  if (content.questionId) {
+    return 1;
+  }
+  return undefined;
+};
+
+const getQuestionTypeIcon = (questionType?: string) => {
+  switch (questionType) {
+    case "multiple_choice":
+      return { Icon: ListChecks, color: "#8B5CF6", label: "Múltipla escolha" };
+    case "true_false":
+      return { Icon: CheckCircle2, color: "#10B981", label: "Verdadeiro ou Falso" };
+    case "fill_in_the_blank":
+      return { Icon: Edit3, color: "#F59E0B", label: "Preencher" };
+    case "matching":
+      return { Icon: Link2, color: "#EC4899", label: "Relacionar" };
+    default:
+      return null;
+  }
 };
 
 export default function JourneyDetail() {
-  const params = useLocalSearchParams<{ id: string; "unlock-next"?: string }>();
+  const params = useLocalSearchParams<{ id: string }>();
   const { id } = params;
-  const unlockNext = params["unlock-next"] === "true";
+  const trailId = Number(id);
 
   const router = useRouter();
-  const journey = journeyData[id as keyof typeof journeyData];
 
-  // Zustand store
-  const { trails, initializeTrail, completeCurrentModule, getTrailModules } =
-    useTrailStore();
-  const modules = getTrailModules(id) || journey?.modules || [];
+  const { data: trail, isLoading: trailLoading } = useTrail(trailId);
+  const {
+    data: progress,
+    isLoading: progressLoading,
+    isError: progressError,
+  } = useTrailProgress(trailId);
 
-  // Initialize trail on first load
-  useEffect(() => {
-    if (journey && !trails[id]) {
-      initializeTrail(id, journey.modules);
-    }
-  }, [id, journey]);
+  const {
+    data: content,
+    isLoading: contentLoading,
+    isError: contentError,
+  } = useTrailContent(trailId);
 
-  // Handle unlocking next module when returning from correct answer
-  useEffect(() => {
-    if (unlockNext) {
-      completeCurrentModule(id);
-    }
-  }, [unlockNext, id]);
+  const enrollMutation = useEnrollInTrail();
 
-  if (!journey) {
+  const isLoading = trailLoading || (progressLoading && !progressError);
+
+  const modules =
+    content?.map((item: any, index: number) => {
+      const isCompleted = item.progress?.isCompleted || false;
+      const isEnrolled = progress?.isEnrolled || false;
+
+      let status: ModuleStatus = "locked";
+      if (!isEnrolled) {
+        status = index === 0 ? "current" : "locked";
+      } else if (isCompleted) {
+        status = "completed";
+      } else {
+        const previousIndex = index - 1;
+        if (previousIndex < 0) {
+          status = "current";
+        } else {
+          const previousContent = content[previousIndex];
+          if (previousContent?.progress?.isCompleted) {
+            status = "current";
+          }
+        }
+      }
+
+      // Derive content type from ID presence
+      let contentType: ModuleType;
+      if (item.questionId) {
+        contentType = "question";
+      } else if (item.quizId) {
+        contentType = "quiz";
+      } else if (item.articleId) {
+        contentType = "article";
+      } else {
+        contentType = "article"; // fallback
+      }
+
+      return {
+        id: String(item.id),
+        contentId: item.id,
+        trailId: trailId,
+        emoji: getContentEmoji(item),
+        title: getContentTitle(item),
+        instructor: "",
+        status,
+        type: contentType,
+        questions: getQuestionCount(item),
+        isRequired: item.isRequired,
+        points: item.points,
+        progress: item.progress,
+        articleId: item.articleId, // Store articleId for navigation
+        questionId: item.questionId, // Store questionId for reference
+        quizId: item.quizId, // Store quizId for reference
+        questionType: item.question?.type, // Store question type for icon
+      };
+    }) || [];
+
+  if (isLoading) {
+    return (
+      <Container className="flex-1 bg-gray-50 items-center justify-center">
+        <ActivityIndicator size="large" color="#155DFC" />
+        <Text className="text-gray-600 mt-3">Carregando trilha...</Text>
+      </Container>
+    );
+  }
+
+  if (!trail) {
     return (
       <Container className="flex-1 bg-gray-50 items-center justify-center">
         <Text className="text-gray-600">Trilha não encontrada</Text>
@@ -179,29 +212,28 @@ export default function JourneyDetail() {
     );
   }
 
-  const renderModuleCard = (module: Module, index: number) => {
+  const isEnrolled = progress?.isEnrolled || false;
+
+  const renderModuleCard = (module: any, index: number) => {
     const isCurrentActivity = module.status === "current";
-    const showConnector = index < journey.modules.length - 1;
+    const showConnector = index < modules.length - 1;
     const moduleType = module.type || "article";
     const style = moduleStyles[moduleType];
 
     const handleModulePress = () => {
-      if (module.status === "locked") return;
+      if (module.status === "locked" || !isEnrolled) return;
 
-      console.log("Module pressed:", module.id, module.type, module);
-
-      if (module.type === "article" && "resourceLink" in module) {
-        console.log("Navigating to article:", module.resourceLink);
-        router.push(`/${module.resourceLink}` as any);
-      } else if (module.type === "question" && "resourceLink" in module) {
-        console.log(
-          "Navigating to question with resourceLink:",
-          module.resourceLink,
+      // For articles, navigate directly to the article detail page
+      // Pass trail context as query params so article page can mark content complete
+      if (module.type === "article" && module.articleId) {
+        router.push(
+          `/article/${module.articleId}?trailId=${module.trailId}&contentId=${module.contentId}` as any
         );
-        router.push(`/(app)/${module.resourceLink}` as any);
-      } else if (module.type === "question") {
-        console.log("Navigating to question with id:", module.id);
-        router.push(`/(app)/questions/${module.id}` as any);
+      } else {
+        // For questions and quizzes, use the trail content screen
+        router.push(
+          `/trails/${module.trailId}/content/${module.contentId}` as any,
+        );
       }
     };
 
@@ -286,6 +318,24 @@ export default function JourneyDetail() {
                           {module.instructor}
                         </Text>
                       )}
+                      {/* Question Type Badge for current activity */}
+                      {module.type === "question" && module.questionType && (
+                        <View className="flex-row items-center gap-1.5 mt-1">
+                          {(() => {
+                            const typeInfo = getQuestionTypeIcon(module.questionType);
+                            if (!typeInfo) return null;
+                            const { Icon, color, label } = typeInfo;
+                            return (
+                              <>
+                                <Icon size={14} color={color} strokeWidth={2} />
+                                <Text className="text-xs font-medium" style={{ color }}>
+                                  {label}
+                                </Text>
+                              </>
+                            );
+                          })()}
+                        </View>
+                      )}
                     </View>
                   </View>
 
@@ -342,10 +392,28 @@ export default function JourneyDetail() {
                       {module.instructor}
                     </Text>
                   )}
-                  {module.questions && (
+                  {module.questions && module.type === "quiz" && (
                     <Text className="text-gray-500 text-sm">
                       {module.questions} questões
                     </Text>
+                  )}
+                  {/* Question Type Badge */}
+                  {module.type === "question" && module.questionType && (
+                    <View className="flex-row items-center gap-1.5 mt-1">
+                      {(() => {
+                        const typeInfo = getQuestionTypeIcon(module.questionType);
+                        if (!typeInfo) return null;
+                        const { Icon, color, label } = typeInfo;
+                        return (
+                          <>
+                            <Icon size={14} color={color} strokeWidth={2} />
+                            <Text className="text-xs" style={{ color }}>
+                              {label}
+                            </Text>
+                          </>
+                        );
+                      })()}
+                    </View>
                   )}
                 </View>
 
@@ -385,6 +453,21 @@ export default function JourneyDetail() {
     );
   };
 
+  const handleEnroll = async () => {
+    try {
+      await enrollMutation.mutateAsync(trailId);
+    } catch (error: any) {
+      console.error("Failed to enroll:", error);
+      // Error will be shown by the mutation error state
+    }
+  };
+
+  const difficultyLabels: Record<string, string> = {
+    basic: "Básico",
+    intermediate: "Intermediário",
+    advanced: "Avançado",
+  };
+
   return (
     <Container className="flex-1 bg-gray-50">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -400,24 +483,112 @@ export default function JourneyDetail() {
 
           {/* Category Label */}
           <Text className="text-primary text-xs font-semibold tracking-wider mb-2 uppercase">
-            TRILHA DE APRENDIZADO
+            TRILHA DE APRENDIZADO •{" "}
+            {difficultyLabels[trail.difficulty] || trail.difficulty}
           </Text>
 
           {/* Title */}
           <Text className="text-gray-900 text-3xl font-bold leading-tight mb-4">
-            {journey.title}
+            {trail.name}
           </Text>
 
           {/* Description */}
-          <Text className="text-gray-600 text-base leading-relaxed">
-            {journey.description}
-          </Text>
+          {trail.description && (
+            <Text className="text-gray-600 text-base leading-relaxed mb-4">
+              {trail.description}
+            </Text>
+          )}
+
+          {/* Metadata */}
+          <View className="flex-row items-center gap-4 mb-4">
+            {trail.estimatedTimeMinutes && (
+              <View className="flex-row items-center gap-1">
+                <Text className="text-gray-600 text-sm">
+                  ⏱️ {trail.estimatedTimeMinutes} min
+                </Text>
+              </View>
+            )}
+            {modules.length > 0 && (
+              <View className="flex-row items-center gap-1">
+                <Text className="text-gray-600 text-sm">
+                  📚 {modules.length} módulos
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Enrollment Button */}
+          {!isEnrolled && (
+            <>
+              {enrollMutation.isError && (
+                <View className="bg-red-50 rounded-xl p-4 mb-4 border border-red-200">
+                  <Text className="text-red-900 font-semibold mb-1">
+                    Erro ao inscrever
+                  </Text>
+                  <Text className="text-red-700 text-sm">
+                    {enrollMutation.error?.message || "Tente novamente"}
+                  </Text>
+                </View>
+              )}
+              <TouchableOpacity
+                onPress={handleEnroll}
+                disabled={enrollMutation.isPending}
+                className="bg-primary rounded-full py-4 items-center shadow-md"
+              >
+                {enrollMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text className="text-white text-base font-semibold">
+                    Inscrever-se na Trilha
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* Progress Badge */}
+          {isEnrolled && progress && (
+            <View className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-blue-900 font-semibold">
+                  Seu Progresso
+                </Text>
+                <Text className="text-blue-600 font-bold">
+                  {progress.progressPercentage || 0}%
+                </Text>
+              </View>
+              <View className="h-2 bg-blue-100 rounded-full overflow-hidden">
+                <View
+                  className="h-full bg-blue-600"
+                  style={{ width: `${progress.progressPercentage || 0}%` }}
+                />
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Modules List */}
-        <View className="px-6 pb-8">
-          {modules.map((module, index) => renderModuleCard(module, index))}
-        </View>
+        {isEnrolled && modules.length > 0 && (
+          <View className="px-6 pb-8">
+            {modules.map((module: any, index: number) =>
+              renderModuleCard(module, index),
+            )}
+          </View>
+        )}
+
+        {/* Not Enrolled Message */}
+        {!isEnrolled && modules.length > 0 && (
+          <View className="px-6 pb-8">
+            <View className="bg-white rounded-xl p-6 border border-gray-200">
+              <Text className="text-gray-900 font-semibold text-center mb-2">
+                {modules.length} Módulos Disponíveis
+              </Text>
+              <Text className="text-gray-600 text-center text-sm">
+                Inscreva-se para começar sua jornada de aprendizado
+              </Text>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </Container>
   );

@@ -52,7 +52,7 @@ function RouteComponent() {
 
   if (Number.isNaN(numericArticleId)) {
     return (
-      <div className="flex h-full min-h-[320px] items-center justify-center">
+      <div className="flex h-full min-h-80 items-center justify-center">
         <div className="text-sm text-destructive">ID do artigo inválido.</div>
       </div>
     );
@@ -60,7 +60,7 @@ function RouteComponent() {
 
   if (articleQuery.isPending) {
     return (
-      <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-2">
+      <div className="flex h-full min-h-80 flex-col items-center justify-center gap-2">
         <span className="text-sm text-muted-foreground">
           Carregando editor...
         </span>
@@ -72,7 +72,7 @@ function RouteComponent() {
 
   if (!article) {
     return (
-      <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3">
+      <div className="flex h-full min-h-80 flex-col items-center justify-center gap-3">
         <span className="text-sm text-destructive">
           Não foi possível carregar este artigo.
         </span>
@@ -112,7 +112,7 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
   const canGoBack = useCanGoBack();
   const categoriesList = Array.isArray(categoriesData)
     ? categoriesData
-    : categoriesData?.data ?? [];
+    : (categoriesData?.data ?? []);
 
   const {
     title,

@@ -23,11 +23,11 @@ export const updateArticleSchema = t.Object({
   content: t.Optional(t.Any()), // BlockNote content structure
   contentText: t.Optional(t.String()),
   excerpt: t.Optional(t.String({ maxLength: 500 })),
-  metaDescription: t.Optional(t.String({ maxLength: 160 })),
-  featuredImageUrl: t.Optional(t.String()),
-  categoryId: t.Optional(t.Number()),
+  metaDescription: t.Optional(t.Union([t.String({ maxLength: 160 }), t.Null()])),
+  featuredImageUrl: t.Optional(t.Union([t.String(), t.Null()])),
+  categoryId: t.Optional(t.Union([t.Number(), t.Null()])),
   tagIds: t.Optional(t.Array(t.Number())),
-  icon: t.Optional(t.String()),
+  icon: t.Optional(t.Union([t.String(), t.Null()])),
   status: t.Optional(
     t.Union([
       t.Literal("draft"),

@@ -25,7 +25,9 @@ const defaultQueueOptions: QueueOptions = {
 };
 
 export const ragQueue = new Queue("rag", defaultQueueOptions);
+export const gamificationQueue = new Queue("gamification", defaultQueueOptions);
 
 export const QUEUE_NAMES = {
   RAG: "rag",
+  GAMIFICATION: "gamification",
 } as const;

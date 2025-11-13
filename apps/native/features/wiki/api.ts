@@ -114,3 +114,12 @@ export async function markArticleAsRead(articleId: number) {
     "Não foi possível marcar o artigo como lido.",
   );
 }
+
+export async function markArticleAsUnread(articleId: number) {
+  const response = await client.wiki.articles({ id: articleId })["mark-read"].delete();
+
+  return assertSuccess(
+    response,
+    "Não foi possível marcar o artigo como não lido.",
+  );
+}

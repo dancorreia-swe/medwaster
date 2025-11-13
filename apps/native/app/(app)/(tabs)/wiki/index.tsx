@@ -38,6 +38,8 @@ export default function WikiScreen() {
 
   const bottomSheetRef = useRef<BottomSheet>(null);
 
+  const [hasInitializedFavorites, setHasInitializedFavorites] = useState(false);
+
   const isRead = useArticleStore((state) => state.isRead);
   const isFavorite = useArticleStore((state) => state.isFavorite);
   const addFavorite = useArticleStore((state) => state.addFavorite);
@@ -58,8 +60,9 @@ export default function WikiScreen() {
   const { data: categoriesResponse } = useStudentCategories();
   const toggleFavoriteMutation = useToggleFavorite();
 
+  // Initialize favorites and read state only once from server
   useEffect(() => {
-    if (!articlesResponse) return;
+    if (!articlesResponse || hasInitializedFavorites) return;
 
     setFavoriteArticles(
       articlesResponse.articles
@@ -76,8 +79,10 @@ export default function WikiScreen() {
         )
         .map((article) => article.id),
     );
+    
+    setHasInitializedFavorites(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articlesResponse]);
+  }, [articlesResponse, hasInitializedFavorites]);
 
   const articles = articlesResponse?.articles ?? [];
   const categories = categoriesResponse ?? [];
@@ -117,14 +122,24 @@ export default function WikiScreen() {
 
   const handleFavoriteToggle = useCallback(
     (article: StudentArticleListItem) => {
+      const currentlyFavorite = isFavorite(article.id);
+      
+      // Optimistic update
+      if (currentlyFavorite) {
+        removeFavorite(article.id);
+      } else {
+        addFavorite(article.id);
+      }
+
       toggleFavoriteMutation.mutate(
         {
           articleId: article.id,
-          isFavorite: article.isBookmarked || isFavorite(article.id),
+          isFavorite: currentlyFavorite,
         },
         {
-          onSuccess: ({ isFavorite: nowFavorite }) => {
-            if (nowFavorite) {
+          onError: () => {
+            // Revert on error
+            if (currentlyFavorite) {
               addFavorite(article.id);
             } else {
               removeFavorite(article.id);
@@ -137,6 +152,7 @@ export default function WikiScreen() {
   );
 
   const handleRefresh = useCallback(async () => {
+    // Keep the initialization flag to prevent favorites from being reset
     await refetch();
   }, [refetch]);
 
@@ -202,6 +218,19 @@ export default function WikiScreen() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Container className="flex-1 bg-gray-50">
+        <View className="px-6 pt-4 pb-2">
+          <WikiHeader />
+
+          <WikiFilterTabs
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onCategoriesPress={handleOpenCategories}
+            selectedCategoriesCount={selectedCategories.length}
+          />
+
+          <WikiSearchBar value={searchQuery} onChangeText={setSearchQuery} />
+        </View>
+
         <ScrollView
           className="flex-1"
           showsVerticalScrollIndicator={false}
@@ -213,19 +242,6 @@ export default function WikiScreen() {
             />
           }
         >
-          <View className="px-6 pt-4 pb-2">
-            <WikiHeader />
-
-            <WikiFilterTabs
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              onCategoriesPress={handleOpenCategories}
-              selectedCategoriesCount={selectedCategories.length}
-            />
-
-            <WikiSearchBar value={searchQuery} onChangeText={setSearchQuery} />
-          </View>
-
           {isPending ? (
             <View className="py-16 items-center justify-center">
               <ActivityIndicator size="large" color="#155DFC" />

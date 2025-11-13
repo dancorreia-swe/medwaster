@@ -18,6 +18,9 @@ import { adminQuizzes, studentQuizzes } from "./modules/quizzes";
 import { adminTrails, studentTrails } from "./modules/trails";
 import { dashboard } from "./modules/dashboard";
 import { adminUsers } from "./modules/users";
+import { gamification } from "./modules/gamification";
+import { adminCertificates, studentCertificates } from "./modules/certificates";
+import { initializeCronJobs } from "./lib/cron";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -106,6 +109,9 @@ export const app = new Elysia({ name: "medwaster-api" })
   .use(studentTrails)
   .use(dashboard)
   .use(adminUsers)
+  .use(gamification)
+  .use(adminCertificates)
+  .use(studentCertificates)
   .use(audit)
   .use(ai)
   .get("/uploads/questions/:filename", ({ params }) => {
@@ -114,5 +120,8 @@ export const app = new Elysia({ name: "medwaster-api" })
   })
   .get("/", () => "OK")
   .listen(process.env.PORT ? Number(process.env.PORT) : 3000);
+
+// Initialize cron jobs after server starts
+initializeCronJobs();
 
 export type App = typeof app;
