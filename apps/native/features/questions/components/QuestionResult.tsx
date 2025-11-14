@@ -1,87 +1,51 @@
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
-import { CheckCircle2, XCircle, Award } from "lucide-react-native";
-import type { QuestionResultProps } from "../types";
+import { View, Text } from "react-native";
+import { CheckCircle2, XCircle } from "lucide-react-native";
+import type { QuestionResultProps, Question } from "../types";
 
 /**
  * Question Result Component
- * Displays feedback after question submission
+ * Displays feedback after question submission (without button - handled by parent)
  */
 export function QuestionResult({
   result,
-  onContinue,
-  isLoading = false,
+  question,
 }: QuestionResultProps) {
   const isCorrect = result.isCorrect;
 
   return (
     <View
-      className={`rounded-xl p-6 ${
+      className={`rounded-2xl p-6 border-2 ${
         isCorrect
-          ? "bg-green-50 border-2 border-green-200"
-          : "bg-red-50 border-2 border-red-200"
+          ? "bg-green-50 border-green-500"
+          : "bg-red-50 border-red-500"
       }`}
     >
       {/* Result Header */}
       <View className="flex-row items-center gap-3 mb-4">
         {isCorrect ? (
-          <View className="w-14 h-14 rounded-full bg-green-500 items-center justify-center">
-            <CheckCircle2 size={32} color="#FFFFFF" strokeWidth={2.5} />
-          </View>
+          <CheckCircle2 size={32} color="#10B981" strokeWidth={2.5} />
         ) : (
-          <View className="w-14 h-14 rounded-full bg-red-500 items-center justify-center">
-            <XCircle size={32} color="#FFFFFF" strokeWidth={2.5} />
-          </View>
+          <XCircle size={32} color="#EF4444" strokeWidth={2.5} />
         )}
 
-        <View className="flex-1">
-          <Text
-            className={`text-xl font-bold mb-1 ${
-              isCorrect ? "text-green-900" : "text-red-900"
-            }`}
-          >
-            {isCorrect ? "Resposta Correta!" : "Resposta Incorreta"}
-          </Text>
-          {result.earnedPoints !== undefined && result.earnedPoints > 0 && (
-            <View className="flex-row items-center gap-1">
-              <Award size={16} color={isCorrect ? "#10B981" : "#EF4444"} />
-              <Text
-                className={`text-sm font-semibold ${
-                  isCorrect ? "text-green-700" : "text-red-700"
-                }`}
-              >
-                +{result.earnedPoints}{" "}
-                {result.earnedPoints === 1 ? "ponto" : "pontos"}
-              </Text>
-            </View>
-          )}
-        </View>
+        <Text
+          className={`text-2xl font-bold ${
+            isCorrect ? "text-green-700" : "text-red-700"
+          }`}
+        >
+          {isCorrect ? "Resposta Correta!" : "Resposta Incorreta"}
+        </Text>
       </View>
-
-      {/* Score (if available) */}
-      {result.score !== undefined && result.score !== null && (
-        <View className="mb-4">
-          <View className="bg-white rounded-lg p-3 flex-row items-center justify-between">
-            <Text className="text-sm font-medium text-gray-700">
-              Pontuação
-            </Text>
-            <Text
-              className={`text-lg font-bold ${
-                isCorrect ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {result.score}%
-            </Text>
-          </View>
-        </View>
-      )}
 
       {/* Explanation */}
       {result.explanation && (
-        <View className="mb-5">
+        <View className="mb-4">
           <Text className="text-sm font-semibold text-gray-700 mb-2">
-            Explicação:
+            EXPLICAÇÃO
           </Text>
-          <Text className="text-base text-gray-800 leading-relaxed">
+          <Text className={`text-base leading-relaxed ${
+            isCorrect ? "text-green-900" : "text-red-900"
+          }`}>
             {result.explanation}
           </Text>
         </View>
@@ -89,33 +53,17 @@ export function QuestionResult({
 
       {/* Correct Answer (if incorrect) */}
       {!isCorrect && result.correctAnswer !== undefined && (
-        <View className="mb-5">
+        <View>
           <Text className="text-sm font-semibold text-gray-700 mb-2">
-            Resposta Correta:
+            RESPOSTA CORRETA
           </Text>
-          <View className="bg-white rounded-lg p-3">
+          <View className="bg-white rounded-xl p-4 border border-gray-200">
             <Text className="text-base text-gray-900">
-              {formatCorrectAnswer(result.correctAnswer)}
+              {formatCorrectAnswer(result.correctAnswer, question)}
             </Text>
           </View>
         </View>
       )}
-
-      {/* Continue Button */}
-      <TouchableOpacity
-        onPress={onContinue}
-        disabled={isLoading}
-        className={`rounded-full py-4 items-center ${
-          isCorrect ? "bg-green-600" : "bg-red-600"
-        } ${isLoading ? "opacity-70" : ""}`}
-        activeOpacity={0.8}
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <Text className="text-white text-base font-semibold">Continuar</Text>
-        )}
-      </TouchableOpacity>
     </View>
   );
 }
@@ -124,17 +72,36 @@ export function QuestionResult({
  * Helper function to format correct answer for display
  */
 function formatCorrectAnswer(
-  answer: number | number[] | string | Record<string, string>
+  answer: number | number[] | string | Record<string, string>,
+  question?: Question
 ): string {
   if (typeof answer === "string") {
     return answer;
   }
 
   if (typeof answer === "number") {
+    // Try to find the option text from the question
+    if (question?.options) {
+      const option = question.options.find((opt) => opt.id === answer);
+      if (option) {
+        return (option as any).content || option.optionText || `Opção ${answer}`;
+      }
+    }
     return `Opção ${answer}`;
   }
 
   if (Array.isArray(answer)) {
+    // Try to find the option texts from the question
+    if (question?.options) {
+      return answer
+        .map((id) => {
+          const option = question.options!.find((opt) => opt.id === id);
+          return option
+            ? (option as any).content || option.optionText || `Opção ${id}`
+            : `Opção ${id}`;
+        })
+        .join(", ");
+    }
     return answer.map((id) => `Opção ${id}`).join(", ");
   }
 

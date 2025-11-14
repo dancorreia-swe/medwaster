@@ -48,6 +48,18 @@ export default function WikiScreen() {
     (state) => state.setFavoriteArticles,
   );
   const setReadArticles = useArticleStore((state) => state.setReadArticles);
+  const categoriesFromStore = useArticleStore((state) => state.selectedCategories);
+  const clearSelectedCategories = useArticleStore((state) => state.clearSelectedCategories);
+
+  // Apply categories from store when screen loads
+  useEffect(() => {
+    if (categoriesFromStore.length > 0) {
+      setSelectedCategories(categoriesFromStore);
+      setActiveTab("categorias");
+      // Clear from store after applying
+      clearSelectedCategories();
+    }
+  }, [categoriesFromStore, clearSelectedCategories]);
 
   const {
     data: articlesResponse,

@@ -1,6 +1,6 @@
 import { Container } from "@/components/container";
 import { ActivityIndicator, Animated, View, Text, TouchableOpacity } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMarkdown } from "react-native-marked";
 import { useArticleStore } from "@/lib/stores/article-store";
@@ -9,7 +9,7 @@ import {
   useToggleFavorite,
 } from "@/features/wiki/hooks";
 import { markArticleAsRead, markArticleAsUnread } from "@/features/wiki/api";
-import { useMarkTrailArticleRead } from "@/features/trails/hooks";
+import { useMarkTrailArticleRead, useTrail } from "@/features/trails/hooks";
 import {
   ArticleHeader,
   ArticleTitleSection,
@@ -32,6 +32,8 @@ export default function WikiArticle() {
   const trailIdNum = trailId ? Number(trailId) : null;
   const contentIdNum = contentId ? Number(contentId) : null;
 
+  const router = useRouter();
+
   const readArticles = useArticleStore((state) => state.readArticles);
   const unreadArticles = useArticleStore((state) => state.unreadArticles);
   const setRead = useArticleStore((state) => state.markAsRead);
@@ -48,6 +50,9 @@ export default function WikiArticle() {
   } = useStudentArticleDetail(articleId);
   const toggleFavoriteMutation = useToggleFavorite();
   const markTrailArticleReadMutation = useMarkTrailArticleRead();
+
+  // Fetch trail data if in trail context (for celebration screen)
+  const { data: trail } = useTrail(trailIdNum || 0);
 
   const article = data?.article;
   const articleProgress = data?.progress;
@@ -81,10 +86,29 @@ export default function WikiArticle() {
 
       // If viewing from trail context, also mark trail content as complete
       if (trailIdNum && contentIdNum) {
-        await markTrailArticleReadMutation.mutateAsync({
+        const result = await markTrailArticleReadMutation.mutateAsync({
           trailId: trailIdNum,
           contentId: contentIdNum,
         });
+
+        // Check if trail was just completed - navigate to celebration
+        if (result?.trailJustCompleted && result?.progress && trail) {
+          setTimeout(() => {
+            router.push({
+              pathname: "/(app)/trails/celebration",
+              params: {
+                trailName: trail.name,
+                difficulty: trail.difficulty,
+                score: String(result.progress.currentScore || 0),
+                isPassed: String(result.progress.isPassed || false),
+                timeSpentMinutes: String(result.progress.timeSpentMinutes || 0),
+                completedContent: String(result.progress.completedContentIds?.length || 0),
+                totalContent: String(trail.content?.length || 0),
+                earnedPoints: result.progress.earnedPoints ? String(result.progress.earnedPoints) : undefined,
+              },
+            } as any);
+          }, 500);
+        }
       }
     } catch (error) {
       console.error("Erro ao marcar artigo como lido:", error);
@@ -99,6 +123,8 @@ export default function WikiArticle() {
     trailIdNum,
     contentIdNum,
     markTrailArticleReadMutation,
+    router,
+    trail,
   ]);
 
   const {

@@ -51,32 +51,37 @@ export function useCreateTrail() {
   });
 }
 
-export function useUpdateTrail() {
+export function useUpdateTrail(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
+  const silent = options?.silent ?? false;
 
   return useMutation({
     mutationFn: ({ id, body }: { id: number; body: UpdateTrailBody }) =>
       trailsApi.updateTrail(id, body),
     onMutate: ({ body }) => {
-      // Show appropriate loading message
-      if (body.unlockOrder !== undefined) {
-        toast.loading("Atualizando ordem...", { id: "update-trail" });
-      } else {
-        toast.loading("Atualizando trilha...", { id: "update-trail" });
+      if (!silent) {
+        // Show appropriate loading message
+        if (body.unlockOrder !== undefined) {
+          toast.loading("Atualizando ordem...", { id: "update-trail" });
+        } else {
+          toast.loading("Atualizando trilha...", { id: "update-trail" });
+        }
       }
     },
     onSuccess: (_, variables) => {
-      // Show appropriate success message
-      if (variables.body.unlockOrder !== undefined) {
-        const order = variables.body.unlockOrder === null ? "removida" : variables.body.unlockOrder;
-        toast.success(
-          order === "removida"
-            ? "Ordem removida com sucesso!"
-            : `Ordem atualizada para #${order}!`,
-          { id: "update-trail" }
-        );
-      } else {
-        toast.success("Trilha atualizada com sucesso!", { id: "update-trail" });
+      if (!silent) {
+        // Show appropriate success message
+        if (variables.body.unlockOrder !== undefined) {
+          const order = variables.body.unlockOrder === null ? "removida" : variables.body.unlockOrder;
+          toast.success(
+            order === "removida"
+              ? "Ordem removida com sucesso!"
+              : `Ordem atualizada para #${order}!`,
+            { id: "update-trail" }
+          );
+        } else {
+          toast.success("Trilha atualizada com sucesso!", { id: "update-trail" });
+        }
       }
       queryClient.invalidateQueries({ queryKey: ["trails", "list"] });
       queryClient.invalidateQueries({ queryKey: ["trails", variables.id] });
@@ -113,10 +118,18 @@ export function usePublishTrail() {
     onMutate: () => {
       toast.loading("Publicando trilha...", { id: "publish-trail" });
     },
-    onSuccess: (_, id) => {
+    onSuccess: async (data, id) => {
       toast.success("Trilha publicada com sucesso!", { id: "publish-trail" });
-      queryClient.invalidateQueries({ queryKey: ["trails", "list"] });
-      queryClient.invalidateQueries({ queryKey: ["trails", id] });
+      
+      // Clear the cache and refetch
+      queryClient.removeQueries({ queryKey: ["trails", "list"] });
+      queryClient.removeQueries({ queryKey: ["trails", id] });
+      
+      // Force immediate refetch
+      await queryClient.refetchQueries({ 
+        queryKey: ["trails", "list"],
+        type: 'active'
+      });
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao publicar trilha", { id: "publish-trail" });

@@ -6,9 +6,11 @@ interface ArticleState {
   readArticles: Set<number>;
   unreadArticles: Set<number>; // Explicitly marked as unread by user
   favoriteArticles: Set<number>;
+  selectedCategories: number[]; // Categories selected from homepage
 
   setReadArticles: (articleIds: number[]) => void;
   setFavoriteArticles: (articleIds: number[]) => void;
+  setSelectedCategories: (categoryIds: number[]) => void;
 
   markAsRead: (articleId: number) => void;
   markAsUnread: (articleId: number) => void;
@@ -18,6 +20,8 @@ interface ArticleState {
   addFavorite: (articleId: number) => void;
   removeFavorite: (articleId: number) => void;
   isFavorite: (articleId: number) => boolean;
+  
+  clearSelectedCategories: () => void;
 }
 
 const setsEqual = (a: Set<number>, b: Set<number>) => {
@@ -34,6 +38,7 @@ export const useArticleStore = create<ArticleState>()(
       readArticles: new Set<number>(),
       unreadArticles: new Set<number>(),
       favoriteArticles: new Set<number>(),
+      selectedCategories: [],
 
       setReadArticles: (articleIds: number[]) =>
         set((state) => {
@@ -52,6 +57,11 @@ export const useArticleStore = create<ArticleState>()(
           }
           return { favoriteArticles: next };
         }),
+
+      setSelectedCategories: (categoryIds: number[]) =>
+        set({ selectedCategories: categoryIds }),
+
+      clearSelectedCategories: () => set({ selectedCategories: [] }),
 
       markAsRead: (articleId: number) =>
         set((state) => {

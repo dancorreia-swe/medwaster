@@ -327,6 +327,9 @@ export abstract class TrailsService {
       throw new NotFoundError("Trail");
     }
 
+    console.log("🔍 Updating trail:", trailId);
+    console.log("📝 Updates:", updates);
+
     // Check if unlockOrder is already taken by another trail
     if (updates.unlockOrder !== undefined && updates.unlockOrder !== null) {
       const duplicate = await db.query.trails.findFirst({
@@ -357,6 +360,8 @@ export abstract class TrailsService {
         : null;
     }
 
+    console.log("💾 Final updateData:", updateData);
+
     const [updatedTrail] = await db
       .update(trails)
       .set({
@@ -365,6 +370,8 @@ export abstract class TrailsService {
       })
       .where(eq(trails.id, trailId))
       .returning();
+
+    console.log("✅ Updated trail:", updatedTrail);
 
     return updatedTrail;
   }

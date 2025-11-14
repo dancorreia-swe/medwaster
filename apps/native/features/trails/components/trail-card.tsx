@@ -103,15 +103,15 @@ export function TrailCard({ trail, onPress }: TrailCardProps) {
       </View>
 
       {/* Progress Bar (if enrolled) */}
-      {isEnrolled && !isCompleted && (
+      {isEnrolled && (
         <View>
           <View className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
             <View
-              className="h-full bg-primary"
+              className={`h-full ${isCompleted ? "bg-green-500" : "bg-primary"}`}
               style={{ width: `${progressPercentage}%` }}
             />
           </View>
-          <Text className="text-xs text-gray-600">
+          <Text className={`text-xs ${isCompleted ? "text-green-700 font-semibold" : "text-gray-600"}`}>
             {progressPercentage}% concluído
           </Text>
         </View>

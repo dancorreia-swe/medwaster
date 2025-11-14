@@ -45,12 +45,12 @@ interface Module {
 
 const moduleStyles = {
   quiz: {
-    gradientColors: ["#615FFF", "#AD46FF"],
-    borderColor: "transparent",
-    backgroundColor: "transparent",
-    textColor: "#FFFFFF",
-    buttonBg: "#FFFFFF",
-    buttonText: "#615FFF",
+    gradientColors: [] as string[], // No longer using gradient
+    borderColor: "#615FFF", // Purple border for quiz
+    backgroundColor: "#FFFFFF",
+    textColor: "#111827",
+    buttonBg: "#615FFF",
+    buttonText: "#FFFFFF",
   },
   article: {
     gradientColors: [] as string[],
@@ -221,8 +221,9 @@ export default function JourneyDetail() {
     const style = moduleStyles[moduleType];
 
     const handleModulePress = () => {
-      if (module.status === "locked" || !isEnrolled) return;
+      if (module.status === "locked") return;
 
+      // Backend handles auto-enrollment, so just navigate
       // For articles, navigate directly to the article detail page
       // Pass trail context as query params so article page can mark content complete
       if (module.type === "article" && module.articleId) {
@@ -245,115 +246,83 @@ export default function JourneyDetail() {
           onPress={handleModulePress}
         >
           {isCurrentActivity ? (
-            // Current Activity Card - Different styles based on type
-            <>
-              {style.gradientColors.length > 0 ? (
-                // Quiz with gradient
-                <LinearGradient
-                  colors={style.gradientColors}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  className="rounded-3xl overflow-hidden p-7 shadow-lg mb-4"
+            // Current Activity Card - Consistent bordered style for all types
+            <View
+              style={{ borderColor: style.borderColor }}
+              className="bg-white border-2 rounded-3xl p-7 shadow-lg mb-4"
+            >
+              <View className="flex-row gap-4 mb-5">
+                <View
+                  style={{ backgroundColor: `${style.borderColor}20` }}
+                  className="w-20 h-20 rounded-2xl items-center justify-center"
                 >
-                  <View className="flex-row gap-4 mb-5">
-                    <View className="w-20 h-20 bg-white/20 rounded-2xl items-center justify-center">
-                      <Text className="text-[40px]">{module.emoji}</Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-white text-lg font-semibold mb-2">
-                        {module.title}
-                      </Text>
-                      {module.questions && (
-                        <Text className="text-white/90 text-base">
-                          {module.questions} questões
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-
-                  {module.questions && (
-                    <View className="flex-row gap-2 mb-5">
-                      {Array.from({ length: module.questions || 0 }).map(
-                        (_, i) => (
-                          <View
-                            key={i}
-                            className="flex-1 h-2 bg-white/30 rounded-full"
-                          />
-                        ),
-                      )}
+                  <Text className="text-[40px]">{module.emoji}</Text>
+                </View>
+                <View className="flex-1">
+                  <Text
+                    style={{ color: style.textColor }}
+                    className="text-lg font-semibold mb-2"
+                  >
+                    {module.title}
+                  </Text>
+                  {module.questions && module.type === "quiz" && (
+                    <Text className="text-gray-500 text-base">
+                      {module.questions} questões
+                    </Text>
+                  )}
+                  {module.instructor && (
+                    <Text className="text-gray-500 text-base">
+                      {module.instructor}
+                    </Text>
+                  )}
+                  {/* Question Type Badge for current activity */}
+                  {module.type === "question" && module.questionType && (
+                    <View className="flex-row items-center gap-1.5 mt-1">
+                      {(() => {
+                        const typeInfo = getQuestionTypeIcon(module.questionType);
+                        if (!typeInfo) return null;
+                        const { Icon, color, label } = typeInfo;
+                        return (
+                          <>
+                            <Icon size={14} color={color} strokeWidth={2} />
+                            <Text className="text-xs font-medium" style={{ color }}>
+                              {label}
+                            </Text>
+                          </>
+                        );
+                      })()}
                     </View>
                   )}
+                </View>
+              </View>
 
-                  <TouchableOpacity
-                    onPress={handleModulePress}
-                    className="bg-white rounded-full py-4 items-center shadow-md"
-                  >
-                    <Text className="text-primary text-base font-semibold">
-                      Start
-                    </Text>
-                  </TouchableOpacity>
-                </LinearGradient>
-              ) : (
-                // Article or Question with border
-                <View
-                  style={{ borderColor: style.borderColor }}
-                  className="bg-white border-2 rounded-3xl p-7 shadow-lg mb-4"
-                >
-                  <View className="flex-row gap-4 mb-5">
+              {/* Progress bars for quizzes */}
+              {module.questions && module.type === "quiz" && (
+                <View className="flex-row gap-2 mb-5">
+                  {Array.from({ length: module.questions || 0 }).map((_, i) => (
                     <View
-                      style={{ backgroundColor: `${style.borderColor}20` }}
-                      className="w-20 h-20 rounded-2xl items-center justify-center"
-                    >
-                      <Text className="text-[40px]">{module.emoji}</Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text
-                        style={{ color: style.textColor }}
-                        className="text-lg font-semibold mb-2"
-                      >
-                        {module.title}
-                      </Text>
-                      {module.instructor && (
-                        <Text className="text-gray-500 text-base">
-                          {module.instructor}
-                        </Text>
-                      )}
-                      {/* Question Type Badge for current activity */}
-                      {module.type === "question" && module.questionType && (
-                        <View className="flex-row items-center gap-1.5 mt-1">
-                          {(() => {
-                            const typeInfo = getQuestionTypeIcon(module.questionType);
-                            if (!typeInfo) return null;
-                            const { Icon, color, label } = typeInfo;
-                            return (
-                              <>
-                                <Icon size={14} color={color} strokeWidth={2} />
-                                <Text className="text-xs font-medium" style={{ color }}>
-                                  {label}
-                                </Text>
-                              </>
-                            );
-                          })()}
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={handleModulePress}
-                    style={{ backgroundColor: style.buttonBg }}
-                    className="rounded-full py-4 items-center shadow-md"
-                  >
-                    <Text
-                      style={{ color: style.buttonText }}
-                      className="text-base font-semibold"
-                    >
-                      Começar
-                    </Text>
-                  </TouchableOpacity>
+                      key={i}
+                      style={{ backgroundColor: `${style.borderColor}40` }}
+                      className="flex-1 h-2 rounded-full"
+                    />
+                  ))}
                 </View>
               )}
-            </>
+
+              <TouchableOpacity
+                onPress={handleModulePress}
+                style={{ backgroundColor: style.buttonBg }}
+                className="rounded-full py-4 items-center"
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={{ color: style.buttonText }}
+                  className="text-base font-bold"
+                >
+                  Começar
+                </Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             // Regular Module Card
             <View className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm mb-2">
@@ -453,15 +422,6 @@ export default function JourneyDetail() {
     );
   };
 
-  const handleEnroll = async () => {
-    try {
-      await enrollMutation.mutateAsync(trailId);
-    } catch (error: any) {
-      console.error("Failed to enroll:", error);
-      // Error will be shown by the mutation error state
-    }
-  };
-
   const difficultyLabels: Record<string, string> = {
     basic: "Básico",
     intermediate: "Intermediário",
@@ -517,37 +477,20 @@ export default function JourneyDetail() {
             )}
           </View>
 
-          {/* Enrollment Button */}
+          {/* Info Badge - Not enrolled */}
           {!isEnrolled && (
-            <>
-              {enrollMutation.isError && (
-                <View className="bg-red-50 rounded-xl p-4 mb-4 border border-red-200">
-                  <Text className="text-red-900 font-semibold mb-1">
-                    Erro ao inscrever
-                  </Text>
-                  <Text className="text-red-700 text-sm">
-                    {enrollMutation.error?.message || "Tente novamente"}
-                  </Text>
-                </View>
-              )}
-              <TouchableOpacity
-                onPress={handleEnroll}
-                disabled={enrollMutation.isPending}
-                className="bg-primary rounded-full py-4 items-center shadow-md"
-              >
-                {enrollMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text className="text-white text-base font-semibold">
-                    Inscrever-se na Trilha
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </>
+            <View className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <Text className="text-blue-900 font-semibold mb-1">
+                ✨ Comece sua jornada
+              </Text>
+              <Text className="text-blue-700 text-sm">
+                Clique em qualquer módulo para começar. Você será inscrito automaticamente!
+              </Text>
+            </View>
           )}
 
-          {/* Progress Badge */}
-          {isEnrolled && progress && (
+          {/* Progress Badge - Enrolled with progress */}
+          {isEnrolled && progress && progress.progressPercentage > 0 && (
             <View className="bg-blue-50 rounded-xl p-4 border border-blue-200">
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-blue-900 font-semibold">
@@ -567,26 +510,12 @@ export default function JourneyDetail() {
           )}
         </View>
 
-        {/* Modules List */}
-        {isEnrolled && modules.length > 0 && (
+        {/* Modules List - Always shown */}
+        {modules.length > 0 && (
           <View className="px-6 pb-8">
             {modules.map((module: any, index: number) =>
               renderModuleCard(module, index),
             )}
-          </View>
-        )}
-
-        {/* Not Enrolled Message */}
-        {!isEnrolled && modules.length > 0 && (
-          <View className="px-6 pb-8">
-            <View className="bg-white rounded-xl p-6 border border-gray-200">
-              <Text className="text-gray-900 font-semibold text-center mb-2">
-                {modules.length} Módulos Disponíveis
-              </Text>
-              <Text className="text-gray-600 text-center text-sm">
-                Inscreva-se para começar sua jornada de aprendizado
-              </Text>
-            </View>
           </View>
         )}
       </ScrollView>

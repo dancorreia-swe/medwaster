@@ -1,7 +1,22 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, GripVertical, Save, X } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,8 +29,8 @@ import {
   useUpdateTrail,
 } from "../api/trailsQueries";
 import { TrailCard } from "./trail-card";
+import { DraggableTrailCard } from "./draggable-trail-card";
 import { TrailFiltersBar, type TrailFilters } from "./trail-filters-bar";
-import { TrailOrderManager } from "./trail-order-manager";
 import type { TrailListQueryParams, Trail } from "../types";
 import { toast } from "sonner";
 
@@ -25,6 +40,9 @@ export function TrailsPage() {
     page: 1,
     pageSize: 20,
   });
+  const [isOrderMode, setIsOrderMode] = useState(false);
+  const [localTrails, setLocalTrails] = useState<Trail[]>([]);
+  const [hasChanges, setHasChanges] = useState(false);
 
   const { data, isLoading, isFetching, error } = useQuery(
     trailsListQueryOptions(filters),
@@ -34,6 +52,14 @@ export function TrailsPage() {
   const deleteMutation = useDeleteTrail();
   const publishMutation = usePublishTrail();
   const updateMutation = useUpdateTrail();
+  const silentUpdateMutation = useUpdateTrail({ silent: true });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const handleFiltersChange = (newFilters: TrailFilters) => {
     setFilters((prev) => {
@@ -106,28 +132,81 @@ export function TrailsPage() {
   };
 
   const handleBulkReorder = async (reorderedTrails: Trail[]) => {
-    try {
-      toast.loading("Salvando nova ordem...", { id: "bulk-reorder" });
+    const reorderPromise = async () => {
+      // Phase 1: Set all trails to null to avoid conflicts
+      for (const trail of reorderedTrails) {
+        if (trail.unlockOrder !== null) {
+          await silentUpdateMutation.mutateAsync({
+            id: trail.id,
+            body: { unlockOrder: null },
+          });
+        }
+      }
 
-      // Update each trail sequentially to avoid race conditions
+      // Phase 2: Set the new order values
       for (let index = 0; index < reorderedTrails.length; index++) {
         const trail = reorderedTrails[index];
-        await updateMutation.mutateAsync({
+        await silentUpdateMutation.mutateAsync({
           id: trail.id,
           body: { unlockOrder: index + 1 },
         });
       }
+    };
 
-      toast.success("Ordem das trilhas atualizada com sucesso!", {
-        id: "bulk-reorder",
-      });
-    } catch (error) {
-      console.error("Error bulk reordering trails:", error);
-      toast.error("Erro ao atualizar ordem das trilhas", {
-        id: "bulk-reorder",
+    toast.promise(reorderPromise(), {
+      loading: "Salvando nova ordem...",
+      success: () => {
+        setHasChanges(false);
+        setIsOrderMode(false);
+        return "Ordem das trilhas atualizada com sucesso!";
+      },
+      error: "Erro ao atualizar ordem das trilhas",
+    });
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setLocalTrails((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+        setHasChanges(true);
+        return newOrder;
       });
     }
   };
+
+  const handleEnterOrderMode = () => {
+    if (!data?.data) return;
+    
+    // Sort trails by current unlockOrder (nulls at end), then by createdAt
+    const sorted = [...data.data].sort((a, b) => {
+      if (a.unlockOrder === null && b.unlockOrder === null) {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      if (a.unlockOrder === null) return 1;
+      if (b.unlockOrder === null) return -1;
+      return a.unlockOrder - b.unlockOrder;
+    });
+    
+    setLocalTrails(sorted);
+    setIsOrderMode(true);
+    setHasChanges(false);
+  };
+
+  const handleCancelOrderMode = () => {
+    setIsOrderMode(false);
+    setLocalTrails([]);
+    setHasChanges(false);
+  };
+
+  const handleSaveOrder = () => {
+    handleBulkReorder(localTrails);
+  };
+
+  const displayTrails = isOrderMode ? localTrails : (data?.data || []);
 
   return (
     <div className="space-y-6">
@@ -139,15 +218,39 @@ export function TrailsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {data?.data && data.data.length > 0 && (
-            <TrailOrderManager trails={data.data} onSave={handleBulkReorder} />
+          {!isOrderMode && data?.data && data.data.length > 0 && (
+            <Button variant="outline" onClick={handleEnterOrderMode}>
+              <GripVertical className="mr-2 h-4 w-4" />
+              Ordenar Trilhas
+            </Button>
           )}
-          <Button asChild>
-            <Link to="/trails/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Nova trilha
-            </Link>
-          </Button>
+          {isOrderMode && (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleCancelOrderMode}
+                disabled={silentUpdateMutation.isPending}
+              >
+                <X className="mr-2 h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSaveOrder}
+                disabled={!hasChanges || silentUpdateMutation.isPending}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {silentUpdateMutation.isPending ? "Salvando..." : "Salvar Ordem"}
+              </Button>
+            </>
+          )}
+          {!isOrderMode && (
+            <Button asChild>
+              <Link to="/trails/create">
+                <Plus className="mr-2 h-4 w-4" />
+                Nova trilha
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -162,15 +265,6 @@ export function TrailsPage() {
       />
 
       <div className="relative">
-        {isFetching && !isLoading && (
-          <div className="absolute right-4 top-4 z-10">
-            <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-1.5 text-sm text-muted-foreground">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Atualizando...
-            </div>
-          </div>
-        )}
-
         {error ? (
           <Alert variant="destructive">
             <AlertDescription>
@@ -181,25 +275,61 @@ export function TrailsPage() {
           <TrailsSkeleton />
         ) : data ? (
           <div className="space-y-6">
-            {data.data.length === 0 ? (
+            {displayTrails.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">
                   Nenhuma trilha encontrada.
                 </p>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {data.data.map((trail) => (
-                  <TrailCard
-                    key={trail.id}
-                    trail={trail}
-                    onEdit={handleEdit}
-                    onArchive={handleArchive}
-                    onDelete={handleDelete}
-                    onPublish={handlePublish}
-                  />
-                ))}
-              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={displayTrails.map((t) => t.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  {isOrderMode && (
+                    <div className="bg-muted/50 border border-dashed border-primary/50 rounded-lg p-4 mb-4">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <GripVertical className="h-4 w-4" />
+                        <p>
+                          <strong className="text-foreground">Modo de ordenação ativo:</strong>{" "}
+                          Arraste as trilhas para reorganizá-las. Os números indicam a nova ordem.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {displayTrails.map((trail, index) => (
+                      isOrderMode ? (
+                        <DraggableTrailCard
+                          key={trail.id}
+                          trail={trail}
+                          index={index}
+                          isOrderMode={isOrderMode}
+                          onEdit={handleEdit}
+                          onArchive={handleArchive}
+                          onDelete={handleDelete}
+                          onPublish={handlePublish}
+                        />
+                      ) : (
+                        <TrailCard
+                          key={trail.id}
+                          trail={trail}
+                          onEdit={handleEdit}
+                          onArchive={handleArchive}
+                          onDelete={handleDelete}
+                          onPublish={handlePublish}
+                        />
+                      )
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
 
             {data.meta.totalPages > 1 && (

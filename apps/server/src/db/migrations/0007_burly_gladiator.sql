@@ -1,0 +1,3 @@
+ALTER TABLE "quiz_attempts" ADD COLUMN "trail_content_id" integer;--> statement-breakpoint
+ALTER TABLE "quiz_attempts" ADD CONSTRAINT "quiz_attempts_trail_content_id_trail_content_id_fk" FOREIGN KEY ("trail_content_id") REFERENCES "public"."trail_content"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "quiz_attempts_trail_content_id_idx" ON "quiz_attempts" USING btree ("trail_content_id");

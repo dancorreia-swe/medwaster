@@ -216,7 +216,7 @@ export function useMarkTrailArticleRead() {
       trailId: number;
       contentId: number;
     }) => markTrailArticleRead(trailId, contentId),
-    onSuccess: (_, { trailId }) => {
+    onSuccess: (data, { trailId }) => {
       // Invalidate trail progress and content
       queryClient.invalidateQueries({ queryKey: trailKeys.progress(trailId) });
       queryClient.invalidateQueries({ queryKey: trailKeys.content(trailId) });
@@ -230,6 +230,9 @@ export function useMarkTrailArticleRead() {
       queryClient.invalidateQueries({
         queryKey: gamificationKeys.weeklyStats(),
       });
+
+      // Return the data so calling component can check trailJustCompleted
+      return data;
     },
   });
 }

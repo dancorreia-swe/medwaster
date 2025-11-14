@@ -364,7 +364,8 @@ export abstract class QuizzesService {
   static async startQuizAttempt(
     quizId: number,
     userId: string,
-    data: StartQuizAttemptBody
+    data: StartQuizAttemptBody,
+    skipMaxAttemptsCheck = false
   ) {
     // Fetch quiz with questions and options
     const quiz = await this.getQuizById(quizId, true);
@@ -373,20 +374,22 @@ export abstract class QuizzesService {
       throw new Error("Quiz is not available");
     }
 
-    // Check attempt limits
-    const existingAttempts = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(quizAttempts)
-      .where(
-        and(
-          eq(quizAttempts.quizId, quizId),
-          eq(quizAttempts.userId, userId)
+    // Check attempt limits (skip if used in trail context where trail handles attempts)
+    if (!skipMaxAttemptsCheck) {
+      const existingAttempts = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(quizAttempts)
+        .where(
+          and(
+            eq(quizAttempts.quizId, quizId),
+            eq(quizAttempts.userId, userId)
+          )
         )
-      )
-      .then(([result]) => result?.count ?? 0);
+        .then(([result]) => result?.count ?? 0);
 
-    if (quiz.maxAttempts && existingAttempts >= quiz.maxAttempts) {
-      throw new Error("Maximum attempts exceeded");
+      if (quiz.maxAttempts && existingAttempts >= quiz.maxAttempts) {
+        throw new Error("Maximum attempts exceeded");
+      }
     }
 
     // Create the attempt

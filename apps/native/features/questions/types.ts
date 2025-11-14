@@ -20,9 +20,10 @@ export type QuestionStatus = "draft" | "active" | "inactive" | "archived";
 export interface QuestionOption {
   id: number;
   label: string | null;
-  optionText: string;
+  content: string;  // Database field name (was optionText)
+  optionText?: string;  // Keep for backward compatibility
   isCorrect: boolean;
-  sequence: number;
+  sequence?: number;  // Optional - database doesn't have this field
 }
 
 // ============================================================================
@@ -41,7 +42,8 @@ export interface FillBlankAnswer {
 export interface FillBlankOption {
   id: number;
   fillBlankId: number;
-  optionText: string;
+  content: string;  // Database field name
+  optionText?: string;  // Keep for backward compatibility
   isCorrect: boolean;
   sequence: number;
 }
@@ -156,6 +158,7 @@ export interface MatchingQuestionProps extends BaseQuestionProps {
 
 export interface QuestionResultProps {
   result: QuestionResult;
-  onContinue: () => void;
+  question?: Question; // Optional question object to format correct answer
+  onContinue?: () => void; // Optional - button now handled by parent
   isLoading?: boolean;
 }

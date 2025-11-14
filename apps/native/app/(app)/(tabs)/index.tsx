@@ -5,9 +5,35 @@ import { CategoryCard } from "@/features/home/components/category-card";
 import { TrailCard } from "@/features/home/components/trail-card";
 import { QuickAccessCard } from "@/features/home/components/quick-access-card";
 import { authClient } from "@/lib/auth-client";
+import { useStudentCategories } from "@/features/wiki/hooks";
+import { router } from "expo-router";
+import { useArticleStore } from "@/lib/stores/article-store";
+
+const CATEGORY_COLORS = [
+  { bg: "#EFF6FF", icon: "#155DFC" },
+  { bg: "#FAF5FF", icon: "#9810FA" },
+  { bg: "#FEF2F2", icon: "#E7000B" },
+  { bg: "#FFFBEB", icon: "#E17100" },
+  { bg: "#F0FDF4", icon: "#00A63E" },
+  { bg: "#FFF7ED", icon: "#F97316" },
+];
 
 export default function Home() {
   const { data: session } = authClient.useSession();
+  const { data: categoriesResponse } = useStudentCategories();
+  const setSelectedCategoriesInStore = useArticleStore(
+    (state) => state.setSelectedCategories,
+  );
+
+  const categories = categoriesResponse ?? [];
+
+  const handleCategoryPress = (categoryId: number) => {
+    // Set the category in the store so wiki tab can read it
+    setSelectedCategoriesInStore([categoryId]);
+    
+    // Navigate to wiki tab
+    router.push("/(tabs)/wiki");
+  };
 
   return (
     <Container className="flex-1 bg-gray-50">
@@ -30,41 +56,28 @@ export default function Home() {
           <StatsCard />
 
           {/* Categories */}
-          <View className="mx-5 mb-5">
-            <Text className="text-base font-bold text-gray-900 mb-3.5">
-              Categorias de interesse
-            </Text>
-            <View className="flex-row flex-wrap gap-3.5">
-              <View className="flex-1 min-w-[45%]">
-                <CategoryCard
-                  title="Perfurocortantes"
-                  bgColor="#EFF6FF"
-                  iconColor="#155DFC"
-                />
-              </View>
-              <View className="flex-1 min-w-[45%]">
-                <CategoryCard
-                  title="Químicos"
-                  bgColor="#FAF5FF"
-                  iconColor="#9810FA"
-                />
-              </View>
-              <View className="flex-1 min-w-[45%]">
-                <CategoryCard
-                  title="Infectantes"
-                  bgColor="#FEF2F2"
-                  iconColor="#E7000B"
-                />
-              </View>
-              <View className="flex-1 min-w-[45%]">
-                <CategoryCard
-                  title="Radioativos"
-                  bgColor="#FFFBEB"
-                  iconColor="#E17100"
-                />
+          {categories.length > 0 && (
+            <View className="mx-5 mb-5">
+              <Text className="text-base font-bold text-gray-900 mb-3.5">
+                Categorias de interesse
+              </Text>
+              <View className="flex-row flex-wrap gap-3.5">
+                {categories.slice(0, 6).map((category, index) => {
+                  const colors = CATEGORY_COLORS[index % CATEGORY_COLORS.length];
+                  return (
+                    <View key={category.id} className="flex-1 min-w-[45%]">
+                      <CategoryCard
+                        title={category.name}
+                        bgColor={colors.bg}
+                        iconColor={colors.icon}
+                        onPress={() => handleCategoryPress(category.id)}
+                      />
+                    </View>
+                  );
+                })}
               </View>
             </View>
-          </View>
+          )}
 
           {/* Recommended Trails */}
           <View className="mb-5">

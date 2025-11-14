@@ -15,6 +15,7 @@ import { createInsertSchema } from "drizzle-typebox";
 import { user } from "./auth";
 import { contentCategories } from "./categories";
 import { questions } from "./questions";
+import { trailContent } from "./trails";
 
 export const quizStatusValues = [
   "draft",
@@ -141,6 +142,10 @@ export const quizAttempts = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    trailContentId: integer("trail_content_id").references(
+      () => trailContent.id,
+      { onDelete: "set null" },
+    ),
     status: quizAttemptStatusEnum("status").notNull().default("in_progress"),
     score: integer("score"), // percentage
     totalPoints: integer("total_points"),
@@ -159,6 +164,7 @@ export const quizAttempts = pgTable(
     index("quiz_attempts_user_id_idx").on(table.userId),
     index("quiz_attempts_status_id_idx").on(table.status),
     index("quiz_attempts_started_at_idx").on(table.startedAt),
+    index("quiz_attempts_trail_content_id_idx").on(table.trailContentId),
   ],
 );
 

@@ -7,21 +7,22 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import {
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react-native";
+import { X, CheckCircle2, XCircle } from "lucide-react-native";
+import Animated, {
+  FadeIn,
+  SlideInRight,
+  SlideOutLeft,
+} from "react-native-reanimated";
 import type { QuizAttemptProps, QuizAttemptProgress } from "../types";
 import type { QuestionAnswer } from "../../questions/types";
 import { QuestionRenderer } from "../../questions/components";
-import { QuizProgressBar } from "./QuizProgressBar";
 import { QuizTimer } from "./QuizTimer";
 
+type FeedbackState = "none" | "correct" | "incorrect";
+
 /**
- * Quiz Attempt Component
- * Full quiz taking experience with question navigation
+ * Quiz Attempt Component - Duolingo-style linear flow with immediate feedback
+ * Full quiz taking experience with one question at a time and clear feedback
  */
 export function QuizAttempt({
   quiz,
@@ -38,76 +39,110 @@ export function QuizAttempt({
     startTime: new Date(),
   });
 
+  const [currentAnswer, setCurrentAnswer] = useState<QuestionAnswer | null>(
+    null,
+  );
+  const [feedback, setFeedback] = useState<FeedbackState>("none");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Sort questions by sequence
   const sortedQuestions = [...(quiz.questions || [])].sort(
-    (a, b) => a.sequence - b.sequence
+    (a, b) => a.sequence - b.sequence,
   );
 
   const currentQuestion = sortedQuestions[progress.currentQuestionIndex];
   const isLastQuestion =
     progress.currentQuestionIndex === sortedQuestions.length - 1;
-  const isFirstQuestion = progress.currentQuestionIndex === 0;
-
-  // Check if current question has been answered
-  const currentAnswer = progress.answers.get(currentQuestion?.id);
-  const hasAnsweredCurrent = currentAnswer !== undefined;
 
   // Count answered questions
   const answeredCount = progress.answers.size;
 
   const handleAnswerSubmit = (answer: QuestionAnswer) => {
-    if (!currentQuestion) return;
-
-    setProgress((prev) => {
-      const newAnswers = new Map(prev.answers);
-      newAnswers.set(currentQuestion.id, answer);
-      return { ...prev, answers: newAnswers };
-    });
+    setCurrentAnswer(answer);
   };
 
-  const handleNext = () => {
+  const handleCheckAnswer = () => {
+    if (!currentAnswer || !currentQuestion) return;
+
+    // Store the answer
+    setProgress((prev) => {
+      const newAnswers = new Map(prev.answers);
+      newAnswers.set(currentQuestion.id, currentAnswer);
+      return { ...prev, answers: newAnswers };
+    });
+
+    // Check if answer is correct
+    const isCorrect = checkAnswerCorrectness(currentAnswer);
+    setFeedback(isCorrect ? "correct" : "incorrect");
+  };
+
+  const checkAnswerCorrectness = (answer: QuestionAnswer): boolean => {
+    if (!currentQuestion) return false;
+
+    const questionType = currentQuestion.question.type;
+
+    // Multiple Choice or True/False
+    if (questionType === "multiple_choice" || questionType === "true_false") {
+      const selectedOptions = Array.isArray(answer)
+        ? answer
+        : [answer as number];
+      const correctOptions =
+        currentQuestion.question.options
+          ?.filter((opt) => opt.isCorrect)
+          .map((opt) => opt.id) || [];
+
+      if (selectedOptions.length !== correctOptions.length) return false;
+      return selectedOptions.every((id) => correctOptions.includes(id));
+    }
+
+    // Fill in the Blank
+    if (questionType === "fill_in_the_blank") {
+      const userAnswers = answer as Record<string, string>;
+      return (
+        currentQuestion.question.fillInBlanks?.every((blank) => {
+          const userAnswer = userAnswers[blank.id.toString()]
+            ?.toLowerCase()
+            .trim();
+          const correctAnswer = blank.correctAnswer?.toLowerCase().trim();
+          return userAnswer === correctAnswer;
+        }) || false
+      );
+    }
+
+    // Matching
+    if (questionType === "matching") {
+      const userMatches = answer as Record<string, string>;
+      return (
+        currentQuestion.question.matchingPairs?.every((pair) => {
+          const userMatch = userMatches[pair.id.toString()];
+          return userMatch === pair.id.toString();
+        }) || false
+      );
+    }
+
+    return false;
+  };
+
+  const handleContinue = () => {
+    if (feedback === "none") {
+      // Check answer first
+      handleCheckAnswer();
+      return;
+    }
+
+    // Move to next question
     if (progress.currentQuestionIndex < sortedQuestions.length - 1) {
       setProgress((prev) => ({
         ...prev,
         currentQuestionIndex: prev.currentQuestionIndex + 1,
       }));
+      setCurrentAnswer(null);
+      setFeedback("none");
+    } else {
+      // Submit quiz
+      submitQuiz();
     }
   };
-
-  const handlePrevious = () => {
-    if (progress.currentQuestionIndex > 0) {
-      setProgress((prev) => ({
-        ...prev,
-        currentQuestionIndex: prev.currentQuestionIndex - 1,
-      }));
-    }
-  };
-
-  const handleGoToQuestion = (index: number) => {
-    setProgress((prev) => ({
-      ...prev,
-      currentQuestionIndex: index,
-    }));
-  };
-
-  const handleSubmitQuiz = useCallback(async () => {
-    // Check if all questions are answered
-    if (answeredCount < sortedQuestions.length) {
-      Alert.alert(
-        "Quiz Incompleto",
-        `Você respondeu ${answeredCount} de ${sortedQuestions.length} questões. Deseja submeter mesmo assim?`,
-        [
-          { text: "Cancelar", style: "cancel" },
-          { text: "Submeter", onPress: () => submitQuiz(), style: "destructive" },
-        ]
-      );
-      return;
-    }
-
-    submitQuiz();
-  }, [answeredCount, sortedQuestions.length]);
 
   const submitQuiz = async () => {
     setIsSubmitting(true);
@@ -120,18 +155,24 @@ export function QuizAttempt({
         // Determine answer format based on question type
         const questionType = quizQuestion.question.type;
 
-        if (questionType === "multiple_choice" || questionType === "true_false") {
+        if (
+          questionType === "multiple_choice" ||
+          questionType === "true_false"
+        ) {
           return {
             quizQuestionId: quizQuestion.id,
-            selectedOptions: Array.isArray(answer) ? answer : [answer as number],
-            timeSpent: 0, // TODO: Track per-question time
+            selectedOptions: Array.isArray(answer)
+              ? answer
+              : [answer as number],
+            timeSpent: 0,
           };
         }
 
         if (questionType === "fill_in_the_blank") {
           return {
             quizQuestionId: quizQuestion.id,
-            textAnswer: typeof answer === "string" ? answer : JSON.stringify(answer),
+            textAnswer:
+              typeof answer === "string" ? answer : JSON.stringify(answer),
             timeSpent: 0,
           };
         }
@@ -144,7 +185,6 @@ export function QuizAttempt({
           };
         }
 
-        // Fallback
         return {
           quizQuestionId: quizQuestion.id,
           selectedOptions: [],
@@ -154,11 +194,9 @@ export function QuizAttempt({
 
       // Calculate time spent
       const timeSpentSeconds = Math.floor(
-        (Date.now() - progress.startTime.getTime()) / 1000
+        (Date.now() - progress.startTime.getTime()) / 1000,
       );
 
-      // Call parent's completion handler with formatted data
-      // The parent will handle the actual API call
       const results = {
         attemptId,
         answers: answersArray,
@@ -168,10 +206,7 @@ export function QuizAttempt({
       onComplete(results as any);
     } catch (error) {
       console.error("Failed to submit quiz:", error);
-      Alert.alert(
-        "Erro",
-        "Não foi possível enviar o quiz. Tente novamente."
-      );
+      Alert.alert("Erro", "Não foi possível enviar o quiz. Tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
@@ -182,7 +217,7 @@ export function QuizAttempt({
       "Tempo Esgotado",
       "O tempo para completar este quiz acabou. Suas respostas serão enviadas automaticamente.",
       [{ text: "OK", onPress: () => submitQuiz() }],
-      { cancelable: false }
+      { cancelable: false },
     );
   }, []);
 
@@ -193,13 +228,13 @@ export function QuizAttempt({
       [
         { text: "Cancelar", style: "cancel" },
         { text: "Sair", onPress: onExit, style: "destructive" },
-      ]
+      ],
     );
   };
 
   if (!currentQuestion) {
     return (
-      <View className="flex-1 items-center justify-center p-6">
+      <View className="flex-1 items-center justify-center p-6 bg-gray-50">
         <Text className="text-gray-600 text-center">
           Nenhuma questão encontrada
         </Text>
@@ -207,144 +242,132 @@ export function QuizAttempt({
     );
   }
 
+  const progressPercentage =
+    ((progress.currentQuestionIndex + 1) / sortedQuestions.length) * 100;
+
   return (
-    <View className="flex-1">
+    <View className="flex-1 bg-white">
+      {/* Header */}
+      <View className="pt-12 pb-3 px-4">
+        <View className="flex-row items-center mb-4">
+          {/* Close Button */}
+          <TouchableOpacity
+            onPress={handleExit}
+            className="mr-4"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <X size={28} color="#6B7280" strokeWidth={2.5} />
+          </TouchableOpacity>
+
+          {/* Progress Bar */}
+          <View className="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
+            <Animated.View
+              className="h-full bg-green-500 rounded-full"
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </View>
+
+          {/* Spacer for symmetry */}
+          <View className="w-10 ml-4" />
+        </View>
+      </View>
+
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 24 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingVertical: 32,
+          paddingBottom: 120,
+        }}
       >
-        {/* Timer (if time limit set) */}
-        {quiz.timeLimit && (
-          <QuizTimer
-            timeLimit={quiz.timeLimit}
-            startTime={progress.startTime}
-            onTimeUp={handleTimeUp}
+        {/* Question */}
+        <Animated.View
+          key={progress.currentQuestionIndex}
+          entering={SlideInRight.duration(300)}
+          exiting={SlideOutLeft.duration(300)}
+        >
+          <QuestionRenderer
+            question={currentQuestion.question}
+            onSubmit={handleAnswerSubmit}
+            isSubmitting={false}
+            disabled={feedback !== "none"}
           />
-        )}
-
-        {/* Progress Bar */}
-        <QuizProgressBar
-          currentQuestion={progress.currentQuestionIndex + 1}
-          totalQuestions={sortedQuestions.length}
-          answeredQuestions={answeredCount}
-        />
-
-        {/* Question Points */}
-        <View className="bg-blue-50 rounded-xl p-3 mb-4 flex-row items-center justify-between">
-          <Text className="text-sm text-blue-700">
-            Pontos desta questão:
-          </Text>
-          <Text className="text-lg font-bold text-blue-700">
-            {currentQuestion.points}
-          </Text>
-        </View>
-
-        {/* Question Renderer */}
-        <QuestionRenderer
-          question={currentQuestion.question}
-          onSubmit={handleAnswerSubmit}
-          isSubmitting={false}
-          disabled={false}
-        />
-
-        {/* Answer Status */}
-        {hasAnsweredCurrent && (
-          <View className="bg-green-50 border border-green-200 rounded-xl p-3 mt-4 flex-row items-center gap-2">
-            <CheckCircle size={18} color="#10B981" strokeWidth={2.5} />
-            <Text className="text-sm text-green-700 font-medium">
-              Resposta salva! Você pode alterá-la antes de finalizar.
-            </Text>
-          </View>
-        )}
+        </Animated.View>
       </ScrollView>
 
-      {/* Navigation Footer */}
-      <View className="border-t border-gray-200 bg-white p-4">
-        {/* Question Navigation Dots */}
-        <View className="flex-row flex-wrap gap-2 mb-4 justify-center">
-          {sortedQuestions.map((q, index) => {
-            const isAnswered = progress.answers.has(q.id);
-            const isCurrent = index === progress.currentQuestionIndex;
-
-            return (
-              <TouchableOpacity
-                key={q.id}
-                onPress={() => handleGoToQuestion(index)}
-                className={`w-8 h-8 rounded-full items-center justify-center border-2 ${
-                  isCurrent
-                    ? "bg-primary border-primary"
-                    : isAnswered
-                      ? "bg-green-100 border-green-500"
-                      : "bg-white border-gray-300"
+      {/* Feedback Section - Fixed at bottom above button */}
+      {feedback !== "none" && (
+        <View className="px-5 pb-3">
+          <Animated.View entering={FadeIn.duration(400)}>
+            <View
+              className={`rounded-2xl p-5 ${
+                feedback === "correct"
+                  ? "bg-green-50 border-2 border-green-500"
+                  : "bg-red-50 border-2 border-red-500"
+              }`}
+            >
+            <View className="flex-row items-center gap-3 mb-2">
+              {feedback === "correct" ? (
+                <CheckCircle2 size={28} color="#10B981" strokeWidth={2.5} />
+              ) : (
+                <XCircle size={28} color="#EF4444" strokeWidth={2.5} />
+              )}
+              <Text
+                className={`text-xl font-bold ${
+                  feedback === "correct" ? "text-green-700" : "text-red-700"
                 }`}
               >
-                <Text
-                  className={`text-xs font-bold ${
-                    isCurrent
-                      ? "text-white"
-                      : isAnswered
-                        ? "text-green-700"
-                        : "text-gray-500"
-                  }`}
-                >
-                  {index + 1}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+                {feedback === "correct" ? "Correto!" : "Incorreto"}
+              </Text>
+            </View>
+            {currentQuestion.question.explanation && (
+              <Text
+                className={`text-sm mt-1 ${
+                  feedback === "correct" ? "text-green-900" : "text-red-900"
+                }`}
+              >
+                {currentQuestion.question.explanation}
+              </Text>
+            )}
+            </View>
+          </Animated.View>
         </View>
+      )}
 
-        {/* Navigation Buttons */}
-        <View className="flex-row gap-3">
-          {/* Previous Button */}
-          <TouchableOpacity
-            onPress={handlePrevious}
-            disabled={isFirstQuestion}
-            className={`flex-1 rounded-full py-3 flex-row items-center justify-center gap-2 border border-gray-300 ${
-              isFirstQuestion ? "opacity-50" : ""
-            }`}
-          >
-            <ChevronLeft size={20} color="#364153" strokeWidth={2.5} />
-            <Text className="text-gray-900 font-semibold">Anterior</Text>
-          </TouchableOpacity>
-
-          {/* Next/Submit Button */}
-          {isLastQuestion ? (
-            <TouchableOpacity
-              onPress={handleSubmitQuiz}
-              disabled={isSubmitting}
-              className="flex-1 bg-green-600 rounded-full py-3 flex-row items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <CheckCircle size={20} color="#FFFFFF" strokeWidth={2.5} />
-                  <Text className="text-white font-semibold">Finalizar</Text>
-                </>
-              )}
-            </TouchableOpacity>
+      {/* Bottom Action Button */}
+      <View className="bg-white border-t border-gray-200 px-5 py-4 pb-8">
+        <TouchableOpacity
+          onPress={handleContinue}
+          disabled={!currentAnswer || isSubmitting}
+          className={`rounded-2xl py-5 ${
+            !currentAnswer || isSubmitting
+              ? "bg-gray-300"
+              : feedback === "correct"
+                ? "bg-green-500"
+                : feedback === "incorrect"
+                  ? "bg-red-500"
+                  : "bg-blue-500"
+          }`}
+          activeOpacity={0.8}
+        >
+          {isSubmitting ? (
+            <View className="flex-row items-center justify-center">
+              <ActivityIndicator color="white" className="mr-2" />
+              <Text className="text-white text-lg font-bold">
+                Finalizando...
+              </Text>
+            </View>
           ) : (
-            <TouchableOpacity
-              onPress={handleNext}
-              className="flex-1 bg-primary rounded-full py-3 flex-row items-center justify-center gap-2"
-            >
-              <Text className="text-white font-semibold">Próxima</Text>
-              <ChevronRight size={20} color="#FFFFFF" strokeWidth={2.5} />
-            </TouchableOpacity>
+            <Text className="text-white text-lg font-bold text-center">
+              {feedback === "none"
+                ? "Verificar"
+                : isLastQuestion
+                  ? "Ver Resultados"
+                  : "Continuar"}
+            </Text>
           )}
-        </View>
-
-        {/* Exit Button */}
-        {onExit && (
-          <TouchableOpacity
-            onPress={handleExit}
-            className="mt-3 py-2 items-center"
-          >
-            <Text className="text-gray-500 text-sm">Sair do Quiz</Text>
-          </TouchableOpacity>
-        )}
+        </TouchableOpacity>
       </View>
     </View>
   );

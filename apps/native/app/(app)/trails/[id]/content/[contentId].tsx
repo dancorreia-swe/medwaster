@@ -14,8 +14,10 @@ import {
   useMarkTrailArticleRead,
   useStartTrailQuiz,
   useSubmitTrailQuiz,
+  useTrail,
+  useTrailProgress,
 } from "@/features/trails/hooks";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   QuestionRenderer,
   QuestionResult as QuestionResultComponent,
@@ -38,6 +40,8 @@ export default function TrailContentScreen() {
 
   const router = useRouter();
   const { data: content, isLoading } = useTrailContent(trailId);
+  const { data: trail } = useTrail(trailId);
+  const { data: trailProgress } = useTrailProgress(trailId);
   const submitQuestionMutation = useSubmitTrailQuestion();
   const markArticleReadMutation = useMarkTrailArticleRead();
   const startQuizMutation = useStartTrailQuiz();
@@ -45,42 +49,52 @@ export default function TrailContentScreen() {
 
   // Question state
   const [showQuestionResult, setShowQuestionResult] = useState(false);
-  const [questionResult, setQuestionResult] = useState<QuestionResultType | null>(null);
+  const [questionResult, setQuestionResult] =
+    useState<QuestionResultType | null>(null);
+  const [currentQuestionAnswer, setCurrentQuestionAnswer] = useState<QuestionAnswer | null>(null);
 
   // Quiz state
   const [quizAttemptId, setQuizAttemptId] = useState<number | null>(null);
   const [quizResults, setQuizResults] = useState<QuizResultsType | null>(null);
   const [isStartingQuiz, setIsStartingQuiz] = useState(false);
 
+  // Trail completion state
+  const [completionData, setCompletionData] = useState<any>(null);
+
+  // Track if quiz has been started to prevent multiple calls
+  const quizStartedRef = useRef(false);
+
   // Find the specific content item
   const contentItem = content?.find((item: any) => item.id === contentItemId);
 
-  if (isLoading) {
-    return (
-      <Container className="flex-1 bg-gray-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#155DFC" />
-        <Text className="text-gray-600 mt-3">Carregando conteúdo...</Text>
-      </Container>
-    );
-  }
+  // ============================================================================
+  // Helper Functions - Define before early returns
+  // ============================================================================
 
-  if (!contentItem) {
-    return (
-      <Container className="flex-1 bg-gray-50 items-center justify-center">
-        <Text className="text-gray-600">Conteúdo não encontrado</Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="mt-4 bg-primary px-6 py-3 rounded-full"
-        >
-          <Text className="text-white font-semibold">Voltar</Text>
-        </TouchableOpacity>
-      </Container>
-    );
-  }
+  /**
+   * Get current answer
+   */
+  const getCurrentAnswer = () => {
+    return currentQuestionAnswer;
+  };
+
+  /**
+   * Check if user has answered current question
+   */
+  const hasCurrentAnswer = () => {
+    return currentQuestionAnswer !== null;
+  };
 
   // ============================================================================
-  // Handlers
+  // Handlers - Define before early returns
   // ============================================================================
+
+  /**
+   * Handle question answer change (store locally without submitting)
+   */
+  const handleQuestionAnswerChange = (answer: QuestionAnswer) => {
+    setCurrentQuestionAnswer(answer);
+  };
 
   /**
    * Handle question answer submission
@@ -97,6 +111,11 @@ export default function TrailContentScreen() {
           timeSpentSeconds: 0, // TODO: Track actual time
         },
       });
+
+      // Check if trail was just completed
+      if (response.trailJustCompleted && response.progress) {
+        setCompletionData(response.progress);
+      }
 
       // Normalize response to match our types
       const normalizedResult: QuestionResultType = {
@@ -118,15 +137,40 @@ export default function TrailContentScreen() {
    * Handle question result continue button
    */
   const handleQuestionContinue = () => {
-    router.back();
+    // If trail was just completed, navigate to celebration
+    if (completionData && trail) {
+      router.push({
+        pathname: "/(app)/trails/celebration",
+        params: {
+          trailName: trail.name,
+          difficulty: trail.difficulty,
+          score: String(completionData.currentScore || 0),
+          isPassed: String(completionData.isPassed || false),
+          timeSpentMinutes: String(completionData.timeSpentMinutes || 0),
+          completedContent: String(
+            completionData.completedContentIds?.length || 0,
+          ),
+          totalContent: String(trail.content?.length || 0),
+          earnedPoints: completionData.earnedPoints
+            ? String(completionData.earnedPoints)
+            : undefined,
+        },
+      } as any);
+    } else {
+      router.back();
+    }
   };
 
   /**
    * Handle start quiz
    */
   const handleStartQuiz = async () => {
-    if (!contentItem?.quiz) return;
+    if (!contentItem?.quiz) {
+      console.log("No quiz found in contentItem");
+      return;
+    }
 
+    console.log("Starting quiz...", contentItem.quiz);
     setIsStartingQuiz(true);
     try {
       const response = await startQuizMutation.mutateAsync({
@@ -135,11 +179,14 @@ export default function TrailContentScreen() {
         data: {},
       });
 
+      console.log("Quiz started, response:", response);
       // Response contains attempt object
       setQuizAttemptId(response.attempt.id);
     } catch (error) {
       console.error("Failed to start quiz:", error);
       alert("Não foi possível iniciar o quiz. Tente novamente.");
+      // Navigate back on error
+      router.back();
     } finally {
       setIsStartingQuiz(false);
     }
@@ -157,16 +204,22 @@ export default function TrailContentScreen() {
         data,
       });
 
+      // Check if trail was just completed
+      if (response.trailJustCompleted && response.progress) {
+        setCompletionData(response.progress);
+      }
+
       // Normalize response to match QuizResults type
+      // Note: backend spreads the attempt directly, not nested
       const normalizedResults: QuizResultsType = {
-        attempt: response.attempt,
-        score: response.attempt.score || 0,
-        earnedPoints: response.attempt.earnedPoints || 0,
-        totalPoints: response.attempt.totalPoints || 0,
+        attempt: response,
+        score: response.score || 0,
+        earnedPoints: response.earnedPoints || 0,
+        totalPoints: response.totalPoints || 0,
         correctCount: response.correctAnswers || 0,
         incorrectCount: response.incorrectAnswers || 0,
-        passed: (response.attempt.score || 0) >= (response.quiz.passingScore || 70),
-        timeSpentSeconds: response.attempt.timeSpent || 0,
+        passed: (response.score || 0) >= (response.quiz?.passingScore || 70),
+        timeSpentSeconds: response.timeSpent || 0,
         answers: response.answers || [],
       };
 
@@ -181,14 +234,37 @@ export default function TrailContentScreen() {
    * Handle quiz results continue
    */
   const handleQuizContinue = () => {
-    router.back();
+    // If trail was just completed, navigate to celebration
+    if (completionData && trail) {
+      router.push({
+        pathname: "/(app)/trails/celebration",
+        params: {
+          trailName: trail.name,
+          difficulty: trail.difficulty,
+          score: String(completionData.currentScore || 0),
+          isPassed: String(completionData.isPassed || false),
+          timeSpentMinutes: String(completionData.timeSpentMinutes || 0),
+          completedContent: String(
+            completionData.completedContentIds?.length || 0,
+          ),
+          totalContent: String(trail.content?.length || 0),
+          earnedPoints: completionData.earnedPoints
+            ? String(completionData.earnedPoints)
+            : undefined,
+        },
+      } as any);
+    } else {
+      router.back();
+    }
   };
 
   /**
-   * Handle quiz exit
+   * Handle quiz exit - go back to trail listing
    */
   const handleQuizExit = () => {
-    setQuizAttemptId(null);
+    // Navigate directly to trail listing without clearing state
+    // This prevents showing the intermediate page
+    router.replace(`/(app)/(tabs)/trails/${trailId}` as any);
   };
 
   /**
@@ -207,6 +283,53 @@ export default function TrailContentScreen() {
     }
   };
 
+  // Auto-start quiz when component mounts if it's a quiz
+  useEffect(() => {
+    if (contentItem?.quizId && !quizAttemptId && !quizResults && !quizStartedRef.current) {
+      quizStartedRef.current = true;
+      handleStartQuiz();
+    }
+  }, [contentItem?.quizId, quizAttemptId, quizResults]);
+
+  // ============================================================================
+  // Early returns
+  // ============================================================================
+
+  // Show loading while content is loading
+  if (isLoading) {
+    return (
+      <Container className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#615FFF" />
+        <Text className="text-gray-600 mt-3">Carregando...</Text>
+      </Container>
+    );
+  }
+
+  // Show loading only while actively starting quiz
+  if (contentItem?.quizId && !quizAttemptId && !quizResults && isStartingQuiz) {
+    console.log("Showing loading screen, isStartingQuiz:", isStartingQuiz);
+    return (
+      <Container className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#615FFF" />
+        <Text className="text-gray-600 mt-3">Iniciando quiz...</Text>
+      </Container>
+    );
+  }
+
+  if (!contentItem) {
+    return (
+      <Container className="flex-1 bg-gray-50 items-center justify-center">
+        <Text className="text-gray-600">Conteúdo não encontrado</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="mt-4 bg-primary px-6 py-3 rounded-full"
+        >
+          <Text className="text-white font-semibold">Voltar</Text>
+        </TouchableOpacity>
+      </Container>
+    );
+  }
+
   // ============================================================================
   // Render Methods
   // ============================================================================
@@ -224,19 +347,18 @@ export default function TrailContentScreen() {
     };
 
     return (
-      <View>
+      <View className="flex-1">
         {!showQuestionResult ? (
           <QuestionRenderer
             question={normalizedQuestion}
-            onSubmit={handleSubmitQuestion}
-            isSubmitting={submitQuestionMutation.isPending}
+            onSubmit={handleQuestionAnswerChange}
+            isSubmitting={false}
             disabled={false}
           />
         ) : questionResult ? (
           <QuestionResultComponent
             result={questionResult}
-            onContinue={handleQuestionContinue}
-            isLoading={false}
+            question={normalizedQuestion}
           />
         ) : null}
       </View>
@@ -302,40 +424,11 @@ export default function TrailContentScreen() {
   const renderQuiz = () => {
     const quiz = contentItem.quiz;
 
-    // Show results if quiz is completed
-    if (quizResults) {
-      return (
-        <QuizResultsComponent
-          results={quizResults}
-          onContinue={handleQuizContinue}
-          showReviewButton={false}
-        />
-      );
-    }
-
-    // Show quiz attempt if started
-    if (quizAttemptId && quiz) {
-      return (
-        <QuizAttemptComponent
-          quiz={quiz}
-          attemptId={quizAttemptId}
-          onComplete={handleQuizComplete}
-          onExit={handleQuizExit}
-          trailContext={{
-            trailId,
-            contentId: contentItemId,
-          }}
-        />
-      );
-    }
-
     // Show start quiz button
     return (
       <View>
         <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200">
-          <Text className="text-sm text-primary font-semibold mb-2">
-            QUIZ
-          </Text>
+          <Text className="text-sm text-primary font-semibold mb-2">QUIZ</Text>
           <Text className="text-2xl font-bold text-gray-900 mb-4">
             {quiz.title}
           </Text>
@@ -388,45 +481,142 @@ export default function TrailContentScreen() {
     );
   };
 
-  return (
-    <Container className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View className="px-6 pt-4 pb-6">
-          {/* Back Button */}
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center mb-6 mt-1"
-          >
-            <ChevronLeft size={24} color="#364153" strokeWidth={2} />
-          </TouchableOpacity>
+  // For quiz mode, render full screen
+  if (contentItem.contentType === "quiz" && (quizAttemptId || quizResults)) {
+    return (
+      <Container className="flex-1 bg-white">
+        {quizResults ? (
+          <QuizResultsComponent
+            results={quizResults}
+            onContinue={handleQuizContinue}
+            showReviewButton={false}
+          />
+        ) : quizAttemptId && contentItem.quiz ? (
+          <QuizAttemptComponent
+            quiz={contentItem.quiz}
+            attemptId={quizAttemptId}
+            onComplete={handleQuizComplete}
+            onExit={handleQuizExit}
+            trailContext={{
+              trailId,
+              contentId: contentItemId,
+            }}
+          />
+        ) : null}
+      </Container>
+    );
+  }
 
-          {/* Content Type Badge */}
-          <View className="flex-row items-center gap-2 mb-4">
-            <View className="bg-primary/10 px-3 py-1 rounded-full">
-              <Text className="text-primary text-xs font-semibold uppercase">
-                {contentItem.contentType === "question" && "Questão"}
-                {contentItem.contentType === "quiz" && "Quiz"}
-                {contentItem.contentType === "article" && "Artigo"}
+  return (
+    <Container className="flex-1 bg-white">
+      <View className="flex-1">
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        >
+          {/* Header */}
+          <View className="px-6 pt-4 pb-4">
+            {/* Back Button */}
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center mb-4"
+            >
+              <ChevronLeft size={24} color="#364153" strokeWidth={2} />
+            </TouchableOpacity>
+
+            {/* Trail Title */}
+            {trail && (
+              <Text className="text-sm text-gray-500 mb-3">
+                {trail.name}
               </Text>
-            </View>
-            {contentItem.isRequired && (
-              <View className="bg-orange-100 px-3 py-1 rounded-full">
-                <Text className="text-orange-700 text-xs font-semibold">
-                  Obrigatório
+            )}
+
+            {/* Content Type Badge */}
+            <View className="flex-row items-center gap-2">
+              <View className="bg-blue-50 px-3 py-1.5 rounded-lg">
+                <Text className="text-blue-700 text-xs font-semibold">
+                  {contentItem.contentType === "question" && "Questão"}
+                  {contentItem.contentType === "quiz" && "Quiz"}
+                  {contentItem.contentType === "article" && "Artigo"}
                 </Text>
               </View>
+              {contentItem.isRequired && (
+                <View className="bg-orange-50 px-3 py-1.5 rounded-lg">
+                  <Text className="text-orange-700 text-xs font-semibold">
+                    Obrigatório
+                  </Text>
+                </View>
+              )}
+              {contentItem.progress?.isCompleted && (
+                <View className="bg-green-50 px-3 py-1.5 rounded-lg">
+                  <Text className="text-green-700 text-xs font-semibold">
+                    ✓ Concluído
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Content */}
+          <View className="px-6">
+            {contentItem.contentType === "question" && renderQuestion()}
+            {contentItem.contentType === "article" && renderArticle()}
+            {contentItem.contentType === "quiz" && renderQuiz()}
+          </View>
+        </ScrollView>
+
+        {/* Fixed Bottom Button for Questions */}
+        {contentItem.contentType === "question" && (
+          <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4 pb-8">
+            {!showQuestionResult ? (
+              <TouchableOpacity
+                onPress={() => {
+                  // Trigger question submission
+                  const answer = getCurrentAnswer();
+                  if (answer !== null) {
+                    handleSubmitQuestion(answer);
+                  }
+                }}
+                disabled={!hasCurrentAnswer() || submitQuestionMutation.isPending}
+                className={`rounded-2xl py-5 ${
+                  !hasCurrentAnswer() || submitQuestionMutation.isPending
+                    ? "bg-gray-300"
+                    : "bg-blue-500"
+                }`}
+                activeOpacity={0.8}
+              >
+                <View className="flex-row items-center justify-center">
+                  {submitQuestionMutation.isPending ? (
+                    <>
+                      <ActivityIndicator color="white" className="mr-2" />
+                      <Text className="text-white text-lg font-bold">
+                        Verificando...
+                      </Text>
+                    </>
+                  ) : (
+                    <Text className="text-white text-lg font-bold">
+                      Verificar
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={handleQuestionContinue}
+                className={`rounded-2xl py-5 ${
+                  questionResult?.isCorrect ? "bg-green-500" : "bg-red-500"
+                }`}
+                activeOpacity={0.8}
+              >
+                <Text className="text-white text-lg font-bold text-center">
+                  Continuar
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
-        </View>
-
-        {/* Content */}
-        <View className="px-6 pb-8">
-          {contentItem.contentType === "question" && renderQuestion()}
-          {contentItem.contentType === "article" && renderArticle()}
-          {contentItem.contentType === "quiz" && renderQuiz()}
-        </View>
-      </ScrollView>
+        )}
+      </View>
     </Container>
   );
 }

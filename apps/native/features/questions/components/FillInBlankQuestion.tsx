@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, TextInput, Image } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, Image, ActivityIndicator } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import type { FillInBlankQuestionProps } from "../types";
 
 /**
  * Fill in the Blank Question Component
- * Supports multiple blanks with text input or multiple choice options
+ * Supports multiple blanks with text input or multiple choice options with confirm button
  */
 export function FillInBlankQuestion({
   question,
@@ -16,8 +17,13 @@ export function FillInBlankQuestion({
 
   // Sort blanks by sequence
   const sortedBlanks = [...(question.fillInBlanks || [])].sort(
-    (a, b) => a.sequence - b.sequence
+    (a, b) => a.sequence - b.sequence,
   );
+
+  const allBlanksFilled = sortedBlanks.every((blank) => {
+    const answer = answers[blank.id.toString()];
+    return answer && answer.length > 0;
+  });
 
   const handleTextChange = (blankId: number, text: string) => {
     setAnswers((prev) => ({
@@ -33,31 +39,22 @@ export function FillInBlankQuestion({
     }));
   };
 
-  const handleSubmit = () => {
-    // Check if all blanks are filled
-    const allFilled = sortedBlanks.every((blank) => {
-      const answer = answers[blank.id.toString()];
-      return answer && answer.length > 0;
-    });
-
-    if (!allFilled) return;
+  const handleConfirm = () => {
+    if (!allBlanksFilled || disabled || isSubmitting) return;
 
     onSubmit(answers);
   };
 
-  const allBlanksFilled = sortedBlanks.every((blank) => {
-    const answer = answers[blank.id.toString()];
-    return answer && answer.length > 0;
-  });
-
   return (
-    <View>
+    <Animated.View entering={FadeIn.duration(400)}>
       {/* Question Text */}
-      <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200">
-        <Text className="text-sm text-primary font-semibold mb-2">
-          PREENCHA OS ESPAÇOS
-        </Text>
-        <Text className="text-lg text-gray-900 leading-relaxed mb-2">
+      <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm">
+        <View className="mb-3 bg-amber-50 self-start px-3 py-1 rounded-full">
+          <Text className="text-xs text-amber-700 font-bold tracking-wide">
+            PREENCHA OS ESPAÇOS
+          </Text>
+        </View>
+        <Text className="text-2xl text-gray-900 font-bold leading-relaxed">
           {question.prompt || question.questionText}
         </Text>
 
@@ -65,57 +62,63 @@ export function FillInBlankQuestion({
         {question.imageUrl && (
           <Image
             source={{ uri: question.imageUrl }}
-            className="w-full h-48 rounded-lg mt-4"
+            className="w-full h-52 rounded-2xl mt-5"
             resizeMode="cover"
           />
         )}
 
-        <Text className="text-xs text-gray-500 mt-3 italic">
-          Preencha cada campo abaixo
-        </Text>
+        <View className="mt-4 bg-blue-50 rounded-xl p-3">
+          <Text className="text-sm text-blue-700 font-medium text-center">
+            💡 Preencha cada campo abaixo
+          </Text>
+        </View>
       </View>
 
       {/* Blanks */}
-      <View className="mb-6">
+      <View className="mb-4 gap-5">
         {sortedBlanks.map((blank, index) => {
           const currentAnswer = answers[blank.id.toString()] || "";
           const hasOptions = blank.options && blank.options.length > 0;
 
           return (
-            <View key={blank.id} className="mb-5">
+            <View key={blank.id}>
               {/* Blank Label */}
-              <Text className="text-sm font-semibold text-gray-700 mb-2">
+              <Text className="text-base font-bold text-gray-900 mb-3">
                 Espaço {index + 1}: {blank.placeholder}
               </Text>
 
               {hasOptions ? (
                 // Multiple choice options for this blank
-                <View className="gap-2">
+                <View className="gap-3">
                   {blank.options
                     ?.sort((a, b) => a.sequence - b.sequence)
                     .map((option) => {
-                      const isSelected = currentAnswer === option.optionText;
+                      const optionText =
+                        (option as any).content || option.optionText || "";
+                      const isSelected = currentAnswer === optionText;
 
                       return (
                         <TouchableOpacity
                           key={option.id}
                           onPress={() =>
-                            handleOptionSelect(blank.id, option.optionText)
+                            handleOptionSelect(blank.id, optionText)
                           }
                           disabled={disabled}
-                          className={`bg-white rounded-xl p-4 border-2 ${
-                            isSelected ? "border-primary" : "border-gray-200"
+                          className={`bg-white rounded-2xl p-5 border-2 ${
+                            isSelected
+                              ? "border-primary bg-primary/5 shadow-md"
+                              : "border-gray-200"
                           } ${disabled ? "opacity-50" : ""}`}
                           activeOpacity={0.7}
                         >
                           <Text
-                            className={`text-base ${
+                            className={`text-lg leading-relaxed ${
                               isSelected
                                 ? "text-primary font-semibold"
                                 : "text-gray-900"
                             }`}
                           >
-                            {option.optionText}
+                            {optionText}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -128,9 +131,9 @@ export function FillInBlankQuestion({
                   onChangeText={(text) => handleTextChange(blank.id, text)}
                   placeholder={`Digite sua resposta...`}
                   editable={!disabled}
-                  className={`bg-white rounded-xl p-4 border-2 text-base text-gray-900 ${
+                  className={`bg-white rounded-3xl p-5 border-2 text-lg text-gray-900 shadow-sm ${
                     currentAnswer.length > 0
-                      ? "border-primary"
+                      ? "border-primary bg-primary/5"
                       : "border-gray-200"
                   } ${disabled ? "opacity-50" : ""}`}
                   placeholderTextColor="#9CA3AF"
@@ -143,21 +146,34 @@ export function FillInBlankQuestion({
         })}
       </View>
 
-      {/* Submit Button */}
-      <TouchableOpacity
-        onPress={handleSubmit}
-        disabled={!allBlanksFilled || isSubmitting || disabled}
-        className={`rounded-full py-4 items-center ${
-          !allBlanksFilled || isSubmitting || disabled
-            ? "bg-gray-300"
-            : "bg-primary"
-        }`}
-        activeOpacity={0.8}
-      >
-        <Text className="text-white text-base font-semibold">
-          {isSubmitting ? "Enviando..." : "Enviar Resposta"}
-        </Text>
-      </TouchableOpacity>
-    </View>
+      {/* Confirm Button */}
+      {allBlanksFilled && (
+        <Animated.View entering={FadeIn.duration(300)}>
+          <TouchableOpacity
+            onPress={handleConfirm}
+            disabled={disabled || isSubmitting}
+            className={`bg-purple-600 rounded-2xl p-5 shadow-lg ${
+              disabled || isSubmitting ? "opacity-50" : ""
+            }`}
+            activeOpacity={0.8}
+          >
+            <View className="flex-row items-center justify-center">
+              {isSubmitting ? (
+                <>
+                  <ActivityIndicator color="white" className="mr-2" />
+                  <Text className="text-white text-lg font-bold">
+                    Enviando...
+                  </Text>
+                </>
+              ) : (
+                <Text className="text-white text-lg font-bold">
+                  Confirmar Resposta
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+    </Animated.View>
   );
 }

@@ -51,6 +51,16 @@ export abstract class ProgressService {
           },
         },
       },
+      orderBy: [
+        asc(trails.unlockOrder),
+        sql`CASE ${trails.difficulty}
+          WHEN 'basic' THEN 1
+          WHEN 'intermediate' THEN 2
+          WHEN 'advanced' THEN 3
+          ELSE 4
+        END`,
+        asc(trails.name),
+      ],
     });
 
     // Get user's progress for all trails
@@ -59,12 +69,28 @@ export abstract class ProgressService {
     });
 
     const progressMap = new Map(userProgress.map((p) => [p.trailId, p]));
-
     // Check eligibility for each trail
     const trailsWithEligibility = await Promise.all(
       publishedTrails.map(async (trail) => {
         const progress = progressMap.get(trail.id);
         const isEligible = await this.checkTrailEligibility(userId, trail.id);
+
+        // Calculate progress percentage if enrolled
+        let progressPercentage = 0;
+        if (progress?.isEnrolled) {
+          const completedIds = JSON.parse(progress.completedContentIds || "[]");
+          // Get total content count for this trail
+          const contentCount = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(trailContent)
+            .where(eq(trailContent.trailId, trail.id));
+
+          const totalContent = contentCount[0]?.count || 0;
+          progressPercentage =
+            totalContent > 0
+              ? Math.round((completedIds.length / totalContent) * 100)
+              : 0;
+        }
 
         return {
           ...trail,
@@ -72,14 +98,17 @@ export abstract class ProgressService {
           isLocked: !isEligible,
           progress: progress
             ? {
+                isEnrolled: progress.isEnrolled,
+                isCompleted: progress.isCompleted,
+                isPassed: progress.isPassed,
+                currentScore: progress.bestScore,
+                progressPercentage,
                 currentContent: progress.currentContentId,
                 completedContentIds: JSON.parse(
                   progress.completedContentIds || "[]",
                 ),
                 attempts: progress.attempts,
                 bestScore: progress.bestScore,
-                isCompleted: progress.isCompleted,
-                isPassed: progress.isPassed,
                 timeSpentMinutes: progress.timeSpentMinutes,
               }
             : null,
@@ -220,19 +249,7 @@ export abstract class ProgressService {
   // ===================================
 
   static async getTrailContent(userId: string, trailId: number) {
-    // Verify enrollment
-    const progress = await db.query.userTrailProgress.findFirst({
-      where: and(
-        eq(userTrailProgress.userId, userId),
-        eq(userTrailProgress.trailId, trailId),
-      ),
-    });
-
-    if (!progress?.isEnrolled) {
-      throw new BusinessLogicError("Not enrolled in this trail", "NOT_ENROLLED");
-    }
-
-    // Get trail metadata
+    // Get trail metadata first to verify it exists
     const trail = await db.query.trails.findFirst({
       where: eq(trails.id, trailId),
       columns: {
@@ -245,13 +262,47 @@ export abstract class ProgressService {
       throw new NotFoundError("Trail");
     }
 
+    // Check enrollment and auto-enroll if not enrolled
+    let progress = await db.query.userTrailProgress.findFirst({
+      where: and(
+        eq(userTrailProgress.userId, userId),
+        eq(userTrailProgress.trailId, trailId),
+      ),
+    });
+
+    // Auto-enroll if not enrolled - improves UX by removing friction
+    if (!progress?.isEnrolled) {
+      // Use the existing enrollInTrail method
+      progress = await this.enrollInTrail(userId, trailId);
+    }
+
     // Fetch ordered content items with their linked records
     const contentItems = await db.query.trailContent.findMany({
       where: eq(trailContent.trailId, trailId),
       orderBy: [asc(trailContent.sequence)],
       with: {
-        question: true,
-        quiz: true,
+        question: {
+          with: {
+            options: true,
+            fillInBlanks: true,
+            matchingPairs: true,
+          },
+        },
+        quiz: {
+          with: {
+            questions: {
+              with: {
+                question: {
+                  with: {
+                    options: true,
+                    fillInBlanks: true,
+                    matchingPairs: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         article: true,
       },
     });
@@ -266,7 +317,10 @@ export abstract class ProgressService {
     );
 
     // Attach progress to each content item
-    const completedIds = JSON.parse(progress.completedContentIds || "[]");
+    // Handle both string (from DB) and array (from enrollInTrail return)
+    const completedIds = typeof progress.completedContentIds === 'string'
+      ? JSON.parse(progress.completedContentIds || "[]")
+      : (progress.completedContentIds || []);
     const contentWithProgress = contentItems.map((item, index) => {
       const itemProgress = progressMap.get(item.id);
 
@@ -315,16 +369,17 @@ export abstract class ProgressService {
     trailId: number,
     contentId: number,
   ) {
-    // Verify enrollment
-    const progress = await db.query.userTrailProgress.findFirst({
+    // Check enrollment and auto-enroll if not enrolled
+    let progress = await db.query.userTrailProgress.findFirst({
       where: and(
         eq(userTrailProgress.userId, userId),
         eq(userTrailProgress.trailId, trailId),
       ),
     });
 
+    // Auto-enroll if not enrolled
     if (!progress?.isEnrolled) {
-      throw new BusinessLogicError("Not enrolled in this trail", "NOT_ENROLLED");
+      progress = await this.enrollInTrail(userId, trailId);
     }
 
     // Verify content belongs to trail
@@ -340,9 +395,10 @@ export abstract class ProgressService {
     }
 
     // Check if already completed
-    const completedIds: number[] = JSON.parse(
-      progress.completedContentIds || "[]",
-    );
+    // Handle both string (from DB) and array (from enrollInTrail return)
+    const completedIds: number[] = typeof progress.completedContentIds === 'string'
+      ? JSON.parse(progress.completedContentIds || "[]")
+      : (progress.completedContentIds || []);
 
     if (completedIds.includes(contentId)) {
       return progress; // Already completed
@@ -400,15 +456,16 @@ export abstract class ProgressService {
     contentId: number,
     timeSpentMinutes: number,
   ) {
-    const progress = await db.query.userTrailProgress.findFirst({
+    let progress = await db.query.userTrailProgress.findFirst({
       where: and(
         eq(userTrailProgress.userId, userId),
         eq(userTrailProgress.trailId, trailId),
       ),
     });
 
+    // Auto-enroll if not enrolled
     if (!progress?.isEnrolled) {
-      throw new BusinessLogicError("Not enrolled in this trail", "NOT_ENROLLED");
+      progress = await this.enrollInTrail(userId, trailId);
     }
 
     // Update content progress
@@ -457,16 +514,17 @@ export abstract class ProgressService {
     questionId: number,
     answer: SubmitQuestionAnswerBody,
   ) {
-    // Verify enrollment
-    const progress = await db.query.userTrailProgress.findFirst({
+    // Check enrollment and auto-enroll if not enrolled
+    let progress = await db.query.userTrailProgress.findFirst({
       where: and(
         eq(userTrailProgress.userId, userId),
         eq(userTrailProgress.trailId, trailId),
       ),
     });
 
+    // Auto-enroll if not enrolled
     if (!progress?.isEnrolled) {
-      throw new BusinessLogicError("Not enrolled in this trail", "NOT_ENROLLED");
+      progress = await this.enrollInTrail(userId, trailId);
     }
 
     // Get question
@@ -540,6 +598,9 @@ export abstract class ProgressService {
       });
     }
 
+    // Check if trail was already completed before this action
+    const wasAlreadyCompleted = progress.isCompleted;
+
     // Record activity for gamification
     await DailyActivitiesService.recordActivity(userId, {
       type: "trail_content",
@@ -564,10 +625,22 @@ export abstract class ProgressService {
       await this.markContentComplete(userId, trailId, content.id);
     }
 
+    // Check if trail was just completed
+    const updatedProgress = await db.query.userTrailProgress.findFirst({
+      where: and(
+        eq(userTrailProgress.userId, userId),
+        eq(userTrailProgress.trailId, trailId),
+      ),
+    });
+
+    const trailJustCompleted = !wasAlreadyCompleted && updatedProgress?.isCompleted;
+
     return {
       isCorrect,
       correctAnswer,
       explanation: question.explanation,
+      trailJustCompleted,
+      progress: updatedProgress,
     };
   }
 
@@ -580,16 +653,17 @@ export abstract class ProgressService {
     contentId: number,
     data: StartQuizAttemptBody,
   ) {
-    // Check enrollment
-    const progress = await db.query.userTrailProgress.findFirst({
+    // Check enrollment and auto-enroll if not enrolled
+    let progress = await db.query.userTrailProgress.findFirst({
       where: and(
         eq(userTrailProgress.userId, userId),
         eq(userTrailProgress.trailId, trailId),
       ),
     });
 
+    // Auto-enroll if not enrolled
     if (!progress?.isEnrolled) {
-      throw new BusinessLogicError("Not enrolled in this trail", "NOT_ENROLLED");
+      progress = await this.enrollInTrail(userId, trailId);
     }
 
     // Find the content item and verify it's a quiz
@@ -607,15 +681,39 @@ export abstract class ProgressService {
       throw new NotFoundError("Trail content");
     }
 
-    if (content.contentType !== "quiz" || !content.quizId) {
+    // Determine content type from which ID is set
+    const contentType = content.quizId
+      ? "quiz"
+      : content.questionId
+        ? "question"
+        : content.articleId
+          ? "article"
+          : null;
+
+    console.log("🔍 Quiz Start - Content found:", {
+      id: content.id,
+      contentType,
+      quizId: content.quizId,
+      questionId: content.questionId,
+      articleId: content.articleId,
+    });
+
+    if (contentType !== "quiz" || !content.quizId) {
+      console.log("❌ Content validation failed:", {
+        contentType,
+        expectedType: "quiz",
+        quizId: content.quizId,
+      });
       throw new BadRequestError("Content is not a quiz");
     }
 
     // Start the quiz attempt with trailContentId
+    // Skip max attempts check since trails can be retried
     const result = await QuizzesService.startQuizAttempt(
       content.quizId,
       userId,
       data,
+      true, // skipMaxAttemptsCheck - trails handle their own attempt logic
     );
 
     // Update the attempt record with trailContentId
@@ -637,16 +735,17 @@ export abstract class ProgressService {
     attemptId: number,
     data: SubmitQuizAttemptBody,
   ) {
-    // Check enrollment
-    const progress = await db.query.userTrailProgress.findFirst({
+    // Check enrollment and auto-enroll if not enrolled
+    let progress = await db.query.userTrailProgress.findFirst({
       where: and(
         eq(userTrailProgress.userId, userId),
         eq(userTrailProgress.trailId, trailId),
       ),
     });
 
+    // Auto-enroll if not enrolled
     if (!progress?.isEnrolled) {
-      throw new BusinessLogicError("Not enrolled in this trail", "NOT_ENROLLED");
+      progress = await this.enrollInTrail(userId, trailId);
     }
 
     // Find the content item and verify it's a quiz
@@ -661,7 +760,16 @@ export abstract class ProgressService {
       throw new NotFoundError("Trail content");
     }
 
-    if (content.contentType !== "quiz") {
+    // Determine content type from which ID is set
+    const contentType = content.quizId
+      ? "quiz"
+      : content.questionId
+        ? "question"
+        : content.articleId
+          ? "article"
+          : null;
+
+    if (contentType !== "quiz") {
       throw new BadRequestError("Content is not a quiz");
     }
 
@@ -682,7 +790,10 @@ export abstract class ProgressService {
     }
 
     // Submit the quiz
-    const result = await QuizzesService.submitQuizAttempt(attemptId, userId, data);
+    const attemptResult = await QuizzesService.submitQuizAttempt(attemptId, userId, data);
+
+    // Get full attempt results with answers
+    const fullResults = await QuizzesService.getQuizAttemptResults(attemptId, userId);
 
     // Update or create content progress
     const existingProgress = await db.query.userContentProgress.findFirst({
@@ -694,7 +805,7 @@ export abstract class ProgressService {
 
     const attempts = (existingProgress?.attempts || 0) + 1;
     const timeSpent = (existingProgress?.timeSpent || 0) + (data.timeSpent || 0);
-    const score = result.scorePercentage;
+    const score = attemptResult.score || 0;
     const isCompleted = score >= (content.passingScore || 70); // Use content passing score or default to 70%
 
     if (existingProgress) {
@@ -721,13 +832,16 @@ export abstract class ProgressService {
       });
     }
 
+    // Check if trail was already completed before this action
+    const wasAlreadyCompleted = progress.isCompleted;
+
     // Record activity for gamification
     await DailyActivitiesService.recordActivity(userId, {
       type: "trail_content",
       metadata: {
         trailContentId: contentId,
         quizId: content.quizId!,
-        score: result.scorePercentage,
+        score: attemptResult.score || 0,
         timeSpentMinutes: Math.ceil((data.timeSpent || 0) / 60),
       },
     });
@@ -737,7 +851,7 @@ export abstract class ProgressService {
       type: "quiz",
       metadata: {
         quizId: content.quizId!,
-        score: result.scorePercentage,
+        score: attemptResult.score || 0,
         timeSpentMinutes: Math.ceil((data.timeSpent || 0) / 60),
       },
     });
@@ -747,7 +861,30 @@ export abstract class ProgressService {
       await this.markContentComplete(userId, trailId, contentId);
     }
 
-    return result;
+    // Check if trail was just completed
+    const updatedProgress = await db.query.userTrailProgress.findFirst({
+      where: and(
+        eq(userTrailProgress.userId, userId),
+        eq(userTrailProgress.trailId, trailId),
+      ),
+    });
+
+    const trailJustCompleted = !wasAlreadyCompleted && updatedProgress?.isCompleted;
+
+    // Calculate correct/incorrect counts from answers
+    const correctAnswers = fullResults.answers?.filter((a: any) => a.isCorrect).length || 0;
+    const totalAnswers = fullResults.answers?.length || 0;
+    const incorrectAnswers = totalAnswers - correctAnswers;
+
+    return {
+      ...attemptResult,
+      quiz: fullResults.quiz,
+      answers: fullResults.answers,
+      correctAnswers,
+      incorrectAnswers,
+      trailJustCompleted,
+      progress: updatedProgress,
+    };
   }
 
   /**
@@ -758,16 +895,17 @@ export abstract class ProgressService {
     trailId: number,
     contentId: number,
   ) {
-    // Check enrollment
-    const progress = await db.query.userTrailProgress.findFirst({
+    // Check enrollment and auto-enroll if not enrolled
+    let progress = await db.query.userTrailProgress.findFirst({
       where: and(
         eq(userTrailProgress.userId, userId),
         eq(userTrailProgress.trailId, trailId),
       ),
     });
 
+    // Auto-enroll if not enrolled
     if (!progress?.isEnrolled) {
-      throw new BusinessLogicError("Not enrolled in this trail", "NOT_ENROLLED");
+      progress = await this.enrollInTrail(userId, trailId);
     }
 
     // Find the content item and verify it's an article
@@ -786,6 +924,9 @@ export abstract class ProgressService {
     if (!content.articleId || content.questionId || content.quizId) {
       throw new BadRequestError("Content is not an article");
     }
+
+    // Check if trail was already completed before this action
+    const wasAlreadyCompleted = progress.isCompleted;
 
     // Update or create content progress
     const existingProgress = await db.query.userContentProgress.findFirst({
@@ -837,7 +978,21 @@ export abstract class ProgressService {
     // Mark content as complete in trail
     await this.markContentComplete(userId, trailId, contentId);
 
-    return { success: true };
+    // Check if trail was just completed
+    const updatedProgress = await db.query.userTrailProgress.findFirst({
+      where: and(
+        eq(userTrailProgress.userId, userId),
+        eq(userTrailProgress.trailId, trailId),
+      ),
+    });
+
+    const trailJustCompleted = !wasAlreadyCompleted && updatedProgress?.isCompleted;
+
+    return {
+      success: true,
+      trailJustCompleted,
+      progress: updatedProgress,
+    };
   }
 
   // ===================================
