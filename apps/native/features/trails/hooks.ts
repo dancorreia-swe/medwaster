@@ -123,9 +123,11 @@ export function useSubmitTrailQuestion() {
       };
     }) => submitTrailQuestion(trailId, questionId, data),
     onSuccess: (_, { trailId }) => {
-      // Invalidate trail progress and content
+      // Invalidate trail progress, content, and detail
       queryClient.invalidateQueries({ queryKey: trailKeys.progress(trailId) });
       queryClient.invalidateQueries({ queryKey: trailKeys.content(trailId) });
+      queryClient.invalidateQueries({ queryKey: trailKeys.detail(trailId) });
+      queryClient.invalidateQueries({ queryKey: trailKeys.lists() });
 
       // Invalidate gamification data
       queryClient.invalidateQueries({ queryKey: gamificationKeys.missions() });
@@ -185,9 +187,11 @@ export function useSubmitTrailQuiz() {
       };
     }) => submitTrailQuiz(trailId, contentId, attemptId, data),
     onSuccess: (_, { trailId }) => {
-      // Invalidate trail progress and content
+      // Invalidate trail progress, content, and detail
       queryClient.invalidateQueries({ queryKey: trailKeys.progress(trailId) });
       queryClient.invalidateQueries({ queryKey: trailKeys.content(trailId) });
+      queryClient.invalidateQueries({ queryKey: trailKeys.detail(trailId) });
+      queryClient.invalidateQueries({ queryKey: trailKeys.lists() });
 
       // Invalidate gamification data
       queryClient.invalidateQueries({ queryKey: gamificationKeys.missions() });
@@ -217,9 +221,11 @@ export function useMarkTrailArticleRead() {
       contentId: number;
     }) => markTrailArticleRead(trailId, contentId),
     onSuccess: (data, { trailId }) => {
-      // Invalidate trail progress and content
+      // Invalidate trail progress, content, and detail
       queryClient.invalidateQueries({ queryKey: trailKeys.progress(trailId) });
       queryClient.invalidateQueries({ queryKey: trailKeys.content(trailId) });
+      queryClient.invalidateQueries({ queryKey: trailKeys.detail(trailId) });
+      queryClient.invalidateQueries({ queryKey: trailKeys.lists() });
 
       // Invalidate gamification data
       queryClient.invalidateQueries({ queryKey: gamificationKeys.missions() });

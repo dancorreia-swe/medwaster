@@ -602,6 +602,7 @@ export abstract class ProgressService {
     const wasAlreadyCompleted = progress.isCompleted;
 
     // Record activity for gamification
+    // Record both trail_content (for trail progress) and question (for general stats)
     await DailyActivitiesService.recordActivity(userId, {
       type: "trail_content",
       metadata: {
@@ -611,7 +612,7 @@ export abstract class ProgressService {
       },
     });
 
-    // Also record as question activity for question-specific missions
+    // Also record as question activity for general question stats
     await DailyActivitiesService.recordActivity(userId, {
       type: "question",
       metadata: {
@@ -836,6 +837,7 @@ export abstract class ProgressService {
     const wasAlreadyCompleted = progress.isCompleted;
 
     // Record activity for gamification
+    // Record both trail_content (for trail progress) and quiz (for general stats)
     await DailyActivitiesService.recordActivity(userId, {
       type: "trail_content",
       metadata: {
@@ -846,7 +848,7 @@ export abstract class ProgressService {
       },
     });
 
-    // Also record as quiz activity for quiz-specific missions
+    // Also record as quiz activity for general quiz stats
     await DailyActivitiesService.recordActivity(userId, {
       type: "quiz",
       metadata: {
@@ -855,6 +857,17 @@ export abstract class ProgressService {
         timeSpentMinutes: Math.ceil((data.timeSpent || 0) / 60),
       },
     });
+
+    // Also record individual questions answered in the quiz
+    const questionCount = fullResults.answers?.length || 0;
+    for (let i = 0; i < questionCount; i++) {
+      await DailyActivitiesService.recordActivity(userId, {
+        type: "question",
+        metadata: {
+          questionId: fullResults.answers?.[i]?.question?.id,
+        },
+      });
+    }
 
     // Mark content as complete if passed
     if (isCompleted) {
@@ -959,6 +972,7 @@ export abstract class ProgressService {
     }
 
     // Record activity for gamification
+    // Record both trail_content (for trail progress) and article (for general stats)
     await DailyActivitiesService.recordActivity(userId, {
       type: "trail_content",
       metadata: {
@@ -967,7 +981,7 @@ export abstract class ProgressService {
       },
     });
 
-    // Also record as article activity for article-specific missions
+    // Also record as article activity for general article stats
     await DailyActivitiesService.recordActivity(userId, {
       type: "article",
       metadata: {
@@ -1044,6 +1058,9 @@ export abstract class ProgressService {
 
     if (!progress || !trailRecord) return;
 
+    // Skip if already completed
+    if (progress.isCompleted) return;
+
     // Check if all required content is completed
     const completedIds: number[] = JSON.parse(
       progress.completedContentIds || "[]",
@@ -1104,6 +1121,27 @@ export abstract class ProgressService {
         completedAt: new Date(),
       })
       .where(eq(userTrailProgress.id, progress.id));
+
+    // Record trail completion activity for gamification stats
+    console.log("🎉 [Trail Completion] Recording trail completion activity:", {
+      userId,
+      trailId,
+      score,
+      isPassed,
+    });
+
+    const activityResult = await DailyActivitiesService.recordActivity(userId, {
+      type: "trail_completed",
+      metadata: {
+        trailId,
+        score,
+      },
+    });
+
+    console.log("📊 [Trail Completion] Activity recorded:", {
+      trailsCompleted: activityResult.trailsCompleted,
+      hasCompletedActivity: activityResult.hasCompletedActivity,
+    });
 
     if (isPassed) {
       // Unlock dependent trails

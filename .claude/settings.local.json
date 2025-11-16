@@ -15,7 +15,10 @@
       "Bash(timeout 30 bun dev:*)",
       "Bash(timeout 10 bun dev:*)",
       "Bash(npx tsc --noEmit)",
-      "Bash(npx expo:*)"
+      "Bash(npx expo:*)",
+      "mcp__context7__get-library-docs",
+      "Bash(pkill:*)",
+      "mcp__context7__resolve-library-id"
     ],
     "deny": []
   }

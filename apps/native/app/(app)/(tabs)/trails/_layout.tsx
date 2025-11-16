@@ -3,7 +3,6 @@ import { Stack } from "expo-router";
 export default function TrailLayout() {
   return (
     <Stack
-      initialRouteName="index"
       screenOptions={{
         headerShown: false,
       }}
@@ -14,7 +13,12 @@ export default function TrailLayout() {
           headerShown: false,
         }}
       />
-      <Stack.Screen name="[id]" />
+      <Stack.Screen
+        name="[id]"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

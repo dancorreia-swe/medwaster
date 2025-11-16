@@ -71,6 +71,7 @@ export const recordActivityBody = t.Object({
     t.Literal("quiz"),
     t.Literal("article"),
     t.Literal("trail_content"),
+    t.Literal("trail_completed"),
     t.Literal("bookmark"),
   ]),
   metadata: t.Optional(
@@ -79,6 +80,7 @@ export const recordActivityBody = t.Object({
       quizId: t.Optional(t.Number()),
       articleId: t.Optional(t.Number()),
       trailContentId: t.Optional(t.Number()),
+      trailId: t.Optional(t.Number()),
       score: t.Optional(t.Number()),
       timeSpentMinutes: t.Optional(t.Number()),
     }),

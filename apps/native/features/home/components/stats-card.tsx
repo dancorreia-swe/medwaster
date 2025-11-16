@@ -67,7 +67,7 @@ export function StatsCard() {
 
             <View className="items-center gap-1 flex-1">
               <Text className="text-2xl font-semibold text-purple-600">
-                {weeklyStats?.trailContentCompleted ?? 0}
+                {weeklyStats?.trailsCompleted ?? 0}
               </Text>
               <Text className="text-xs text-gray-600">trilhas</Text>
             </View>

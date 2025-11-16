@@ -312,9 +312,11 @@ export class ArticleService {
     if (data.content) {
       updateData.content = data.content;
 
-      updateData.contentText = await this.editor.blocksToMarkdownLossy(
+      const markdown = await this.editor.blocksToMarkdownLossy(
         data.content,
       );
+      // Decode HTML entities to ensure clean markdown output
+      updateData.contentText = ContentProcessor.decodeHTMLEntities(markdown);
 
       updateData.readingTimeMinutes = ContentProcessor.calculateReadingTime(
         data.content,
@@ -1003,9 +1005,11 @@ export class ArticleService {
       (Array.isArray(article.content) && article.content.length > 0)
     ) {
       try {
-        contentMarkdown = await this.editor.blocksToMarkdownLossy(
+        const markdown = await this.editor.blocksToMarkdownLossy(
           article.content as any[],
         );
+        // Decode HTML entities to ensure clean markdown output
+        contentMarkdown = ContentProcessor.decodeHTMLEntities(markdown);
       } catch (error) {
         console.error("Failed to convert content to markdown:", error);
         contentMarkdown = article.contentText || "";

@@ -53,8 +53,8 @@ export default function TutorScreen() {
       fetch: expoFetch as unknown as typeof globalThis.fetch,
       api: process.env.EXPO_PUBLIC_SERVER_URL + "/ai/chat",
       headers: {
-        'Cookie': cookies
-      }
+        Cookie: cookies,
+      },
     }),
     onError: (error) => console.error(error, "ERROR"),
     onFinish: ({ isAbort, message }) => {
@@ -126,115 +126,113 @@ export default function TutorScreen() {
 
   return (
     <Container className="flex-1 bg-white" edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-        keyboardVerticalOffset={0}
-      >
-        {/* Header */}
-        <View className="border-b border-gray-200 px-4 pt-3.5 pb-3">
-          <View className="flex-row items-center gap-4">
-            <TouchableOpacity
-              onPress={handleBack}
-              className="rounded-full items-center justify-center"
-            >
-              <Icon icon={ArrowLeft} size={24} className="text-neutral-600" />
-            </TouchableOpacity>
+      {/* Header */}
+      <View className="border-b border-gray-200 px-4 pt-3.5 pb-3">
+        <View className="flex-row items-center gap-4">
+          <TouchableOpacity
+            onPress={handleBack}
+            className="rounded-full items-center justify-center"
+          >
+            <Icon icon={ArrowLeft} size={24} className="text-neutral-600" />
+          </TouchableOpacity>
 
-            <View className="flex-row items-center gap-2.5">
-              <Text className="text-4xl font-bold text-gray-900 leading-tight">
-                Tutor
+          <View className="flex-row items-center gap-2.5">
+            <Text className="text-4xl font-bold text-gray-900 leading-tight">
+              Tutor
+            </Text>
+            <Text className="text-4xl font-light text-gray-400 leading-tight">
+              AI
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Messages */}
+      <ScrollView
+        ref={scrollViewRef}
+        className="flex-1 h-auto"
+        contentContainerStyle={
+          messages.length === 0 ? { flex: 1 } : undefined
+        }
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => {
+          if (status === "streaming" || status === "submitted") {
+            scrollViewRef.current?.scrollToEnd({ animated: false });
+          }
+        }}
+      >
+        {messages.length === 0 ? (
+          <View className="flex-1 items-center justify-center px-5">
+            <View className="items-center gap-3.5">
+              <View className="w-14 h-14 rounded-full bg-secondary items-center justify-center">
+                <Icon
+                  icon={GraduationCap}
+                  size={28}
+                  className="text-primary"
+                />
+              </View>
+
+              <Text className="text-2xl font-medium text-gray-900 text-center leading-snug tracking-tight">
+                Tutor Medwaster
               </Text>
-              <Text className="text-4xl font-light text-gray-400 leading-tight">
-                AI
+
+              <Text className="text-base text-gray-500 text-center leading-tight px-4">
+                Faça perguntas sobre classificação, descarte e gestão de
+                resíduos médicos.
               </Text>
             </View>
           </View>
-        </View>
+        ) : (
+          <View className="gap-3.5 py-5">
+            {messages.map((message, index) => {
+              const isLastMessage = index === messages.length - 1;
+              const isCurrentlyStreaming =
+                isLastMessage && status === "streaming";
 
-        {/* Messages */}
-        <ScrollView
-          ref={scrollViewRef}
-          className="flex-1"
-          contentContainerClassName={
-            messages.length === 0 ? "flex-1" : undefined
-          }
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => {
-            // Scroll when content size changes (new messages or streaming updates)
-            if (status === "streaming" || status === "submitted") {
-              scrollViewRef.current?.scrollToEnd({ animated: false });
-            }
-          }}
-        >
-          {messages.length === 0 ? (
-            <View className="flex-1 items-center justify-center px-5">
-              <View className="items-center gap-3.5">
-                <View className="w-14 h-14 rounded-full bg-secondary items-center justify-center">
-                  <Icon
-                    icon={GraduationCap}
-                    size={28}
-                    className="text-primary"
-                  />
-                </View>
+              const isCancelled = message.id === cancelledMessageId;
 
-                <Text className="text-2xl font-medium text-gray-900 text-center leading-snug tracking-tight">
-                  Tutor Medwaster
-                </Text>
-
-                <Text className="text-base text-gray-500 text-center leading-tight px-4">
-                  Faça perguntas sobre classificação, descarte e gestão de
-                  resíduos médicos.
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <View className="gap-3.5 py-5">
-              {messages.map((message, index) => {
-                const isLastMessage = index === messages.length - 1;
-                const isCurrentlyStreaming =
-                  isLastMessage && status === "streaming";
-
-                const isCancelled = message.id === cancelledMessageId;
-
-                if (message.role === "user") {
-                  return (
-                    <UserMessage
-                      key={message.id}
-                      message={message.parts
-                        .map((part) => (part.type === "text" ? part.text : ""))
-                        .join("")}
-                    />
-                  );
-                }
-
-                const messageText = message.parts
-                  .map((part) => (part.type === "text" ? part.text : ""))
-                  .join("");
-
+              if (message.role === "user") {
                 return (
-                  <AiMessage
+                  <UserMessage
                     key={message.id}
-                    message={messageText.trim() === "" ? null : messageText}
-                    isStreaming={isCurrentlyStreaming}
-                    isCancelled={isCancelled}
-                  />
+                    message={message.parts
+                      .map((part) => (part.type === "text" ? part.text : ""))
+                      .join("")}
+                    />
                 );
-              })}
+              }
 
-              {status === "submitted" && (
-                <View className="px-4 py-3 gap-3">
-                  <View className="flex-row items-center gap-2">
-                    <ActivityIndicator size="small" color="rgb(21, 93, 252)" />
-                    <Text className="text-sm text-gray-500">Pensando...</Text>
-                  </View>
+              const messageText = message.parts
+                .map((part) => (part.type === "text" ? part.text : ""))
+                .join("");
+
+              return (
+                <AiMessage
+                  key={message.id}
+                  message={messageText.trim() === "" ? null : messageText}
+                  isStreaming={isCurrentlyStreaming}
+                  isCancelled={isCancelled}
+                />
+              );
+            })}
+
+            {status === "submitted" && (
+              <View className="px-4 py-3 gap-3">
+                <View className="flex-row items-center gap-2">
+                  <ActivityIndicator size="small" color="rgb(21, 93, 252)" />
+                  <Text className="text-sm text-gray-500">Pensando...</Text>
                 </View>
-              )}
-            </View>
-          )}
-        </ScrollView>
+              </View>
+            )}
+          </View>
+        )}
+      </ScrollView>
 
-        {/* Input */}
+      {/* Input */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
         <View className="px-3.5 pb-2 pt-3">
           <View className="flex-row items-end justify-end gap-2">
             <View className="flex-1 bg-gray-50 rounded-3xl border border-gray-200 px-4 py-2">

@@ -125,7 +125,9 @@ export function MessageBubble({ message, isUser = false }: MessageBubbleProps) {
                 opacity: opacityAnim,
               }}
             />
-            {elements}
+            {elements?.map((element, index) => (
+              <View key={`markdown-${index}`}>{element}</View>
+            ))}
           </View>
         </TouchableOpacity>
       </View>

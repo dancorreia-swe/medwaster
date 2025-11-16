@@ -168,7 +168,7 @@ export const AuthBottomSheet = forwardRef<
       backgroundStyle={{ backgroundColor: "#FFFFFF" }}
       handleIndicatorStyle={{ backgroundColor: "#E5E7EB" }}
     >
-      <BottomSheetView className="flex-1 px-5">
+      <BottomSheetView style={{ flex: 1, paddingHorizontal: 20 }}>
         <View className="flex-row justify-between items-center py-3">
           <TouchableOpacity
             onPress={onClose}

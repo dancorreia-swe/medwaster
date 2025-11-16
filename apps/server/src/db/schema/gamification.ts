@@ -179,6 +179,7 @@ export const userDailyActivities = pgTable(
     trailContentCompleted: integer("trail_content_completed")
       .notNull()
       .default(0),
+    trailsCompleted: integer("trails_completed").notNull().default(0),
 
     timeSpentMinutes: integer("time_spent_minutes").notNull().default(0),
 

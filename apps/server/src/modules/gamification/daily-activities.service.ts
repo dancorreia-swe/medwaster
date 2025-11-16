@@ -129,6 +129,14 @@ export class DailyActivitiesService {
       case "trail_content":
         updates.trailContentCompleted = dailyActivity.trailContentCompleted + 1;
         break;
+      case "trail_completed":
+        console.log("✅ [Daily Activity] Recording trail completion:", {
+          userId,
+          currentCount: dailyActivity.trailsCompleted,
+          newCount: dailyActivity.trailsCompleted + 1,
+        });
+        updates.trailsCompleted = dailyActivity.trailsCompleted + 1;
+        break;
       case "bookmark":
         // Bookmarks don't count in daily activity stats for now
         break;
@@ -146,6 +154,13 @@ export class DailyActivitiesService {
       .set(updates)
       .where(eq(userDailyActivities.id, dailyActivity.id))
       .returning();
+
+    console.log("💾 [Daily Activity] Updated activity record:", {
+      activityType: activity.type,
+      trailsCompleted: updatedActivity.trailsCompleted,
+      questionsCompleted: updatedActivity.questionsCompleted,
+      articlesRead: updatedActivity.articlesRead,
+    });
 
     // Update user streak (this will increment if it's a new day)
     await StreaksService.updateStreakForActivity(userId);
@@ -170,6 +185,7 @@ export class DailyActivitiesService {
       quizzesCompleted: 0,
       articlesRead: 0,
       trailContentCompleted: 0,
+      trailsCompleted: 0,
       timeSpentMinutes: 0,
       activeDays: activities.length,
     };
@@ -179,8 +195,15 @@ export class DailyActivitiesService {
       stats.quizzesCompleted += activity.quizzesCompleted;
       stats.articlesRead += activity.articlesRead;
       stats.trailContentCompleted += activity.trailContentCompleted;
+      stats.trailsCompleted += activity.trailsCompleted;
       stats.timeSpentMinutes += activity.timeSpentMinutes;
     }
+
+    console.log("📈 [Weekly Stats] Calculated for user:", {
+      userId,
+      stats,
+      activitiesCount: activities.length,
+    });
 
     return stats;
   }
@@ -193,7 +216,8 @@ export class DailyActivitiesService {
       activity.questionsCompleted > 0 ||
       activity.quizzesCompleted > 0 ||
       activity.articlesRead > 0 ||
-      activity.trailContentCompleted > 0
+      activity.trailContentCompleted > 0 ||
+      activity.trailsCompleted > 0
     );
   }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "user_daily_activities" ADD COLUMN "trails_completed" integer DEFAULT 0 NOT NULL;

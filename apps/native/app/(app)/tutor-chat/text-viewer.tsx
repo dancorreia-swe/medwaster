@@ -94,7 +94,11 @@ export default function TextViewer() {
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-5 py-6">{elements}</ScrollView>
+      <ScrollView className="flex-1 px-5 py-6">
+        {elements?.map((element, index) => (
+          <View key={`markdown-${index}`}>{element}</View>
+        ))}
+      </ScrollView>
     </Container>
   );
 }

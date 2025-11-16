@@ -449,23 +449,38 @@ export abstract class TrailsService {
       throw new ConflictError("This content is already in the trail");
     }
 
-    // Check if sequence is already taken
-    const sequenceTaken = await db.query.trailContent.findFirst({
-      where: and(
-        eq(trailContent.trailId, trailId),
-        eq(trailContent.sequence, contentData.sequence),
-      ),
-    });
+    // Auto-assign sequence if not provided, or find next available if sequence is taken
+    let sequence = contentData.sequence;
 
-    if (sequenceTaken) {
-      throw new ConflictError(
-        `Sequence ${contentData.sequence} is already taken`,
-      );
+    if (sequence) {
+      // Check if the requested sequence is already taken
+      const sequenceTaken = await db.query.trailContent.findFirst({
+        where: and(
+          eq(trailContent.trailId, trailId),
+          eq(trailContent.sequence, sequence),
+        ),
+      });
+
+      if (sequenceTaken) {
+        // Find the next available sequence instead of throwing error
+        const maxSequence = await db.query.trailContent.findFirst({
+          where: eq(trailContent.trailId, trailId),
+          orderBy: [desc(trailContent.sequence)],
+        });
+        sequence = (maxSequence?.sequence ?? 0) + 1;
+      }
+    } else {
+      // No sequence provided, auto-assign next available
+      const maxSequence = await db.query.trailContent.findFirst({
+        where: eq(trailContent.trailId, trailId),
+        orderBy: [desc(trailContent.sequence)],
+      });
+      sequence = (maxSequence?.sequence ?? 0) + 1;
     }
 
     const contentValues: any = {
       trailId,
-      sequence: contentData.sequence,
+      sequence,
       isRequired: contentData.isRequired ?? true,
     };
 

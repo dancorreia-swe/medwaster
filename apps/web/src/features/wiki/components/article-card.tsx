@@ -351,10 +351,11 @@ export function ArticleCard({ article }: ArticleCardProps) {
                   de leitura) serão permanentemente removidos.
                 </p>
                 <div className="space-y-2 pt-1">
-                  <Label htmlFor="confirm-title">
-                    Digite{" "}
-                    <strong className="text-foreground">{deleteTarget}</strong>{" "}
-                    para confirmar:
+                  <Label
+                    htmlFor="confirm-title"
+                    className="select-auto cursor-text gap-1"
+                  >
+                    Digite <span className="text-black px-0 m-0">{deleteTarget}</span> para confirmar:
                   </Label>
                   <Input
                     id="confirm-title"

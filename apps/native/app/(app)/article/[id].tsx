@@ -94,6 +94,11 @@ export default function WikiArticle() {
         // Check if trail was just completed - navigate to celebration
         if (result?.trailJustCompleted && result?.progress && trail) {
           setTimeout(() => {
+            // Parse completedContentIds if it's a string
+            const completedIds = typeof result.progress.completedContentIds === 'string'
+              ? JSON.parse(result.progress.completedContentIds || '[]')
+              : (result.progress.completedContentIds || []);
+
             router.push({
               pathname: "/(app)/trails/celebration",
               params: {
@@ -102,7 +107,7 @@ export default function WikiArticle() {
                 score: String(result.progress.currentScore || 0),
                 isPassed: String(result.progress.isPassed || false),
                 timeSpentMinutes: String(result.progress.timeSpentMinutes || 0),
-                completedContent: String(result.progress.completedContentIds?.length || 0),
+                completedContent: String(completedIds.length),
                 totalContent: String(trail.content?.length || 0),
                 earnedPoints: result.progress.earnedPoints ? String(result.progress.earnedPoints) : undefined,
               },
@@ -460,7 +465,9 @@ export default function WikiArticle() {
         />
 
         <View className="px-6 pt-6">
-          {markdownElements}
+          {markdownElements?.map((element, index) => (
+            <View key={`markdown-${index}`}>{element}</View>
+          ))}
           <CompletionBadge isRead={articleIsRead} hasReachedEnd={hasReachedEnd} />
         </View>
       </Animated.ScrollView>

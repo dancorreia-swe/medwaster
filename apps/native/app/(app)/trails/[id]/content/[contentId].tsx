@@ -139,6 +139,11 @@ export default function TrailContentScreen() {
   const handleQuestionContinue = () => {
     // If trail was just completed, navigate to celebration
     if (completionData && trail) {
+      // Parse completedContentIds if it's a string
+      const completedIds = typeof completionData.completedContentIds === 'string'
+        ? JSON.parse(completionData.completedContentIds || '[]')
+        : (completionData.completedContentIds || []);
+
       router.push({
         pathname: "/(app)/trails/celebration",
         params: {
@@ -147,9 +152,7 @@ export default function TrailContentScreen() {
           score: String(completionData.currentScore || 0),
           isPassed: String(completionData.isPassed || false),
           timeSpentMinutes: String(completionData.timeSpentMinutes || 0),
-          completedContent: String(
-            completionData.completedContentIds?.length || 0,
-          ),
+          completedContent: String(completedIds.length),
           totalContent: String(trail.content?.length || 0),
           earnedPoints: completionData.earnedPoints
             ? String(completionData.earnedPoints)
@@ -236,6 +239,11 @@ export default function TrailContentScreen() {
   const handleQuizContinue = () => {
     // If trail was just completed, navigate to celebration
     if (completionData && trail) {
+      // Parse completedContentIds if it's a string
+      const completedIds = typeof completionData.completedContentIds === 'string'
+        ? JSON.parse(completionData.completedContentIds || '[]')
+        : (completionData.completedContentIds || []);
+
       router.push({
         pathname: "/(app)/trails/celebration",
         params: {
@@ -244,9 +252,7 @@ export default function TrailContentScreen() {
           score: String(completionData.currentScore || 0),
           isPassed: String(completionData.isPassed || false),
           timeSpentMinutes: String(completionData.timeSpentMinutes || 0),
-          completedContent: String(
-            completionData.completedContentIds?.length || 0,
-          ),
+          completedContent: String(completedIds.length),
           totalContent: String(trail.content?.length || 0),
           earnedPoints: completionData.earnedPoints
             ? String(completionData.earnedPoints)
@@ -285,11 +291,46 @@ export default function TrailContentScreen() {
 
   // Auto-start quiz when component mounts if it's a quiz
   useEffect(() => {
-    if (contentItem?.quizId && !quizAttemptId && !quizResults && !quizStartedRef.current) {
-      quizStartedRef.current = true;
-      handleStartQuiz();
+    // Only run if we have a quiz and haven't started yet
+    if (!contentItem?.quizId || quizAttemptId || quizResults || quizStartedRef.current || isStartingQuiz) {
+      return;
     }
-  }, [contentItem?.quizId, quizAttemptId, quizResults]);
+
+    quizStartedRef.current = true;
+
+    // Use setTimeout to avoid setState during render
+    const startQuizAsync = async () => {
+      if (!contentItem?.quiz) {
+        console.log("No quiz found in contentItem");
+        return;
+      }
+
+      console.log("Starting quiz...", contentItem.quiz);
+      setIsStartingQuiz(true);
+      try {
+        const response = await startQuizMutation.mutateAsync({
+          trailId,
+          contentId: contentItemId,
+          data: {},
+        });
+
+        console.log("Quiz started, response:", response);
+        setQuizAttemptId(response.attempt.id);
+      } catch (error) {
+        console.error("Failed to start quiz:", error);
+        alert("Não foi possível iniciar o quiz. Tente novamente.");
+        router.back();
+      } finally {
+        setIsStartingQuiz(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      startQuizAsync();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [contentItem?.quizId, contentItem?.quiz, quizAttemptId, quizResults, isStartingQuiz, startQuizMutation, trailId, contentItemId, router]);
 
   // ============================================================================
   // Early returns

@@ -13,6 +13,25 @@ interface BlockNoteContent {
 
 export class ContentProcessor {
   /**
+   * Decode HTML entities in a string
+   * Converts entities like &#x20; (space) and &#97; (a) to their actual characters
+   */
+  static decodeHTMLEntities(text: string): string {
+    return text
+      .replace(/&#x([0-9A-Fa-f]+);/g, (_, hex) =>
+        String.fromCharCode(parseInt(hex, 16))
+      )
+      .replace(/&#(\d+);/g, (_, dec) =>
+        String.fromCharCode(parseInt(dec, 10))
+      )
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&'); // Must be last to avoid double-decoding
+  }
+
+  /**
    * Extract plain text from BlockNote JSON content for search indexing
    */
   static extractPlainText(content: any): string {
