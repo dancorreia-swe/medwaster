@@ -82,20 +82,24 @@ export function QuizResults({
         <View
           className="rounded-3xl p-10 mb-6 items-center"
           style={{
-            backgroundColor: passed ? "#F97316" : "#F97316",
+            backgroundColor: passed ? "#10B981" : "#F97316",
           }}
         >
           {/* Icon */}
           <View className="w-24 h-24 rounded-full bg-white/30 items-center justify-center mb-6">
-            <TrendingUp size={48} color="#FFFFFF" strokeWidth={2.5} />
+            {passed ? (
+              <Award size={48} color="#FFFFFF" strokeWidth={2.5} />
+            ) : (
+              <TrendingUp size={48} color="#FFFFFF" strokeWidth={2.5} />
+            )}
           </View>
 
           {/* Status */}
           <Text className="text-3xl font-bold text-white mb-2">
-            {passed ? "💪 Quase lá!" : "💪 Quase lá!"}
+            {passed ? "🎉 Parabéns!" : "💪 Quase lá!"}
           </Text>
           <Text className="text-base text-white/90 text-center">
-            Continue praticando para melhorar
+            {passed ? "Você arrasou neste quiz!" : "Continue praticando para melhorar"}
           </Text>
 
           {/* Score */}
@@ -165,19 +169,6 @@ export function QuizResults({
               </View>
               <Text className="text-xl font-bold text-red-600">
                 {incorrectCount}
-              </Text>
-            </View>
-
-            {/* Points Earned */}
-            <View className="flex-row items-center justify-between p-5 border-b border-gray-100">
-              <View className="flex-row items-center gap-3">
-                <View className="w-11 h-11 rounded-full bg-yellow-50 items-center justify-center">
-                  <Award size={22} color="#F59E0B" strokeWidth={2.5} />
-                </View>
-                <Text className="text-base text-gray-700 font-medium">Pontos Ganhos</Text>
-              </View>
-              <Text className="text-xl font-bold text-yellow-600">
-                {earnedPoints} / {totalPoints}
               </Text>
             </View>
 

@@ -10,33 +10,41 @@ export function QuizProgressBar({
   totalQuestions,
   answeredQuestions,
 }: QuizProgressBarProps) {
-  const progressPercentage = (currentQuestion / totalQuestions) * 100;
-  const answeredPercentage = (answeredQuestions / totalQuestions) * 100;
-
   return (
     <View className="bg-white rounded-xl p-4 mb-4 border border-gray-200">
       {/* Question Counter */}
-      <View className="flex-row justify-between items-center mb-2">
+      <View className="flex-row justify-between items-center mb-3">
         <Text className="text-sm font-semibold text-gray-700">
-          Questão {currentQuestion} de {totalQuestions}
+          {currentQuestion}/{totalQuestions}
         </Text>
         <Text className="text-xs text-gray-500">
           {answeredQuestions} respondidas
         </Text>
       </View>
 
-      {/* Progress Bar */}
-      <View className="h-2 bg-gray-200 rounded-full overflow-hidden">
-        <View
-          className="h-full bg-primary rounded-full"
-          style={{ width: `${progressPercentage}%` }}
-        />
-      </View>
+      {/* Segmented Progress Bar */}
+      <View className="flex-row items-center" style={{ gap: 4 }}>
+        {Array.from({ length: totalQuestions }).map((_, index) => {
+          const isFilled = index < currentQuestion;
+          const isActive = index === currentQuestion - 1;
 
-      {/* Percentage */}
-      <Text className="text-xs text-gray-500 mt-1 text-right">
-        {Math.round(progressPercentage)}% completo
-      </Text>
+          return (
+            <View
+              key={index}
+              style={{
+                flex: 1,
+                height: 8,
+                borderRadius: 99,
+                backgroundColor: isFilled
+                  ? isActive
+                    ? "#16a34a"
+                    : "#22c55e"
+                  : "#d1d5db",
+              }}
+            />
+          );
+        })}
+      </View>
     </View>
   );
 }

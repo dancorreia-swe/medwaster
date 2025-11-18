@@ -5,6 +5,8 @@ import { AchievementsService } from "./achievements.service";
 import { NotFoundError } from "@/lib/errors";
 import { success } from "@/lib/responses";
 import { achievementImages } from "./images";
+import { AchievementEngine } from "./engine";
+import { AchievementNotificationService } from "./notification.service";
 
 export const adminAchievements = new Elysia({
   prefix: "admin/achievements",
@@ -147,6 +149,175 @@ export const adminAchievements = new Elysia({
               description:
                 "Permanently delete an achievement. This action cannot be undone.",
               tags: ["Admin - Achievements"],
+            },
+          },
+        ),
+  );
+
+export const achievements = new Elysia({
+  prefix: "achievements",
+  tags: ["Achievements"],
+  detail: {
+    description:
+      "Public endpoints for viewing achievements",
+  },
+})
+  .use(betterAuthMacro)
+  .guard(
+    {
+      auth: true,
+      detail: {
+        description: "Authentication required",
+      },
+    },
+    (app) =>
+      app
+        .get(
+          "/",
+          async ({ status, user }) => {
+            const allAchievements = await AchievementsService.getAllAchievements({
+              page: 1,
+              pageSize: 100,
+            });
+
+            // Filter to only show active achievements that are public
+            const visibleAchievements = allAchievements.filter(
+              (achievement) =>
+                achievement.status === "active" &&
+                achievement.visibility === "public",
+            );
+
+            // Get user's progress for all achievements
+            const userProgress = await AchievementEngine.getUserAchievements(user!.id);
+            const progressMap = new Map(
+              userProgress.map((p) => [p.achievementId, p])
+            );
+
+            // Merge achievement definitions with user progress
+            const achievementsWithProgress = visibleAchievements.map((achievement) => {
+              const progress = progressMap.get(achievement.id);
+              return {
+                ...achievement,
+                isUnlocked: progress?.isUnlocked || false,
+                currentValue: progress?.currentValue || 0,
+                targetValue: progress?.targetValue || 1,
+                progressPercentage: progress?.progressPercentage || 0,
+                unlockedAt: progress?.unlockedAt || null,
+              };
+            });
+
+            return status(200, success(achievementsWithProgress));
+          },
+          {
+            detail: {
+              summary: "List all visible achievements",
+              description:
+                "Retrieve all active and public achievements with user progress",
+              tags: ["Achievements"],
+            },
+          },
+        )
+        .get(
+          "/my-progress",
+          async ({ status, user }) => {
+            const userAchievements = await AchievementEngine.getUserAchievements(user!.id);
+
+            return status(200, success(userAchievements));
+          },
+          {
+            detail: {
+              summary: "Get my achievement progress",
+              description:
+                "Retrieve current user's progress on all achievements including locked and unlocked",
+              tags: ["Achievements"],
+            },
+          },
+        )
+        .get(
+          "/recent-unlocks",
+          async ({ status, user, query }) => {
+            const { limit = 5 } = query;
+            const recentUnlocks = await AchievementEngine.getRecentlyUnlocked(
+              user!.id,
+              limit,
+            );
+
+            return status(200, success(recentUnlocks));
+          },
+          {
+            query: t.Object({
+              limit: t.Optional(
+                t.Number({
+                  minimum: 1,
+                  maximum: 20,
+                  default: 5,
+                  description: "Number of recent unlocks to return",
+                }),
+              ),
+            }),
+            detail: {
+              summary: "Get recently unlocked achievements",
+              description:
+                "Retrieve the most recently unlocked achievements for the current user",
+              tags: ["Achievements"],
+            },
+          },
+        )
+        .get(
+          "/unnotified",
+          async ({ status, user }) => {
+            const unnotified = await AchievementNotificationService.getUnnotifiedAchievements(
+              user!.id
+            );
+
+            return status(200, success(unnotified));
+          },
+          {
+            detail: {
+              summary: "Get unnotified achievements",
+              description:
+                "Retrieve achievements that were unlocked but notification not yet shown to user",
+              tags: ["Achievements"],
+            },
+          },
+        )
+        .post(
+          "/mark-notified/:achievementId",
+          async ({ status, user, params }) => {
+            await AchievementNotificationService.markAsNotified(
+              user!.id,
+              params.achievementId
+            );
+
+            return status(200, success({ notified: true }));
+          },
+          {
+            params: t.Object({
+              achievementId: t.Number({ description: "Achievement ID" }),
+            }),
+            detail: {
+              summary: "Mark achievement as notified",
+              description:
+                "Mark that the notification for this achievement was shown to the user",
+              tags: ["Achievements"],
+            },
+          },
+        )
+        .get(
+          "/notification-stats",
+          async ({ status, user }) => {
+            const stats = await AchievementNotificationService.getNotificationStats(
+              user!.id
+            );
+
+            return status(200, success(stats));
+          },
+          {
+            detail: {
+              summary: "Get notification delivery stats",
+              description:
+                "Get statistics about achievement notification delivery for the current user",
+              tags: ["Achievements"],
             },
           },
         ),

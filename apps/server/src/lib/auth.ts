@@ -9,6 +9,9 @@ import { EmailService } from "./email-service";
 import { AuditService } from "../modules/audit/audit.service";
 import { ForbiddenError, UnauthorizedError } from "./errors";
 import { RateLimitMonitor } from "./rate-limit-monitor";
+import { createAuthMiddleware } from "better-auth/api";
+import { trackFirstLogin } from "../modules/achievements/trackers";
+import { eq } from "drizzle-orm";
 
 export const ROLES = {
   SUPER_ADMIN: "super-admin",
@@ -114,6 +117,35 @@ export const auth = betterAuth({
       adminRoles: ["admin", "super-admin"],
     }),
   ],
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      // Detect first login on sign-in paths (email, OAuth)
+      // Path examples: /sign-in/email, /sign-in/social, /callback/google
+      const isSignIn = ctx.path.startsWith("/sign-in") || ctx.path.startsWith("/callback");
+      const isSignUp = ctx.path.startsWith("/sign-up");
+      
+      if (isSignIn && !isSignUp) {
+        const newSession = ctx.context.newSession;
+        if (newSession) {
+          const user = newSession.user;
+          
+          // Check if this is the first login (firstLoginAt is null)
+          if (!user.firstLoginAt) {
+            // Update user with firstLoginAt timestamp
+            await db
+              .update(schema.user)
+              .set({ firstLoginAt: new Date() })
+              .where(eq(schema.user.id, user.id));
+            
+            // Track first login achievement
+            await trackFirstLogin(user.id);
+            
+            console.log(`🎯 First login tracked for user ${user.id}`);
+          }
+        }
+      }
+    }),
+  },
 });
 
 export const betterAuthMacro = new Elysia({

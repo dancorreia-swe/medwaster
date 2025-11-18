@@ -1,23 +1,23 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { MoreHorizontal } from "lucide-react-native";
 import { Icon } from "@/components/icon";
-import { LinearGradient } from "expo-linear-gradient";
+import { useAchievements, getLucideIcon } from "@/features/achievements";
+import type { Achievement } from "@/features/achievements/api";
+import { useRouter } from "expo-router";
 
 interface AchievementBadgeProps {
-  emoji: string;
-  label: string;
-  isUnlocked: boolean;
-  gradientColors?: string[];
+  achievement: Achievement;
   onPress?: () => void;
 }
 
 function AchievementBadge({
-  emoji,
-  label,
-  isUnlocked,
-  gradientColors = ["#2B7FFF", "#1E5FC7"],
+  achievement,
   onPress,
 }: AchievementBadgeProps) {
+  const IconComponent = getLucideIcon(achievement.badgeIcon);
+  const badgeColor = achievement.badgeColor || "#fbbf24";
+  const isUnlocked = achievement.isUnlocked;
+
   const addOpacityToColor = (color: string, opacity: number) => {
     const hex = color.replace("#", "");
     const r = parseInt(hex.substring(0, 2), 16);
@@ -27,11 +27,6 @@ function AchievementBadge({
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   };
 
-  const gradientColorsWithOpacity: [string, string] = [
-    addOpacityToColor(gradientColors[0], 0.5),
-    addOpacityToColor(gradientColors[1], 0.5),
-  ];
-
   return (
     <TouchableOpacity
       className="items-center gap-2"
@@ -39,34 +34,45 @@ function AchievementBadge({
       style={{ width: 70 }}
     >
       {isUnlocked ? (
-        <LinearGradient
-          colors={gradientColorsWithOpacity}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <View
+          className="rounded-full items-center justify-center border-2"
           style={{
             width: 70,
             height: 70,
-            borderRadius: 35,
-            alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 2,
-            borderColor: "transparent",
+            backgroundColor: addOpacityToColor(badgeColor, 0.15),
+            borderColor: addOpacityToColor(badgeColor, 0.3),
           }}
         >
-          <Text className="text-2xl">{emoji}</Text>
-        </LinearGradient>
+          <Icon
+            icon={IconComponent}
+            size={32}
+            color={badgeColor}
+          />
+        </View>
       ) : (
         <View
-          className="size-20 rounded-full items-center justify-center border-2 border-gray-200"
+          className="rounded-full items-center justify-center border-2 border-gray-200"
           style={{
+            width: 70,
+            height: 70,
             backgroundColor: "#F3F4F6",
             opacity: 0.4,
           }}
         >
-          <Text className="text-2xl">{emoji}</Text>
+          <Icon
+            icon={IconComponent}
+            size={32}
+            color="#9CA3AF"
+          />
         </View>
       )}
-      <Text className="text-sm text-gray-600 text-center">{label}</Text>
+      <Text
+        className="text-sm text-gray-600 text-center"
+        numberOfLines={2}
+        ellipsizeMode="tail"
+      >
+        {achievement.name}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -76,42 +82,77 @@ interface AchievementsSectionProps {
 }
 
 export function AchievementsSection({ onViewAll }: AchievementsSectionProps) {
+  const { data: achievements, isLoading } = useAchievements();
+  const router = useRouter();
+
+  // Get first 3 achievements: prioritize unlocked, then by display order
+  const displayAchievements = achievements
+    ?.sort((a, b) => {
+      // Unlocked first
+      if (a.isUnlocked && !b.isUnlocked) return -1;
+      if (!a.isUnlocked && b.isUnlocked) return 1;
+      // Then by most recent unlock
+      if (a.isUnlocked && b.isUnlocked && a.unlockedAt && b.unlockedAt) {
+        return new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime();
+      }
+      // Finally by display order
+      return a.displayOrder - b.displayOrder;
+    })
+    .slice(0, 3);
+
+  const handleAchievementPress = (achievementId: number) => {
+    router.push({
+      pathname: "/(app)/(tabs)/(profile)/achievements",
+      params: { achievementId: achievementId.toString() },
+    });
+  };
+
   return (
     <View className="bg-white px-5 py-5">
       <Text className="text-base font-bold text-gray-900 mb-4">
         Minhas conquistas
       </Text>
 
-      <View className="flex-row items-center justify-between gap-4">
-        <AchievementBadge
-          emoji="🎯"
-          label="Iniciante"
-          isUnlocked={true}
-          gradientColors={["#51A2FF", "#3B82F6", "#2563EB"]}
-        />
-        <AchievementBadge
-          emoji="🔍"
-          label="Explorador"
-          isUnlocked={false}
-          gradientColors={["#05DF72", "#10B981"]}
-        />
-        <AchievementBadge
-          emoji="🔥"
-          label="Persistente"
-          isUnlocked={false}
-          gradientColors={["#FF8904", "#F97316"]}
-        />
-        <TouchableOpacity
-          className="items-center gap-[7px]"
-          onPress={onViewAll}
-          style={{ width: 70 }}
-        >
-          <View className="size-20 rounded-full bg-gray-100 items-center justify-center">
-            <Icon icon={MoreHorizontal} size={28} className="text-gray-600" />
-          </View>
-          <Text className="text-sm text-gray-600 text-center">Ver todas</Text>
-        </TouchableOpacity>
-      </View>
+      {isLoading ? (
+        <View className="h-24 items-center justify-center">
+          <ActivityIndicator size="small" color="#2B7FFF" />
+        </View>
+      ) : (
+        <View className="flex-row items-center justify-between gap-4">
+          {displayAchievements?.map((achievement) => (
+            <AchievementBadge
+              key={achievement.id}
+              achievement={achievement}
+              onPress={() => handleAchievementPress(achievement.id)}
+            />
+          ))}
+
+          {/* Fill with empty slots if less than 3 achievements */}
+          {Array.from({ length: Math.max(0, 3 - (displayAchievements?.length || 0)) }).map((_, i) => (
+            <View key={`empty-${i}`} style={{ width: 70 }} />
+          ))}
+
+          <TouchableOpacity
+            className="items-center gap-[7px]"
+            onPress={onViewAll}
+            style={{ width: 70 }}
+          >
+            <View
+              className="rounded-full bg-gray-100 items-center justify-center"
+              style={{ width: 70, height: 70 }}
+            >
+              <Icon icon={MoreHorizontal} size={28} className="text-gray-600" />
+            </View>
+            <Text
+              className="text-sm text-gray-600 text-center"
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              Ver todas
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

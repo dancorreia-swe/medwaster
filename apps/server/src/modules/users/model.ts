@@ -76,6 +76,12 @@ export const userOverviewResponse = t.Object({
 			timeSpentSeconds: t.Number(),
 			lastAttemptAt: t.Nullable(t.Date()),
 		}),
+		questions: t.Object({
+			totalAttempts: t.Number(),
+			uniqueQuestions: t.Number(),
+			correctAnswers: t.Number(),
+			lastAttemptAt: t.Nullable(t.Date()),
+		}),
 		lastActivityAt: t.Nullable(t.Date()),
 	}),
 });

@@ -2,6 +2,7 @@ import { adminSeed } from "./user";
 import { questionsSeed } from "./questions";
 import { trailsSeed } from "./trails";
 import { gamificationSeed } from "./gamification";
+import { achievementsSeed } from "./achievements";
 
 async function main() {
   console.log("🌱 Starting database seeding...\n");
@@ -10,6 +11,7 @@ async function main() {
   // await questionsSeed();
   await trailsSeed();
   await gamificationSeed();
+  await achievementsSeed();
 
   console.log("\n🌿 Seeding completed successfully!");
   return process.exit(0);

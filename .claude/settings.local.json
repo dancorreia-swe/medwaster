@@ -18,7 +18,9 @@
       "Bash(npx expo:*)",
       "mcp__context7__get-library-docs",
       "Bash(pkill:*)",
-      "mcp__context7__resolve-library-id"
+      "mcp__context7__resolve-library-id",
+      "Bash(npx react-native:*)",
+      "Bash(npx react-native log-ios)"
     ],
     "deny": []
   }

@@ -109,7 +109,6 @@ export default function WikiArticle() {
                 timeSpentMinutes: String(result.progress.timeSpentMinutes || 0),
                 completedContent: String(completedIds.length),
                 totalContent: String(trail.content?.length || 0),
-                earnedPoints: result.progress.earnedPoints ? String(result.progress.earnedPoints) : undefined,
               },
             } as any);
           }, 500);

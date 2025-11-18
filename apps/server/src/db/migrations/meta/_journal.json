@@ -64,6 +64,13 @@
       "when": 1763256703502,
       "tag": "0008_sturdy_toro",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1763322380571,
+      "tag": "0009_glorious_proteus",
+      "breakpoints": true
     }
   ]
 }

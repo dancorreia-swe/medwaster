@@ -16,6 +16,7 @@ import {
 import { questions, questionOptions } from "@/db/schema/questions";
 import { asc, desc, eq, ne, and, sql, ilike, or, count, inArray } from "drizzle-orm";
 import { NotFoundError } from "@/lib/errors";
+import { trackQuizCompleted } from "../achievements/trackers";
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
@@ -546,6 +547,18 @@ export abstract class QuizzesService {
         })
         .where(eq(quizAttempts.id, attemptId))
         .returning();
+
+      // Track achievement for quiz completion
+      try {
+        await trackQuizCompleted(
+          userId,
+          attempt.quizId,
+          earnedPoints,
+          totalPoints,
+        );
+      } catch (error) {
+        console.error("Failed to track quiz completion achievement:", error);
+      }
 
       return updatedAttempt;
     });

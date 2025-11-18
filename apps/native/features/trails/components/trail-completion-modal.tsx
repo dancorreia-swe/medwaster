@@ -1,5 +1,5 @@
 import { Modal, View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { Trophy, Clock, Target, Award, ChevronRight, X } from "lucide-react-native";
+import { Trophy, Clock, Target, ChevronRight, X } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 interface TrailCompletionModalProps {
@@ -15,7 +15,6 @@ interface TrailCompletionModalProps {
     timeSpentMinutes: number;
     completedContent: number;
     totalContent: number;
-    earnedPoints?: number;
   };
   onViewCertificate?: () => void;
   onNextTrail?: () => void;
@@ -29,7 +28,7 @@ export function TrailCompletionModal({
   onViewCertificate,
   onNextTrail,
 }: TrailCompletionModalProps) {
-  const { score, isPassed, timeSpentMinutes, completedContent, totalContent, earnedPoints } = stats;
+  const { score, isPassed, timeSpentMinutes, completedContent, totalContent } = stats;
 
   // Format time display
   const hours = Math.floor(timeSpentMinutes / 60);
@@ -132,23 +131,6 @@ export function TrailCompletionModal({
                   </View>
                 </View>
 
-                {/* Points Earned */}
-                {earnedPoints !== undefined && earnedPoints > 0 && (
-                  <View className="bg-amber-50 rounded-2xl p-5 flex-row items-center gap-4">
-                    <View className="w-14 h-14 bg-amber-500 rounded-full items-center justify-center">
-                      <Award size={28} color="#FFFFFF" strokeWidth={2.5} />
-                    </View>
-                    <View>
-                      <Text className="text-sm text-amber-600 font-semibold mb-1">
-                        Pontos Conquistados
-                      </Text>
-                      <Text className="text-2xl font-bold text-amber-900">
-                        +{earnedPoints} pontos
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
                 {/* Completion Rate */}
                 <View className="bg-green-50 rounded-2xl p-5 flex-row items-center gap-4">
                   <View className="w-14 h-14 bg-green-500 rounded-full items-center justify-center">
@@ -174,7 +156,7 @@ export function TrailCompletionModal({
                     className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-full py-4 px-6 flex-row items-center justify-between"
                   >
                     <View className="flex-row items-center gap-3">
-                      <Award size={24} color="#FFFFFF" strokeWidth={2.5} />
+                      <Trophy size={24} color="#FFFFFF" strokeWidth={2.5} />
                       <Text className="text-white text-base font-bold">
                         Ver Certificado
                       </Text>

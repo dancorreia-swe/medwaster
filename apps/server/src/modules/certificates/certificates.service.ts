@@ -8,6 +8,8 @@ import {
   ForbiddenError,
 } from "@/lib/errors";
 import crypto from "crypto";
+import { trackCertificateEarned } from "../achievements/trackers";
+import { generateCertificatePDF } from "./pdf-generator";
 
 export abstract class CertificateService {
   /**
@@ -212,8 +214,16 @@ export abstract class CertificateService {
       );
     }
 
-    // TODO: Generate PDF certificate here
-    // const certificateUrl = await this.generateCertificatePDF(certificate);
+    // Generate PDF certificate
+    const certificateUrl = await generateCertificatePDF({
+      id: certificate.id,
+      userName: certificate.user.name,
+      averageScore: certificate.averageScore,
+      totalTrailsCompleted: certificate.totalTrailsCompleted,
+      totalTimeMinutes: certificate.totalTimeMinutes,
+      completionDate: certificate.allTrailsCompletedAt,
+      verificationCode: certificate.verificationCode,
+    });
 
     // Update certificate status
     const [updated] = await db
@@ -224,11 +234,23 @@ export abstract class CertificateService {
         reviewedAt: new Date(),
         reviewNotes: notes,
         issuedAt: new Date(),
-        // certificateUrl, // TODO: Add when PDF generation is implemented
+        certificateUrl,
         updatedAt: new Date(),
       })
       .where(eq(certificates.id, certificateId))
       .returning();
+
+    // Track achievement for certificate earned
+    try {
+      await trackCertificateEarned(
+        certificate.userId,
+        certificateId,
+        certificate.averageScore,
+      );
+      console.log(`🏆 Tracked certificate achievement for user ${certificate.userId}`);
+    } catch (error) {
+      console.error("Failed to track certificate achievement:", error);
+    }
 
     // TODO: Send notification to user
     // await notificationService.send(certificate.userId, {

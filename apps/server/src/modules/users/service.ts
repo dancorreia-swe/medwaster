@@ -8,6 +8,7 @@ import {
 	trailContent,
 	trails,
 	userTrailProgress,
+	userQuestionAttempts,
 } from "@/db/schema/trails";
 import { quizzes, quizAttempts } from "@/db/schema/quizzes";
 import { BadRequestError, ConflictError, NotFoundError } from "@/lib/errors";
@@ -221,10 +222,21 @@ export abstract class UsersService {
 			.innerJoin(quizzes, eq(quizzes.id, quizAttempts.quizId))
 			.where(eq(quizAttempts.userId, userId));
 
+		const [questionSummary] = await db
+			.select({
+				totalAttempts: sql<number>`count(*)`,
+				uniqueQuestions: sql<number>`count(distinct ${userQuestionAttempts.questionId})`,
+				correctAnswers: sql<number>`coalesce(sum(case when ${userQuestionAttempts.isCorrect} then 1 else 0 end), 0)`,
+				lastAttemptAt: sql<Date | null>`max(${userQuestionAttempts.createdAt})`,
+			})
+			.from(userQuestionAttempts)
+			.where(eq(userQuestionAttempts.userId, userId));
+
 		const lastActivityCandidates = [
 			achievementSummary?.lastActivityAt ?? null,
 			trailSummary?.lastAccessedAt ?? null,
 			quizSummary?.lastAttemptAt ?? null,
+			questionSummary?.lastAttemptAt ?? null,
 			userRecord.updatedAt ?? null,
 		].filter((value): value is Date => value instanceof Date);
 
@@ -259,6 +271,12 @@ export abstract class UsersService {
 					averageScore: Number(quizSummary?.averageScore ?? 0),
 					timeSpentSeconds: Number(quizSummary?.timeSpentSeconds ?? 0),
 					lastAttemptAt: quizSummary?.lastAttemptAt ?? null,
+				},
+				questions: {
+					totalAttempts: Number(questionSummary?.totalAttempts ?? 0),
+					uniqueQuestions: Number(questionSummary?.uniqueQuestions ?? 0),
+					correctAnswers: Number(questionSummary?.correctAnswers ?? 0),
+					lastAttemptAt: questionSummary?.lastAttemptAt ?? null,
 				},
 				lastActivityAt,
 			},

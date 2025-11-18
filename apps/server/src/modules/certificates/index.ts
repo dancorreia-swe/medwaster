@@ -184,6 +184,45 @@ export const studentCertificates = new Elysia({ prefix: "/certificates" })
   )
 
   /**
+   * GET /certificates/download/:id
+   * Download certificate PDF
+   */
+  .get(
+    "/download/:id",
+    async ({ user, params, set }) => {
+      const certificateId = Number(params.id);
+      
+      const certificate = await CertificateService.getUserCertificate(user.id);
+      
+      if (!certificate || certificate.id !== certificateId) {
+        set.status = 404;
+        return { error: "Certificate not found" };
+      }
+
+      if (certificate.status !== "approved" || !certificate.certificateUrl) {
+        set.status = 400;
+        return { error: "Certificate not approved or PDF not available" };
+      }
+
+      // Return the certificate URL for download
+      return {
+        certificateUrl: certificate.certificateUrl,
+        fileName: `Certificado-${certificate.verificationCode}.pdf`,
+      };
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+      detail: {
+        tags: ["Certificates"],
+        summary: "Download certificate PDF",
+        description: "Get download URL for certificate PDF",
+      },
+    },
+  )
+
+  /**
    * GET /certificates/verify/:code
    * Public endpoint to verify a certificate by verification code
    */

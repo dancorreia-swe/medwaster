@@ -327,6 +327,11 @@ export abstract class AchievementsService {
       throw new NotFoundError("Achievement");
     }
 
+    // Prevent deletion of system achievements
+    if (existing.createdBy === "system") {
+      throw new ConflictError("Cannot delete system achievements");
+    }
+
     // Delete S3 image if it exists
     if (existing.badgeImageKey) {
       await AchievementS3StorageService.deleteImage(existing.badgeImageKey);

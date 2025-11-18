@@ -66,6 +66,30 @@ export async function fetchTrails(params?: {
 }
 
 /**
+ * Fetch recommended trails based on user activity
+ */
+export async function fetchRecommendedTrails() {
+  const response = await client.trails.recommended.get();
+
+  return assertSuccess(
+    response,
+    "Não foi possível carregar as trilhas recomendadas.",
+  );
+}
+
+/**
+ * Fetch recommended categories based on user activity
+ */
+export async function fetchRecommendedCategories() {
+  const response = await client.trails.categories.recommended.get();
+
+  return assertSuccess(
+    response,
+    "Não foi possível carregar as categorias recomendadas.",
+  );
+}
+
+/**
  * Fetch single trail by ID with full details
  */
 export async function fetchTrailById(id: number) {

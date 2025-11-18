@@ -1,13 +1,25 @@
-import { ScrollView, Text, View } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
 import { Container } from "@/components/container";
 import { StatsCard } from "@/features/home/components/stats-card";
 import { CategoryCard } from "@/features/home/components/category-card";
 import { TrailCard } from "@/features/home/components/trail-card";
 import { QuickAccessCard } from "@/features/home/components/quick-access-card";
 import { authClient } from "@/lib/auth-client";
-import { useStudentCategories } from "@/features/wiki/hooks";
 import { router } from "expo-router";
 import { useArticleStore } from "@/lib/stores/article-store";
+import { useAchievementNotifications } from "@/features/achievements";
+import {
+  useRecommendedTrails,
+  useRecommendedCategories,
+} from "@/features/trails/hooks";
+import { useUserCertificate } from "@/features/certificates";
+import { LinearGradient } from "expo-linear-gradient";
 
 const CATEGORY_COLORS = [
   { bg: "#EFF6FF", icon: "#155DFC" },
@@ -20,17 +32,33 @@ const CATEGORY_COLORS = [
 
 export default function Home() {
   const { data: session } = authClient.useSession();
-  const { data: categoriesResponse } = useStudentCategories();
+  const { data: recommendedCategories, isLoading: isLoadingCategories } =
+    useRecommendedCategories();
+  const { data: recommendedTrails, isLoading: isLoadingRecommended } =
+    useRecommendedTrails();
+  const { data: certificateData } = useUserCertificate();
   const setSelectedCategoriesInStore = useArticleStore(
     (state) => state.setSelectedCategories,
   );
 
-  const categories = categoriesResponse ?? [];
+  // Check for new achievements when home screen is active
+  useAchievementNotifications();
+
+  const categories = recommendedCategories ?? [];
+  const trails = recommendedTrails ?? [];
+
+  // Remove duplicates by trail ID (safeguard)
+  const uniqueTrails = trails.filter(
+    (trail, index, self) => index === self.findIndex((t) => t.id === trail.id),
+  );
+
+  // Check if user has completed all trails
+  const hasCompletedAllTrails = certificateData?.certificate !== null;
 
   const handleCategoryPress = (categoryId: number) => {
     // Set the category in the store so wiki tab can read it
     setSelectedCategoriesInStore([categoryId]);
-    
+
     // Navigate to wiki tab
     router.push("/(tabs)/wiki");
   };
@@ -56,14 +84,19 @@ export default function Home() {
           <StatsCard />
 
           {/* Categories */}
-          {categories.length > 0 && (
-            <View className="mx-5 mb-5">
-              <Text className="text-base font-bold text-gray-900 mb-3.5">
-                Categorias de interesse
-              </Text>
+          <View className="mx-5 mb-5">
+            <Text className="text-base font-bold text-gray-900 mb-3.5">
+              Categorias de interesse
+            </Text>
+            {isLoadingCategories ? (
+              <View className="h-32 items-center justify-center">
+                <ActivityIndicator size="small" color="#155DFC" />
+              </View>
+            ) : categories.length > 0 ? (
               <View className="flex-row flex-wrap gap-3.5">
                 {categories.slice(0, 6).map((category, index) => {
-                  const colors = CATEGORY_COLORS[index % CATEGORY_COLORS.length];
+                  const colors =
+                    CATEGORY_COLORS[index % CATEGORY_COLORS.length];
                   return (
                     <View key={category.id} className="flex-1 min-w-[45%]">
                       <CategoryCard
@@ -76,8 +109,13 @@ export default function Home() {
                   );
                 })}
               </View>
-            </View>
-          )}
+            ) : (
+              <Text className="text-sm text-gray-500 text-center py-8">
+                Continue explorando conteúdos para receber recomendações
+                personalizadas!
+              </Text>
+            )}
+          </View>
 
           {/* Recommended Trails */}
           <View className="mb-5">
@@ -90,59 +128,133 @@ export default function Home() {
               </Text>
             </View>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              className="px-5 pb-1"
-              contentContainerStyle={{ paddingRight: 20, gap: 14 }}
-            >
-              <TrailCard
-                title="Descarte de Perfurocortantes"
-                category="Perfurocortantes"
-                duration="15 min"
-                gradientColors={["#2B7FFF", "#00B8DB"]}
-                categoryBg="rgba(255, 255, 255, 0.2)"
-                status="new"
-              />
-              <TrailCard
-                title="Gestão de Resíduos Químicos"
-                category="Químicos"
-                duration="20 min"
-                gradientColors={["#AD46FF", "#F6339A"]}
-                categoryBg="rgba(255, 255, 255, 0.2)"
-                status="recommended"
-              />
-              <TrailCard
-                title="Segregação de Infectantes"
-                category="Infectantes"
-                duration="18 min"
-                gradientColors={["#00C950", "#00BC7D"]}
-                categoryBg="rgba(255, 255, 255, 0.2)"
-                status="recommended"
-              />
-            </ScrollView>
+            {isLoadingRecommended ? (
+              <View className="h-48 items-center justify-center">
+                <ActivityIndicator size="small" color="#155DFC" />
+              </View>
+            ) : uniqueTrails.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="px-5 pb-1"
+                contentContainerStyle={{ paddingRight: 20, gap: 14 }}
+              >
+                {uniqueTrails.map((trail, index) => (
+                  <TrailCard
+                    key={trail.id}
+                    title={trail.name}
+                    category={trail.category?.name ?? "Geral"}
+                    duration="15 min"
+                    gradientColors={
+                      index % 3 === 0
+                        ? ["#2B7FFF", "#00B8DB"]
+                        : index % 3 === 1
+                          ? ["#AD46FF", "#F6339A"]
+                          : ["#00C950", "#00BC7D"]
+                    }
+                    categoryBg="rgba(255, 255, 255, 0.2)"
+                    status={index === 0 ? "new" : "recommended"}
+                    onPress={() => router.push(`/trails/${trail.id}`)}
+                  />
+                ))}
+              </ScrollView>
+            ) : (
+              <View className="px-5">
+                <Text className="text-sm text-gray-500 text-center py-8">
+                  {hasCompletedAllTrails
+                    ? "🎉 Parabéns! Você completou todas as trilhas disponíveis!"
+                    : "Comece completando trilhas para receber recomendações personalizadas!"}
+                </Text>
+              </View>
+            )}
           </View>
 
-          {/* Quick Access */}
+          {/* Continue Learning */}
           <View className="mx-5 mb-6">
-            <Text className="text-base font-bold text-gray-900 mb-3.5">
-              Acesso rápido
-            </Text>
-            <View className="gap-2.5">
-              <QuickAccessCard
-                title="Biblioteca Wiki"
-                description="Consulte protocolos e diretrizes"
-                iconBgColor="#EFF6FF"
-                iconColor="#155DFC"
-                icon="library"
-              />
-              <QuickAccessCard
-                title="Minhas Conquistas"
-                description="Veja seu progresso e medalhas"
-                iconBgColor="#F0FDF4"
-                iconColor="#00A63E"
-                icon="award"
-              />
+            <View className="flex-row items-center justify-between mb-3.5">
+              <View>
+                <Text className="text-base font-bold text-gray-900 mb-0.5">
+                  Continue aprendendo
+                </Text>
+                <Text className="text-xs text-gray-500">
+                  Retome de onde parou
+                </Text>
+              </View>
+            </View>
+
+            {/* Certificate Banner if completed all trails */}
+            {hasCompletedAllTrails && certificateData?.certificate && (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push("/(app)/(tabs)/(profile)/certificates")
+                }
+                activeOpacity={0.8}
+                className="rounded-full mb-3 overflow-hidden shadow-lg"
+              >
+                <LinearGradient
+                  colors={["#155DFC", "#0B4FDB"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    padding: 4
+                  }}
+                >
+                  <View className="flex-row items-center gap-3">
+                    <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center">
+                      <Text className="text-2xl">🏆</Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-white font-bold text-base">
+                        Certificado Disponível
+                      </Text>
+                      <Text className="text-white/80 text-sm">
+                        {certificateData.certificate.status === "approved"
+                          ? "Toque para visualizar"
+                          : "Aguardando aprovação"}
+                      </Text>
+                    </View>
+                    <View className="w-8 h-8 bg-white/10 rounded-full items-center justify-center mr-4">
+                      <Text className="text-white text-xl">→</Text>
+                    </View>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+
+            {/* Learning Stats */}
+            <View className="bg-white rounded-2xl p-5 border border-gray-100">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <Text className="text-xs text-gray-500 mb-1">
+                    Trilhas Concluídas
+                  </Text>
+                  <Text className="text-2xl font-bold text-gray-900">
+                    {certificateData?.certificate?.totalTrailsCompleted ?? 0}
+                  </Text>
+                </View>
+                <View className="w-px h-10 bg-gray-200" />
+                <View className="flex-1 items-center">
+                  <Text className="text-xs text-gray-500 mb-1">
+                    Média Geral
+                  </Text>
+                  <Text className="text-2xl font-bold text-gray-900">
+                    {certificateData?.certificate?.averageScore
+                      ? `${certificateData.certificate.averageScore.toFixed(0)}%`
+                      : "-"}
+                  </Text>
+                </View>
+                <View className="w-px h-10 bg-gray-200" />
+                <View className="flex-1 items-end">
+                  <Text className="text-xs text-gray-500 mb-1">
+                    Tempo Total
+                  </Text>
+                  <Text className="text-2xl font-bold text-gray-900">
+                    {certificateData?.certificate?.totalTimeMinutes
+                      ? `${Math.floor(certificateData.certificate.totalTimeMinutes / 60)}h`
+                      : "-"}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>

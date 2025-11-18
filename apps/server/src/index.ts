@@ -12,12 +12,12 @@ import { adminCategories } from "./modules/categories";
 import { ai } from "./modules/ai";
 import { openapi } from "@elysiajs/openapi";
 import { wiki, adminWiki } from "./modules/wiki";
-import { adminAchievements } from "./modules/achievements";
+import { adminAchievements, achievements } from "./modules/achievements";
 import { adminQuestions } from "./modules/questions";
 import { adminQuizzes, studentQuizzes } from "./modules/quizzes";
 import { adminTrails, studentTrails } from "./modules/trails";
 import { dashboard } from "./modules/dashboard";
-import { adminUsers } from "./modules/users";
+import { adminUsers, userProfile } from "./modules/users";
 import { gamification } from "./modules/gamification";
 import { adminCertificates, studentCertificates } from "./modules/certificates";
 import { initializeCronJobs } from "./lib/cron";
@@ -102,6 +102,7 @@ export const app = new Elysia({ name: "medwaster-api" })
   .use(adminTags)
   .use(adminCategories)
   .use(adminAchievements)
+  .use(achievements)
   .use(adminQuestions)
   .use(adminQuizzes)
   .use(studentQuizzes)
@@ -109,6 +110,7 @@ export const app = new Elysia({ name: "medwaster-api" })
   .use(studentTrails)
   .use(dashboard)
   .use(adminUsers)
+  .use(userProfile)
   .use(gamification)
   .use(adminCertificates)
   .use(studentCertificates)
@@ -117,6 +119,16 @@ export const app = new Elysia({ name: "medwaster-api" })
   .get("/uploads/questions/:filename", ({ params }) => {
     const filePath = join(process.cwd(), "uploads", "questions", params.filename);
     return Bun.file(filePath);
+  })
+  .get("/certificates/:filename", ({ params, set }) => {
+    const filePath = join(process.cwd(), "storage", "certificates", params.filename);
+    const file = Bun.file(filePath);
+    
+    // Set headers for PDF download
+    set.headers["Content-Type"] = "application/pdf";
+    set.headers["Content-Disposition"] = `attachment; filename="${params.filename}"`;
+    
+    return file;
   })
   .get("/", () => "OK")
   .listen(process.env.PORT ? Number(process.env.PORT) : 3000);

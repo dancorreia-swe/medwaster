@@ -184,3 +184,41 @@ export const adminUsers = new Elysia({
 					},
 				),
 	);
+
+// ============================================================================
+// User Profile Endpoints
+// ============================================================================
+
+export const userProfile = new Elysia({
+	prefix: "/profile",
+	tags: ["Profile"],
+	detail: {
+		description: "User endpoints for profile information and statistics",
+	},
+})
+	.use(betterAuthMacro)
+	.guard(
+		{
+			auth: true,
+			detail: {
+				description: "Authentication required",
+			},
+		},
+		(app) =>
+			app.get(
+				"/stats",
+				async ({ user, status }) => {
+					const stats = await UsersService.getOverview(user!.id);
+					return status(200, success(stats));
+				},
+				{
+					response: successResponseSchema(userOverviewResponse),
+					detail: {
+						summary: "Get my profile statistics",
+						description:
+							"Get current user's statistics including achievements, trails, and quizzes",
+						tags: ["Profile"],
+					},
+				},
+			),
+	);

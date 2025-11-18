@@ -9,7 +9,8 @@ import {
 } from "@/db/schema/trails";
 import { questions } from "@/db/schema/questions";
 import { quizzes } from "@/db/schema/quizzes";
-import { wikiArticles } from "@/db/schema/wiki";
+import { wikiArticles, userArticleReads } from "@/db/schema/wiki";
+import { contentCategories } from "@/db/schema/categories";
 import type {
   CreateTrailBody,
   UpdateTrailBody,
@@ -785,5 +786,311 @@ export abstract class TrailsService {
     return db.query.trailContent.findFirst({
       where: and(...conditions),
     });
+  }
+
+  /**
+   * Get recommended trails for a user based on their activity
+   * Recommendations are based on:
+   * 1. Categories from completed trails
+   * 2. Categories from recently read articles
+   * 3. Difficulty progression (next level from completed trails)
+   *
+   * @param userId - User ID
+   * @param limit - Maximum number of recommendations (default: 3)
+   * @returns Array of recommended trails
+   */
+  static async getRecommendedTrails(userId: string, limit: number = 3) {
+    // Get user's last completed trail
+    const lastCompletedTrail = await db.query.userTrailProgress.findFirst({
+      where: and(
+        eq(userTrailProgress.userId, userId),
+        eq(userTrailProgress.isCompleted, true),
+      ),
+      orderBy: [desc(userTrailProgress.updatedAt)],
+      with: {
+        trail: true,
+      },
+    });
+
+    // Get categories from recently read articles (last 5)
+    const recentArticles = await db
+      .select({
+        categoryId: wikiArticles.categoryId,
+      })
+      .from(userArticleReads)
+      .innerJoin(wikiArticles, eq(wikiArticles.id, userArticleReads.articleId))
+      .where(eq(userArticleReads.userId, userId))
+      .orderBy(desc(userArticleReads.lastReadAt))
+      .limit(5);
+
+    const articleCategoryIds = recentArticles
+      .map((a) => a.categoryId)
+      .filter((id): id is number => id !== null);
+
+    // Build category filter
+    const categoryIds: number[] = [];
+    if (lastCompletedTrail?.trail.categoryId) {
+      categoryIds.push(lastCompletedTrail.trail.categoryId);
+    }
+    categoryIds.push(...articleCategoryIds);
+
+    // Get trails user has already completed
+    const completedTrailIds = await db
+      .select({ trailId: userTrailProgress.trailId })
+      .from(userTrailProgress)
+      .where(
+        and(
+          eq(userTrailProgress.userId, userId),
+          eq(userTrailProgress.isCompleted, true),
+        ),
+      );
+
+    const completedIds = completedTrailIds.map((t) => t.trailId);
+
+    // Build conditions for recommendations
+    const conditions = [eq(trails.status, "published")];
+
+    // Exclude completed trails
+    if (completedIds.length > 0) {
+      conditions.push(sql`${trails.id} NOT IN ${completedIds}`);
+    }
+
+    // Filter by categories if we have any
+    if (categoryIds.length > 0) {
+      conditions.push(inArray(trails.categoryId, categoryIds));
+    }
+
+    // Get recommended trails
+    const recommendedTrails = await db.query.trails.findMany({
+      where: and(...conditions),
+      with: {
+        author: {
+          columns: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        category: true,
+      },
+      orderBy: [asc(trails.unlockOrder), desc(trails.createdAt)],
+      limit,
+    });
+
+    // If we don't have enough recommendations, fill with popular trails
+    if (recommendedTrails.length < limit) {
+      const remaining = limit - recommendedTrails.length;
+      const alreadyRecommendedIds = recommendedTrails.map(t => t.id);
+      
+      const popularTrails = await db.query.trails.findMany({
+        where: and(
+          eq(trails.status, "published"),
+          // Exclude completed trails
+          completedIds.length > 0
+            ? sql`${trails.id} NOT IN ${completedIds}`
+            : sql`true`,
+          // Exclude already recommended trails
+          alreadyRecommendedIds.length > 0
+            ? sql`${trails.id} NOT IN ${alreadyRecommendedIds}`
+            : sql`true`,
+        ),
+        with: {
+          author: {
+            columns: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+          category: true,
+        },
+        orderBy: [asc(trails.unlockOrder), desc(trails.createdAt)],
+        limit: remaining,
+      });
+
+      recommendedTrails.push(...popularTrails);
+    }
+
+    return recommendedTrails;
+  }
+
+  /**
+   * Get recommended categories based on user activity
+   * Analyzes completed trails, read articles, and answered questions
+   */
+  static async getRecommendedCategories(
+    userId: string,
+    limit: number = 6,
+  ) {
+    // Track category scores with recency weighting
+    const categoryScores = new Map<number, { score: number; name: string; slug: string; color: string | null }>();
+
+    // Helper to add score to a category
+    const addCategoryScore = (categoryId: number | null, score: number, categoryData?: { name: string; slug: string; color: string | null }) => {
+      if (!categoryId) return;
+
+      const existing = categoryScores.get(categoryId);
+      if (existing) {
+        existing.score += score;
+      } else if (categoryData) {
+        categoryScores.set(categoryId, { score, ...categoryData });
+      }
+    };
+
+    // 1. Get categories from completed trails (weight: 10 points each)
+    const completedTrails = await db.query.userTrailProgress.findMany({
+      where: and(
+        eq(userTrailProgress.userId, userId),
+        eq(userTrailProgress.isCompleted, true),
+      ),
+      orderBy: [desc(userTrailProgress.updatedAt)],
+      limit: 10,
+      with: {
+        trail: {
+          with: {
+            category: true,
+          },
+        },
+      },
+    });
+
+    completedTrails.forEach((progress, index) => {
+      if (progress.trail.category) {
+        // More recent completions get higher weight
+        const recencyBonus = (10 - index) * 0.5;
+        addCategoryScore(
+          progress.trail.categoryId,
+          10 + recencyBonus,
+          {
+            name: progress.trail.category.name,
+            slug: progress.trail.category.slug,
+            color: progress.trail.category.color,
+          }
+        );
+      }
+    });
+
+    // 2. Get categories from read articles (weight: 5 points each)
+    const readArticles = await db
+      .select({
+        categoryId: wikiArticles.categoryId,
+        categoryName: wikiArticles.categoryId, // We'll join to get the full category
+        lastReadAt: userArticleReads.lastReadAt,
+      })
+      .from(userArticleReads)
+      .innerJoin(wikiArticles, eq(wikiArticles.id, userArticleReads.articleId))
+      .where(eq(userArticleReads.userId, userId))
+      .orderBy(desc(userArticleReads.lastReadAt))
+      .limit(20);
+
+    // Get unique category IDs from articles
+    const articleCategoryIds = [...new Set(readArticles.map(a => a.categoryId).filter((id): id is number => id !== null))];
+
+    if (articleCategoryIds.length > 0) {
+      const articleCategories = await db.query.contentCategories.findMany({
+        where: inArray(contentCategories.id, articleCategoryIds),
+      });
+
+      const categoryMap = new Map(articleCategories.map(c => [c.id, c]));
+
+      readArticles.forEach((article, index) => {
+        if (article.categoryId) {
+          const category = categoryMap.get(article.categoryId);
+          if (category) {
+            const recencyBonus = (20 - index) * 0.2;
+            addCategoryScore(
+              article.categoryId,
+              5 + recencyBonus,
+              {
+                name: category.name,
+                slug: category.slug,
+                color: category.color,
+              }
+            );
+          }
+        }
+      });
+    }
+
+    // 3. Get categories from answered questions (weight: 3 points each)
+    const answeredQuestions = await db
+      .select({
+        categoryId: questions.categoryId,
+        createdAt: userQuestionAttempts.createdAt,
+      })
+      .from(userQuestionAttempts)
+      .innerJoin(questions, eq(questions.id, userQuestionAttempts.questionId))
+      .where(eq(userQuestionAttempts.userId, userId))
+      .orderBy(desc(userQuestionAttempts.createdAt))
+      .limit(30);
+
+    const questionCategoryIds = [...new Set(answeredQuestions.map(q => q.categoryId).filter((id): id is number => id !== null))];
+
+    if (questionCategoryIds.length > 0) {
+      const questionCategories = await db.query.contentCategories.findMany({
+        where: inArray(contentCategories.id, questionCategoryIds),
+      });
+
+      const categoryMap = new Map(questionCategories.map(c => [c.id, c]));
+
+      answeredQuestions.forEach((question, index) => {
+        if (question.categoryId) {
+          const category = categoryMap.get(question.categoryId);
+          if (category) {
+            const recencyBonus = (30 - index) * 0.1;
+            addCategoryScore(
+              question.categoryId,
+              3 + recencyBonus,
+              {
+                name: category.name,
+                slug: category.slug,
+                color: category.color,
+              }
+            );
+          }
+        }
+      });
+    }
+
+    // Convert map to array and sort by score
+    const rankedCategories = Array.from(categoryScores.entries())
+      .map(([id, data]) => ({
+        id,
+        name: data.name,
+        slug: data.slug,
+        color: data.color,
+        score: data.score,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+
+    // If we don't have enough recommendations, fill with popular categories
+    if (rankedCategories.length < limit) {
+      const existingIds = rankedCategories.map(c => c.id);
+      const remaining = limit - rankedCategories.length;
+
+      const popularCategories = await db.query.contentCategories.findMany({
+        where: and(
+          eq(contentCategories.isActive, true),
+          existingIds.length > 0
+            ? sql`${contentCategories.id} NOT IN ${existingIds}`
+            : sql`true`,
+        ),
+        orderBy: [asc(contentCategories.name)],
+        limit: remaining,
+      });
+
+      rankedCategories.push(
+        ...popularCategories.map(c => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          color: c.color,
+          score: 0,
+        }))
+      );
+    }
+
+    return rankedCategories;
   }
 }

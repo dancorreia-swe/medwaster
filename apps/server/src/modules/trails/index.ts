@@ -320,6 +320,40 @@ export const studentTrails = new Elysia({ prefix: "/trails" })
         },
       )
 
+      // Get recommended trails
+      .get(
+        "/recommended",
+        async ({ user, status }) => {
+          const trails = await TrailsService.getRecommendedTrails(user!.id);
+          return status(200, success(trails));
+        },
+        {
+          detail: {
+            summary: "Get recommended trails",
+            description:
+              "Get personalized trail recommendations based on user activity (completed trails and read articles)",
+            tags: ["Trails - Student"],
+          },
+        },
+      )
+
+      // Get recommended categories
+      .get(
+        "/categories/recommended",
+        async ({ user, status }) => {
+          const categories = await TrailsService.getRecommendedCategories(user!.id);
+          return status(200, success(categories));
+        },
+        {
+          detail: {
+            summary: "Get recommended categories",
+            description:
+              "Get personalized category recommendations based on user activity (completed trails, read articles, and answered questions)",
+            tags: ["Trails - Student"],
+          },
+        },
+      )
+
       // Get user's enrolled trails
       .get(
         "/my-trails",

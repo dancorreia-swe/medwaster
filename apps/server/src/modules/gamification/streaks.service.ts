@@ -10,6 +10,7 @@ import {
 import { eq, and, desc, sql } from "drizzle-orm";
 import { NotFoundError } from "@/lib/errors";
 import type { UserStreakResponse } from "./model";
+import { trackLoginStreak } from "../achievements/trackers";
 
 export class StreaksService {
   /**
@@ -119,6 +120,16 @@ export class StreaksService {
 
     // Check for milestone achievements
     await this.checkAndAwardMilestones(userId, newCurrentStreak);
+
+    // Track achievement for login streaks
+    if (newCurrentStreak === 7 || newCurrentStreak === 30) {
+      try {
+        await trackLoginStreak(userId, newCurrentStreak);
+        console.log(`🏆 Tracked login streak achievement: ${newCurrentStreak} days`);
+      } catch (error) {
+        console.error("Failed to track login streak achievement:", error);
+      }
+    }
 
     return updatedStreak;
   }

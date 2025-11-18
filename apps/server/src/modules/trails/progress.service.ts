@@ -21,6 +21,7 @@ import { QuizzesService } from "../quizzes/quizzes.service";
 import type { StartQuizAttemptBody, SubmitQuizAttemptBody } from "../quizzes/model";
 import { DailyActivitiesService } from "../gamification/daily-activities.service";
 import { CertificateService } from "../certificates/certificates.service";
+import { trackTrailCompleted, trackArticleRead, trackQuestionAnswered } from "../achievements/trackers";
 
 export abstract class ProgressService {
   // ===================================
@@ -145,10 +146,8 @@ export abstract class ProgressService {
     });
 
     if (existingProgress?.isEnrolled) {
-      throw new BusinessLogicError(
-        "Already enrolled in this trail",
-        "ALREADY_ENROLLED",
-      );
+      // Already enrolled - return existing progress instead of throwing error
+      return this.getUserTrailProgress(userId, trailId);
     }
 
     // Check eligibility (prerequisites)
@@ -170,6 +169,14 @@ export abstract class ProgressService {
           enrolledAt: new Date(),
         })
         .where(eq(userTrailProgress.id, existingProgress.id));
+
+      // Increment trail's enrolled count
+      await db
+        .update(trails)
+        .set({
+          enrolledCount: sql`${trails.enrolledCount} + 1`,
+        })
+        .where(eq(trails.id, trailId));
     } else {
       await db.insert(userTrailProgress).values({
         userId,
@@ -184,15 +191,15 @@ export abstract class ProgressService {
         isCompleted: false,
         isPassed: false,
       });
-    }
 
-    // Increment trail's enrolled count
-    await db
-      .update(trails)
-      .set({
-        enrolledCount: sql`${trails.enrolledCount} + 1`,
-      })
-      .where(eq(trails.id, trailId));
+      // Increment trail's enrolled count
+      await db
+        .update(trails)
+        .set({
+          enrolledCount: sql`${trails.enrolledCount} + 1`,
+        })
+        .where(eq(trails.id, trailId));
+    }
 
     return this.getUserTrailProgress(userId, trailId);
   }
@@ -568,6 +575,9 @@ export abstract class ProgressService {
       userAnswer: JSON.stringify(answer.answer),
       timeSpentSeconds: answer.timeSpentSeconds || 0,
     });
+
+    // Track achievement for answering question
+    await trackQuestionAnswered(userId, questionId, isCorrect);
 
     // Update content progress
     const contentProgress = await db.query.userContentProgress.findFirst({
@@ -989,6 +999,13 @@ export abstract class ProgressService {
       },
     });
 
+    // Track achievement for article read
+    try {
+      await trackArticleRead(userId, content.articleId?.toString() || "", undefined);
+    } catch (error) {
+      console.error("Failed to track article read achievement:", error);
+    }
+
     // Mark content as complete in trail
     await this.markContentComplete(userId, trailId, contentId);
 
@@ -1142,6 +1159,17 @@ export abstract class ProgressService {
       trailsCompleted: activityResult.trailsCompleted,
       hasCompletedActivity: activityResult.hasCompletedActivity,
     });
+
+    // Track achievement progress
+    console.log("🏆 [Trail Completion] Tracking achievement progress...");
+    try {
+      const isPerfect = score === 100;
+      await trackTrailCompleted(userId, trailId.toString(), score, isPerfect);
+      console.log("  ✓ Achievement tracking completed");
+    } catch (error) {
+      console.error("  ✗ Failed to track achievement:", error);
+      // Don't fail trail completion if achievement tracking fails
+    }
 
     if (isPassed) {
       // Unlock dependent trails

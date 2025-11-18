@@ -242,9 +242,6 @@ export function QuizAttempt({
     );
   }
 
-  const progressPercentage =
-    ((progress.currentQuestionIndex + 1) / sortedQuestions.length) * 100;
-
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
@@ -259,16 +256,34 @@ export function QuizAttempt({
             <X size={28} color="#6B7280" strokeWidth={2.5} />
           </TouchableOpacity>
 
-          {/* Progress Bar */}
-          <View className="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
-            <Animated.View
-              className="h-full bg-green-500 rounded-full"
-              style={{ width: `${progressPercentage}%` }}
-            />
+          {/* Segmented Progress Bar */}
+          <View className="flex-1 flex-row items-center" style={{ gap: 4 }}>
+            {Array.from({ length: sortedQuestions.length }).map((_, index) => {
+              const isFilled = index < progress.currentQuestionIndex + 1;
+              const isActive = index === progress.currentQuestionIndex;
+
+              return (
+                <View
+                  key={index}
+                  style={{
+                    flex: 1,
+                    height: 6,
+                    borderRadius: 99,
+                    backgroundColor: isFilled
+                      ? isActive
+                        ? "#16a34a"
+                        : "#22c55e"
+                      : "#d1d5db",
+                  }}
+                />
+              );
+            })}
           </View>
 
-          {/* Spacer for symmetry */}
-          <View className="w-10 ml-4" />
+          {/* Question Counter */}
+          <Text className="text-xs font-semibold text-gray-600 ml-3 min-w-[35px] text-right">
+            {progress.currentQuestionIndex + 1}/{sortedQuestions.length}
+          </Text>
         </View>
       </View>
 

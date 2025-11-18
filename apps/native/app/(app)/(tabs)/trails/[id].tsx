@@ -70,7 +70,8 @@ const moduleStyles = {
   },
 };
 
-const getContentTitle = (content: any) => {
+const getContentTitle = (content: any): string => {
+  if (!content) return "Conteúdo";
   // Check by ID presence since contentType doesn't exist in DB
   if (content.questionId && content.question) {
     return content.question.prompt || content.question.questionText || "Questão";
@@ -84,7 +85,8 @@ const getContentTitle = (content: any) => {
   return "Conteúdo";
 };
 
-const getContentEmoji = (content: any) => {
+const getContentEmoji = (content: any): string => {
+  if (!content) return "📄";
   // Derive type from ID presence
   if (content.questionId) return "❓";
   if (content.quizId) return "🎯";
@@ -142,7 +144,9 @@ export default function JourneyDetail() {
   const isLoading = trailLoading || (progressLoading && !progressError);
 
   const modules =
-    content?.map((item: any, index: number) => {
+    content
+      ?.filter((item: any) => item && item.id) // Filter out null/undefined items
+      ?.map((item: any, index: number) => {
       const isCompleted = item.progress?.isCompleted || false;
       const isEnrolled = progress?.isEnrolled || false;
 
@@ -175,12 +179,15 @@ export default function JourneyDetail() {
         contentType = "article"; // fallback
       }
 
+      const emoji = getContentEmoji(item);
+      const title = getContentTitle(item);
+      
       return {
         id: String(item.id),
         contentId: item.id,
         trailId: trailId,
-        emoji: getContentEmoji(item),
-        title: getContentTitle(item),
+        emoji: emoji || "📄", // Ensure we always have a valid emoji
+        title: title || "Conteúdo", // Ensure we always have a valid title
         instructor: "",
         status,
         type: contentType,
@@ -218,7 +225,7 @@ export default function JourneyDetail() {
     const isCurrentActivity = module.status === "current";
     const showConnector = index < modules.length - 1;
     const moduleType = module.type || "article";
-    const style = moduleStyles[moduleType];
+    const style = moduleStyles[moduleType] || moduleStyles.article; // Fallback to article style
 
     const handleModulePress = () => {
       if (module.status === "locked") return;
@@ -253,17 +260,17 @@ export default function JourneyDetail() {
             >
               <View className="flex-row gap-4 mb-5">
                 <View
-                  style={{ backgroundColor: `${style.borderColor}20` }}
+                  style={{ backgroundColor: style.borderColor ? `${style.borderColor}20` : "#3B82F620" }}
                   className="w-20 h-20 rounded-2xl items-center justify-center"
                 >
-                  <Text className="text-[40px]">{module.emoji}</Text>
+                  <Text className="text-[40px]">{module.emoji || "📄"}</Text>
                 </View>
                 <View className="flex-1">
                   <Text
                     style={{ color: style.textColor }}
                     className="text-lg font-semibold mb-2"
                   >
-                    {module.title}
+                    {module.title || "Conteúdo"}
                   </Text>
                   {module.questions && module.type === "quiz" && (
                     <Text className="text-gray-500 text-base">
@@ -286,7 +293,7 @@ export default function JourneyDetail() {
                           <>
                             <Icon size={14} color={color} strokeWidth={2} />
                             <Text className="text-xs font-medium" style={{ color }}>
-                              {label}
+                              {label || "Questão"}
                             </Text>
                           </>
                         );
@@ -330,7 +337,7 @@ export default function JourneyDetail() {
                 {/* Emoji Badge */}
                 <View className="relative mr-5">
                   <View className="w-16 h-16 bg-gray-100 rounded-2xl items-center justify-center">
-                    <Text className="text-[32px]">{module.emoji}</Text>
+                    <Text className="text-[32px]">{module.emoji || "📄"}</Text>
                   </View>
                   {/* Status Badge */}
                   <View
@@ -354,7 +361,7 @@ export default function JourneyDetail() {
                 {/* Content */}
                 <View className="flex-1">
                   <Text className="text-gray-900 text-base font-semibold mb-1">
-                    {module.title}
+                    {module.title || "Conteúdo"}
                   </Text>
                   {module.instructor && (
                     <Text className="text-gray-500 text-sm">
@@ -443,8 +450,7 @@ export default function JourneyDetail() {
 
           {/* Category Label */}
           <Text className="text-primary text-xs font-semibold tracking-wider mb-2 uppercase">
-            TRILHA DE APRENDIZADO •{" "}
-            {difficultyLabels[trail.difficulty] || trail.difficulty}
+            TRILHA DE APRENDIZADO • {difficultyLabels[trail.difficulty] || trail.difficulty}
           </Text>
 
           {/* Title */}

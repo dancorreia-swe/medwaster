@@ -9,6 +9,8 @@ import {
   startTrailQuiz,
   submitTrailQuiz,
   markTrailArticleRead,
+  fetchRecommendedTrails,
+  fetchRecommendedCategories,
 } from "./api";
 import { gamificationKeys } from "../gamification/hooks";
 
@@ -24,6 +26,8 @@ export const trailKeys = {
   detail: (id: number) => [...trailKeys.details(), id] as const,
   progress: (id: number) => [...trailKeys.all, "progress", id] as const,
   content: (id: number) => [...trailKeys.all, "content", id] as const,
+  recommended: () => [...trailKeys.all, "recommended"] as const,
+  recommendedCategories: () => [...trailKeys.all, "recommendedCategories"] as const,
 };
 
 // ============================================================================
@@ -79,6 +83,28 @@ export function useTrailContent(id: number) {
     queryFn: () => fetchTrailContent(id),
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: !!id,
+  });
+}
+
+/**
+ * Fetch recommended trails based on user activity
+ */
+export function useRecommendedTrails() {
+  return useQuery({
+    queryKey: trailKeys.recommended(),
+    queryFn: fetchRecommendedTrails,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+/**
+ * Fetch recommended categories based on user activity
+ */
+export function useRecommendedCategories() {
+  return useQuery({
+    queryKey: trailKeys.recommendedCategories(),
+    queryFn: fetchRecommendedCategories,
+    staleTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 

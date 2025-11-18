@@ -1,7 +1,7 @@
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Container } from "@/components/container";
 import { useRouter } from "expo-router";
-import { Calendar, Award, Settings, LogOut } from "lucide-react-native";
+import { Calendar, Award, Settings, LogOut, HelpCircle } from "lucide-react-native";
 import { Icon } from "@/components/icon";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -9,14 +9,25 @@ import {
   ProfileStat,
   ActionCard,
   AchievementsSection,
-} from "@/features/profile/components";
+  useProfileStats,
+} from "@/features/profile";
+import { useUserStreak } from "@/features/gamification/hooks";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
+  const { data: profileStats, isLoading: isLoadingStats } = useProfileStats();
+  const { data: streakData, isLoading: isLoadingStreak } = useUserStreak();
 
   const userName = session?.user.name || "Usuário";
   const userImage = session?.user.image;
+
+  // Calculate stats
+  const completedTrails = profileStats?.stats.trails.completed || 0;
+  const questionsAnswered = profileStats?.stats.questions?.uniqueQuestions || 0;
+  const longestStreak = streakData?.longestStreak || 0;
+
+  const isLoading = isLoadingStats || isLoadingStreak;
 
   return (
     <Container className="flex-1 bg-gray-50">
@@ -43,32 +54,38 @@ export default function ProfileScreen() {
 
         {/* Stats Section */}
         <View className="bg-white px-5 py-5">
-          <View className="flex-row gap-[10.5px]">
-            <ProfileStat
-              icon={Award}
-              iconColor="text-purple-600"
-              iconBgColor="bg-purple-50"
-              value="124"
-              label="Módulos"
-              sublabel="completos"
-            />
-            <ProfileStat
-              icon={Calendar}
-              iconColor="text-green-600"
-              iconBgColor="bg-green-50"
-              value="82 min"
-              label="Tempo"
-              sublabel="estudado"
-            />
-            <ProfileStat
-              icon={Calendar}
-              iconColor="text-red-600"
-              iconBgColor="bg-red-50"
-              value="5 dias"
-              label="Sequência"
-              sublabel="atual"
-            />
-          </View>
+          {isLoading ? (
+            <View className="h-24 items-center justify-center">
+              <ActivityIndicator size="small" color="#2B7FFF" />
+            </View>
+          ) : (
+            <View className="flex-row gap-[10.5px]">
+              <ProfileStat
+                icon={Award}
+                iconColor="text-purple-600"
+                iconBgColor="bg-purple-50"
+                value={completedTrails.toString()}
+                label="Trilhas"
+                sublabel="completas"
+              />
+              <ProfileStat
+                icon={HelpCircle}
+                iconColor="text-blue-600"
+                iconBgColor="bg-blue-50"
+                value={questionsAnswered.toString()}
+                label="Questões"
+                sublabel="respondidas"
+              />
+              <ProfileStat
+                icon={Calendar}
+                iconColor="text-red-600"
+                iconBgColor="bg-red-50"
+                value={`${longestStreak} ${longestStreak === 1 ? 'dia' : 'dias'}`}
+                label="Maior"
+                sublabel="sequência"
+              />
+            </View>
+          )}
         </View>
 
         {/* Achievements Section */}
@@ -92,7 +109,7 @@ export default function ProfileScreen() {
             icon={Award}
             iconColor="text-blue-600"
             iconBgColor="bg-blue-50"
-            title="Meus Certificado"
+            title="Meu Certificado"
             description="Veja o status do seu certificado"
             onPress={() => router.push("/(app)/(tabs)/(profile)/certificates")}
           />

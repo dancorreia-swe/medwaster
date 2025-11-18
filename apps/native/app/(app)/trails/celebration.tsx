@@ -12,12 +12,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef } from "react";
 import ConfettiCannon from "react-native-confetti-cannon";
 import {
-  Award,
   ChevronRight,
   Clock,
   Target,
   Trophy,
-  X,
 } from "lucide-react-native";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -31,7 +29,6 @@ export default function TrailCelebrationScreen() {
     timeSpentMinutes: string;
     completedContent: string;
     totalContent: string;
-    earnedPoints?: string;
   }>();
 
   const router = useRouter();
@@ -42,9 +39,6 @@ export default function TrailCelebrationScreen() {
   const timeSpentMinutes = Number(params.timeSpentMinutes) || 0;
   const completedContent = Number(params.completedContent) || 0;
   const totalContent = Number(params.totalContent) || 0;
-  const earnedPoints = params.earnedPoints
-    ? Number(params.earnedPoints)
-    : undefined;
 
   // Format time display
   const hours = Math.floor(timeSpentMinutes / 60);
@@ -92,46 +86,26 @@ export default function TrailCelebrationScreen() {
       icon: Target,
       label: "Pontuação Final",
       value: `${score}%`,
-      color: "#3B82F6",
-      bgColor: "bg-blue-50",
-      iconBg: "bg-blue-500",
-      textColor: "text-blue-600",
-      valueColor: "text-blue-900",
-      badge: isPassed ? { text: "APROVADO", color: "bg-green-500" } : undefined,
+      iconColor: "#FFFFFF",
+      iconBgColor: "#3B82F6",
+      textColor: "#2563EB",
+      badge: isPassed ? { text: "APROVADO", bgColor: "#10B981" } : undefined,
     },
     {
       icon: Clock,
       label: "Tempo Investido",
       value: timeDisplay,
-      color: "#8B5CF6",
-      bgColor: "bg-purple-50",
-      iconBg: "bg-purple-500",
-      textColor: "text-purple-600",
-      valueColor: "text-purple-900",
+      iconColor: "#FFFFFF",
+      iconBgColor: "#8B5CF6",
+      textColor: "#7C3AED",
     },
-    ...(earnedPoints !== undefined && earnedPoints > 0
-      ? [
-          {
-            icon: Award,
-            label: "Pontos Conquistados",
-            value: `+${earnedPoints}`,
-            color: "#F59E0B",
-            bgColor: "bg-amber-50",
-            iconBg: "bg-amber-500",
-            textColor: "text-amber-600",
-            valueColor: "text-amber-900",
-          },
-        ]
-      : []),
     {
-      icon: () => <Text className="text-2xl">✓</Text>,
+      icon: () => <Text style={{ fontSize: 28 }}>✓</Text>,
       label: "Módulos Concluídos",
       value: `${completedContent}/${totalContent}`,
-      color: "#10B981",
-      bgColor: "bg-green-50",
-      iconBg: "bg-green-500",
-      textColor: "text-green-600",
-      valueColor: "text-green-900",
+      iconColor: "#FFFFFF",
+      iconBgColor: "#10B981",
+      textColor: "#059669",
     },
   ];
 
@@ -157,30 +131,52 @@ export default function TrailCelebrationScreen() {
           {/* Header with Gradient */}
           <LinearGradient
             colors={isPassed ? ["#10B981", "#059669"] : ["#F59E0B", "#D97706"]}
-            className="px-6 pt-16 pb-8 relative"
+            style={{
+              paddingHorizontal: 24,
+              paddingTop: 64,
+              paddingBottom: 32,
+            }}
           >
-            {/* Close Button */}
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="absolute top-12 right-4 w-10 h-10 bg-white/20 rounded-full items-center justify-center"
-            >
-              <X size={24} color="#FFFFFF" strokeWidth={2.5} />
-            </TouchableOpacity>
-
             {/* Trophy Icon - Animated */}
             <Animated.View
-              className="items-center mb-6"
               style={{
+                alignItems: "center",
+                marginBottom: 24,
                 transform: [{ scale: scaleAnim }],
               }}
             >
-              <View className="w-24 h-24 bg-white/20 rounded-full items-center justify-center mb-4">
+              <View
+                style={{
+                  width: 96,
+                  height: 96,
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                  borderRadius: 48,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 16,
+                }}
+              >
                 <Trophy size={56} color="#FFFFFF" strokeWidth={2} />
               </View>
-              <Text className="text-3xl font-bold text-white text-center mb-2">
+              <Text
+                style={{
+                  fontSize: 30,
+                  fontWeight: "bold",
+                  color: "#FFFFFF",
+                  textAlign: "center",
+                  marginBottom: 8,
+                }}
+              >
                 {isPassed ? "🎉 Parabéns! 🎉" : "Trilha Concluída!"}
               </Text>
-              <Text className="text-lg text-white/90 text-center px-4">
+              <Text
+                style={{
+                  fontSize: 18,
+                  color: "rgba(255, 255, 255, 0.9)",
+                  textAlign: "center",
+                  paddingHorizontal: 16,
+                }}
+              >
                 {isPassed
                   ? "Você concluiu a trilha com sucesso!"
                   : "Você completou todos os módulos!"}
@@ -188,26 +184,48 @@ export default function TrailCelebrationScreen() {
             </Animated.View>
 
             {/* Trail Name */}
-            <View className="bg-white/20 rounded-2xl px-5 py-4">
-              <Text className="text-sm text-white/80 mb-1 uppercase tracking-wide">
+            <View
+              style={{
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                borderRadius: 16,
+                paddingHorizontal: 20,
+                paddingVertical: 16,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: "rgba(255, 255, 255, 0.8)",
+                  marginBottom: 4,
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                }}
+              >
                 Trilha Concluída
               </Text>
-              <Text className="text-xl font-bold text-white">
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: "bold",
+                  color: "#FFFFFF",
+                }}
+              >
                 {params.trailName}
               </Text>
             </View>
           </LinearGradient>
 
           {/* Stats Section */}
-          <View className="px-6 py-8">
-            <Text className="text-xl font-bold text-gray-900 mb-6">
+          <View style={{ paddingHorizontal: 24, paddingVertical: 32 }}>
+            <Text style={{ fontSize: 20, fontWeight: "bold", color: "#111827", marginBottom: 24 }}>
               Seu Desempenho
             </Text>
 
             {/* Stats Grid */}
             <Animated.View
-              className="gap-4 mb-8"
               style={{
+                gap: 16,
+                marginBottom: 32,
                 opacity: fadeAnim,
                 transform: [
                   {
@@ -224,30 +242,61 @@ export default function TrailCelebrationScreen() {
                 return (
                   <View
                     key={index}
-                    className="bg-white rounded-2xl p-5 flex-row items-center justify-between shadow-sm border border-gray-100"
+                    style={{
+                      backgroundColor: "#FFFFFF",
+                      borderRadius: 16,
+                      padding: 20,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 2,
+                      elevation: 1,
+                      borderWidth: 1,
+                      borderColor: "#F3F4F6",
+                    }}
                   >
-                    <View className="flex-row items-center gap-4 flex-1">
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 16, flex: 1 }}>
                       <View
-                        className={`w-16 h-16 ${stat.iconBg} rounded-full items-center justify-center`}
+                        style={{
+                          width: 64,
+                          height: 64,
+                          backgroundColor: stat.iconBgColor,
+                          borderRadius: 32,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
                       >
-                        <Icon size={30} color="#FFFFFF" strokeWidth={2.5} />
+                        <Icon size={30} color={stat.iconColor} strokeWidth={2.5} />
                       </View>
-                      <View className="flex-1">
+                      <View style={{ flex: 1 }}>
                         <Text
-                          className={`text-sm ${stat.textColor} font-medium mb-1`}
+                          style={{
+                            fontSize: 14,
+                            color: stat.textColor,
+                            fontWeight: "500",
+                            marginBottom: 4,
+                          }}
                         >
                           {stat.label}
                         </Text>
-                        <Text className="text-3xl font-bold text-gray-900">
+                        <Text style={{ fontSize: 30, fontWeight: "bold", color: "#111827" }}>
                           {stat.value}
                         </Text>
                       </View>
                     </View>
                     {stat.badge && (
                       <View
-                        className={`${stat.badge.color} px-4 py-2 rounded-full`}
+                        style={{
+                          backgroundColor: stat.badge.bgColor,
+                          paddingHorizontal: 16,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                        }}
                       >
-                        <Text className="text-white text-xs font-bold">
+                        <Text style={{ color: "#FFFFFF", fontSize: 12, fontWeight: "bold" }}>
                           {stat.badge.text}
                         </Text>
                       </View>
@@ -259,17 +308,26 @@ export default function TrailCelebrationScreen() {
 
             {/* Actions */}
             <Animated.View
-              className="gap-3"
               style={{
+                gap: 12,
                 opacity: fadeAnim,
               }}
             >
               {/* Next Trail Button */}
               <TouchableOpacity
                 onPress={() => router.push("/(app)/(tabs)/trails")}
-                className="bg-primary rounded-full py-4 px-6 flex-row items-center justify-center gap-2"
+                style={{
+                  backgroundColor: "#155DFC",
+                  borderRadius: 25,
+                  paddingVertical: 16,
+                  paddingHorizontal: 24,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
               >
-                <Text className="text-white text-base font-bold">
+                <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "bold" }}>
                   Explorar Mais Trilhas
                 </Text>
                 <ChevronRight size={20} color="#FFFFFF" strokeWidth={2.5} />
@@ -278,9 +336,19 @@ export default function TrailCelebrationScreen() {
               {/* Home Button */}
               <TouchableOpacity
                 onPress={() => router.push("/(app)/(tabs)")}
-                className="bg-white border-2 border-gray-200 rounded-full py-4 px-6 flex-row items-center justify-center"
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  borderWidth: 2,
+                  borderColor: "#E5E7EB",
+                  borderRadius: 25,
+                  paddingVertical: 16,
+                  paddingHorizontal: 24,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
-                <Text className="text-gray-700 text-base font-bold">
+                <Text style={{ color: "#374151", fontSize: 16, fontWeight: "bold" }}>
                   Voltar ao Início
                 </Text>
               </TouchableOpacity>

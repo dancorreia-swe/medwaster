@@ -123,7 +123,6 @@ export default function TrailContentScreen() {
         correctAnswer: response.correctAnswer,
         explanation: response.explanation || undefined,
         score: response.score,
-        earnedPoints: response.earnedPoints,
       };
 
       setQuestionResult(normalizedResult);
@@ -154,9 +153,6 @@ export default function TrailContentScreen() {
           timeSpentMinutes: String(completionData.timeSpentMinutes || 0),
           completedContent: String(completedIds.length),
           totalContent: String(trail.content?.length || 0),
-          earnedPoints: completionData.earnedPoints
-            ? String(completionData.earnedPoints)
-            : undefined,
         },
       } as any);
     } else {
@@ -254,9 +250,6 @@ export default function TrailContentScreen() {
           timeSpentMinutes: String(completionData.timeSpentMinutes || 0),
           completedContent: String(completedIds.length),
           totalContent: String(trail.content?.length || 0),
-          earnedPoints: completionData.earnedPoints
-            ? String(completionData.earnedPoints)
-            : undefined,
         },
       } as any);
     } else {
