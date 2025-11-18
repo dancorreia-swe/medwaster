@@ -36,6 +36,7 @@ import type {
 interface TrailBuilderPageProps {
   mode: "create" | "edit";
   trailId?: number;
+  initialTab?: string;
 }
 
 interface ContentToAdd {
@@ -45,9 +46,9 @@ interface ContentToAdd {
   position: number;
 }
 
-export function TrailBuilderPage({ mode, trailId }: TrailBuilderPageProps) {
+export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPageProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("basic");
+  const [activeTab, setActiveTab] = useState(initialTab || "basic");
   const [localTrailId, setLocalTrailId] = useState<number | undefined>(trailId);
   const [localContent, setLocalContent] = useState<TrailContent[]>([]);
 

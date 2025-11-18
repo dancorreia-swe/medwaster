@@ -19,6 +19,13 @@ import type { TrailContent, ContentType } from "../types";
 
 const ITEM_TYPE = "TRAIL_CONTENT";
 
+// Utility to strip HTML tags
+const stripHtml = (html: string) => {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || "";
+};
+
 interface TrailContentItemProps {
   content: TrailContent;
   index: number;
@@ -56,7 +63,7 @@ function TrailContentItem({
     if (content.question) {
       return {
         icon: <HelpCircle className="h-4 w-4" />,
-        title: content.question.prompt,
+        title: stripHtml(content.question.prompt),
         type: "Questão",
         difficulty: content.question.difficulty,
       };
@@ -64,7 +71,7 @@ function TrailContentItem({
     if (content.quiz) {
       return {
         icon: <BookOpen className="h-4 w-4" />,
-        title: content.quiz.title,
+        title: stripHtml(content.quiz.title),
         type: "Quiz",
         difficulty: content.quiz.difficulty,
       };
@@ -72,7 +79,7 @@ function TrailContentItem({
     if (content.article) {
       return {
         icon: <FileText className="h-4 w-4" />,
-        title: content.article.title,
+        title: stripHtml(content.article.title),
         type: "Artigo",
         difficulty: undefined,
       };

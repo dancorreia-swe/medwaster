@@ -29,6 +29,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Trail, TrailContent } from "../types";
+import { stripHtml } from "@/lib/utils";
 import {
   useArchiveTrail,
   useDeleteTrail,
@@ -63,10 +64,11 @@ export function TrailDetailPage({ trail, isLoading }: TrailDetailPageProps) {
   const difficulty = difficultyConfig[trail.difficulty];
   const status = statusConfig[trail.status];
 
-  const handleEdit = () => {
+  const handleEdit = (tab?: string) => {
     navigate({
       to: "/trails/$trailId/edit",
       params: { trailId: trail.id.toString() },
+      search: tab ? { tab } : undefined,
     });
   };
 
@@ -235,7 +237,7 @@ export function TrailDetailPage({ trail, isLoading }: TrailDetailPageProps) {
                     {contentCount} {contentCount === 1 ? "item" : "itens"} nesta trilha
                   </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleEdit}>
+                <Button variant="outline" size="sm" onClick={() => handleEdit("content")}>
                   <Edit className="mr-2 h-4 w-4" />
                   Gerenciar
                 </Button>
@@ -425,9 +427,9 @@ function ContentItem({ content, index }: { content: TrailContent; index: number 
   };
 
   const getContentTitle = () => {
-    if (content.question) return content.question.prompt;
-    if (content.quiz) return content.quiz.title;
-    if (content.article) return content.article.title;
+    if (content.question) return stripHtml(content.question.prompt);
+    if (content.quiz) return stripHtml(content.quiz.title);
+    if (content.article) return stripHtml(content.article.title);
     return "Conteúdo desconhecido";
   };
 

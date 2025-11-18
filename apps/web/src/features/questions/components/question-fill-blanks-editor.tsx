@@ -14,8 +14,7 @@ interface BlankOption {
 interface Blank {
   sequence: number;
   placeholder: string;
-  answer: string;
-  options?: BlankOption[];
+  options: BlankOption[];
 }
 
 interface QuestionFillBlanksEditorProps {
@@ -32,7 +31,16 @@ export function QuestionFillBlanksEditor({
   const addBlank = () => {
     onChange([
       ...blanks,
-      { sequence: blanks.length + 1, placeholder: "", answer: "", options: [] },
+      { 
+        sequence: blanks.length + 1, 
+        placeholder: "", 
+        options: [
+          { text: "", isCorrect: true },
+          { text: "", isCorrect: false },
+          { text: "", isCorrect: false },
+          { text: "", isCorrect: false },
+        ] 
+      },
     ]);
   };
 
@@ -60,11 +68,10 @@ export function QuestionFillBlanksEditor({
   const addOption = (blankIndex: number) => {
     const updated = [...blanks];
     const blank = updated[blankIndex];
-    const options = blank.options || [];
     
     updated[blankIndex] = {
       ...blank,
-      options: [...options, { text: "", isCorrect: false }],
+      options: [...blank.options, { text: "", isCorrect: false }],
     };
     onChange(updated);
   };
@@ -77,26 +84,25 @@ export function QuestionFillBlanksEditor({
   ) => {
     const updated = [...blanks];
     const blank = updated[blankIndex];
-    const options = [...(blank.options || [])];
+    const options = [...blank.options];
     
     options[optionIndex] = { ...options[optionIndex], [field]: value };
     
+    // If setting this option as correct, unset all others
     if (field === "isCorrect" && value === true) {
       options.forEach((opt, i) => {
         if (i !== optionIndex) opt.isCorrect = false;
       });
-      updated[blankIndex] = { ...blank, options, answer: options[optionIndex].text };
-    } else {
-      updated[blankIndex] = { ...blank, options };
     }
     
+    updated[blankIndex] = { ...blank, options };
     onChange(updated);
   };
 
   const removeOption = (blankIndex: number, optionIndex: number) => {
     const updated = [...blanks];
     const blank = updated[blankIndex];
-    const options = (blank.options || []).filter((_, i) => i !== optionIndex);
+    const options = blank.options.filter((_, i) => i !== optionIndex);
     
     updated[blankIndex] = { ...blank, options };
     onChange(updated);
@@ -107,11 +113,11 @@ export function QuestionFillBlanksEditor({
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          No enunciado acima, use etc. para marcar onde as lacunas devem
-          aparecer.
+          No enunciado acima, use placeholders para marcar onde as lacunas devem
+          aparecer:{" "}
           <code className="bg-muted px-1 py-0.5 rounded text-xs">
             {"{{1}}"}
-          </code>
+          </code>{" "}
           <code className="bg-muted px-1 py-0.5 rounded text-xs">
             {"{{2}}"}
           </code>
@@ -120,6 +126,9 @@ export function QuestionFillBlanksEditor({
             <code className="bg-muted px-1 py-0.5 rounded">{"{{1}}"}</code>{" "}
             câmaras chamadas{" "}
             <code className="bg-muted px-1 py-0.5 rounded">{"{{2}}"}</code>."
+          </span>
+          <span className="text-xs text-muted-foreground mt-2 block font-medium">
+            Cada lacuna deve ter pelo menos 2 opções de múltipla escolha.
           </span>
         </AlertDescription>
       </Alert>
@@ -167,24 +176,10 @@ export function QuestionFillBlanksEditor({
                 />
               </div>
 
-              {(!blank.options || blank.options.length === 0) ? (
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">
-                    Resposta Correta *
-                  </Label>
-                  <Input
-                    placeholder="Digite a resposta correta"
-                    value={blank.answer}
-                    onChange={(e) => updateBlank(index, "answer", e.target.value)}
-                    className="text-sm"
-                  />
-                </div>
-              ) : null}
-
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs text-muted-foreground">
-                    Opções de Múltipla Escolha {blank.options && blank.options.length > 0 ? `(${blank.options.length})` : '(opcional)'}
+                    Opções de Múltipla Escolha * (mínimo 2)
                   </Label>
                   <Button
                     type="button"
@@ -198,46 +193,45 @@ export function QuestionFillBlanksEditor({
                   </Button>
                 </div>
 
-                {blank.options && blank.options.length > 0 && (
-                  <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-                    {blank.options.map((option, optIndex) => (
-                      <div
-                        key={optIndex}
-                        className="flex items-center gap-2"
+                <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                  {blank.options.map((option, optIndex) => (
+                    <div
+                      key={optIndex}
+                      className="flex items-center gap-2"
+                    >
+                      <Badge
+                        variant={option.isCorrect ? "default" : "outline"}
+                        className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs shrink-0 cursor-pointer"
+                        onClick={() =>
+                          updateOption(index, optIndex, "isCorrect", !option.isCorrect)
+                        }
                       >
-                        <Badge
-                          variant={option.isCorrect ? "default" : "outline"}
-                          className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs shrink-0 cursor-pointer"
-                          onClick={() =>
-                            updateOption(index, optIndex, "isCorrect", !option.isCorrect)
-                          }
-                        >
-                          {String.fromCharCode(65 + optIndex)}
-                        </Badge>
-                        <Input
-                          placeholder="Digite a opção"
-                          value={option.text}
-                          onChange={(e) =>
-                            updateOption(index, optIndex, "text", e.target.value)
-                          }
-                          className="text-sm h-8"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeOption(index, optIndex)}
-                          className="h-8 w-8 shrink-0 hover:bg-destructive/10 hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Clique na letra para marcar como correta
-                    </p>
-                  </div>
-                )}
+                        {String.fromCharCode(65 + optIndex)}
+                      </Badge>
+                      <Input
+                        placeholder="Digite a opção"
+                        value={option.text}
+                        onChange={(e) =>
+                          updateOption(index, optIndex, "text", e.target.value)
+                        }
+                        className="text-sm h-8"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeOption(index, optIndex)}
+                        disabled={blank.options.length <= 2}
+                        className="h-8 w-8 shrink-0 hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Clique na letra para marcar como correta
+                  </p>
+                </div>
               </div>
             </div>
 

@@ -10,8 +10,7 @@ export interface QuestionOption {
 export interface FillBlank {
   sequence: number;
   placeholder: string;
-  answer: string;
-  options?: Array<{ text: string; isCorrect: boolean }>;
+  options: Array<{ text: string; isCorrect: boolean }>;
 }
 
 export interface MatchingPair {
@@ -101,20 +100,20 @@ function validateFillBlanks(fillBlanks: FillBlank[]): string[] {
   }
 
   fillBlanks.forEach((blank, index) => {
-    if (blank.options && blank.options.length > 0) {
-      const hasCorrect = blank.options.some((opt) => opt.isCorrect);
-      if (!hasCorrect) {
-        errors.push(VALIDATION_MESSAGES.FILL_BLANK_NO_CORRECT(index));
-      }
+    // Options are now required
+    if (!blank.options || blank.options.length < 2) {
+      errors.push(`Lacuna ${index + 1}: Adicione pelo menos 2 opções de múltipla escolha`);
+      return;
+    }
 
-      const allFilled = blank.options.every((opt) => opt.text.trim() !== "");
-      if (!allFilled) {
-        errors.push(VALIDATION_MESSAGES.FILL_BLANK_INCOMPLETE(index));
-      }
-    } else {
-      if (!blank.answer || blank.answer.trim() === "") {
-        errors.push(VALIDATION_MESSAGES.FILL_BLANK_NO_ANSWER(index));
-      }
+    const hasCorrect = blank.options.some((opt) => opt.isCorrect);
+    if (!hasCorrect) {
+      errors.push(VALIDATION_MESSAGES.FILL_BLANK_NO_CORRECT(index));
+    }
+
+    const allFilled = blank.options.every((opt) => opt.text.trim() !== "");
+    if (!allFilled) {
+      errors.push(VALIDATION_MESSAGES.FILL_BLANK_INCOMPLETE(index));
     }
   });
 

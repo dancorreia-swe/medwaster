@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Plus, BookOpen, HelpCircle, FileText, Check, Loader2 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
+import { stripHtml } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,29 +85,29 @@ export function ContentSelector({
     if (contentType === "question" && questions?.data) {
       return questions.data.map((q) => ({
         id: q.id,
-        title: q.prompt,
+        title: stripHtml(q.prompt),
         type: "question" as ContentType,
         difficulty: q.difficulty,
-        description: q.explanation || undefined,
+        description: q.explanation ? stripHtml(q.explanation) : undefined,
       }));
     }
 
     if (contentType === "quiz" && quizzes?.data) {
       return quizzes.data.map((q) => ({
         id: q.id,
-        title: q.title,
+        title: stripHtml(q.title),
         type: "quiz" as ContentType,
         difficulty: q.difficulty,
-        description: q.description || undefined,
+        description: q.description ? stripHtml(q.description) : undefined,
       }));
     }
 
     if (contentType === "article" && articles?.data?.data.articles) {
       return articles.data.data.articles.map((a: any) => ({
         id: a.id,
-        title: a.title,
+        title: stripHtml(a.title),
         type: "article" as ContentType,
-        description: a.excerpt || undefined,
+        description: a.excerpt ? stripHtml(a.excerpt) : undefined,
       }));
     }
 

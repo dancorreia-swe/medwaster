@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, ChevronDown, ChevronUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,13 +46,14 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
     name: "",
     difficulty: "basic",
     status: "draft",
-    passPercentage: 70,
-    attemptsAllowed: 3,
+    passPercentage: 100,
+    attemptsAllowed: null,
     allowSkipQuestions: false,
     showImmediateExplanations: true,
     randomizeContentOrder: false,
-    customCertificate: false,
   });
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Update form data when existing trail loads
   useEffect(() => {
@@ -73,8 +74,17 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
         coverImageUrl: trail.coverImageUrl,
         themeColor: trail.themeColor,
         estimatedTimeMinutes: trail.estimatedTimeMinutes,
-        customCertificate: trail.customCertificate,
       });
+      
+      // Show advanced section if any advanced field has non-default value
+      if (
+        trail.passPercentage !== 100 ||
+        trail.attemptsAllowed !== null ||
+        trail.timeLimitMinutes ||
+        trail.estimatedTimeMinutes
+      ) {
+        setShowAdvanced(true);
+      }
     }
   }, [mode, existingTrail]);
 
@@ -243,81 +253,6 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
             <CardTitle>Configurações</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="passPercentage">Percentual de Aprovação (%)</Label>
-                <Input
-                  id="passPercentage"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.passPercentage}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      passPercentage: parseInt(e.target.value),
-                    })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="attemptsAllowed">Tentativas Permitidas</Label>
-                <Input
-                  id="attemptsAllowed"
-                  type="number"
-                  min="1"
-                  value={formData.attemptsAllowed}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      attemptsAllowed: parseInt(e.target.value),
-                    })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="timeLimitMinutes">Tempo Limite (minutos)</Label>
-                <Input
-                  id="timeLimitMinutes"
-                  type="number"
-                  min="1"
-                  value={formData.timeLimitMinutes || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      timeLimitMinutes: e.target.value
-                        ? parseInt(e.target.value)
-                        : null,
-                    })
-                  }
-                  placeholder="Opcional"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="estimatedTimeMinutes">
-                  Tempo Estimado (minutos)
-                </Label>
-                <Input
-                  id="estimatedTimeMinutes"
-                  type="number"
-                  min="1"
-                  value={formData.estimatedTimeMinutes || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      estimatedTimeMinutes: e.target.value
-                        ? parseInt(e.target.value)
-                        : null,
-                    })
-                  }
-                  placeholder="Opcional"
-                />
-              </div>
-            </div>
-
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
@@ -373,22 +308,118 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
                   }
                 />
               </div>
+            </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="customCertificate">Certificado Personalizado</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Gerar certificado customizado ao completar
-                  </p>
+            <div className="border-t pt-4">
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full justify-between"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+              >
+                <span className="font-medium">Configurações Avançadas</span>
+                {showAdvanced ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+
+              {showAdvanced && (
+                <div className="mt-4 space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="passPercentage">
+                        Percentual de Aprovação (%)
+                      </Label>
+                      <Input
+                        id="passPercentage"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={formData.passPercentage}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            passPercentage: parseInt(e.target.value),
+                          })
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Padrão: 100%
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="attemptsAllowed">Tentativas Permitidas</Label>
+                      <Input
+                        id="attemptsAllowed"
+                        type="number"
+                        min="1"
+                        value={formData.attemptsAllowed || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            attemptsAllowed: e.target.value
+                              ? parseInt(e.target.value)
+                              : null,
+                          })
+                        }
+                        placeholder="Ilimitado"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Deixe vazio para ilimitado
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="timeLimitMinutes">Tempo Limite (minutos)</Label>
+                      <Input
+                        id="timeLimitMinutes"
+                        type="number"
+                        min="1"
+                        value={formData.timeLimitMinutes || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            timeLimitMinutes: e.target.value
+                              ? parseInt(e.target.value)
+                              : null,
+                          })
+                        }
+                        placeholder="Sem limite"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Deixe vazio para sem limite
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="estimatedTimeMinutes">
+                        Tempo Estimado (minutos)
+                      </Label>
+                      <Input
+                        id="estimatedTimeMinutes"
+                        type="number"
+                        min="1"
+                        value={formData.estimatedTimeMinutes || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            estimatedTimeMinutes: e.target.value
+                              ? parseInt(e.target.value)
+                              : null,
+                          })
+                        }
+                        placeholder="Não estimado"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Deixe vazio para não exibir estimativa
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <Switch
-                  id="customCertificate"
-                  checked={formData.customCertificate}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, customCertificate: checked })
-                  }
-                />
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
