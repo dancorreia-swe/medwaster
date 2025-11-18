@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Check, X } from "lucide-react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import type { TrueFalseQuestionProps } from "../types";
+import { HtmlText } from "@/components/HtmlText";
 
 /**
  * True/False Question Component
@@ -62,9 +63,7 @@ export function TrueFalseQuestion({
       )}
 
       {/* Question Text */}
-      <Text className="text-3xl text-gray-900 font-bold mb-12">
-        {question.prompt || question.questionText}
-      </Text>
+      <HtmlText html={question.prompt || question.questionText} />
 
       {/* Options */}
       <View className="gap-4">

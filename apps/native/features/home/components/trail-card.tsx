@@ -60,16 +60,7 @@ export function TrailCard({
 
       {/* Card Footer */}
       <View className="px-3.5 py-3">
-        {status === "new" || status === "recommended" ? (
-          <View className="flex-row items-center justify-between">
-            <Text className="text-xs text-gray-600 flex-1">
-              {status === "new" 
-                ? "Protocolos de segurança essenciais" 
-                : "Classificação e identificação"}
-            </Text>
-            <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
-          </View>
-        ) : (
+        {status === "progress" ? (
           <View>
             <View className="flex-row items-center justify-between mb-2">
               <Text className="text-xs text-gray-600">
@@ -89,6 +80,13 @@ export function TrailCard({
                 style={{ width: `${progress}%` }}
               />
             </View>
+          </View>
+        ) : (
+          <View className="flex-row items-center justify-between">
+            <Text className="text-xs text-gray-600 flex-1">
+              Comece esta trilha de aprendizado
+            </Text>
+            <ChevronRight size={16} color="#9CA3AF" strokeWidth={2} />
           </View>
         )}
       </View>

@@ -1,12 +1,13 @@
-import { useState } from "react";
-import { View, Text, TouchableOpacity, Image, ActivityIndicator } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Link2, Minus } from "lucide-react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import type { MatchingQuestionProps } from "../types";
+import { HtmlText } from "@/components/HtmlText";
 
 /**
  * Matching Pairs Question Component
- * Users tap left items, then tap right items to create matches with confirm button
+ * Users tap left items, then tap right items to create matches
  */
 export function MatchingQuestion({
   question,
@@ -35,6 +36,15 @@ export function MatchingQuestion({
     }
     return items;
   });
+
+  const allMatched = Object.keys(matches).length === sortedPairs.length;
+
+  // Notify parent of answer changes when all matches are made
+  useEffect(() => {
+    if (allMatched) {
+      onSubmit(matches);
+    }
+  }, [matches, allMatched, onSubmit]);
 
   const handleLeftItemPress = (leftId: number) => {
     if (disabled || isSubmitting) return;
@@ -84,49 +94,32 @@ export function MatchingQuestion({
     return item?.text || "";
   };
 
-  const allMatched = Object.keys(matches).length === sortedPairs.length;
-
-  const handleConfirm = () => {
-    if (!allMatched || disabled || isSubmitting) return;
-
-    onSubmit(matches);
-  };
-
   return (
     <Animated.View entering={FadeIn.duration(400)}>
+      {/* Question Image */}
+      {question.imageUrl && (
+        <Image
+          source={{ uri: question.imageUrl }}
+          className="w-full h-64 rounded-2xl mb-8"
+          resizeMode="cover"
+        />
+      )}
+
       {/* Question Text */}
-      <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm">
-        <View className="mb-3 bg-pink-50 self-start px-3 py-1 rounded-full">
-          <Text className="text-xs text-pink-700 font-bold tracking-wide">
-            RELACIONE AS COLUNAS
-          </Text>
-        </View>
-        <Text className="text-2xl text-gray-900 font-bold leading-relaxed">
-          {question.prompt || question.questionText}
+      <HtmlText html={question.prompt || question.questionText} />
+
+      <View className="mb-8 bg-blue-50 rounded-2xl p-4">
+        <Text className="text-sm text-blue-700 font-medium text-center">
+          💡 Toque em um item da esquerda, depois toque no correspondente da direita
         </Text>
-
-        {/* Question Image */}
-        {question.imageUrl && (
-          <Image
-            source={{ uri: question.imageUrl }}
-            className="w-full h-52 rounded-2xl mt-5"
-            resizeMode="cover"
-          />
-        )}
-
-        <View className="mt-4 bg-blue-50 rounded-xl p-3">
-          <Text className="text-sm text-blue-700 font-medium text-center">
-            💡 Toque em um item da esquerda, depois toque no correspondente da direita
-          </Text>
-        </View>
       </View>
 
       {/* Matching Interface */}
-      <View className="mb-4">
+      <View>
         <View className="flex-row gap-4">
           {/* Left Column */}
           <View className="flex-1">
-            <Text className="text-xs font-bold text-gray-700 mb-4 uppercase tracking-wide">
+            <Text className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">
               Coluna A
             </Text>
             {sortedPairs.map((pair, index) => {
@@ -196,7 +189,7 @@ export function MatchingQuestion({
 
           {/* Right Column */}
           <View className="flex-1">
-            <Text className="text-xs font-bold text-gray-700 mb-4 uppercase tracking-wide">
+            <Text className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">
               Coluna B
             </Text>
             {rightItems.map((item, index) => {
@@ -250,35 +243,6 @@ export function MatchingQuestion({
           </View>
         </View>
       </View>
-
-      {/* Confirm Button */}
-      {allMatched && (
-        <Animated.View entering={FadeIn.duration(300)}>
-          <TouchableOpacity
-            onPress={handleConfirm}
-            disabled={disabled || isSubmitting}
-            className={`bg-purple-600 rounded-2xl p-5 shadow-lg ${
-              disabled || isSubmitting ? "opacity-50" : ""
-            }`}
-            activeOpacity={0.8}
-          >
-            <View className="flex-row items-center justify-center">
-              {isSubmitting ? (
-                <>
-                  <ActivityIndicator color="white" className="mr-2" />
-                  <Text className="text-white text-lg font-bold">
-                    Enviando...
-                  </Text>
-                </>
-              ) : (
-                <Text className="text-white text-lg font-bold">
-                  Confirmar Resposta
-                </Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
-      )}
     </Animated.View>
   );
 }

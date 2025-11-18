@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Check, X } from "lucide-react-native";
 import { useState, useEffect } from "react";
+import { HtmlText } from "@/components/HtmlText";
 
 // Mock data - Replace with actual data from API
 const questionsData = {
@@ -81,9 +82,12 @@ export default function QuestionDetailsPage() {
         <View className="flex-1 px-6 justify-between pb-8">
           {/* Question Text */}
           <View className="flex-1 justify-center py-8">
-            <Text className="text-gray-900 text-2xl font-bold leading-relaxed text-center px-4">
-              {question.question}
-            </Text>
+            <View className="px-4">
+              <HtmlText 
+                html={question.question} 
+                baseStyle={{ fontSize: 24, fontWeight: "700", color: "#111827", lineHeight: 36, textAlign: "center" }}
+              />
+            </View>
           </View>
 
           {/* Result Explanation - Shows after answering */}

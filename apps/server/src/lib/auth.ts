@@ -29,7 +29,7 @@ export const auth = betterAuth({
   }),
   trustedOrigins: [
     process.env.CORS_ORIGIN || "",
-    "my-better-t-app://",
+    "medwaster://",
     "exp://",
   ],
   emailAndPassword: {

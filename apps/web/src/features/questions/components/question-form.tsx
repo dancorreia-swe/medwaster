@@ -43,6 +43,7 @@ import {
 import {
   QUESTION_TYPE_OPTIONS,
   DIFFICULTY_LEVEL_OPTIONS,
+  STATUS_OPTIONS,
   VALIDATION_MESSAGES,
 } from "../constants";
 import { validateQuestionForm } from "../validators";
@@ -328,6 +329,29 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
                     {DIFFICULTY_LEVEL_OPTIONS.map((level) => (
                       <SelectItem key={level.value} value={level.value}>
                         {level.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="status">
+            {(field) => (
+              <div className="space-y-2">
+                <Label>Status *</Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(v) => field.handleChange(v as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

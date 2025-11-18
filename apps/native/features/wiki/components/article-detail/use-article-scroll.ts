@@ -4,7 +4,8 @@ import { Animated, NativeSyntheticEvent, NativeScrollEvent } from "react-native"
 export function useArticleScroll(
   onReachEnd: () => void,
   canScroll: boolean,
-  setHasReachedEnd: (value: boolean) => void
+  setHasReachedEnd: (value: boolean) => void,
+  isReading: boolean = false
 ) {
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
@@ -38,21 +39,30 @@ export function useArticleScroll(
       if (Math.abs(delta) > 5 && !isAnimating.current) {
         isAnimating.current = true;
 
-        Animated.parallel([
+        // Only animate pause button if audio is actually reading
+        const animations = [
           Animated.timing(fabTranslateY, {
             toValue: isScrollingDown ? 150 : 0,
             duration: 200,
             useNativeDriver: true,
           }),
-          Animated.spring(pauseButtonScale, {
-            toValue: isScrollingDown ? 0 : 1,
-            useNativeDriver: true,
-          }),
-          Animated.spring(pauseButtonTranslateY, {
-            toValue: isScrollingDown ? 100 : 0,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
+        ];
+
+        // Only include pause button animations if currently reading
+        if (isReading) {
+          animations.push(
+            Animated.spring(pauseButtonScale, {
+              toValue: isScrollingDown ? 0 : 1,
+              useNativeDriver: true,
+            }),
+            Animated.spring(pauseButtonTranslateY, {
+              toValue: isScrollingDown ? 100 : 0,
+              useNativeDriver: true,
+            })
+          );
+        }
+
+        Animated.parallel(animations).start(() => {
           isAnimating.current = false;
         });
       }
@@ -66,6 +76,7 @@ export function useArticleScroll(
       canScroll,
       onReachEnd,
       setHasReachedEnd,
+      isReading,
     ]
   );
 

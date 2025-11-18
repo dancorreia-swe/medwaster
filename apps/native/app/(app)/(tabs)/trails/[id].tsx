@@ -23,6 +23,7 @@ import {
   useTrailContent,
   useEnrollInTrail,
 } from "@/features/trails/hooks";
+import { HtmlText } from "@/components/HtmlText";
 
 type ModuleStatus = "completed" | "current" | "locked";
 type ModuleType = "quiz" | "article" | "question";
@@ -70,11 +71,21 @@ const moduleStyles = {
   },
 };
 
+const stripHtml = (html: string): string => {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\{\{\d+\}\}/g, "_____")
+    .trim();
+};
+
 const getContentTitle = (content: any): string => {
   if (!content) return "Conteúdo";
   // Check by ID presence since contentType doesn't exist in DB
   if (content.questionId && content.question) {
-    return content.question.prompt || content.question.questionText || "Questão";
+    const questionText = content.question.prompt || content.question.questionText || "Questão";
+    return stripHtml(questionText);
   }
   if (content.quizId && content.quiz) {
     return content.quiz.title || "Quiz";
@@ -460,9 +471,10 @@ export default function JourneyDetail() {
 
           {/* Description */}
           {trail.description && (
-            <Text className="text-gray-600 text-base leading-relaxed mb-4">
-              {trail.description}
-            </Text>
+            <HtmlText 
+              html={trail.description} 
+              baseStyle={{ fontSize: 16, fontWeight: "400", color: "#4B5563", lineHeight: 24 }}
+            />
           )}
 
           {/* Metadata */}

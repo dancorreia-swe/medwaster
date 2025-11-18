@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import type { MultipleChoiceQuestionProps } from "../types";
+import { HtmlText } from "@/components/HtmlText";
 
 /**
  * Multiple Choice Question Component
@@ -63,9 +64,7 @@ export function MultipleChoiceQuestion({
       )}
 
       {/* Question Text */}
-      <Text className="text-3xl text-gray-900 font-bold mb-12">
-        {question.prompt || question.questionText}
-      </Text>
+      <HtmlText html={question.prompt || question.questionText} />
 
       {/* Options */}
       <View className="gap-4">

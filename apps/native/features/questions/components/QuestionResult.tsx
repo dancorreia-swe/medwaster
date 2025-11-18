@@ -57,15 +57,68 @@ export function QuestionResult({
           <Text className="text-sm font-semibold text-gray-700 mb-2">
             RESPOSTA CORRETA
           </Text>
-          <View className="bg-white rounded-xl p-4 border border-gray-200">
-            <Text className="text-base text-gray-900">
-              {formatCorrectAnswer(result.correctAnswer, question)}
-            </Text>
-          </View>
+          {question?.type === "matching" ? (
+            <View className="bg-white rounded-xl p-4 border border-gray-200 gap-2">
+              {formatMatchingAnswer(result.correctAnswer as Record<string, string>, question)}
+            </View>
+          ) : (
+            <View className="bg-white rounded-xl p-4 border border-gray-200">
+              <Text className="text-base text-gray-900">
+                {formatCorrectAnswer(result.correctAnswer, question)}
+              </Text>
+            </View>
+          )}
         </View>
       )}
     </View>
   );
+}
+
+/**
+ * Helper function to format matching pairs as visual components
+ */
+function formatMatchingAnswer(
+  answer: Record<string, string>,
+  question?: Question
+) {
+  if (!question?.matchingPairs) {
+    return (
+      <Text className="text-base text-gray-900">
+        {Object.entries(answer)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join(", ")}
+      </Text>
+    );
+  }
+
+  return Object.entries(answer).map(([leftId, rightId], index) => {
+    const leftPair = question.matchingPairs!.find(
+      (p) => p.id.toString() === leftId
+    );
+    const rightPair = question.matchingPairs!.find(
+      (p) => p.id.toString() === rightId
+    );
+
+    const leftText = leftPair?.leftText || leftId;
+    const rightText = rightPair?.rightText || rightId;
+
+    return (
+      <View
+        key={`${leftId}-${rightId}`}
+        className={`flex-row items-center gap-3 ${
+          index > 0 ? "mt-2" : ""
+        }`}
+      >
+        <View className="flex-1 bg-blue-50 rounded-lg p-3">
+          <Text className="text-sm text-gray-900">{leftText}</Text>
+        </View>
+        <Text className="text-gray-400 text-lg">→</Text>
+        <View className="flex-1 bg-green-50 rounded-lg p-3">
+          <Text className="text-sm text-gray-900">{rightText}</Text>
+        </View>
+      </View>
+    );
+  });
 }
 
 /**
@@ -106,7 +159,41 @@ function formatCorrectAnswer(
   }
 
   if (typeof answer === "object") {
-    // For matching or fill-in-blank answers
+    // For matching pairs - show as formatted list
+    if (question?.type === "matching" && question.matchingPairs) {
+      const entries = Object.entries(answer);
+      return entries
+        .map(([leftId, rightId]) => {
+          const pair = question.matchingPairs!.find(
+            (p) => p.id.toString() === leftId
+          );
+          const rightPair = question.matchingPairs!.find(
+            (p) => p.id.toString() === rightId
+          );
+          
+          const leftText = pair?.leftText || leftId;
+          const rightText = rightPair?.rightText || rightId;
+          
+          return `${leftText} → ${rightText}`;
+        })
+        .join("\n");
+    }
+    
+    // For fill-in-blank answers
+    if (question?.type === "fill_in_blank" && question.fillInBlanks) {
+      const entries = Object.entries(answer);
+      return entries
+        .map(([blankId, value]) => {
+          const blank = question.fillInBlanks!.find(
+            (b) => b.id.toString() === blankId
+          );
+          const placeholder = blank?.placeholder || blankId;
+          return `${placeholder}: ${value}`;
+        })
+        .join("\n");
+    }
+    
+    // Fallback for other object types
     return Object.entries(answer)
       .map(([key, value]) => `${key}: ${value}`)
       .join(", ");

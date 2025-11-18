@@ -139,7 +139,7 @@ export default function WikiArticle() {
     contentHeight,
     scrollViewHeight,
     handleScroll,
-  } = useArticleScroll(handleMarkAsReadCallback, canScroll, setHasReachedEnd);
+  } = useArticleScroll(handleMarkAsReadCallback, canScroll, setHasReachedEnd, isReading);
 
   useEffect(() => {
     if (!articleProgress) return;

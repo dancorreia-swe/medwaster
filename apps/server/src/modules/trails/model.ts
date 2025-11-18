@@ -123,10 +123,10 @@ export type AddPrerequisiteBody = typeof addPrerequisiteBody.static;
 // Submit Question Answer (within trail)
 export const submitQuestionAnswerBody = t.Object({
   answer: t.Union([
-    t.String(), // For fill-in-blank, text answers
+    t.String(), // For fill-in-blank text answers (legacy)
     t.Number(), // For single option ID
     t.Array(t.Number()), // For multiple option IDs
-    t.Object({}), // For matching pairs
+    t.Record(t.String(), t.String()), // For fill-in-blank with options: { "1": "answer", "2": "answer" }
   ]),
   timeSpentSeconds: t.Optional(t.Number({ minimum: 0 })),
 });

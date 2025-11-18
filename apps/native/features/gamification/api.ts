@@ -122,9 +122,14 @@ export async function fetchUserMissions(): Promise<MissionsOverviewResponse> {
   console.log("📱 [fetchUserMissions] Raw response:", {
     hasData: !!response?.data,
     hasError: !!response?.error,
-    data: response?.data,
-    error: response?.error,
+    dataKeys: response?.data ? Object.keys(response.data) : [],
+    success: response?.data?.success,
+    errorDetails: response?.error,
   });
+
+  if (response?.data) {
+    console.log("📱 [fetchUserMissions] Full data object:", JSON.stringify(response.data, null, 2));
+  }
 
   const result = assertSuccess<MissionsOverviewResponse>(
     response,
@@ -135,7 +140,7 @@ export async function fetchUserMissions(): Promise<MissionsOverviewResponse> {
     daily: result.daily?.length,
     weekly: result.weekly?.length,
     monthly: result.monthly?.length,
-    fullResult: result,
+    dailySample: result.daily?.[0],
   });
 
   return result;

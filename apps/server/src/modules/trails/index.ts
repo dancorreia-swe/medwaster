@@ -507,6 +507,7 @@ export const studentTrails = new Elysia({ prefix: "/trails" })
       .post(
         "/:id/questions/:questionId/submit",
         async ({ params: { id, questionId }, body, user, status }) => {
+          console.log('[Backend] Submit question body:', JSON.stringify(body, null, 2));
           const result = await ProgressService.submitQuestionAnswer(
             user!.id,
             id,

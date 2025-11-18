@@ -42,7 +42,8 @@ export interface FillBlankAnswer {
 export interface FillBlankOption {
   id: number;
   fillBlankId: number;
-  content: string;  // Database field name
+  text: string;  // Database field name - primary
+  content?: string;  // Alias for compatibility
   optionText?: string;  // Keep for backward compatibility
   isCorrect: boolean;
   sequence: number;

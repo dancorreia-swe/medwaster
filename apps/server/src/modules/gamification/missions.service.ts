@@ -103,7 +103,7 @@ export class MissionsService {
     });
 
     // Get user's active missions
-    const activeUserMissions = await db.query.userMissions.findMany({
+    let activeUserMissions = await db.query.userMissions.findMany({
       where: and(
         eq(userMissions.userId, userId),
         eq(userMissions.assignedDate, today),
@@ -122,6 +122,27 @@ export class MissionsService {
         assignedDate: m.assignedDate,
       })),
     });
+
+    // If no missions found for today, assign them now
+    if (activeUserMissions.length === 0) {
+      console.log("🎯 [getUserMissions] No missions found for today, assigning now...");
+      await this.assignMissionsToUser(userId, new Date());
+      
+      // Re-fetch after assignment
+      activeUserMissions = await db.query.userMissions.findMany({
+        where: and(
+          eq(userMissions.userId, userId),
+          eq(userMissions.assignedDate, today),
+        ),
+        with: {
+          mission: true,
+        },
+      });
+      
+      console.log("🎯 [getUserMissions] After assignment:", {
+        foundMissions: activeUserMissions.length,
+      });
+    }
 
     // Categorize by frequency
     const daily: UserMissionResponse[] = [];

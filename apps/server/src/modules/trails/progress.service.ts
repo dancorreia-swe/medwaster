@@ -291,7 +291,11 @@ export abstract class ProgressService {
         question: {
           with: {
             options: true,
-            fillInBlanks: true,
+            fillInBlanks: {
+              with: {
+                options: true,
+              },
+            },
             matchingPairs: true,
           },
         },
@@ -302,7 +306,11 @@ export abstract class ProgressService {
                 question: {
                   with: {
                     options: true,
-                    fillInBlanks: true,
+                    fillInBlanks: {
+                      with: {
+                        options: true,
+                      },
+                    },
                     matchingPairs: true,
                   },
                 },
@@ -539,7 +547,11 @@ export abstract class ProgressService {
       where: eq(questions.id, questionId),
       with: {
         options: true,
-        fillInBlanks: true,
+        fillInBlanks: {
+          with: {
+            options: true,
+          },
+        },
         matchingPairs: true,
       },
     });
@@ -1256,12 +1268,46 @@ export abstract class ProgressService {
         break;
 
       case "fill_in_the_blank":
-        // Case-insensitive text comparison with any accepted answer
-        correctAnswer = question.fillInBlanks.map((blank: any) => blank.answer);
-        isCorrect = question.fillInBlanks.some((blank: any) =>
-          blank.answer.toLowerCase().trim() ===
-          (userAnswer || "").toLowerCase().trim()
-        );
+        // For fill-in-blank with options, userAnswer is an object: { blankId: selectedText }
+        // Check if all blanks have the correct option selected
+        if (typeof userAnswer === 'object' && !Array.isArray(userAnswer)) {
+          correctAnswer = question.fillInBlanks.reduce((acc: any, blank: any) => {
+            const correctOption = blank.options?.find((opt: any) => opt.isCorrect);
+            acc[blank.id.toString()] = correctOption?.text || blank.answer;
+            return acc;
+          }, {});
+
+          console.log('[Fill-Blank Grading] Debug:', {
+            userAnswer,
+            correctAnswer,
+            fillInBlanks: question.fillInBlanks.map((blank: any) => ({
+              id: blank.id,
+              options: blank.options?.map((o: any) => ({ id: o.id, text: o.text, isCorrect: o.isCorrect }))
+            }))
+          });
+
+          // Check if all blanks are answered correctly
+          isCorrect = question.fillInBlanks.every((blank: any) => {
+            const correctOption = blank.options?.find((opt: any) => opt.isCorrect);
+            const expectedAnswer = correctOption?.text || blank.answer;
+            const userBlankAnswer = userAnswer[blank.id.toString()];
+            
+            console.log(`[Fill-Blank] Checking blank ${blank.id}:`, {
+              userBlankAnswer,
+              expectedAnswer,
+              match: userBlankAnswer?.toLowerCase().trim() === expectedAnswer?.toLowerCase().trim()
+            });
+            
+            return userBlankAnswer?.toLowerCase().trim() === expectedAnswer?.toLowerCase().trim();
+          });
+        } else {
+          // Legacy: single blank text answer
+          correctAnswer = question.fillInBlanks.map((blank: any) => blank.answer);
+          isCorrect = question.fillInBlanks.some((blank: any) =>
+            blank.answer.toLowerCase().trim() ===
+            (userAnswer || "").toLowerCase().trim()
+          );
+        }
         break;
 
       case "matching":

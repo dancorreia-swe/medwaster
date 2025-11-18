@@ -93,6 +93,7 @@ export default function TrailContentScreen() {
    * Handle question answer change (store locally without submitting)
    */
   const handleQuestionAnswerChange = (answer: QuestionAnswer) => {
+    console.log('[ContentScreen] Answer changed:', answer);
     setCurrentQuestionAnswer(answer);
   };
 
@@ -608,6 +609,7 @@ export default function TrailContentScreen() {
                 onPress={() => {
                   // Trigger question submission
                   const answer = getCurrentAnswer();
+                  console.log('[ContentScreen] Verificar clicked, answer:', answer);
                   if (answer !== null) {
                     handleSubmitQuestion(answer);
                   }

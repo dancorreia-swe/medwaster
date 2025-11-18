@@ -20,6 +20,7 @@ import {
 } from "@/features/trails/hooks";
 import { useUserCertificate } from "@/features/certificates";
 import { LinearGradient } from "expo-linear-gradient";
+import { useMemo } from "react";
 
 const CATEGORY_COLORS = [
   { bg: "#EFF6FF", icon: "#155DFC" },
@@ -47,19 +48,16 @@ export default function Home() {
   const categories = recommendedCategories ?? [];
   const trails = recommendedTrails ?? [];
 
-  // Remove duplicates by trail ID (safeguard)
-  const uniqueTrails = trails.filter(
-    (trail, index, self) => index === self.findIndex((t) => t.id === trail.id),
-  );
+  const uniqueTrails = useMemo(() => {
+    return trails.filter(
+      (trail, index, self) => index === self.findIndex((t) => t.id === trail.id),
+    );
+  }, [trails]);
 
-  // Check if user has completed all trails
   const hasCompletedAllTrails = certificateData?.certificate !== null;
 
   const handleCategoryPress = (categoryId: number) => {
-    // Set the category in the store so wiki tab can read it
     setSelectedCategoriesInStore([categoryId]);
-
-    // Navigate to wiki tab
     router.push("/(tabs)/wiki");
   };
 

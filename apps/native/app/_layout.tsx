@@ -17,6 +17,7 @@ import { SessionProvider } from "@/lib/auth-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 const LIGHT_THEME: Theme = {
   ...DefaultTheme,
@@ -60,14 +61,16 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
           <QueryClientProvider client={queryClient}>
             <SessionProvider>
-              <Stack>
-                <Stack.Screen name="(app)" options={{ headerShown: false }} />
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="modal"
-                  options={{ title: "Modal", presentation: "modal" }}
-                />
-              </Stack>
+              <BottomSheetModalProvider>
+                <Stack>
+                  <Stack.Screen name="(app)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="modal"
+                    options={{ title: "Modal", presentation: "modal" }}
+                  />
+                </Stack>
+              </BottomSheetModalProvider>
             </SessionProvider>
             <Toaster
               position="top-center"

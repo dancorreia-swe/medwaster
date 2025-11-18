@@ -148,6 +148,8 @@ export async function submitTrailQuestion(
     timeSpentSeconds?: number;
   },
 ) {
+  console.log('[API] Submitting question:', { trailId, questionId, data });
+  
   const response = await client
     .trails({ id: trailId })
     .questions({ questionId })

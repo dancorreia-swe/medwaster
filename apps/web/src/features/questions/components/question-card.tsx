@@ -12,6 +12,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -31,6 +34,7 @@ import {
   AlertTriangle,
   Calendar,
   Globe,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -41,7 +45,8 @@ import {
   QUESTION_TYPE_LABELS,
 } from "../types";
 import type { QuestionListItem } from "../types";
-import { useDeleteQuestion } from "../api/questionsApi";
+import { useDeleteQuestion, useUpdateQuestion } from "../api/questionsApi";
+import { STATUS_OPTIONS } from "../constants";
 
 const statusClassName: Record<string, string> = {
   draft: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200",
@@ -53,6 +58,7 @@ const statusClassName: Record<string, string> = {
 export function QuestionCard({ question }: { question: QuestionListItem }) {
   const navigate = useNavigate();
   const deleteQuestion = useDeleteQuestion();
+  const updateQuestion = useUpdateQuestion(question.id);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -62,6 +68,16 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
 
   const handleDeleteClick = () => {
     setShowDeleteDialog(true);
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await updateQuestion.mutateAsync({ status: newStatus as any });
+      toast.success("Status atualizado com sucesso");
+    } catch (error) {
+      toast.error("Erro ao atualizar status");
+      console.error("Error updating status:", error);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -217,6 +233,33 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
               }}>
                 Editar
               </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Alterar Status
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent onClick={(e) => e.stopPropagation()}>
+                  {STATUS_OPTIONS.map((status) => (
+                    <DropdownMenuItem
+                      key={status.value}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(status.value);
+                      }}
+                      disabled={question.status === status.value}
+                    >
+                      <div className="flex items-center gap-2">
+                        {question.status === status.value && (
+                          <CheckCircle2 className="h-4 w-4" />
+                        )}
+                        <span className={question.status === status.value ? "" : "ml-6"}>
+                          {status.label}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuItem disabled>Duplicar</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
