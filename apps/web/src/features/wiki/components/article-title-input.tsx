@@ -64,13 +64,13 @@ export function ArticleTitleInput({
           </Popover>
         )}
         <div className="flex-1">
-          <input
-            type="text"
+          <textarea
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full bg-transparent text-4xl font-bold leading-1.5 outline-none placeholder:text-muted-foreground/40 focus:placeholder:text-muted-foreground/60 transition-colors py-1"
+            className="w-full resize-none bg-transparent text-4xl font-bold leading-tight outline-none placeholder:text-muted-foreground/40 focus:placeholder:text-muted-foreground/60 transition-colors py-1 [field-sizing:content] break-words"
             placeholder={placeholder}
             autoFocus
+            rows={1}
           />
           {value.length > 0 && (
             <div className="mt-1 text-xs text-muted-foreground">

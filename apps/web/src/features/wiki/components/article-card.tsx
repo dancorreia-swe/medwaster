@@ -193,18 +193,23 @@ export function ArticleCard({ article }: ArticleCardProps) {
       className="group hover:shadow-md transition-shadow gap-4 cursor-pointer"
       onClick={handleCardClick}
     >
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base line-clamp-2 flex-1 leading-snug">
+      <CardHeader className="space-y-2">
+        <div className="flex items-start gap-3 min-w-0">
+          {article.icon && (
+            <span className="text-xl shrink-0 mt-0.5">
+              {article.icon}
+            </span>
+          )}
+          <CardTitle className="text-base line-clamp-2 flex-1 leading-normal wrap-break-word">
             {displayTitle}
           </CardTitle>
-          <Badge
-            variant="outline"
-            className={`shrink-0 capitalize text-xs ${statusMeta.badgeClass}`}
-          >
-            {statusMeta.label}
-          </Badge>
         </div>
+        <Badge
+          variant="outline"
+          className={`w-fit capitalize text-xs ${statusMeta.badgeClass}`}
+        >
+          {statusMeta.label}
+        </Badge>
       </CardHeader>
 
       <CardContent className="space-y-3 text-sm text-slate-600 pt-0 pb-0">
