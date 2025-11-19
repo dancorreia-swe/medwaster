@@ -10,7 +10,11 @@ type ContainerProps = {
   edges?: ("top" | "right" | "bottom" | "left")[];
 } & Omit<SafeAreaViewProps, "edges">;
 
-export const Container = ({ children, edges = ["top"], ...props }: ContainerProps) => {
+export const Container = ({
+  children,
+  edges = ["top"],
+  ...props
+}: ContainerProps) => {
   return (
     <SafeAreaView
       className="flex-1 bg-background"

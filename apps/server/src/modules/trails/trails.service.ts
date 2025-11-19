@@ -42,6 +42,27 @@ const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
 export abstract class TrailsService {
+  private static async getBlockingDependentTrails(trailId: number) {
+    const dependents = await db.query.trailPrerequisites.findMany({
+      where: eq(trailPrerequisites.prerequisiteTrailId, trailId),
+      with: {
+        trail: {
+          columns: {
+            id: true,
+            name: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    return dependents
+      .map((dependent) => dependent.trail)
+      .filter((trail): trail is { id: number; name: string; status: string } =>
+        Boolean(trail && trail.status !== "archived"),
+      );
+  }
+
   // ===================================
   // Trail CRUD Operations
   // ===================================
@@ -233,7 +254,7 @@ export abstract class TrailsService {
       .replace(/[\u0300-\u036f]/g, "") // Remove accents
       .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric with hyphens
       .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
-    
+
     // Ensure uniqueness by checking if it exists, and append a number if needed
     let trailId = baseSlug;
     let counter = 1;
@@ -254,7 +275,7 @@ export abstract class TrailsService {
         .select({ max: sql<number>`COALESCE(MAX(${trails.unlockOrder}), 0)` })
         .from(trails)
         .then(([result]) => result?.max ?? 0);
-      
+
       unlockOrder = maxOrder + 1;
     } else {
       // Check if unlockOrder is already taken
@@ -318,10 +339,7 @@ export abstract class TrailsService {
         : null;
     }
 
-    const [trail] = await db
-      .insert(trails)
-      .values(insertValues)
-      .returning();
+    const [trail] = await db.insert(trails).values(insertValues).returning();
 
     return trail;
   }
@@ -354,12 +372,10 @@ export abstract class TrailsService {
 
     const updateData: any = {};
 
-    // Copy updates, ensuring null values stay null for integer/number fields
     for (const [key, value] of Object.entries(updates)) {
       updateData[key] = value;
     }
 
-    // Handle date conversions
     if (updates.availableFrom !== undefined) {
       updateData.availableFrom = updates.availableFrom
         ? new Date(updates.availableFrom)
@@ -371,27 +387,53 @@ export abstract class TrailsService {
         : null;
     }
 
-    // Explicitly build the update object to avoid Drizzle null handling issues
     const dbUpdate: any = { updatedAt: new Date() };
-    
+
     if (updateData.name !== undefined) dbUpdate.name = updateData.name;
-    if (updateData.description !== undefined) dbUpdate.description = updateData.description;
-    if (updateData.categoryId !== undefined) dbUpdate.categoryId = updateData.categoryId === null ? null : updateData.categoryId;
-    if (updateData.difficulty !== undefined) dbUpdate.difficulty = updateData.difficulty;
+    if (updateData.description !== undefined)
+      dbUpdate.description = updateData.description;
+    if (updateData.categoryId !== undefined)
+      dbUpdate.categoryId =
+        updateData.categoryId === null ? null : updateData.categoryId;
+    if (updateData.difficulty !== undefined)
+      dbUpdate.difficulty = updateData.difficulty;
     if (updateData.status !== undefined) dbUpdate.status = updateData.status;
-    if (updateData.unlockOrder !== undefined) dbUpdate.unlockOrder = updateData.unlockOrder === null ? null : updateData.unlockOrder;
-    if (updateData.passPercentage !== undefined) dbUpdate.passPercentage = updateData.passPercentage;
-    if (updateData.attemptsAllowed !== undefined) dbUpdate.attemptsAllowed = updateData.attemptsAllowed === null ? null : updateData.attemptsAllowed;
-    if (updateData.timeLimitMinutes !== undefined) dbUpdate.timeLimitMinutes = updateData.timeLimitMinutes === null ? null : updateData.timeLimitMinutes;
-    if (updateData.allowSkipQuestions !== undefined) dbUpdate.allowSkipQuestions = updateData.allowSkipQuestions;
-    if (updateData.showImmediateExplanations !== undefined) dbUpdate.showImmediateExplanations = updateData.showImmediateExplanations;
-    if (updateData.randomizeContentOrder !== undefined) dbUpdate.randomizeContentOrder = updateData.randomizeContentOrder;
-    if (updateData.coverImageUrl !== undefined) dbUpdate.coverImageUrl = updateData.coverImageUrl === null ? null : updateData.coverImageUrl;
-    if (updateData.themeColor !== undefined) dbUpdate.themeColor = updateData.themeColor === null ? null : updateData.themeColor;
-    if (updateData.availableFrom !== undefined) dbUpdate.availableFrom = updateData.availableFrom;
-    if (updateData.availableUntil !== undefined) dbUpdate.availableUntil = updateData.availableUntil;
-    if (updateData.estimatedTimeMinutes !== undefined) dbUpdate.estimatedTimeMinutes = updateData.estimatedTimeMinutes === null ? null : updateData.estimatedTimeMinutes;
-    if (updateData.customCertificate !== undefined) dbUpdate.customCertificate = updateData.customCertificate;
+    if (updateData.unlockOrder !== undefined)
+      dbUpdate.unlockOrder =
+        updateData.unlockOrder === null ? null : updateData.unlockOrder;
+    if (updateData.passPercentage !== undefined)
+      dbUpdate.passPercentage = updateData.passPercentage;
+    if (updateData.attemptsAllowed !== undefined)
+      dbUpdate.attemptsAllowed =
+        updateData.attemptsAllowed === null ? null : updateData.attemptsAllowed;
+    if (updateData.timeLimitMinutes !== undefined)
+      dbUpdate.timeLimitMinutes =
+        updateData.timeLimitMinutes === null
+          ? null
+          : updateData.timeLimitMinutes;
+    if (updateData.allowSkipQuestions !== undefined)
+      dbUpdate.allowSkipQuestions = updateData.allowSkipQuestions;
+    if (updateData.showImmediateExplanations !== undefined)
+      dbUpdate.showImmediateExplanations = updateData.showImmediateExplanations;
+    if (updateData.randomizeContentOrder !== undefined)
+      dbUpdate.randomizeContentOrder = updateData.randomizeContentOrder;
+    if (updateData.coverImageUrl !== undefined)
+      dbUpdate.coverImageUrl =
+        updateData.coverImageUrl === null ? null : updateData.coverImageUrl;
+    if (updateData.themeColor !== undefined)
+      dbUpdate.themeColor =
+        updateData.themeColor === null ? null : updateData.themeColor;
+    if (updateData.availableFrom !== undefined)
+      dbUpdate.availableFrom = updateData.availableFrom;
+    if (updateData.availableUntil !== undefined)
+      dbUpdate.availableUntil = updateData.availableUntil;
+    if (updateData.estimatedTimeMinutes !== undefined)
+      dbUpdate.estimatedTimeMinutes =
+        updateData.estimatedTimeMinutes === null
+          ? null
+          : updateData.estimatedTimeMinutes;
+    if (updateData.customCertificate !== undefined)
+      dbUpdate.customCertificate = updateData.customCertificate;
 
     const [updatedTrail] = await db
       .update(trails)
@@ -403,7 +445,6 @@ export abstract class TrailsService {
   }
 
   static async deleteTrail(trailId: number) {
-    // Check if trail exists
     const trail = await db.query.trails.findFirst({
       where: eq(trails.id, trailId),
     });
@@ -412,23 +453,13 @@ export abstract class TrailsService {
       throw new NotFoundError("Trail");
     }
 
-    // Check if trail has dependent trails (other trails have this as prerequisite)
-    const dependents = await db.query.trailPrerequisites.findMany({
-      where: eq(trailPrerequisites.prerequisiteTrailId, trailId),
-      with: {
-        trail: {
-          columns: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+    const blockingDependents = await this.getBlockingDependentTrails(trailId);
 
-    if (dependents.length > 0) {
-      const dependentTrails = dependents.map((d) => ({
-        id: d.trail.id,
-        name: d.trail.name,
+    if (blockingDependents.length > 0) {
+      const dependentTrails = blockingDependents.map((trail) => ({
+        id: trail.id,
+        name: trail.name,
+        status: trail.status,
       }));
       const dependentNames = dependentTrails.map((t) => t.name).join(", ");
       const error = new BusinessLogicError(
@@ -457,22 +488,13 @@ export abstract class TrailsService {
     }
 
     // Check if trail has dependent trails (other trails have this as prerequisite)
-    const dependents = await db.query.trailPrerequisites.findMany({
-      where: eq(trailPrerequisites.prerequisiteTrailId, trailId),
-      with: {
-        trail: {
-          columns: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+    const blockingDependents = await this.getBlockingDependentTrails(trailId);
 
-    if (dependents.length > 0) {
-      const dependentTrails = dependents.map((d) => ({
-        id: d.trail.id,
-        name: d.trail.name,
+    if (blockingDependents.length > 0) {
+      const dependentTrails = blockingDependents.map((trail) => ({
+        id: trail.id,
+        name: trail.name,
+        status: trail.status,
       }));
       const dependentNames = dependentTrails.map((t) => t.name).join(", ");
       const error = new BusinessLogicError(
@@ -653,7 +675,9 @@ export abstract class TrailsService {
     });
 
     if (contents.length !== contentIds.length) {
-      throw new BadRequestError("Some content items do not belong to this trail");
+      throw new BadRequestError(
+        "Some content items do not belong to this trail",
+      );
     }
 
     // Check for duplicate sequences
@@ -687,10 +711,7 @@ export abstract class TrailsService {
   // Prerequisites Management
   // ===================================
 
-  static async addPrerequisite(
-    trailId: number,
-    prerequisiteTrailId: number,
-  ) {
+  static async addPrerequisite(trailId: number, prerequisiteTrailId: number) {
     // Verify both trails exist
     const [trail, prerequisite] = await Promise.all([
       db.query.trails.findFirst({ where: eq(trails.id, trailId) }),
@@ -947,8 +968,8 @@ export abstract class TrailsService {
     // If we don't have enough recommendations, fill with popular trails
     if (recommendedTrails.length < limit) {
       const remaining = limit - recommendedTrails.length;
-      const alreadyRecommendedIds = recommendedTrails.map(t => t.id);
-      
+      const alreadyRecommendedIds = recommendedTrails.map((t) => t.id);
+
       const popularTrails = await db.query.trails.findMany({
         where: and(
           eq(trails.status, "published"),
@@ -985,15 +1006,19 @@ export abstract class TrailsService {
    * Get recommended categories based on user activity
    * Analyzes completed trails, read articles, and answered questions
    */
-  static async getRecommendedCategories(
-    userId: string,
-    limit: number = 6,
-  ) {
+  static async getRecommendedCategories(userId: string, limit: number = 6) {
     // Track category scores with recency weighting
-    const categoryScores = new Map<number, { score: number; name: string; slug: string; color: string | null }>();
+    const categoryScores = new Map<
+      number,
+      { score: number; name: string; slug: string; color: string | null }
+    >();
 
     // Helper to add score to a category
-    const addCategoryScore = (categoryId: number | null, score: number, categoryData?: { name: string; slug: string; color: string | null }) => {
+    const addCategoryScore = (
+      categoryId: number | null,
+      score: number,
+      categoryData?: { name: string; slug: string; color: string | null },
+    ) => {
       if (!categoryId) return;
 
       const existing = categoryScores.get(categoryId);
@@ -1025,15 +1050,11 @@ export abstract class TrailsService {
       if (progress.trail.category) {
         // More recent completions get higher weight
         const recencyBonus = (10 - index) * 0.5;
-        addCategoryScore(
-          progress.trail.categoryId,
-          10 + recencyBonus,
-          {
-            name: progress.trail.category.name,
-            slug: progress.trail.category.slug,
-            color: progress.trail.category.color,
-          }
-        );
+        addCategoryScore(progress.trail.categoryId, 10 + recencyBonus, {
+          name: progress.trail.category.name,
+          slug: progress.trail.category.slug,
+          color: progress.trail.category.color,
+        });
       }
     });
 
@@ -1051,29 +1072,31 @@ export abstract class TrailsService {
       .limit(20);
 
     // Get unique category IDs from articles
-    const articleCategoryIds = [...new Set(readArticles.map(a => a.categoryId).filter((id): id is number => id !== null))];
+    const articleCategoryIds = [
+      ...new Set(
+        readArticles
+          .map((a) => a.categoryId)
+          .filter((id): id is number => id !== null),
+      ),
+    ];
 
     if (articleCategoryIds.length > 0) {
       const articleCategories = await db.query.contentCategories.findMany({
         where: inArray(contentCategories.id, articleCategoryIds),
       });
 
-      const categoryMap = new Map(articleCategories.map(c => [c.id, c]));
+      const categoryMap = new Map(articleCategories.map((c) => [c.id, c]));
 
       readArticles.forEach((article, index) => {
         if (article.categoryId) {
           const category = categoryMap.get(article.categoryId);
           if (category) {
             const recencyBonus = (20 - index) * 0.2;
-            addCategoryScore(
-              article.categoryId,
-              5 + recencyBonus,
-              {
-                name: category.name,
-                slug: category.slug,
-                color: category.color,
-              }
-            );
+            addCategoryScore(article.categoryId, 5 + recencyBonus, {
+              name: category.name,
+              slug: category.slug,
+              color: category.color,
+            });
           }
         }
       });
@@ -1091,29 +1114,31 @@ export abstract class TrailsService {
       .orderBy(desc(userQuestionAttempts.createdAt))
       .limit(30);
 
-    const questionCategoryIds = [...new Set(answeredQuestions.map(q => q.categoryId).filter((id): id is number => id !== null))];
+    const questionCategoryIds = [
+      ...new Set(
+        answeredQuestions
+          .map((q) => q.categoryId)
+          .filter((id): id is number => id !== null),
+      ),
+    ];
 
     if (questionCategoryIds.length > 0) {
       const questionCategories = await db.query.contentCategories.findMany({
         where: inArray(contentCategories.id, questionCategoryIds),
       });
 
-      const categoryMap = new Map(questionCategories.map(c => [c.id, c]));
+      const categoryMap = new Map(questionCategories.map((c) => [c.id, c]));
 
       answeredQuestions.forEach((question, index) => {
         if (question.categoryId) {
           const category = categoryMap.get(question.categoryId);
           if (category) {
             const recencyBonus = (30 - index) * 0.1;
-            addCategoryScore(
-              question.categoryId,
-              3 + recencyBonus,
-              {
-                name: category.name,
-                slug: category.slug,
-                color: category.color,
-              }
-            );
+            addCategoryScore(question.categoryId, 3 + recencyBonus, {
+              name: category.name,
+              slug: category.slug,
+              color: category.color,
+            });
           }
         }
       });
@@ -1133,7 +1158,7 @@ export abstract class TrailsService {
 
     // If we don't have enough recommendations, fill with popular categories
     if (rankedCategories.length < limit) {
-      const existingIds = rankedCategories.map(c => c.id);
+      const existingIds = rankedCategories.map((c) => c.id);
       const remaining = limit - rankedCategories.length;
 
       const popularCategories = await db.query.contentCategories.findMany({
@@ -1148,13 +1173,13 @@ export abstract class TrailsService {
       });
 
       rankedCategories.push(
-        ...popularCategories.map(c => ({
+        ...popularCategories.map((c) => ({
           id: c.id,
           name: c.name,
           slug: c.slug,
           color: c.color,
           score: 0,
-        }))
+        })),
       );
     }
 

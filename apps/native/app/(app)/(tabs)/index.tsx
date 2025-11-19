@@ -144,16 +144,19 @@ export default function Home() {
 
           {/* Categories */}
           <View className="mx-5 mb-5">
-            <View className="flex-row items-center gap-2.5 mb-3.5">
+            <View className="flex-row items-center gap-2.5 mb-1">
               <Image 
                 source={require("@/assets/book.png")}
                 style={{ width: 24, height: 24 }}
                 resizeMode="contain"
               />
               <Text className="text-lg font-bold text-gray-900">
-                Categorias de interesse
+                Categorias de Interesse
               </Text>
             </View>
+            <Text className="text-sm text-gray-600 mb-3.5 ml-[34px]">
+              Temas sugeridos com base nos conteúdos que você mais explora
+            </Text>
             {isLoadingCategories ? (
               <View className="h-32 items-center justify-center">
                 <ActivityIndicator size="small" color="#155DFC" />

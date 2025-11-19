@@ -77,7 +77,6 @@ export function useUpdateTrail(options?: { silent?: boolean }) {
       trailsApi.updateTrail(id, body),
     onMutate: ({ body }) => {
       if (!silent) {
-        // Show appropriate loading message
         if (body.unlockOrder !== undefined) {
           toast.loading("Atualizando ordem...", { id: "update-trail" });
         } else {
@@ -87,7 +86,6 @@ export function useUpdateTrail(options?: { silent?: boolean }) {
     },
     onSuccess: (_, variables) => {
       if (!silent) {
-        // Show appropriate success message
         if (variables.body.unlockOrder !== undefined) {
           const order = variables.body.unlockOrder === null ? "removida" : variables.body.unlockOrder;
           toast.success(
@@ -105,9 +103,8 @@ export function useUpdateTrail(options?: { silent?: boolean }) {
     },
     onError: (error: any) => {
       console.error("Update trail error:", error);
-      // Extract meaningful error message from validation errors
       let errorMessage = "Erro ao atualizar trilha";
-      
+
       if (error?.value?.message) {
         try {
           const parsed = JSON.parse(error.value.message);
@@ -120,7 +117,7 @@ export function useUpdateTrail(options?: { silent?: boolean }) {
       } else if (error?.summary) {
         errorMessage = error.summary;
       }
-      
+
       toast.error(errorMessage, { id: "update-trail" });
     },
   });
@@ -198,7 +195,22 @@ export function useArchiveTrail() {
     },
     onError: (error: any) => {
       console.error("Archive trail error:", error);
-      toast.error(error.message || "Erro ao arquivar trilha", { id: "archive-trail" });
+      let errorMessage = "Erro ao arquivar trilha";
+
+      if (error?.message && typeof error.message === "string") {
+        errorMessage = error.message;
+      }
+
+      if (
+        error?.dependentTrails &&
+        Array.isArray(error.dependentTrails) &&
+        error.dependentTrails.length > 0
+      ) {
+        const trailNames = error.dependentTrails.map((t: any) => t.name).join(", ");
+        errorMessage = `Não é possível arquivar esta trilha. Ela é pré-requisito para: ${trailNames}`;
+      }
+
+      toast.error(errorMessage, { id: "archive-trail" });
     },
   });
 }

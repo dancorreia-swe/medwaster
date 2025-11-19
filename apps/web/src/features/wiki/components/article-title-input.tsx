@@ -50,6 +50,7 @@ export function ArticleTitleInput({
             </PopoverTrigger>
             <PopoverContent className="w-fit p-0" align="start" sideOffset={12}>
               <EmojiPicker
+                locale="pt"
                 className="h-[342px]"
                 onEmojiSelect={({ emoji }) => {
                   onIconChange?.(emoji);

@@ -30,7 +30,9 @@ export default function ProfileScreen() {
   const isLoading = isLoadingStats || isLoadingStreak;
 
   return (
-    <Container className="flex-1 bg-gray-50">
+    <Container 
+      className="flex-1"
+    >
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="px-5 pt-3.5 pb-0">

@@ -22,7 +22,6 @@ export class StreaksService {
     });
 
     if (!streak) {
-      // Create initial streak record for user
       const [newStreak] = await db
         .insert(userStreaks)
         .values({
@@ -37,15 +36,27 @@ export class StreaksService {
       streak = newStreak;
     }
 
-    // Get next milestone
-    const nextMilestone = await this.getNextMilestone(streak.currentStreak);
+    const normalizedCurrentStreak = Math.max(streak.currentStreak, 1);
+    const normalizedLongestStreak = Math.max(
+      streak.longestStreak,
+      normalizedCurrentStreak,
+    );
+    const normalizedStreak = {
+      ...streak,
+      currentStreak: normalizedCurrentStreak,
+      longestStreak: normalizedLongestStreak,
+    };
+
+    const nextMilestone = await this.getNextMilestone(
+      normalizedStreak.currentStreak,
+    );
     const daysUntilNextMilestone = nextMilestone
-      ? nextMilestone.days - streak.currentStreak
+      ? nextMilestone.days - normalizedStreak.currentStreak
       : null;
 
     return {
-      ...streak,
-      canUseFreeze: streak.freezesAvailable > 0,
+      ...normalizedStreak,
+      canUseFreeze: normalizedStreak.freezesAvailable > 0,
       daysUntilNextMilestone,
       nextMilestone,
     };

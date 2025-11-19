@@ -325,7 +325,9 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
   };
 
   const handleFinish = () => {
-    toast.success("Trilha salva com sucesso!");
+    // All changes are auto-saved in each tab via their respective handlers
+    // This button just confirms completion and navigates back
+    toast.success("Trilha finalizada com sucesso!");
     navigate({ to: "/trails" });
   };
 

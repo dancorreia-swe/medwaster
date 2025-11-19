@@ -20,9 +20,11 @@ function formatDateLabel(date?: string | null) {
 }
 
 export function StreakInfoCard({ streak }: StreakInfoCardProps) {
+  const currentStreak = Math.max(streak.currentStreak, 1);
+  const longestStreak = Math.max(streak.longestStreak, currentStreak);
   const nextMilestoneDays = streak.nextMilestone?.days ?? null;
   const milestoneProgress = nextMilestoneDays
-    ? Math.min(streak.currentStreak / nextMilestoneDays, 1)
+    ? Math.min(currentStreak / nextMilestoneDays, 1)
     : 0;
   const streakIllustration = require("../../../assets/streak.png");
 
@@ -35,7 +37,7 @@ export function StreakInfoCard({ streak }: StreakInfoCardProps) {
             Sequência Atual
           </Text>
           <Text className="text-4xl font-bold text-gray-900 mt-1">
-            {streak.currentStreak}
+            {currentStreak}
           </Text>
           <Text className="text-sm text-gray-700">dias consecutivos</Text>
         </View>
@@ -60,7 +62,7 @@ export function StreakInfoCard({ streak }: StreakInfoCardProps) {
             </Text>
           </View>
           <Text className="text-4xl font-bold text-purple-900">
-            {streak.longestStreak}
+            {longestStreak}
           </Text>
           <Text className="text-xs text-purple-700 mt-2">
             dias no seu melhor período

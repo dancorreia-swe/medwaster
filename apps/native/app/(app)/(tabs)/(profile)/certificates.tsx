@@ -1,7 +1,27 @@
-import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity, Share, Linking, Alert, Image } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  ActivityIndicator,
+  TouchableOpacity,
+  Share,
+  Linking,
+  Alert,
+  Image,
+} from "react-native";
 import { Container } from "@/components/container";
-import { useUserCertificate, getCertificateDownloadUrl } from "@/features/certificates/api";
-import { Award, CheckCircle2, Clock, ChevronLeft, Share2, Download } from "lucide-react-native";
+import {
+  useUserCertificate,
+  getCertificateDownloadUrl,
+} from "@/features/certificates/api";
+import {
+  Award,
+  CheckCircle2,
+  Clock,
+  ChevronLeft,
+  Share2,
+  Download,
+} from "lucide-react-native";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -34,14 +54,14 @@ export default function CertificatesScreen() {
 
   const handleDownloadPDF = async () => {
     if (!certificate || !certificate.certificateUrl) return;
-    
+
     try {
       setDownloading(true);
-      
+
       // Open PDF in browser (will trigger download)
       const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
       const pdfUrl = `${serverUrl}${certificate.certificateUrl}`;
-      
+
       const canOpen = await Linking.canOpenURL(pdfUrl);
       if (canOpen) {
         await Linking.openURL(pdfUrl);
@@ -58,7 +78,7 @@ export default function CertificatesScreen() {
 
   const handleShare = async () => {
     if (!certificate) return;
-    
+
     try {
       const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
       const rawUrl = certificate.certificateUrl;
@@ -89,7 +109,10 @@ export default function CertificatesScreen() {
 
   if (isLoading) {
     return (
-      <Container className="flex-1 bg-gray-50">
+      <Container
+        className="flex-1"
+        style={{ backgroundColor: "white" }}
+      >
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#155DFC" />
         </View>
@@ -100,7 +123,10 @@ export default function CertificatesScreen() {
   // No certificate yet
   if (!certificate) {
     return (
-      <Container className="flex-1 bg-gray-50">
+      <Container
+        className="flex-1"
+        style={{ backgroundColor: "white" }}
+      >
         {/* Header with Back Button */}
         <View className="px-5 pt-4 pb-4 bg-white flex-row items-center border-b border-gray-100">
           <TouchableOpacity
@@ -109,25 +135,23 @@ export default function CertificatesScreen() {
           >
             <ChevronLeft size={24} color="#364153" strokeWidth={2} />
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-gray-900 ml-3">Certificado</Text>
+          <Text className="text-xl font-bold text-gray-900 ml-3">
+            Certificado
+          </Text>
         </View>
 
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="px-6 py-8">
-            <Text className="text-lg text-gray-600 mb-8">
-              Complete todas as trilhas para desbloquear
-            </Text>
-
             {/* Empty State */}
             <View className="bg-white rounded-3xl p-12 items-center">
               <View className="w-24 h-24 bg-gray-100 rounded-full items-center justify-center mb-6">
                 <Award size={48} color="#9CA3AF" strokeWidth={2} />
               </View>
-              
+
               <Text className="text-xl font-semibold text-gray-900 mb-3 text-center">
                 Certificado Bloqueado
               </Text>
-              
+
               <Text className="text-base text-gray-600 text-center">
                 Complete todas as trilhas para desbloquear seu certificado
               </Text>
@@ -149,9 +173,11 @@ export default function CertificatesScreen() {
       badgeBg: "border-yellow-200 bg-yellow-50",
       badgeText: "text-yellow-900",
       heroTitle: "Estamos revisando seu certificado",
-      heroDescription: "Nossa equipe confere suas trilhas e notas. Isso pode levar até 2 dias úteis.",
+      heroDescription:
+        "Nossa equipe confere suas trilhas e notas. Isso pode levar até 2 dias úteis.",
       heroBackground: "#F59E0B",
-      description: "Assim que tudo estiver validado enviaremos uma notificação e você poderá baixar o documento.",
+      description:
+        "Assim que tudo estiver validado enviaremos uma notificação e você poderá baixar o documento.",
     },
     approved: {
       badgeLabel: "Certificado liberado",
@@ -160,21 +186,25 @@ export default function CertificatesScreen() {
       heroTitle: "Parabéns! Seu certificado foi aprovado",
       heroDescription: "Faça o download em PDF e compartilhe com seu time.",
       heroBackground: "#155DFC",
-      description: "Você já pode baixar o documento oficialmente reconhecido e divulgar suas conquistas.",
+      description:
+        "Você já pode baixar o documento oficialmente reconhecido e divulgar suas conquistas.",
     },
     rejected: {
       badgeLabel: "Ajustes necessários",
       badgeBg: "border-red-200 bg-red-50",
       badgeText: "text-red-900",
       heroTitle: "Precisamos de algumas correções",
-      heroDescription: "Revise o feedback e envie novamente para nova avaliação.",
+      heroDescription:
+        "Revise o feedback e envie novamente para nova avaliação.",
       heroBackground: "#DC2626",
-      description: "Se tiver dúvidas sobre o que precisa ser corrigido, consulte o motivo indicado abaixo.",
+      description:
+        "Se tiver dúvidas sobre o que precisa ser corrigido, consulte o motivo indicado abaixo.",
     },
   } as const;
 
   const currentStatus =
-    statusContent[certificate.status as keyof typeof statusContent] ?? statusContent.pending;
+    statusContent[certificate.status as keyof typeof statusContent] ??
+    statusContent.pending;
 
   return (
     <Container className="flex-1 bg-gray-50">
@@ -186,7 +216,9 @@ export default function CertificatesScreen() {
         >
           <ChevronLeft size={24} color="#364153" strokeWidth={2} />
         </TouchableOpacity>
-        <Text className="text-xl font-bold text-gray-900 ml-3">Certificado</Text>
+        <Text className="text-xl font-bold text-gray-900 ml-3">
+          Certificado
+        </Text>
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -195,7 +227,9 @@ export default function CertificatesScreen() {
             <View
               className={`self-start rounded-full px-4 py-1 border ${currentStatus.badgeBg}`}
             >
-              <Text className={`text-xs font-semibold uppercase tracking-wider ${currentStatus.badgeText}`}>
+              <Text
+                className={`text-xs font-semibold uppercase tracking-wider ${currentStatus.badgeText}`}
+              >
                 {currentStatus.badgeLabel}
               </Text>
             </View>
@@ -241,7 +275,9 @@ export default function CertificatesScreen() {
               <Text className="text-base font-semibold text-red-900 mb-2">
                 Motivo da rejeição
               </Text>
-              <Text className="text-base text-red-700">{certificate.reviewNotes}</Text>
+              <Text className="text-base text-red-700">
+                {certificate.reviewNotes}
+              </Text>
             </View>
           )}
 
@@ -281,7 +317,8 @@ export default function CertificatesScreen() {
 
             {/* Achievement */}
             <Text className="text-base text-gray-700 mb-10 leading-relaxed">
-              concluiu com sucesso todas as trilhas de aprendizado da plataforma.
+              concluiu com sucesso todas as trilhas de aprendizado da
+              plataforma.
             </Text>
 
             {/* Stats */}
@@ -316,7 +353,9 @@ export default function CertificatesScreen() {
 
             {/* Verification Code */}
             <View className="bg-gray-50 rounded-2xl p-5">
-              <Text className="text-sm text-gray-600 mb-2">Código de Verificação</Text>
+              <Text className="text-sm text-gray-600 mb-2">
+                Código de Verificação
+              </Text>
               <Text className="text-base font-mono font-semibold text-gray-900">
                 {certificate.verificationCode}
               </Text>

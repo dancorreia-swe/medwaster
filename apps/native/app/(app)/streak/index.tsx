@@ -28,7 +28,7 @@ export default function StreakScreen() {
   const isLoading = streakLoading || milestonesLoading;
 
   return (
-    <Container className="flex-1 bg-gray-50">
+    <Container className="flex-1 ">
       {/* Header */}
       <View className="px-5 pt-4 pb-3 bg-white flex-row items-center border-b border-gray-100">
         <TouchableOpacity
