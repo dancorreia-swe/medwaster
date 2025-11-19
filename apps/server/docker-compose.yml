@@ -34,9 +34,26 @@ services:
       - medwaster_minio_data:/data
     restart: unless-stopped
 
+  redis:
+    image: redis:latest
+    container_name: medwaster-redis
+    networks:
+      - medwaster-network
+    ports:
+      - "6379:6379"
+    volumes:
+      - medwaster_redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   medwaster_postgres_data:
   medwaster_minio_data:
+  medwaster_redis_data:
 
 networks:
   medwaster-network:
