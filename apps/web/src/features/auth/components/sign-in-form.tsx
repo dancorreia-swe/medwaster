@@ -65,12 +65,12 @@ export function SignInForm({}: { onSwitchToSignUp?: () => void }) {
   }
 
   return (
-    <Card className="w-full max-w-md border-slate-200 bg-white/95 shadow-md">
+    <Card className="w-full max-w-md border border-border/80 bg-card/95 text-card-foreground shadow-lg shadow-black/5 backdrop-blur dark:border-border/60 dark:bg-card/80 dark:shadow-black/40">
       <CardHeader>
-        <CardTitle className="text-2xl font-semibold text-slate-900">
+        <CardTitle className="text-2xl font-semibold text-foreground">
           Bem-vindo de volta
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-muted-foreground">
           Entre para acessar o painel do MedWaster.
         </CardDescription>
       </CardHeader>
@@ -87,10 +87,7 @@ export function SignInForm({}: { onSwitchToSignUp?: () => void }) {
           <form.Field name="email">
             {(field) => (
               <div className="flex flex-col gap-2">
-                <Label
-                  htmlFor={field.name}
-                  className="text-sm font-medium text-slate-900"
-                >
+                <Label htmlFor={field.name} className="text-sm font-semibold text-foreground">
                   E-mail
                 </Label>
                 <Input
@@ -114,10 +111,7 @@ export function SignInForm({}: { onSwitchToSignUp?: () => void }) {
           <form.Field name="password">
             {(field) => (
               <div className="flex flex-col gap-2">
-                <Label
-                  htmlFor={field.name}
-                  className="text-sm font-medium text-slate-900"
-                >
+                <Label htmlFor={field.name} className="text-sm font-semibold text-foreground">
                   Senha
                 </Label>
                 <PasswordInput
