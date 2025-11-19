@@ -112,13 +112,23 @@ export abstract class QuestionsService {
 
       if (fillInBlanks && fillInBlanks.length > 0) {
         for (const blank of fillInBlanks) {
-          const { options: blankOptions, ...blankData } = blank;
+          const { options: blankOptions, answer, ...blankData } = blank;
+
+          const resolvedAnswer =
+            answer ?? blankOptions?.find((option) => option.isCorrect)?.text;
+
+          if (!resolvedAnswer) {
+            throw new Error(
+              `Fill-in-the-blank #${blank.sequence} is missing a correct answer`,
+            );
+          }
 
           const [createdBlank] = await tx
             .insert(questionFillBlankAnswers)
             .values({
               questionId: question.id,
               ...blankData,
+              answer: resolvedAnswer,
             })
             .returning();
 
@@ -210,13 +220,23 @@ export abstract class QuestionsService {
 
         if (fillInBlanks.length > 0) {
           for (const blank of fillInBlanks) {
-            const { options: blankOptions, ...blankData } = blank;
+            const { options: blankOptions, answer, ...blankData } = blank;
+
+            const resolvedAnswer =
+              answer ?? blankOptions?.find((option) => option.isCorrect)?.text;
+
+            if (!resolvedAnswer) {
+              throw new Error(
+                `Fill-in-the-blank #${blank.sequence} is missing a correct answer`,
+              );
+            }
 
             const [createdBlank] = await tx
               .insert(questionFillBlankAnswers)
               .values({
                 questionId,
                 ...blankData,
+                answer: resolvedAnswer,
               })
               .returning();
 

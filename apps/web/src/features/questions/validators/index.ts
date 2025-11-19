@@ -10,6 +10,7 @@ export interface QuestionOption {
 export interface FillBlank {
   sequence: number;
   placeholder: string;
+  answer?: string;
   options: Array<{ text: string; isCorrect: boolean }>;
 }
 

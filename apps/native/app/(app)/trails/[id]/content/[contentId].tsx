@@ -31,6 +31,7 @@ import type {
   QuestionResult as QuestionResultType,
 } from "@/features/questions/types";
 import type { QuizResults as QuizResultsType } from "@/features/quizzes/types";
+import { normalizeMatchingAnswer } from "@/features/questions/utils";
 
 export default function TrailContentScreen() {
   const params = useLocalSearchParams<{ id: string; contentId: string }>();
@@ -104,11 +105,21 @@ export default function TrailContentScreen() {
     if (!contentItem?.question) return;
 
     try {
+      const question = contentItem.question;
+      let formattedAnswer: QuestionAnswer = answer;
+
+      if (question.type === "matching") {
+        formattedAnswer = normalizeMatchingAnswer(
+          answer as Record<string, string>,
+          question.matchingPairs,
+        );
+      }
+
       const response = await submitQuestionMutation.mutateAsync({
         trailId,
         questionId: contentItem.question.id,
         data: {
-          answer: answer as any,
+          answer: formattedAnswer as any,
           timeSpentSeconds: 0, // TODO: Track actual time
         },
       });
@@ -124,6 +135,7 @@ export default function TrailContentScreen() {
         correctAnswer: response.correctAnswer,
         explanation: response.explanation || undefined,
         score: response.score,
+        userAnswer: formattedAnswer,
       };
 
       setQuestionResult(normalizedResult);

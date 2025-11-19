@@ -19,7 +19,7 @@ type QuestionCreateBody = {
   fillInBlanks?: Array<{
     sequence: number;
     placeholder?: string;
-    answer: string;
+    answer?: string;
     options?: Array<{
       text: string;
       isCorrect: boolean;
@@ -50,7 +50,7 @@ type QuestionUpdateBody = {
   fillInBlanks?: Array<{
     sequence: number;
     placeholder?: string;
-    answer: string;
+    answer?: string;
     options?: Array<{
       text: string;
       isCorrect: boolean;

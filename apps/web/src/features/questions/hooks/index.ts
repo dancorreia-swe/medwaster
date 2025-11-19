@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { QuestionType } from "../types";
 import {
   DEFAULT_MULTIPLE_CHOICE_OPTIONS,
@@ -18,6 +18,10 @@ export function useQuestionFormState(initialType: QuestionType = "multiple_choic
   const [fillBlanks, setFillBlanks] = useState<FillBlank[]>([]);
   const [matchingPairs, setMatchingPairs] = useState<MatchingPair[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  useEffect(() => {
+    setQuestionType(initialType);
+  }, [initialType]);
 
   const handleTypeChange = (newType: QuestionType) => {
     setQuestionType(newType);

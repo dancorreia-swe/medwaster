@@ -3,6 +3,8 @@ import { CheckCircle2, XCircle, ChevronLeft } from "lucide-react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import type { QuizResults } from "../types";
 import type { Question } from "../../questions/types";
+import { MatchingPairsList } from "../../questions/components/MatchingPairsList";
+import { getMatchingPairsForDisplay } from "../../questions/utils";
 
 /**
  * Quiz Review Component
@@ -60,31 +62,13 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
 
     if (questionType === "matching") {
       const matches = answer.matchingAnswers || {};
+      const pairs = getMatchingPairsForDisplay(matches, question.matchingPairs);
       return (
-        <View className="gap-3">
-          {Object.entries(matches).map(([leftId, rightId], idx) => (
-            <View
-              key={`${leftId}-${rightId}-${idx}`}
-              className="flex-row gap-2 items-stretch"
-            >
-              <View className="flex-1 bg-white border border-blue-200 rounded-lg p-3">
-                <Text className="text-[11px] font-semibold text-gray-500 mb-1">
-                  Esquerda
-                </Text>
-                <Text className="text-sm text-gray-900">{leftId}</Text>
-              </View>
-              <View className="w-10 items-center justify-center">
-                <View className="h-full w-px bg-gray-200" />
-              </View>
-              <View className="flex-1 bg-white border border-blue-200 rounded-lg p-3">
-                <Text className="text-[11px] font-semibold text-gray-500 mb-1">
-                  Direita
-                </Text>
-                <Text className="text-sm text-gray-900">{rightId}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+        <MatchingPairsList
+          pairs={pairs}
+          tone="info"
+          emptyLabel="Nenhuma correspondência enviada"
+        />
       );
     }
 
@@ -142,31 +126,16 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
 
     if (questionType === "matching") {
       const correctMatches = correctAnswerData || {};
+      const pairs = getMatchingPairsForDisplay(
+        correctMatches,
+        question.matchingPairs,
+      );
       return (
-        <View className="gap-3">
-          {Object.entries(correctMatches).map(([leftId, rightId], idx) => (
-            <View
-              key={`${leftId}-${rightId}-${idx}`}
-              className="flex-row gap-2 items-stretch"
-            >
-              <View className="flex-1 bg-white border border-green-200 rounded-lg p-3">
-                <Text className="text-[11px] font-semibold text-gray-500 mb-1">
-                  Esquerda
-                </Text>
-                <Text className="text-sm text-gray-900">{leftId}</Text>
-              </View>
-              <View className="w-10 items-center justify-center">
-                <View className="h-full w-px bg-gray-200" />
-              </View>
-              <View className="flex-1 bg-white border border-green-200 rounded-lg p-3">
-                <Text className="text-[11px] font-semibold text-gray-500 mb-1">
-                  Direita
-                </Text>
-                <Text className="text-sm text-gray-900">{rightId}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+        <MatchingPairsList
+          pairs={pairs}
+          tone="success"
+          emptyLabel="Resposta correta não disponível"
+        />
       );
     }
 

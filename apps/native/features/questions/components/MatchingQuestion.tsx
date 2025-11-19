@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Link2, Minus } from "lucide-react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import type { MatchingQuestionProps } from "../types";
 import { HtmlText } from "@/components/HtmlText";
+import { normalizeMatchingAnswer } from "../utils";
 
 /**
  * Matching Pairs Question Component
@@ -38,13 +39,25 @@ export function MatchingQuestion({
   });
 
   const allMatched = Object.keys(matches).length === sortedPairs.length;
+  const lastSubmittedRef = useRef<string>("");
 
   // Notify parent of answer changes when all matches are made
   useEffect(() => {
-    if (allMatched) {
-      onSubmit(matches);
+    if (!allMatched) {
+      lastSubmittedRef.current = "";
+      return;
     }
-  }, [matches, allMatched, onSubmit]);
+
+    const normalized = normalizeMatchingAnswer(matches, question.matchingPairs);
+    const normalizedKey = JSON.stringify(normalized);
+
+    if (lastSubmittedRef.current === normalizedKey) {
+      return;
+    }
+
+    lastSubmittedRef.current = normalizedKey;
+    onSubmit(normalized);
+  }, [matches, allMatched, onSubmit, question.matchingPairs]);
 
   const handleLeftItemPress = (leftId: number) => {
     if (disabled || isSubmitting) return;

@@ -8,3 +8,4 @@ export { FillInBlankQuestion } from "./FillInBlankQuestion";
 export { MatchingQuestion } from "./MatchingQuestion";
 export { QuestionResult } from "./QuestionResult";
 export { QuestionRenderer } from "./QuestionRenderer";
+export { MatchingPairsList } from "./MatchingPairsList";

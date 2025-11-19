@@ -9,7 +9,7 @@ const questionOptionSchema = t.Object({
 const fillBlankAnswerSchema = t.Object({
   sequence: t.Number({ minimum: 0 }),
   placeholder: t.Optional(t.String()),
-  answer: t.String({ minLength: 1 }),
+  answer: t.Optional(t.String({ minLength: 1 })),
   options: t.Optional(
     t.Array(
       t.Object({

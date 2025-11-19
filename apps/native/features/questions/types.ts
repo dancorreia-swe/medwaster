@@ -121,6 +121,7 @@ export interface QuestionResult {
   explanation?: string;
   score?: number;
   earnedPoints?: number;
+  userAnswer?: QuestionAnswer;
 }
 
 // ============================================================================

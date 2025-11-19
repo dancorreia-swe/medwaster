@@ -17,6 +17,7 @@ import type { QuizAttemptProps, QuizAttemptProgress } from "../types";
 import type { QuestionAnswer } from "../../questions/types";
 import { QuestionRenderer } from "../../questions/components";
 import { QuizTimer } from "./QuizTimer";
+import { normalizeMatchingAnswer } from "@/features/questions/utils";
 
 type FeedbackState = "none" | "correct" | "incorrect";
 
@@ -115,17 +116,14 @@ export function QuizAttempt({
 
     // Matching
     if (questionType === "matching") {
-      const userMatches = answer as Record<string, string>;
+      const normalizedMatches = normalizeMatchingAnswer(
+        answer as Record<string, string>,
+        currentQuestion.question.matchingPairs,
+      );
       return (
-        currentQuestion.question.matchingPairs?.every((pair) => {
-          // Accept either ID keys or leftText keys; map to rightText
-          const userRight =
-            userMatches[pair.id.toString()] ??
-            userMatches[pair.leftText] ??
-            userMatches[pair.leftText.trim()] ??
-            userMatches[pair.leftText.toLowerCase()];
-          return userRight === pair.rightText;
-        }) || false
+        currentQuestion.question.matchingPairs?.every(
+          (pair) => normalizedMatches[pair.leftText] === pair.rightText,
+        ) ?? false
       );
     }
 
@@ -187,20 +185,10 @@ export function QuizAttempt({
         }
 
         if (questionType === "matching") {
-          // Normalize to backend format: leftText -> rightText
-          const pairs = quizQuestion.question.matchingPairs || [];
-          const userMatches = (answer || {}) as Record<string, string>;
-          const normalized: Record<string, string> = {};
-          pairs.forEach((pair) => {
-            const userRight =
-              userMatches[pair.id.toString()] ??
-              userMatches[pair.leftText] ??
-              userMatches[pair.leftText.trim()] ??
-              userMatches[pair.leftText.toLowerCase()];
-            if (userRight) {
-              normalized[pair.leftText] = userRight;
-            }
-          });
+          const normalized = normalizeMatchingAnswer(
+            answer as Record<string, string>,
+            quizQuestion.question.matchingPairs,
+          );
 
           return {
             quizQuestionId: quizQuestion.id,

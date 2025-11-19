@@ -184,7 +184,16 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
         setOptions(existingQuestion.options as any);
       }
       if (existingQuestion.fillInBlanks) {
-        setFillBlanks(existingQuestion.fillInBlanks as any);
+        const normalizedBlanks = (existingQuestion.fillInBlanks as any).map((blank: any, index: number) => ({
+          sequence: blank.sequence ?? index + 1,
+          placeholder: blank.placeholder || "",
+          answer: blank.answer,
+          options: (blank.options ?? []).map((option: any) => ({
+            text: option.text,
+            isCorrect: option.isCorrect,
+          })),
+        }));
+        setFillBlanks(normalizedBlanks as any);
       }
       if (existingQuestion.matchingPairs) {
         setMatchingPairs(existingQuestion.matchingPairs as any);

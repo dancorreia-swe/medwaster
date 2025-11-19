@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { CheckCircle2, XCircle, Sparkles } from "lucide-react-native";
 import type { QuestionResultProps, Question } from "../types";
+import { MatchingPairsList } from "./MatchingPairsList";
+import { getMatchingPairsForDisplay } from "../utils";
 
 /**
  * Question Result Component
@@ -42,7 +44,11 @@ export function QuestionResult({ result, question }: QuestionResultProps) {
       {/* Status chips */}
       <View className="flex-row items-center flex-wrap gap-2 mb-5">
         {typeof result.score === "number" && (
-          <Pill label={`Pontuação ${result.score}%`} color="#2563EB" icon={Sparkles} />
+          <Pill
+            label={`Pontuação ${result.score}%`}
+            color="#2563EB"
+            icon={Sparkles}
+          />
         )}
         {typeof result.earnedPoints === "number" && result.earnedPoints > 0 && (
           <Pill label={`+${result.earnedPoints} pts`} color="#2563EB" />
@@ -78,7 +84,7 @@ export function QuestionResult({ result, question }: QuestionResultProps) {
             RESPOSTA CORRETA
           </Text>
           {question?.type === "matching" ? (
-            <View className="bg-gray-50 rounded-xl p-4 border border-gray-200 gap-2">
+            <View className="bg-gray-50 rounded-xl p-4 border border-gray-200">
               {formatMatchingAnswer(
                 result.correctAnswer as Record<string, string>,
                 question,
@@ -88,7 +94,7 @@ export function QuestionResult({ result, question }: QuestionResultProps) {
             <View className="bg-gray-50 rounded-xl p-4 border border-gray-200 gap-3">
               {formatFillInBlankAnswer(
                 result.correctAnswer as Record<string, string>,
-                result.userAnswer as Record<string, string>,
+                (result.userAnswer as Record<string, string>) || {},
                 question,
               )}
             </View>
@@ -196,7 +202,9 @@ function formatMatchingAnswer(
   answer: Record<string, string>,
   question?: Question,
 ) {
-  if (!question?.matchingPairs) {
+  const pairs = getMatchingPairsForDisplay(answer, question?.matchingPairs);
+
+  if (!pairs.length) {
     return (
       <Text className="text-base text-gray-900">
         {Object.entries(answer)
@@ -206,35 +214,7 @@ function formatMatchingAnswer(
     );
   }
 
-  return Object.entries(answer).map(([leftId, rightId], index) => {
-    const leftPair = question.matchingPairs!.find(
-      (p) => p.id.toString() === leftId,
-    );
-    const rightPair = question.matchingPairs!.find(
-      (p) => p.id.toString() === rightId,
-    );
-
-    const leftText = leftPair?.leftText || leftId;
-    const rightText = rightPair?.rightText || rightId;
-
-    return (
-      <View key={`${leftId}-${rightId}`} className={index > 0 ? "mt-3" : ""}>
-        <View className="flex-row gap-2 items-stretch">
-          <View className="flex-1 bg-white border border-gray-200 rounded-lg p-3">
-            <Text className="text-xs font-semibold text-gray-500 mb-1">Esquerda</Text>
-            <Text className="text-sm text-gray-900">{leftText}</Text>
-          </View>
-          <View className="w-10 items-center justify-center">
-            <View className="h-full w-px bg-gray-200" />
-          </View>
-          <View className="flex-1 bg-white border border-gray-200 rounded-lg p-3">
-            <Text className="text-xs font-semibold text-gray-500 mb-1">Direita</Text>
-            <Text className="text-sm text-gray-900">{rightText}</Text>
-          </View>
-        </View>
-      </View>
-    );
-  });
+  return <MatchingPairsList pairs={pairs} tone="success" />;
 }
 
 /**

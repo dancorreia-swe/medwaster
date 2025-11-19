@@ -14,6 +14,7 @@ interface BlankOption {
 interface Blank {
   sequence: number;
   placeholder: string;
+  answer?: string;
   options: BlankOption[];
 }
 
@@ -31,9 +32,9 @@ export function QuestionFillBlanksEditor({
   const addBlank = () => {
     onChange([
       ...blanks,
-      { 
-        sequence: blanks.length + 1, 
-        placeholder: "", 
+      {
+        sequence: blanks.length + 1,
+        placeholder: "",
         options: [
           { text: "", isCorrect: true },
           { text: "", isCorrect: false },
