@@ -365,7 +365,7 @@ export function TrailDetailPage({ trail, isLoading }: TrailDetailPageProps) {
             <CardContent className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Tentativas permitidas</span>
-                <span className="font-medium">{trail.attemptsAllowed}</span>
+                <span className="font-medium">{trail.attemptsAllowed ?? "Ilimitadas"}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Nota mínima</span>

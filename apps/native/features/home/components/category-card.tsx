@@ -26,7 +26,7 @@ export function CategoryCard({ title, bgColor, iconColor, onPress }: CategoryCar
           iconSize={16}
         />
         <InfoCardContent>
-          <InfoCardTitle className="text-[12.25px]">{title}</InfoCardTitle>
+          <InfoCardTitle className="text-base">{title}</InfoCardTitle>
         </InfoCardContent>
       </View>
     </InfoCard>

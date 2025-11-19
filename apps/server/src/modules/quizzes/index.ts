@@ -1,5 +1,6 @@
 import { betterAuthMacro, ROLES } from "@/lib/auth";
 import Elysia, { t } from "elysia";
+import { quizImages } from "./images";
 import {
   createQuizBody,
   updateQuizBody,
@@ -11,6 +12,7 @@ import { NotFoundError } from "@/lib/errors";
 import { success } from "@/lib/responses";
 
 export const adminQuizzes = new Elysia({ prefix: "/admin/quizzes" })
+  .use(quizImages)
   .use(betterAuthMacro)
   .guard({ auth: true, role: [ROLES.ADMIN, ROLES.SUPER_ADMIN] }, (app) =>
     app

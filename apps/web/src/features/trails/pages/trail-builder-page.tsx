@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Save } from "lucide-react";
@@ -71,6 +69,20 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
     ...trailQueryOptions(localTrailId!),
     enabled: !!localTrailId,
   });
+
+  // Keep tab selection in sync with URL + availability.
+  useEffect(() => {
+    const requested = initialTab || "basic";
+    const isUnlockedTab =
+      requested === "basic" || (!!localTrailId && (requested === "content" || requested === "prerequisites"));
+
+    // Fallback to a safe tab if the requested one isn't available.
+    const nextTab = isUnlockedTab ? requested : "basic";
+
+    if (nextTab !== activeTab) {
+      setActiveTab(nextTab);
+    }
+  }, [initialTab, localTrailId, activeTab]);
 
   // Update local content when trail data loads
   useEffect(() => {
@@ -352,8 +364,7 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={handleCancel}>
             <ArrowLeft className="h-4 w-4" />
@@ -448,6 +459,5 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
           </TabsContent>
         </Tabs>
       </div>
-    </DndProvider>
   );
 }

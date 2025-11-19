@@ -28,6 +28,21 @@ export const trailsApi = {
 
   createTrail: async (body: CreateTrailBody) => {
     const response = await client.admin.trails.post(body as any);
+    if (response.error) {
+      const errorBody = response.error as any;
+      
+      // Extract the error message from the nested structure
+      let errorMessage = "Erro ao criar trilha";
+      if (errorBody?.error?.message) {
+        errorMessage = errorBody.error.message;
+      } else if (errorBody?.message) {
+        errorMessage = errorBody.message;
+      } else if (typeof errorBody === 'string') {
+        errorMessage = errorBody;
+      }
+      
+      throw new Error(errorMessage);
+    }
     return response.data;
   },
 
@@ -35,21 +50,100 @@ export const trailsApi = {
     const response = await client.admin.trails({ id: id.toString() }).put(
       body as any,
     );
+    if (response.error) {
+      const errorBody = response.error as any;
+      
+      // Extract the error message from the nested structure
+      let errorMessage = "Erro ao atualizar trilha";
+      if (errorBody?.error?.message) {
+        errorMessage = errorBody.error.message;
+      } else if (errorBody?.message) {
+        errorMessage = errorBody.message;
+      } else if (typeof errorBody === 'string') {
+        errorMessage = errorBody;
+      }
+      
+      throw new Error(errorMessage);
+    }
     return response.data;
   },
 
   deleteTrail: async (id: number) => {
     const response = await client.admin.trails({ id: id.toString() }).delete();
+    if (response.error) {
+      const errorBody = response.error as any;
+      
+      // Extract error message and details
+      let errorMessage = "Erro ao excluir trilha";
+      let dependentTrails: any[] | undefined;
+      
+      // Eden wraps the actual error in value.error
+      if (errorBody?.value?.error) {
+        const actualError = errorBody.value.error;
+        if (actualError?.message) {
+          errorMessage = actualError.message;
+        }
+        if (actualError?.details?.dependentTrails) {
+          dependentTrails = actualError.details.dependentTrails;
+        }
+      } else if (errorBody?.value?.message) {
+        errorMessage = errorBody.value.message;
+        if (errorBody.value?.details?.dependentTrails) {
+          dependentTrails = errorBody.value.details.dependentTrails;
+        }
+      } else if (errorBody?.message) {
+        errorMessage = errorBody.message;
+        if (errorBody?.details?.dependentTrails) {
+          dependentTrails = errorBody.details.dependentTrails;
+        }
+      } else if (typeof errorBody === 'string') {
+        errorMessage = errorBody;
+      }
+      
+      const error: any = new Error(errorMessage);
+      error.dependentTrails = dependentTrails;
+      throw error;
+    }
     return response.data;
   },
 
   publishTrail: async (id: number) => {
     const response = await client.admin.trails({ id: id.toString() }).publish.patch();
+    if (response.error) {
+      const errorBody = response.error as any;
+      
+      // Extract the error message from the nested structure
+      let errorMessage = "Erro ao publicar trilha";
+      if (errorBody?.error?.message) {
+        errorMessage = errorBody.error.message;
+      } else if (errorBody?.message) {
+        errorMessage = errorBody.message;
+      } else if (typeof errorBody === 'string') {
+        errorMessage = errorBody;
+      }
+      
+      throw new Error(errorMessage);
+    }
     return response.data;
   },
 
   archiveTrail: async (id: number) => {
     const response = await client.admin.trails({ id: id.toString() }).archive.patch();
+    if (response.error) {
+      const errorBody = response.error as any;
+      
+      // Extract the error message from the nested structure
+      let errorMessage = "Erro ao arquivar trilha";
+      if (errorBody?.error?.message) {
+        errorMessage = errorBody.error.message;
+      } else if (errorBody?.message) {
+        errorMessage = errorBody.message;
+      } else if (typeof errorBody === 'string') {
+        errorMessage = errorBody;
+      }
+      
+      throw new Error(errorMessage);
+    }
     return response.data;
   },
 

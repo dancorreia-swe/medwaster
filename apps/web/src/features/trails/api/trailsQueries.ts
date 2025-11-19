@@ -46,7 +46,24 @@ export function useCreateTrail() {
       queryClient.invalidateQueries({ queryKey: ["trails", "list"] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao criar trilha", { id: "create-trail" });
+      console.error("Create trail error:", error);
+      // Extract meaningful error message from validation errors
+      let errorMessage = "Erro ao criar trilha";
+      
+      if (error?.value?.message) {
+        try {
+          const parsed = JSON.parse(error.value.message);
+          errorMessage = parsed.summary || parsed.message || errorMessage;
+        } catch {
+          errorMessage = error.value.message;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.summary) {
+        errorMessage = error.summary;
+      }
+      
+      toast.error(errorMessage, { id: "create-trail" });
     },
   });
 }
@@ -87,7 +104,24 @@ export function useUpdateTrail(options?: { silent?: boolean }) {
       queryClient.invalidateQueries({ queryKey: ["trails", variables.id] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao atualizar trilha", { id: "update-trail" });
+      console.error("Update trail error:", error);
+      // Extract meaningful error message from validation errors
+      let errorMessage = "Erro ao atualizar trilha";
+      
+      if (error?.value?.message) {
+        try {
+          const parsed = JSON.parse(error.value.message);
+          errorMessage = parsed.summary || parsed.message || errorMessage;
+        } catch {
+          errorMessage = error.value.message;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.summary) {
+        errorMessage = error.summary;
+      }
+      
+      toast.error(errorMessage, { id: "update-trail" });
     },
   });
 }
@@ -105,7 +139,19 @@ export function useDeleteTrail() {
       queryClient.invalidateQueries({ queryKey: ["trails", "list"] });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erro ao excluir trilha", { id: "delete-trail" });
+      let errorMessage = "Erro ao excluir trilha";
+      
+      if (error?.message && typeof error.message === 'string') {
+        errorMessage = error.message;
+      }
+      
+      // If there are dependent trails, add them to the message
+      if (error?.dependentTrails && Array.isArray(error.dependentTrails) && error.dependentTrails.length > 0) {
+        const trailNames = error.dependentTrails.map((t: any) => t.name).join(", ");
+        errorMessage = `Não é possível excluir esta trilha. Ela é pré-requisito para: ${trailNames}`;
+      }
+      
+      toast.error(errorMessage, { id: "delete-trail" });
     },
   });
 }
@@ -151,6 +197,7 @@ export function useArchiveTrail() {
       queryClient.invalidateQueries({ queryKey: ["trails", id] });
     },
     onError: (error: any) => {
+      console.error("Archive trail error:", error);
       toast.error(error.message || "Erro ao arquivar trilha", { id: "archive-trail" });
     },
   });

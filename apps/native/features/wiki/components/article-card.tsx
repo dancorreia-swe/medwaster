@@ -8,8 +8,6 @@ interface ArticleCardProps {
   icon?: string | null;
   categoryName?: string | null;
   categoryColor?: string | null;
-  difficultyLabel: string;
-  difficultyColor: string;
   readingTimeMinutes: number;
   isFavorite?: boolean;
   isRead?: boolean;
@@ -33,8 +31,6 @@ export function ArticleCard({
   icon,
   categoryName,
   categoryColor,
-  difficultyLabel,
-  difficultyColor,
   readingTimeMinutes,
   isFavorite = false,
   isRead = false,
@@ -54,7 +50,7 @@ export function ArticleCard({
       onPress={onPress}
       className="bg-white rounded-2xl shadow-sm shadow-black/10 border border-gray-100"
       accessibilityRole="button"
-      accessibilityLabel={`${title}. ${excerpt}. ${difficultyLabel}, ${readingTime} de leitura.${isRead ? " Já lido." : ""}`}
+      accessibilityLabel={`${title}. ${excerpt}. ${readingTime} de leitura.${isRead ? " Já lido." : ""}`}
       accessibilityHint="Toque para ler o artigo"
     >
       <View className="flex-row gap-4 px-5 py-5">
@@ -91,17 +87,6 @@ export function ArticleCard({
           </Text>
 
           <View className="flex-row flex-wrap items-center gap-2 mt-1">
-            <View
-              className="px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: `${difficultyColor}1A` }}
-            >
-              <Text
-                className="text-xs font-semibold uppercase"
-                style={{ color: difficultyColor }}
-              >
-                {difficultyLabel}
-              </Text>
-            </View>
             <View className="px-2.5 py-1 rounded-full bg-gray-100">
               <Text className="text-xs font-semibold text-gray-600">
                 {readingTime}

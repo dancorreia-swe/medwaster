@@ -579,11 +579,27 @@ export abstract class QuizzesService {
         );
 
       case "fill_in_the_blank":
-        // Simple text comparison (could be enhanced with fuzzy matching)
-        return question.fillInBlanks.some((blank: any) =>
-          blank.answer.toLowerCase().trim() === 
-          (answerData.textAnswer || "").toLowerCase().trim()
-        );
+        if (!answerData.textAnswer || !question.fillInBlanks) return false;
+        
+        // Parse the JSON string containing the answers object
+        let userAnswers: Record<string, string>;
+        try {
+          userAnswers = JSON.parse(answerData.textAnswer);
+        } catch {
+          return false;
+        }
+
+        // Check each blank has the correct answer
+        return question.fillInBlanks.every((blank: any) => {
+          const userAnswer = userAnswers[blank.id.toString()]?.toLowerCase().trim();
+          if (!userAnswer) return false;
+          
+          // Check against the correct option
+          const correctOption = blank.options?.find((opt: any) => opt.isCorrect);
+          if (!correctOption) return false;
+          
+          return userAnswer === correctOption.text.toLowerCase().trim();
+        });
 
       case "matching":
         if (!answerData.matchingAnswers) return false;

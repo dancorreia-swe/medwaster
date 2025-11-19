@@ -103,8 +103,12 @@ export function QuizAttempt({
           const userAnswer = userAnswers[blank.id.toString()]
             ?.toLowerCase()
             .trim();
-          const correctAnswer = blank.correctAnswer?.toLowerCase().trim();
-          return userAnswer === correctAnswer;
+          
+          // Find the correct option
+          const correctOption = blank.options?.find((opt) => opt.isCorrect);
+          if (!correctOption) return false;
+          
+          return userAnswer === correctOption.text.toLowerCase().trim();
         }) || false
       );
     }

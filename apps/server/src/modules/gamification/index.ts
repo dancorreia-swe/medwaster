@@ -342,7 +342,6 @@ export const adminGamification = new Elysia({
         ),
   );
 
-// Export combined gamification module
 export const gamification = new Elysia()
   .use(userGamification)
   .use(adminGamification);

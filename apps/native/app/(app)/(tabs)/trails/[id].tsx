@@ -260,7 +260,7 @@ export default function JourneyDetail() {
       <View key={module.id} className="mb-0">
         <Pressable
           disabled={module.status === "locked"}
-          className={`${module.status === "locked" ? "opacity-50" : ""}`}
+          className={module.status === "locked" ? "opacity-50" : ""}
           onPress={handleModulePress}
         >
           {isCurrentActivity ? (
@@ -352,13 +352,11 @@ export default function JourneyDetail() {
                   </View>
                   {/* Status Badge */}
                   <View
-                    className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center ${
-                      module.status === "completed"
-                        ? "bg-green-500"
-                        : module.status === "current"
-                          ? "bg-green-500"
-                          : "bg-gray-400"
-                    }`}
+                    className={
+                      module.status === "completed" || module.status === "current"
+                        ? "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center bg-green-500"
+                        : "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center bg-gray-400"
+                    }
                   >
                     {module.status === "completed" && (
                       <Text className="text-white text-xs">✓</Text>
@@ -426,11 +424,11 @@ export default function JourneyDetail() {
             {Array.from({ length: 4 }).map((_, i) => (
               <View key={i} className="mb-1">
                 <View
-                  className={`w-1 h-2 rounded-full ${
+                  className={
                     module.status === "completed"
-                      ? "bg-blue-400"
-                      : "bg-gray-300"
-                  }`}
+                      ? "w-1 h-2 rounded-full bg-blue-400"
+                      : "w-1 h-2 rounded-full bg-gray-300"
+                  }
                 />
               </View>
             ))}

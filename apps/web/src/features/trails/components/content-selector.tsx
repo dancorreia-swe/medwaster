@@ -55,7 +55,7 @@ export function ContentSelector({
   const [isOpen, setIsOpen] = useState(false);
   const [contentType, setContentType] = useState<ContentType>("question");
   const [search, setSearch] = useState("");
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [selectedItems, setSelectedItems] = useState<Map<string, ContentItem>>(new Map());
 
   // Debounce search to avoid too many API calls
   const debouncedSearch = useDebounce(search, 300);
@@ -122,13 +122,13 @@ export function ContentSelector({
   const toggleSelection = (item: ContentItem) => {
     const itemKey = `${item.type}-${item.id}`;
     setSelectedItems((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(itemKey)) {
-        newSet.delete(itemKey);
+      const newMap = new Map(prev);
+      if (newMap.has(itemKey)) {
+        newMap.delete(itemKey);
       } else {
-        newSet.add(itemKey);
+        newMap.set(itemKey, item);
       }
-      return newSet;
+      return newMap;
     });
   };
 
@@ -137,18 +137,17 @@ export function ContentSelector({
 
     let position = existingContent.length;
 
-    // Collect all items to add
+    // Collect all items to add - now we have the full item data stored in the Map
     const itemsToAdd: Array<{ contentType: ContentType; contentId: number; title: string; position: number }> = [];
 
-    selectedItems.forEach((itemKey) => {
-      const [type, idStr] = itemKey.split('-');
-      const id = parseInt(idStr);
-      const item = contentList.find(i => i.type === type && i.id === id);
-
-      if (item) {
-        itemsToAdd.push({ contentType: item.type, contentId: item.id, title: item.title, position });
-        position++;
-      }
+    selectedItems.forEach((item) => {
+      itemsToAdd.push({ 
+        contentType: item.type, 
+        contentId: item.id, 
+        title: item.title, 
+        position 
+      });
+      position++;
     });
 
     // Use batch select if available for better performance
@@ -161,7 +160,7 @@ export function ContentSelector({
       });
     }
 
-    setSelectedItems(new Set());
+    setSelectedItems(new Map());
     setSearch("");
     setIsOpen(false);
   };
@@ -348,9 +347,8 @@ export function ContentSelector({
                   <div className="flex items-center gap-2">
                     {(() => {
                       const counts = { question: 0, quiz: 0, article: 0 };
-                      selectedItems.forEach((key) => {
-                        const [type] = key.split('-');
-                        counts[type as ContentType]++;
+                      selectedItems.forEach((item) => {
+                        counts[item.type]++;
                       });
                       return (
                         <>

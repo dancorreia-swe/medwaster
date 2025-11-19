@@ -1070,6 +1070,8 @@ export abstract class ProgressService {
   }
 
   private static async checkAndCompleteTrail(userId: string, trailId: number) {
+    console.log(`🔍 [checkAndCompleteTrail] Checking trail ${trailId} for user ${userId}`);
+    
     const [progress, trailRecord, contentItems] = await Promise.all([
       db.query.userTrailProgress.findFirst({
         where: and(
@@ -1085,10 +1087,16 @@ export abstract class ProgressService {
       }),
     ]);
 
-    if (!progress || !trailRecord) return;
+    if (!progress || !trailRecord) {
+      console.log(`  ⚠️  No progress or trail record found`);
+      return;
+    }
 
     // Skip if already completed
-    if (progress.isCompleted) return;
+    if (progress.isCompleted) {
+      console.log(`  ℹ️  Trail already completed`);
+      return;
+    }
 
     // Check if all required content is completed
     const completedIds: number[] = JSON.parse(
@@ -1099,7 +1107,14 @@ export abstract class ProgressService {
       completedIds.includes(c.id),
     );
 
-    if (!allRequiredCompleted) return;
+    console.log(`  📊 Progress: ${completedIds.length}/${requiredContent.length} required content items completed`);
+    console.log(`  Completed IDs:`, completedIds);
+    console.log(`  Required IDs:`, requiredContent.map(c => c.id));
+
+    if (!allRequiredCompleted) {
+      console.log(`  ⛔ Not all required content completed yet`);
+      return;
+    }
 
     // Calculate trail score based on completed content
     let totalScore = 0;
@@ -1188,17 +1203,22 @@ export abstract class ProgressService {
       await this.unlockDependentTrails(userId, trailId);
 
       // Check if user completed ALL trails and generate certificate
+      console.log("📜 [Certificate] Checking if user has completed all trails...");
       try {
         const hasCompletedAll = await CertificateService.hasCompletedAllTrails(userId);
+        console.log(`  ${hasCompletedAll ? '✅' : '❌'} Has completed all trails: ${hasCompletedAll}`);
+        
         if (hasCompletedAll) {
+          console.log("  🎓 Generating certificate...");
           await CertificateService.generateCertificate(userId);
+          console.log("  ✓ Certificate generated successfully");
         }
       } catch (error) {
-        console.error("Failed to generate certificate:", error);
+        console.error("  ✗ Failed to generate certificate:", error);
         // Don't fail the trail completion if certificate generation fails
       }
-
-      // TODO: Trigger achievement integration
+    } else {
+      console.log("⚠️  Trail not passed (score < passing percentage), skipping rewards");
     }
   }
 

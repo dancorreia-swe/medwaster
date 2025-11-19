@@ -60,10 +60,19 @@ export interface QuestionListItem {
     name: string;
   } | null;
   tags: {
-    id: number;
-    name: string;
-    slug: string;
-    color: string | null;
+    questionId: number;
+    tagId: number;
+    assignedBy: string;
+    createdAt: string;
+    tag: {
+      id: number;
+      name: string;
+      slug: string;
+      description: string | null;
+      color: string;
+      createdAt: string;
+      updatedAt: string;
+    };
   }[];
   usageCount: number;
   createdAt: string | null;

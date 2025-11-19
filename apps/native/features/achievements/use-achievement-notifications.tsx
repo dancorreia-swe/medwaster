@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { client } from "@/lib/eden";
-import { AppState, View, Text } from "react-native";
+import { AppState, View, Text, Image } from "react-native";
 import type { AppStateStatus } from "react-native";
 import { toast } from "sonner-native";
 import { Icon } from "@/components/icon";
@@ -44,7 +44,6 @@ export function useAchievementNotifications() {
           const IconComponent = getLucideIcon(ua.achievement.badgeIcon || "trophy");
           const badgeColor = ua.achievement.badgeColor || "#fbbf24";
 
-          // Show the toast with custom achievement card
           toast.custom(
               <View className="bg-white rounded-2xl shadow-2xl border-2 border-green-500 p-4 mx-4">
                 <View className="flex-row items-center">
@@ -58,9 +57,14 @@ export function useAchievementNotifications() {
 
                   {/* Content */}
                   <View className="flex-1">
-                    <View className="flex-row items-center mb-1">
+                    <View className="flex-row items-center mb-1 gap-1">
+                      <Image 
+                        source={require("@/assets/medal.png")}
+                        style={{ width: 16, height: 16 }}
+                        resizeMode="contain"
+                      />
                       <Text className="text-xs font-bold text-green-600 uppercase tracking-wide">
-                        🏆 CONQUISTA DESBLOQUEADA!
+                        CONQUISTA DESBLOQUEADA!
                       </Text>
                     </View>
                     <Text className="text-base font-bold text-gray-900 mb-1">
@@ -80,7 +84,6 @@ export function useAchievementNotifications() {
             {
               duration: 4000,
               onDismiss: () => {
-                // Navigate to achievements on tap
                 router.push("/(app)/(tabs)/(profile)/achievements");
               },
             }

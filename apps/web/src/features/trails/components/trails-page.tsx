@@ -22,6 +22,16 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   trailsListQueryOptions,
   useArchiveTrail,
   useDeleteTrail,
@@ -43,6 +53,7 @@ export function TrailsPage() {
   const [isOrderMode, setIsOrderMode] = useState(false);
   const [localTrails, setLocalTrails] = useState<Trail[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [trailToDelete, setTrailToDelete] = useState<Trail | null>(null);
 
   const { data, isLoading, isFetching, error } = useQuery(
     trailsListQueryOptions(filters),
@@ -113,13 +124,19 @@ export function TrailsPage() {
     }
   };
 
-  const handleDelete = async (trail: Trail) => {
-    if (confirm(`Tem certeza que deseja excluir a trilha "${trail.name}"?`)) {
-      try {
-        await deleteMutation.mutateAsync(trail.id);
-      } catch (error) {
-        console.error("Error deleting trail:", error);
-      }
+  const handleDelete = (trail: Trail) => {
+    setTrailToDelete(trail);
+  };
+
+  const confirmDelete = async () => {
+    if (!trailToDelete) return;
+    
+    try {
+      await deleteMutation.mutateAsync(trailToDelete.id);
+      setTrailToDelete(null);
+    } catch (error) {
+      console.error("Error deleting trail:", error);
+      setTrailToDelete(null);
     }
   };
 
@@ -362,6 +379,24 @@ export function TrailsPage() {
           </div>
         ) : null}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!trailToDelete} onOpenChange={(open) => !open && setTrailToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir trilha</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a trilha "{trailToDelete?.name}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDelete}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

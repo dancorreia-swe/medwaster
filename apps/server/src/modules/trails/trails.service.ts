@@ -246,15 +246,25 @@ export abstract class TrailsService {
       counter++;
     }
 
-    // Check if unlockOrder is already taken
-    if (newTrail.unlockOrder !== undefined && newTrail.unlockOrder !== null) {
+    // Auto-set unlockOrder if not provided
+    let unlockOrder = newTrail.unlockOrder;
+    if (unlockOrder === undefined || unlockOrder === null) {
+      // Find the highest unlockOrder and append after it
+      const maxOrder = await db
+        .select({ max: sql<number>`COALESCE(MAX(${trails.unlockOrder}), 0)` })
+        .from(trails)
+        .then(([result]) => result?.max ?? 0);
+      
+      unlockOrder = maxOrder + 1;
+    } else {
+      // Check if unlockOrder is already taken
       const existing = await db.query.trails.findFirst({
-        where: eq(trails.unlockOrder, newTrail.unlockOrder),
+        where: eq(trails.unlockOrder, unlockOrder),
       });
 
       if (existing) {
         throw new ConflictError(
-          `Trail with unlock order ${newTrail.unlockOrder} already exists`,
+          `Trail with unlock order ${unlockOrder} already exists`,
         );
       }
     }
@@ -267,7 +277,7 @@ export abstract class TrailsService {
       authorId,
       status: newTrail.status || "draft",
       passPercentage: newTrail.passPercentage ?? 70,
-      attemptsAllowed: newTrail.attemptsAllowed ?? 3,
+      attemptsAllowed: newTrail.attemptsAllowed ?? null,
       allowSkipQuestions: newTrail.allowSkipQuestions ?? false,
       showImmediateExplanations: newTrail.showImmediateExplanations ?? true,
       randomizeContentOrder: newTrail.randomizeContentOrder ?? false,
@@ -275,6 +285,7 @@ export abstract class TrailsService {
       enrolledCount: 0,
       completionRate: 0,
       averageCompletionMinutes: null,
+      unlockOrder, // Always set unlockOrder
     };
 
     // Add optional fields only if they are defined
@@ -283,9 +294,6 @@ export abstract class TrailsService {
     }
     if (newTrail.categoryId !== undefined) {
       insertValues.categoryId = newTrail.categoryId;
-    }
-    if (newTrail.unlockOrder !== undefined) {
-      insertValues.unlockOrder = newTrail.unlockOrder;
     }
     if (newTrail.timeLimitMinutes !== undefined) {
       insertValues.timeLimitMinutes = newTrail.timeLimitMinutes;
@@ -328,9 +336,6 @@ export abstract class TrailsService {
       throw new NotFoundError("Trail");
     }
 
-    console.log("🔍 Updating trail:", trailId);
-    console.log("📝 Updates:", updates);
-
     // Check if unlockOrder is already taken by another trail
     if (updates.unlockOrder !== undefined && updates.unlockOrder !== null) {
       const duplicate = await db.query.trails.findFirst({
@@ -347,7 +352,12 @@ export abstract class TrailsService {
       }
     }
 
-    const updateData: any = { ...updates };
+    const updateData: any = {};
+
+    // Copy updates, ensuring null values stay null for integer/number fields
+    for (const [key, value] of Object.entries(updates)) {
+      updateData[key] = value;
+    }
 
     // Handle date conversions
     if (updates.availableFrom !== undefined) {
@@ -361,18 +371,33 @@ export abstract class TrailsService {
         : null;
     }
 
-    console.log("💾 Final updateData:", updateData);
+    // Explicitly build the update object to avoid Drizzle null handling issues
+    const dbUpdate: any = { updatedAt: new Date() };
+    
+    if (updateData.name !== undefined) dbUpdate.name = updateData.name;
+    if (updateData.description !== undefined) dbUpdate.description = updateData.description;
+    if (updateData.categoryId !== undefined) dbUpdate.categoryId = updateData.categoryId === null ? null : updateData.categoryId;
+    if (updateData.difficulty !== undefined) dbUpdate.difficulty = updateData.difficulty;
+    if (updateData.status !== undefined) dbUpdate.status = updateData.status;
+    if (updateData.unlockOrder !== undefined) dbUpdate.unlockOrder = updateData.unlockOrder === null ? null : updateData.unlockOrder;
+    if (updateData.passPercentage !== undefined) dbUpdate.passPercentage = updateData.passPercentage;
+    if (updateData.attemptsAllowed !== undefined) dbUpdate.attemptsAllowed = updateData.attemptsAllowed === null ? null : updateData.attemptsAllowed;
+    if (updateData.timeLimitMinutes !== undefined) dbUpdate.timeLimitMinutes = updateData.timeLimitMinutes === null ? null : updateData.timeLimitMinutes;
+    if (updateData.allowSkipQuestions !== undefined) dbUpdate.allowSkipQuestions = updateData.allowSkipQuestions;
+    if (updateData.showImmediateExplanations !== undefined) dbUpdate.showImmediateExplanations = updateData.showImmediateExplanations;
+    if (updateData.randomizeContentOrder !== undefined) dbUpdate.randomizeContentOrder = updateData.randomizeContentOrder;
+    if (updateData.coverImageUrl !== undefined) dbUpdate.coverImageUrl = updateData.coverImageUrl === null ? null : updateData.coverImageUrl;
+    if (updateData.themeColor !== undefined) dbUpdate.themeColor = updateData.themeColor === null ? null : updateData.themeColor;
+    if (updateData.availableFrom !== undefined) dbUpdate.availableFrom = updateData.availableFrom;
+    if (updateData.availableUntil !== undefined) dbUpdate.availableUntil = updateData.availableUntil;
+    if (updateData.estimatedTimeMinutes !== undefined) dbUpdate.estimatedTimeMinutes = updateData.estimatedTimeMinutes === null ? null : updateData.estimatedTimeMinutes;
+    if (updateData.customCertificate !== undefined) dbUpdate.customCertificate = updateData.customCertificate;
 
     const [updatedTrail] = await db
       .update(trails)
-      .set({
-        ...updateData,
-        updatedAt: new Date(),
-      })
+      .set(dbUpdate)
       .where(eq(trails.id, trailId))
       .returning();
-
-    console.log("✅ Updated trail:", updatedTrail);
 
     return updatedTrail;
   }
@@ -401,11 +426,17 @@ export abstract class TrailsService {
     });
 
     if (dependents.length > 0) {
-      const dependentNames = dependents.map((d) => d.trail.name).join(", ");
-      throw new BusinessLogicError(
+      const dependentTrails = dependents.map((d) => ({
+        id: d.trail.id,
+        name: d.trail.name,
+      }));
+      const dependentNames = dependentTrails.map((t) => t.name).join(", ");
+      const error = new BusinessLogicError(
         `Cannot delete trail. It is a prerequisite for: ${dependentNames}`,
         "HAS_DEPENDENTS",
       );
+      error.details = { dependentTrails };
+      throw error;
     }
 
     await db.delete(trails).where(eq(trails.id, trailId));
@@ -416,6 +447,42 @@ export abstract class TrailsService {
   }
 
   static async archiveTrail(trailId: number) {
+    // Check if trail exists
+    const trail = await db.query.trails.findFirst({
+      where: eq(trails.id, trailId),
+    });
+
+    if (!trail) {
+      throw new NotFoundError("Trail");
+    }
+
+    // Check if trail has dependent trails (other trails have this as prerequisite)
+    const dependents = await db.query.trailPrerequisites.findMany({
+      where: eq(trailPrerequisites.prerequisiteTrailId, trailId),
+      with: {
+        trail: {
+          columns: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (dependents.length > 0) {
+      const dependentTrails = dependents.map((d) => ({
+        id: d.trail.id,
+        name: d.trail.name,
+      }));
+      const dependentNames = dependentTrails.map((t) => t.name).join(", ");
+      const error = new BusinessLogicError(
+        `Cannot archive trail. It is a prerequisite for: ${dependentNames}`,
+        "HAS_DEPENDENTS",
+      );
+      error.details = { dependentTrails };
+      throw error;
+    }
+
     return this.updateTrail(trailId, { status: "archived" });
   }
 

@@ -45,6 +45,7 @@ interface QuizFormData {
   randomizeOptions: boolean;
   passingScore: number;
   imageUrl?: string;
+  imageKey?: string;
 }
 
 const initialFormData: QuizFormData = {
@@ -59,6 +60,7 @@ const initialFormData: QuizFormData = {
   randomizeQuestions: false,
   randomizeOptions: false,
   passingScore: 70,
+  imageKey: undefined,
 };
 
 export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
@@ -105,6 +107,7 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
         randomizeOptions: existingQuiz.randomizeOptions ?? false,
         passingScore: existingQuiz.passingScore || 70,
         imageUrl: existingQuiz.imageUrl || undefined,
+        imageKey: (existingQuiz as any).imageKey || undefined,
       });
 
       // Map quiz questions to builder format
@@ -162,8 +165,9 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
     autoSaveTimeout.current = setTimeout(() => {
       setAutoSaveStatus("saving");
 
+      const { imageKey, ...formDataToSave } = formData;
       const dataToSave = {
-        ...formData,
+        ...formDataToSave,
         questions: questions.map((q) => ({
           questionId: q.questionId,
           order: q.order,
@@ -202,11 +206,18 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
 
   const handleAddQuestion = useCallback(
     (questionId: number, questionData: QuestionListItem) => {
+      // Auto-assign points based on difficulty
+      const pointsByDifficulty = {
+        basic: 1,
+        intermediate: 2,
+        advanced: 3,
+      };
+      
       const newQuestion: QuizQuestion = {
         id: `temp-${Date.now()}`,
         questionId,
         order: questions.length + 1,
-        points: 1,
+        points: pointsByDifficulty[questionData.difficulty] || 1,
         required: true,
         question: questionData,
       };
@@ -250,8 +261,9 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
           return;
         }
 
+        const { imageKey, ...formDataToSave } = formData;
         const dataToSave = {
-          ...formData,
+          ...formDataToSave,
           status: publish ? ("active" as const) : formData.status,
           questions: questions.map((q) => ({
             questionId: q.questionId,
@@ -470,4 +482,3 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
     </DndProvider>
   );
 }
-

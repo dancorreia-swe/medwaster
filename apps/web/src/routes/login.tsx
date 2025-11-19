@@ -24,9 +24,9 @@ export const Route = createFileRoute("/login")({
 
 function RouteComponent() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center justify-center gap-10 px-6 py-16">
-        <div className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
+        <div className="flex items-center gap-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
           <span className="flex items-center gap-2">
             <PillBottleIcon />
             MedWaster
@@ -37,7 +37,7 @@ function RouteComponent() {
           <SignInForm />
         </div>
 
-        <p className="text-sm text-slate-500">© 2025 MedWaster</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">© 2025 MedWaster</p>
       </div>
     </div>
   );

@@ -142,7 +142,10 @@ export class AchievementEngine {
 
     const triggerTypes = eventToTriggerMap[eventType] || [];
 
+    console.log(`  🔍 Looking for achievements with trigger types:`, triggerTypes);
+
     if (triggerTypes.length === 0) {
+      console.log(`  ⚠️  No trigger types mapped for event: ${eventType}`);
       return [];
     }
 
@@ -153,11 +156,17 @@ export class AchievementEngine {
       ),
     });
 
+    console.log(`  📊 Found ${allAchievements.length} active achievements in database`);
+
     // Filter by trigger type
-    return allAchievements.filter((achievement) => {
+    const relevantAchievements = allAchievements.filter((achievement) => {
       const config = achievement.triggerConfig as TriggerConfig;
       return triggerTypes.includes(config.type);
     });
+
+    console.log(`  ✅ ${relevantAchievements.length} achievements match the trigger types`);
+
+    return relevantAchievements;
   }
 
   /**

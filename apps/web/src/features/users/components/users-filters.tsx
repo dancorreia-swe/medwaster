@@ -32,24 +32,26 @@ export function UsersFilters({ value, onChange }: UsersFiltersProps) {
     setLocalSearch(value.search);
   }, [value.search]);
 
-  const handleSubmit = useCallback(
-    (event: React.FormEvent) => {
-      event.preventDefault();
-      onChange({ ...value, search: localSearch.trim() });
-    },
-    [localSearch, onChange, value],
-  );
+  // Debounced search - apply automatically after 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch.trim() !== value.search) {
+        onChange({ ...value, search: localSearch.trim() });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [localSearch]);
 
   const handleClear = useCallback(() => {
     setLocalSearch("");
     onChange({ search: "", role: "", status: "all" });
   }, [onChange]);
 
+  const hasActiveFilters = value.role || value.status !== "all" || localSearch.trim();
+
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-4 lg:flex-row lg:items-end"
-    >
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
       <div className="flex-1 space-y-2">
         <Label htmlFor="users-search" className="text-sm font-medium">
           Buscar
@@ -101,23 +103,17 @@ export function UsersFilters({ value, onChange }: UsersFiltersProps) {
         </Select>
       </div>
 
-      <div className="flex w-full gap-2 lg:w-auto">
-        <Button type="submit" className="flex-1">
-          Aplicar
-        </Button>
+      {hasActiveFilters && (
         <Button
           type="button"
           variant="outline"
-          className="flex-1 lg:w-auto"
+          size="icon"
           onClick={handleClear}
-          disabled={
-            !value.role && value.status === "all" && localSearch.trim() === ""
-          }
+          className="lg:mb-0"
         >
-          <XCircle className="mr-2 h-4 w-4" />
-          Limpar
+          <XCircle className="h-4 w-4" />
         </Button>
-      </div>
-    </form>
+      )}
+    </div>
   );
 }

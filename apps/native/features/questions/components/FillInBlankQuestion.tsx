@@ -1,13 +1,8 @@
-import { useState, useRef, useMemo, useCallback, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { useState, useMemo, useEffect } from "react";
+import { View, Text, TouchableOpacity, Image, Modal, ScrollView, Pressable } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import type { FillInBlankQuestionProps } from "../types";
 import { X } from "lucide-react-native";
-import {
-  BottomSheetModal,
-  BottomSheetView,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
 import { HtmlText } from "@/components/HtmlText";
 
 // Simple HTML stripper for parsing blanks
@@ -35,45 +30,51 @@ export function FillInBlankQuestion({
   disabled = false,
 }: FillInBlankQuestionProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
   const [selectedBlank, setSelectedBlank] = useState<number | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   // Sort blanks by sequence
-  const sortedBlanks = [...(question.fillInBlanks || [])].sort(
-    (a, b) => a.sequence - b.sequence,
+  const sortedBlanks = useMemo(
+    () => [...(question.fillInBlanks || [])].sort((a, b) => a.sequence - b.sequence),
+    [question.fillInBlanks]
   );
-
-  const snapPoints = useMemo(() => ["60%", "70%"], []);
 
   const allBlanksFilled = sortedBlanks.every((blank) => {
     const answer = answers[blank.id.toString()];
     return answer && answer.length > 0;
   });
 
+  const currentBlank = sortedBlanks.find((b) => b.id === selectedBlank);
+
   // Notify parent of answer changes when all blanks are filled
   useEffect(() => {
     if (allBlanksFilled) {
-      console.log('[FillInBlank] Submitting answers:', answers);
+      console.log("[FillInBlank] Submitting answers:", answers);
       onSubmit(answers);
     }
   }, [answers, allBlanksFilled, onSubmit]);
 
-  const handleBlankPress = useCallback(
-    (blankId: number) => {
-      if (disabled) return;
-      setSelectedBlank(blankId);
-      bottomSheetRef.current?.present();
-    },
-    [disabled],
-  );
+  const handleBlankPress = (blankId: number) => {
+    if (disabled) return;
+    setSelectedBlank(blankId);
+    setIsModalVisible(true);
+  };
 
   const handleOptionSelect = (blankId: number, optionText: string) => {
     setAnswers((prev) => ({
       ...prev,
       [blankId.toString()]: optionText,
     }));
-    bottomSheetRef.current?.dismiss();
+    setIsModalVisible(false);
     setSelectedBlank(null);
+  };
+
+  const handleModalClose = () => {
+    setIsModalVisible(false);
+    // Delay clearing selectedBlank to prevent content from disappearing during fade animation
+    setTimeout(() => {
+      setSelectedBlank(null);
+    }, 300);
   };
 
   // Parse question text and replace {{1}}, {{2}}, etc with interactive blanks
@@ -131,7 +132,6 @@ export function FillInBlankQuestion({
               </Text>
             );
           } else {
-            // Blank
             const blank = sortedBlanks[part.blankIndex!];
             if (!blank) return null;
 
@@ -164,8 +164,6 @@ export function FillInBlankQuestion({
     );
   };
 
-  const currentBlank = sortedBlanks.find((b) => b.id === selectedBlank);
-
   return (
     <Animated.View entering={FadeIn.duration(400)}>
       {/* Question Card */}
@@ -195,84 +193,89 @@ export function FillInBlankQuestion({
         </View>
       </View>
 
-      {/* Bottom Sheet Modal */}
-      <BottomSheetModal
-        ref={bottomSheetRef}
-        index={0}
-        snapPoints={snapPoints}
-        onDismiss={() => setSelectedBlank(null)}
-        enablePanDownToClose
-        backgroundStyle={{ backgroundColor: "white" }}
+      {/* Modal for selecting options */}
+      <Modal
+        visible={isModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={handleModalClose}
       >
-        <BottomSheetView style={{ flex: 1 }}>
-          {/* Modal Header */}
-          <View className="px-6 pt-2 pb-4 flex-row items-center justify-between border-b border-gray-200">
-            <Text className="text-lg font-bold text-gray-900 flex-1">
-              Selecione a resposta
-            </Text>
-            <TouchableOpacity
-              onPress={() => bottomSheetRef.current?.dismiss()}
-              className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"
+        <View className="flex-1 bg-black/50 justify-center items-center px-6">
+          <Pressable 
+            onPress={handleModalClose}
+            className="absolute inset-0"
+          />
+          <View className="bg-white rounded-3xl w-full max-w-lg shadow-xl" style={{ maxHeight: '80%' }}>
+            {/* Header */}
+            <View className="px-6 pt-6 pb-4 flex-row items-center justify-between border-b border-gray-200">
+              <Text className="text-lg font-bold text-gray-900 flex-1">
+                Selecione a resposta
+              </Text>
+              <TouchableOpacity
+                onPress={handleModalClose}
+                className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"
+              >
+                <X size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Options List */}
+            <ScrollView
+              contentContainerStyle={{ padding: 24, paddingBottom: 24 }}
+              showsVerticalScrollIndicator={false}
             >
-              <X size={20} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
+              {currentBlank &&
+              Array.isArray(currentBlank.options) &&
+              currentBlank.options.length > 0 ? (
+                <View className="gap-3">
+                  {[...currentBlank.options]
+                    .sort((a, b) => a.sequence - b.sequence)
+                    .map((option) => {
+                      const optionText =
+                        (option as any).text ||
+                        option.content ||
+                        option.optionText ||
+                        "";
+                      const isSelected =
+                        answers[currentBlank.id.toString()] === optionText;
 
-          {/* Options List */}
-          <BottomSheetScrollView
-            contentContainerStyle={{ padding: 24, paddingTop: 16 }}
-          >
-            {currentBlank &&
-            Array.isArray(currentBlank.options) &&
-            currentBlank.options.length > 0 ? (
-              <View className="gap-3">
-                {[...currentBlank.options]
-                  .sort((a, b) => a.sequence - b.sequence)
-                  .map((option) => {
-                    const optionText =
-                      (option as any).text ||
-                      option.content ||
-                      option.optionText ||
-                      "";
-                    const isSelected =
-                      answers[currentBlank.id.toString()] === optionText;
-
-                    return (
-                      <TouchableOpacity
-                        key={option.id}
-                        onPress={() =>
-                          handleOptionSelect(currentBlank.id, optionText)
-                        }
-                        className={`bg-white rounded-2xl p-5 border-2 ${
-                          isSelected
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200"
-                        }`}
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          className={`text-lg ${
+                      return (
+                        <TouchableOpacity
+                          key={option.id}
+                          onPress={() =>
+                            handleOptionSelect(currentBlank.id, optionText)
+                          }
+                          className={`rounded-2xl p-4 border-2 ${
                             isSelected
-                              ? "text-blue-700 font-semibold"
-                              : "text-gray-900"
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-200 bg-white"
                           }`}
+                          activeOpacity={0.7}
                         >
-                          {optionText}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-              </View>
-            ) : (
-              <View className="py-12">
-                <Text className="text-center text-gray-500 text-base">
-                  Nenhuma opção disponível para este espaço
-                </Text>
-              </View>
-            )}
-          </BottomSheetScrollView>
-        </BottomSheetView>
-      </BottomSheetModal>
+                          <Text
+                            className={`text-base text-center ${
+                              isSelected
+                                ? "text-blue-700 font-semibold"
+                                : "text-gray-900"
+                            }`}
+                          >
+                            {optionText}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                </View>
+              ) : (
+                <View className="py-12">
+                  <Text className="text-center text-gray-500 text-base">
+                    Nenhuma opção disponível para este espaço
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </Animated.View>
   );
 }

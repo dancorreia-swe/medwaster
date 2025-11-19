@@ -41,8 +41,6 @@ export function WikiArticlesList({
               icon={article.icon}
               categoryName={article.category?.name}
               categoryColor={article.category?.color}
-              difficultyLabel={article.difficulty.label}
-              difficultyColor={article.difficulty.color}
               readingTimeMinutes={article.readingTimeMinutes}
               isFavorite={favoriteArticles.has(article.id)}
               isRead={false}
@@ -65,8 +63,6 @@ export function WikiArticlesList({
             icon={article.icon}
             categoryName={article.category?.name}
             categoryColor={article.category?.color}
-            difficultyLabel={article.difficulty.label}
-            difficultyColor={article.difficulty.color}
             readingTimeMinutes={article.readingTimeMinutes}
             isFavorite={favoriteArticles.has(article.id)}
             isRead={isArticleRead}

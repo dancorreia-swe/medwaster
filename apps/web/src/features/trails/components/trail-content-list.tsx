@@ -1,5 +1,23 @@
 import { useMemo } from "react";
-import { useDrag, useDrop } from "react-dnd";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   GripVertical,
   BookOpen,
@@ -9,6 +27,7 @@ import {
   Lock,
   LockOpen,
 } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,8 +35,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import type { TrailContent, ContentType } from "../types";
-
-const ITEM_TYPE = "TRAIL_CONTENT";
 
 // Utility to strip HTML tags
 const stripHtml = (html: string) => {
@@ -28,35 +45,27 @@ const stripHtml = (html: string) => {
 
 interface TrailContentItemProps {
   content: TrailContent;
-  index: number;
-  onMove: (dragIndex: number, hoverIndex: number) => void;
   onRemove: (contentId: number) => void;
   onToggleRequired: (contentId: number) => void;
+  isDragOverlay?: boolean;
 }
 
 function TrailContentItem({
   content,
-  index,
-  onMove,
   onRemove,
   onToggleRequired,
+  isDragOverlay = false,
 }: TrailContentItemProps) {
-  const [{ isDragging }, drag, preview] = useDrag({
-    type: ITEM_TYPE,
-    item: { index },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
-  const [, drop] = useDrop({
-    accept: ITEM_TYPE,
-    hover: (item: { index: number }) => {
-      if (item.index !== index) {
-        onMove(item.index, index);
-        item.index = index;
-      }
-    },
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ 
+    id: content.id.toString(),
+    disabled: isDragOverlay,
   });
 
   const getContentDetails = () => {
@@ -91,18 +100,24 @@ function TrailContentItem({
 
   if (!details) return null;
 
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    ...(isDragging && { willChange: 'transform' }),
+  };
+
   return (
     <div
-      ref={(node) => preview(drop(node))}
-      style={{
-        opacity: isDragging ? 0.5 : 1,
-      }}
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={isDragging ? 'opacity-0' : ''}
     >
-      <Card className="p-4">
+      <Card className={`p-4 ${isDragOverlay ? 'shadow-2xl ring-2 ring-primary cursor-grabbing' : ''}`}>
         <div className="flex items-center gap-3">
           <div
-            ref={drag}
-            className="cursor-move text-muted-foreground hover:text-foreground transition-colors"
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none"
           >
             <GripVertical className="h-5 w-5" />
           </div>
@@ -191,23 +206,59 @@ export function TrailContentList({
   onRemove,
   onToggleRequired,
 }: TrailContentListProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  
   const sortedContent = useMemo(() => {
     return [...content].sort((a, b) => a.sequence - b.sequence);
   }, [content]);
 
-  const handleMove = (dragIndex: number, hoverIndex: number) => {
-    const newContent = [...sortedContent];
-    const [removed] = newContent.splice(dragIndex, 1);
-    newContent.splice(hoverIndex, 0, removed);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 10, // 10px movement required before drag starts (reduces accidental drags)
+        delay: 100,  // 100ms delay helps reduce twitchiness
+        tolerance: 5, // 5px tolerance
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-    // Update sequences
-    const reordered = newContent.map((item, index) => ({
-      ...item,
-      sequence: index,
-    }));
-
-    onReorder(reordered);
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
   };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (over && active.id !== over.id) {
+      const oldIndex = sortedContent.findIndex(
+        (item) => item.id.toString() === active.id
+      );
+      const newIndex = sortedContent.findIndex(
+        (item) => item.id.toString() === over.id
+      );
+
+      const reordered = arrayMove(sortedContent, oldIndex, newIndex).map(
+        (item, index) => ({
+          ...item,
+          sequence: index,
+        })
+      );
+
+      onReorder(reordered);
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+  };
+
+  const activeItem = activeId
+    ? sortedContent.find((item) => item.id.toString() === activeId)
+    : null;
 
   if (sortedContent.length === 0) {
     return (
@@ -224,17 +275,45 @@ export function TrailContentList({
   }
 
   return (
-    <div className="space-y-2">
-      {sortedContent.map((item, index) => (
-        <TrailContentItem
-          key={item.id}
-          content={item}
-          index={index}
-          onMove={handleMove}
-          onRemove={onRemove}
-          onToggleRequired={onToggleRequired}
-        />
-      ))}
-    </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <SortableContext
+        items={sortedContent.map((item) => item.id.toString())}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="space-y-2">
+          {sortedContent.map((item) => (
+            <TrailContentItem
+              key={item.id}
+              content={item}
+              onRemove={onRemove}
+              onToggleRequired={onToggleRequired}
+            />
+          ))}
+        </div>
+      </SortableContext>
+      <DragOverlay 
+        dropAnimation={{
+          duration: 200,
+          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+        }}
+      >
+        {activeItem ? (
+          <div style={{ cursor: 'grabbing' }}>
+            <TrailContentItem
+              content={activeItem}
+              onRemove={onRemove}
+              onToggleRequired={onToggleRequired}
+              isDragOverlay
+            />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }

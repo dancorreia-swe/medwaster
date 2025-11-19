@@ -44,6 +44,7 @@ export const AuthBottomSheet = forwardRef<
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const snapPoints = useMemo(() => ["90%"], []);
@@ -56,7 +57,7 @@ export const AuthBottomSheet = forwardRef<
   }));
 
   const handleSocialLogin = async () => {
-    setIsLoading(true);
+    setIsGoogleLoading(true);
 
     await authClient.signIn.social(
       {
@@ -72,10 +73,10 @@ export const AuthBottomSheet = forwardRef<
                 ? "Falha ao cadastrar com Google"
                 : "Falha ao entrar com Google"),
           );
-          setIsLoading(false);
+          setIsGoogleLoading(false);
         },
         onSuccess: () => {
-          setIsLoading(false);
+          setIsGoogleLoading(false);
           onClose?.();
         },
       },
@@ -299,12 +300,16 @@ export const AuthBottomSheet = forwardRef<
           {/* Google Button */}
           <TouchableOpacity
             onPress={handleSocialLogin}
-            disabled={isLoading}
-            className="bg-white border border-gray-200 rounded-full py-4 items-center justify-center flex-row mb-4 gap-2"
+            disabled={isLoading || isGoogleLoading}
+            className={`bg-white border border-gray-200 rounded-full py-4 items-center justify-center flex-row mb-4 gap-2 ${isGoogleLoading ? 'opacity-70' : ''}`}
           >
-            <GoogleIcon size={16} />
+            {isGoogleLoading ? (
+              <ActivityIndicator size="small" color="#155DFC" />
+            ) : (
+              <GoogleIcon size={16} />
+            )}
             <Text className="text-[#0A0A0A] text-base font-medium tracking-tight">
-              CONTINUAR COM GOOGLE
+              {isGoogleLoading ? 'ABRINDO...' : 'CONTINUAR COM GOOGLE'}
             </Text>
           </TouchableOpacity>
 

@@ -33,23 +33,31 @@ export abstract class CertificateService {
 
     const totalTrails = totalTrailsResult[0]?.count || 0;
 
+    console.log(`    📊 Total published trails: ${totalTrails}`);
+
     if (totalTrails === 0) {
+      console.log(`    ⚠️  No published trails found`);
       return false;
     }
 
-    // Get user's completed and passed trails
+    // Get user's completed and passed trails (only published ones)
     const completedTrailsResult = await db
       .select({ count: count() })
       .from(userTrailProgress)
+      .innerJoin(trails, eq(userTrailProgress.trailId, trails.id))
       .where(
         and(
           eq(userTrailProgress.userId, userId),
           eq(userTrailProgress.isCompleted, true),
           eq(userTrailProgress.isPassed, true),
+          eq(trails.status, "published"),
         ),
       );
 
     const completedTrails = completedTrailsResult[0]?.count || 0;
+
+    console.log(`    📊 User completed & passed trails: ${completedTrails}`);
+    console.log(`    ${completedTrails >= totalTrails ? '✅' : '❌'} Result: ${completedTrails} >= ${totalTrails} = ${completedTrails >= totalTrails}`);
 
     return completedTrails >= totalTrails;
   }
@@ -65,11 +73,13 @@ export abstract class CertificateService {
         totalTime: sum(userTrailProgress.timeSpentMinutes),
       })
       .from(userTrailProgress)
+      .innerJoin(trails, eq(userTrailProgress.trailId, trails.id))
       .where(
         and(
           eq(userTrailProgress.userId, userId),
           eq(userTrailProgress.isCompleted, true),
           eq(userTrailProgress.isPassed, true),
+          eq(trails.status, "published"),
         ),
       );
 
@@ -85,16 +95,20 @@ export abstract class CertificateService {
    * This should be called automatically when a trail is completed
    */
   static async generateCertificate(userId: string) {
+    console.log(`  🎓 [generateCertificate] Starting certificate generation for user ${userId}`);
+    
     // Check if all trails are completed
     const hasCompletedAll = await this.hasCompletedAllTrails(userId);
 
     if (!hasCompletedAll) {
+      console.log(`  ❌ User has not completed all trails`);
       throw new BusinessLogicError(
         "Cannot generate certificate: not all trails completed",
       );
     }
 
     // Check if certificate already exists
+    console.log(`  🔍 Checking for existing certificate...`);
     const existing = await db
       .select()
       .from(certificates)
@@ -102,20 +116,25 @@ export abstract class CertificateService {
       .limit(1);
 
     if (existing.length > 0) {
+      console.log(`  ℹ️  Certificate already exists (ID: ${existing[0].id})`);
       return existing[0];
     }
 
     // Get user's trail statistics
+    console.log(`  📊 Calculating trail statistics...`);
     const stats = await this.getUserTrailsStats(userId);
+    console.log(`    Stats:`, stats);
 
-    // Get the completion date of the last trail
+    // Get the completion date of the last published trail
     const lastCompletedTrail = await db
-      .select()
+      .select({ completedAt: userTrailProgress.completedAt })
       .from(userTrailProgress)
+      .innerJoin(trails, eq(userTrailProgress.trailId, trails.id))
       .where(
         and(
           eq(userTrailProgress.userId, userId),
           eq(userTrailProgress.isCompleted, true),
+          eq(trails.status, "published"),
         ),
       )
       .orderBy(desc(userTrailProgress.completedAt))
@@ -124,10 +143,14 @@ export abstract class CertificateService {
     const allTrailsCompletedAt =
       lastCompletedTrail[0]?.completedAt || new Date();
 
+    console.log(`    Completion date: ${allTrailsCompletedAt}`);
+
     // Generate verification code
     const verificationCode = this.generateVerificationCode();
+    console.log(`  🔑 Generated verification code: ${verificationCode}`);
 
     // Create certificate with pending status
+    console.log(`  💾 Inserting certificate into database...`);
     const [certificate] = await db
       .insert(certificates)
       .values({
@@ -141,6 +164,7 @@ export abstract class CertificateService {
       })
       .returning();
 
+    console.log(`  ✅ Certificate created successfully (ID: ${certificate.id})`);
     return certificate;
   }
 

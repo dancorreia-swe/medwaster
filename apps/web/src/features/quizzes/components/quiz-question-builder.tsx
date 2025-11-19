@@ -188,31 +188,15 @@ function QuestionCard({ question, index, onRemove, onUpdate, onMove }: QuestionC
       </CardHeader>
       
       <CardContent className="pt-0">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor={`points-${question.id}`} className="text-xs">
-              Pontos
-            </Label>
-            <Input
-              id={`points-${question.id}`}
-              type="number"
-              min="1"
-              value={question.points}
-              onChange={(e) => onUpdate({ points: Number(e.target.value) })}
-              className="h-8 mt-1"
-            />
-          </div>
-          
-          <div className="flex items-center gap-2 mt-4">
-            <Switch
-              id={`required-${question.id}`}
-              checked={question.required}
-              onCheckedChange={(checked) => onUpdate({ required: checked })}
-            />
-            <Label htmlFor={`required-${question.id}`} className="text-xs">
-              Obrigatória
-            </Label>
-          </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id={`required-${question.id}`}
+            checked={question.required}
+            onCheckedChange={(checked) => onUpdate({ required: checked })}
+          />
+          <Label htmlFor={`required-${question.id}`} className="text-xs">
+            Obrigatória
+          </Label>
         </div>
       </CardContent>
     </Card>

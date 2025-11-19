@@ -4,6 +4,7 @@ import {
   View,
   ActivityIndicator,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import { Container } from "@/components/container";
 import { StatsCard } from "@/features/home/components/stats-card";
@@ -21,6 +22,9 @@ import {
 import { useUserCertificate } from "@/features/certificates";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMemo } from "react";
+import { toast } from "sonner-native";
+import { Icon } from "@/components/icon";
+import { Trophy } from "lucide-react-native";
 
 const CATEGORY_COLORS = [
   { bg: "#EFF6FF", icon: "#155DFC" },
@@ -61,18 +65,75 @@ export default function Home() {
     router.push("/(tabs)/wiki");
   };
 
+  // TEST: Manual achievement toast trigger
+  const showTestAchievement = () => {
+    toast.custom(
+      <View className="bg-white rounded-2xl shadow-2xl border-2 border-green-500 p-4 mx-4">
+        <View className="flex-row items-center">
+          {/* Icon */}
+          <View
+            className="w-14 h-14 rounded-full items-center justify-center mr-4"
+            style={{ backgroundColor: "#fbbf2420" }}
+          >
+            <Icon icon={Trophy} size={28} color="#fbbf24" />
+          </View>
+
+          {/* Content */}
+          <View className="flex-1">
+            <View className="flex-row items-center mb-1 gap-1">
+              <Image 
+                source={require("@/assets/medal.png")}
+                style={{ width: 16, height: 16 }}
+                resizeMode="contain"
+              />
+              <Text className="text-xs font-bold text-green-600 uppercase tracking-wide">
+                CONQUISTA DESBLOQUEADA!
+              </Text>
+            </View>
+            <Text className="text-base font-bold text-gray-900 mb-1">
+              Primeira Vitória
+            </Text>
+            <Text className="text-sm text-gray-600" numberOfLines={1}>
+              Complete sua primeira trilha de aprendizado
+            </Text>
+          </View>
+
+          {/* Sparkle */}
+          <View className="ml-2">
+            <Text className="text-2xl">✨</Text>
+          </View>
+        </View>
+      </View>,
+      {
+        duration: 4000,
+      }
+    );
+  };
+
   return (
     <Container className="flex-1 bg-gray-50">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* App Header */}
         <View className="border-gray-100 px-5 py-3.5">
-          <View className="flex-row items-center gap-2.5">
-            <View className="w-8 h-8 rounded-xl bg-primary items-center justify-center">
-              <Text className="text-white text-base font-bold">M</Text>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2.5">
+              <Image 
+                source={require("@/assets/mini-icon.png")}
+                style={{ width: 48, height: 48 }}
+                resizeMode="contain"
+              />
+              <Text className="text-xl font-semibold text-gray-900">
+                Medwaster
+              </Text>
             </View>
-            <Text className="text-xl font-semibold text-gray-900">
-              Medwaster
-            </Text>
+            {__DEV__ && (
+              <TouchableOpacity
+                onPress={showTestAchievement}
+                className="bg-green-500 px-3 py-1.5 rounded-lg"
+              >
+                <Text className="text-white text-xs font-bold">🏆 TEST</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -83,27 +144,33 @@ export default function Home() {
 
           {/* Categories */}
           <View className="mx-5 mb-5">
-            <Text className="text-base font-bold text-gray-900 mb-3.5">
-              Categorias de interesse
-            </Text>
+            <View className="flex-row items-center gap-2.5 mb-3.5">
+              <Image 
+                source={require("@/assets/book.png")}
+                style={{ width: 24, height: 24 }}
+                resizeMode="contain"
+              />
+              <Text className="text-lg font-bold text-gray-900">
+                Categorias de interesse
+              </Text>
+            </View>
             {isLoadingCategories ? (
               <View className="h-32 items-center justify-center">
                 <ActivityIndicator size="small" color="#155DFC" />
               </View>
             ) : categories.length > 0 ? (
-              <View className="flex-row flex-wrap gap-3.5">
-                {categories.slice(0, 6).map((category, index) => {
+              <View className="gap-3">
+                {categories.slice(0, 3).map((category, index) => {
                   const colors =
                     CATEGORY_COLORS[index % CATEGORY_COLORS.length];
                   return (
-                    <View key={category.id} className="flex-1 min-w-[45%]">
-                      <CategoryCard
-                        title={category.name}
-                        bgColor={colors.bg}
-                        iconColor={colors.icon}
-                        onPress={() => handleCategoryPress(category.id)}
-                      />
-                    </View>
+                    <CategoryCard
+                      key={category.id}
+                      title={category.name}
+                      bgColor={colors.bg}
+                      iconColor={colors.icon}
+                      onPress={() => handleCategoryPress(category.id)}
+                    />
                   );
                 })}
               </View>
@@ -118,10 +185,17 @@ export default function Home() {
           {/* Recommended Trails */}
           <View className="mb-5">
             <View className="px-5 mb-3.5">
-              <Text className="text-base font-bold text-gray-900 mb-1">
-                Para você começar
-              </Text>
-              <Text className="text-sm text-gray-600">
+              <View className="flex-row items-center gap-2.5 mb-1">
+                <Image 
+                  source={require("@/assets/compass.png")}
+                  style={{ width: 24, height: 24 }}
+                  resizeMode="contain"
+                />
+                <Text className="text-lg font-bold text-gray-900">
+                  Para você começar
+                </Text>
+              </View>
+              <Text className="text-sm text-gray-600 ml-[34px]">
                 Trilhas recomendadas especialmente para você
               </Text>
             </View>
@@ -134,8 +208,8 @@ export default function Home() {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                className="px-5 pb-1"
-                contentContainerStyle={{ paddingRight: 20, gap: 14 }}
+                className="pb-1"
+                contentContainerStyle={{ paddingLeft: 20, paddingRight: 20, gap: 14 }}
               >
                 {uniqueTrails.map((trail, index) => (
                   <TrailCard
@@ -169,16 +243,19 @@ export default function Home() {
 
           {/* Continue Learning */}
           <View className="mx-5 mb-6">
-            <View className="flex-row items-center justify-between mb-3.5">
-              <View>
-                <Text className="text-base font-bold text-gray-900 mb-0.5">
-                  Continue aprendendo
-                </Text>
-                <Text className="text-xs text-gray-500">
-                  Retome de onde parou
-                </Text>
-              </View>
+            <View className="flex-row items-center gap-2.5 mb-1">
+              <Image 
+                source={require("@/assets/star.png")}
+                style={{ width: 24, height: 24 }}
+                resizeMode="contain"
+              />
+              <Text className="text-lg font-bold text-gray-900">
+                Continue aprendendo
+              </Text>
             </View>
+            <Text className="text-sm text-gray-600 mb-3.5 ml-[34px]">
+              Acompanhe seu progresso e conquistas
+            </Text>
 
             {/* Certificate Banner if completed all trails */}
             {hasCompletedAllTrails && certificateData?.certificate && (

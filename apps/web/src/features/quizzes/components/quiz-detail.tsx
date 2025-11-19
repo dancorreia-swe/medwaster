@@ -196,6 +196,16 @@ export function QuizDetail({ quizId, onBack }: QuizDetailProps) {
                 </Badge>
               </div>
             )}
+
+            {typedQuiz.imageUrl && (
+              <div className="mt-2 rounded-lg overflow-hidden border bg-muted">
+                <img
+                  src={typedQuiz.imageUrl}
+                  alt={typedQuiz.title}
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

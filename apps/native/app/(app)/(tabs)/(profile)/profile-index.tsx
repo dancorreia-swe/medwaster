@@ -95,16 +95,16 @@ export default function ProfileScreen() {
 
         {/* Action Cards Section */}
         <View className="px-5 py-4 gap-3.5">
-          <ActionCard
-            icon={Calendar}
-            iconColor="text-red-600"
-            iconBgColor="bg-red-50"
-            title="Sequência & Calendário"
-            description="Verifique sua sequência de estudos"
-            onPress={() =>
-              router.push("/(app)/(tabs)/(profile)/streak-calendar")
-            }
-          />
+          {/* <ActionCard */}
+          {/*   icon={Calendar} */}
+          {/*   iconColor="text-red-600" */}
+          {/*   iconBgColor="bg-red-50" */}
+          {/*   title="Sequência & Calendário" */}
+          {/*   description="Verifique sua sequência de estudos" */}
+          {/*   onPress={() => */}
+          {/*     router.push("/(app)/(tabs)/(profile)/streak-calendar") */}
+          {/*   } */}
+          {/* /> */}
           <ActionCard
             icon={Award}
             iconColor="text-blue-600"

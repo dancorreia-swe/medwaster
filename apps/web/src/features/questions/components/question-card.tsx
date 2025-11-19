@@ -35,10 +35,19 @@ import {
   Calendar,
   Globe,
   CheckCircle2,
+  Tag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { cn, stripHtml } from "@/lib/utils";
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 import {
   QUESTION_DIFFICULTY_LABELS,
   QUESTION_STATUS_LABELS,
@@ -94,6 +103,8 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
     }
   };
 
+  console.log(question.tags);
+
   return (
     <Card
       className="group hover:shadow-lg hover:border-primary/20 transition-all duration-200 cursor-pointer flex flex-col h-full"
@@ -126,8 +137,8 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
                 style={
                   question.category.color
                     ? {
-                        backgroundColor: `${question.category.color}15`,
-                        borderColor: `${question.category.color}60`,
+                        backgroundColor: hexToRgba(question.category.color, 0.08),
+                        borderColor: hexToRgba(question.category.color, 0.25),
                         color: question.category.color,
                       }
                     : undefined
@@ -158,8 +169,10 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
           </div>
 
           {question.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {question.tags.slice(0, 2).map((tag) => (
+            <div className="flex flex-wrap gap-1 items-center">
+              <Tag className="size-3 text-muted-foreground" />
+
+              {question.tags.slice(0, 2).map(({ tag }) => (
                 <Badge
                   key={tag.id}
                   variant="outline"
@@ -167,8 +180,8 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
                   style={
                     tag.color
                       ? {
-                          backgroundColor: `${tag.color}10`,
-                          borderColor: `${tag.color}40`,
+                          backgroundColor: hexToRgba(tag.color, 0.06),
+                          borderColor: hexToRgba(tag.color, 0.25),
                           color: tag.color,
                         }
                       : undefined
@@ -177,6 +190,7 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
                   {tag.name}
                 </Badge>
               ))}
+
               {question.tags.length > 2 && (
                 <Badge 
                   key="more-tags" 

@@ -48,10 +48,10 @@ export function Dashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">
+        <h1 className="text-3xl font-bold text-foreground">
           Bem-vindo, {user?.name || "Usuário"}!
         </h1>
-        <p className="text-slate-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           Painel de controle do MedWaster Learning
         </p>
       </div>
@@ -138,62 +138,62 @@ export function Dashboard() {
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
               <Link
                 to="/questions/new"
-                className="group flex items-center gap-3 p-4 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 transition-all"
+                className="group flex items-center gap-3 p-4 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 transition-all dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-blue-950/40 dark:hover:border-blue-800"
               >
-                <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
-                  <Plus className="h-5 w-5 text-blue-700" />
+                <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors dark:bg-blue-900/40 dark:group-hover:bg-blue-900/60">
+                  <Plus className="h-5 w-5 text-blue-700 dark:text-blue-200" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-slate-900 text-sm">
+                  <h3 className="font-medium text-foreground text-sm">
                     Nova Questão
                   </h3>
-                  <p className="text-xs text-slate-600">Criar questão</p>
+                  <p className="text-xs text-muted-foreground">Criar questão</p>
                 </div>
               </Link>
 
               <Link
                 to="/quizzes/create"
-                className="group flex items-center gap-3 p-4 rounded-lg border border-slate-200 bg-white hover:bg-green-50 hover:border-green-300 transition-all"
+                className="group flex items-center gap-3 p-4 rounded-lg border border-slate-200 bg-white hover:bg-green-50 hover:border-green-300 transition-all dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-green-950/40 dark:hover:border-green-800"
               >
-                <div className="p-2 rounded-lg bg-green-100 group-hover:bg-green-200 transition-colors">
-                  <Plus className="h-5 w-5 text-green-700" />
+                <div className="p-2 rounded-lg bg-green-100 group-hover:bg-green-200 transition-colors dark:bg-green-900/40 dark:group-hover:bg-green-900/60">
+                  <Plus className="h-5 w-5 text-green-700 dark:text-green-200" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-slate-900 text-sm">
+                  <h3 className="font-medium text-foreground text-sm">
                     Novo Quiz
                   </h3>
-                  <p className="text-xs text-slate-600">Criar avaliação</p>
+                  <p className="text-xs text-muted-foreground">Criar avaliação</p>
                 </div>
               </Link>
 
               <Link
                 to="/trails/create"
-                className="group flex items-center gap-3 p-4 rounded-lg border border-slate-200 bg-white hover:bg-purple-50 hover:border-purple-300 transition-all"
+                className="group flex items-center gap-3 p-4 rounded-lg border border-slate-200 bg-white hover:bg-purple-50 hover:border-purple-300 transition-all dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-purple-950/40 dark:hover:border-purple-800"
               >
-                <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors">
-                  <Plus className="h-5 w-5 text-purple-700" />
+                <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors dark:bg-purple-900/40 dark:group-hover:bg-purple-900/60">
+                  <Plus className="h-5 w-5 text-purple-700 dark:text-purple-200" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-slate-900 text-sm">
+                  <h3 className="font-medium text-foreground text-sm">
                     Nova Trilha
                   </h3>
-                  <p className="text-xs text-slate-600">Criar trilha</p>
+                  <p className="text-xs text-muted-foreground">Criar trilha</p>
                 </div>
               </Link>
 
               <Link
                 to="/achievements/$achievementId"
                 params={{ achievementId: "new" }}
-                className="group flex items-center gap-3 p-4 rounded-lg border border-slate-200 bg-white hover:bg-yellow-50 hover:border-yellow-300 transition-all"
+                className="group flex items-center gap-3 p-4 rounded-lg border border-slate-200 bg-white hover:bg-yellow-50 hover:border-yellow-300 transition-all dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-yellow-950/40 dark:hover:border-yellow-800"
               >
-                <div className="p-2 rounded-lg bg-yellow-100 group-hover:bg-yellow-200 transition-colors">
-                  <Plus className="h-5 w-5 text-yellow-700" />
+                <div className="p-2 rounded-lg bg-yellow-100 group-hover:bg-yellow-200 transition-colors dark:bg-yellow-900/40 dark:group-hover:bg-yellow-900/60">
+                  <Plus className="h-5 w-5 text-yellow-700 dark:text-yellow-200" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-slate-900 text-sm">
+                  <h3 className="font-medium text-foreground text-sm">
                     Nova Conquista
                   </h3>
-                  <p className="text-xs text-slate-600">Criar conquista</p>
+                  <p className="text-xs text-muted-foreground">Criar conquista</p>
                 </div>
               </Link>
             </div>
@@ -211,8 +211,8 @@ export function Dashboard() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileQuestion className="h-4 w-4 text-slate-500" />
-                <span className="text-sm text-slate-600">Total de questões</span>
+                <FileQuestion className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Total de questões</span>
               </div>
               <span className="font-medium">
                 {isLoading ? "-" : stats?.questions.total || 0}
@@ -220,8 +220,8 @@ export function Dashboard() {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-slate-500" />
-                <span className="text-sm text-slate-600">Total de quizzes</span>
+                <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Total de quizzes</span>
               </div>
               <span className="font-medium">
                 {isLoading ? "-" : stats?.quizzes.total || 0}
@@ -229,8 +229,8 @@ export function Dashboard() {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Route className="h-4 w-4 text-slate-500" />
-                <span className="text-sm text-slate-600">Trilhas de aprendizado</span>
+                <Route className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Trilhas de aprendizado</span>
               </div>
               <span className="font-medium">
                 {isLoading ? "-" : stats?.trails.total || 0}
@@ -238,19 +238,19 @@ export function Dashboard() {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FolderTree className="h-4 w-4 text-slate-500" />
-                <span className="text-sm text-slate-600">Categorias</span>
+                <FolderTree className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Categorias</span>
               </div>
               <span className="font-medium">
                 {isLoading ? "-" : stats?.categories.total || 0}
               </span>
             </div>
-            <div className="flex items-center justify-between pt-2 border-t">
+            <div className="flex items-center justify-between pt-2 border-t border-border">
               <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-indigo-600" />
-                <span className="text-sm text-slate-600">Artigos Wiki</span>
+                <BookOpen className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+                <span className="text-sm text-muted-foreground">Artigos Wiki</span>
               </div>
-              <span className="font-medium text-indigo-600">
+              <span className="font-medium text-indigo-600 dark:text-indigo-300">
                 {isLoading ? "-" : stats?.wiki.total || 0}
               </span>
             </div>
@@ -263,40 +263,40 @@ export function Dashboard() {
             <CardTitle className="text-base">Atividade desta Semana</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <FileQuestion className="h-4 w-4 text-blue-700" />
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/40">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/60">
+                <FileQuestion className="h-4 w-4 text-blue-700 dark:text-blue-200" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-slate-900">
+                <p className="text-sm font-medium text-foreground">
                   {isLoading ? "-" : stats?.questions.recentlyCreated || 0} novas questões
                 </p>
-                <p className="text-xs text-slate-600">Criadas nos últimos 7 dias</p>
+                <p className="text-xs text-muted-foreground">Criadas nos últimos 7 dias</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50">
-              <div className="p-2 rounded-lg bg-green-100">
-                <ClipboardList className="h-4 w-4 text-green-700" />
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/40">
+              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/60">
+                <ClipboardList className="h-4 w-4 text-green-700 dark:text-green-200" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-slate-900">
+                <p className="text-sm font-medium text-foreground">
                   {isLoading ? "-" : stats?.quizzes.recentlyCreated || 0} novos quizzes
                 </p>
-                <p className="text-xs text-slate-600">Criados nos últimos 7 dias</p>
+                <p className="text-xs text-muted-foreground">Criados nos últimos 7 dias</p>
               </div>
             </div>
 
             <AdminOnly hideOnNoAccess>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50">
-                <div className="p-2 rounded-lg bg-purple-100">
-                  <Users className="h-4 w-4 text-purple-700" />
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/40">
+                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/60">
+                  <Users className="h-4 w-4 text-purple-700 dark:text-purple-200" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-900">
+                  <p className="text-sm font-medium text-foreground">
                     {isLoading ? "-" : stats?.users.active || 0} usuários ativos
                   </p>
-                  <p className="text-xs text-slate-600">Últimos 30 dias</p>
+                  <p className="text-xs text-muted-foreground">Últimos 30 dias</p>
                 </div>
               </div>
             </AdminOnly>

@@ -1,4 +1,7 @@
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -6,7 +9,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tag, X, ChevronDown } from "lucide-react";
 import {
   articlesQueryOptions,
   categoriesQueryOptions,
@@ -15,6 +24,7 @@ import {
   useWikiStats,
   wikiQueryKeys,
   wikiStatsQueryOptions,
+  useTags,
 } from "@/features/wiki/api/wikiQueries";
 import {
   ArticleGrid,
@@ -50,6 +60,7 @@ type WikiSearchParams = {
   q?: string;
   status?: string;
   categoryId?: number;
+  tags?: string[];
 };
 
 export const Route = createFileRoute("/_auth/wiki")({
@@ -58,24 +69,29 @@ export const Route = createFileRoute("/_auth/wiki")({
       q: search.q as string | undefined,
       status: search.status as string | undefined,
       categoryId: search.categoryId ? Number(search.categoryId) : undefined,
+      tags: search.tags as string | undefined,
     };
   },
   loaderDeps: ({ search }) => ({
     status: search.status,
     categoryId: search.categoryId,
     q: search.q,
+    tags: search.tags,
   }),
   loader: async ({ context: { queryClient }, deps }) => {
     const status = (deps.status as string) ?? "all";
 
     // Only prefetch articles on initial load - use cached data on subsequent visits
     // The component will handle refetching via React Query's staleTime
+    const tags = deps.tags;
+    
     const articlesKey = articlesQueryOptions({
       page: 1,
       limit: 12,
       status,
       categoryId: deps.categoryId || undefined,
       search: deps.q,
+      tags,
       sort: "updated_at",
       order: "desc",
     }).queryKey;
@@ -90,6 +106,7 @@ export const Route = createFileRoute("/_auth/wiki")({
           status,
           categoryId: deps.categoryId || undefined,
           search: deps.q,
+          tags,
           sort: "updated_at",
           order: "desc",
         }),
@@ -111,18 +128,22 @@ function RouteComponent() {
   const status = (search.status as string) ?? "all";
 
   // Data is preloaded by loader - these hooks return cached data instantly
+  const tags = search.tags;
+  
   const articlesQuery = useArticles({
     page: 1,
     limit: 12,
     status,
     categoryId: search.categoryId || undefined,
     search: search.q,
+    tags,
     sort: "updated_at",
     order: "desc",
   });
 
   const statsQuery = useWikiStats();
   const categoriesQuery = useCategories();
+  const tagsQuery = useTags();
 
   const articles =
     articlesQuery.isSuccess && articlesQuery.data?.data?.data?.articles
@@ -134,7 +155,38 @@ function RouteComponent() {
     navigate({
       to: "/wiki",
       replace: true,
-      search: (prev: any) => ({ ...prev, q: localQ || undefined }),
+      search: (prev: any) => ({ 
+        ...prev, 
+        q: localQ || undefined,
+      }),
+    });
+  };
+
+  const handleTagToggle = (tagName: string) => {
+    const currentTags = search.tags || [];
+    const newTags = currentTags.includes(tagName)
+      ? currentTags.filter(t => t !== tagName)
+      : [...currentTags, tagName];
+    
+    navigate({
+      to: "/wiki",
+      replace: true,
+      search: (prev: any) => ({
+        ...prev,
+        tags: newTags.length > 0 ? newTags : undefined,
+      }),
+    });
+  };
+
+  const handleRemoveTag = (tagName: string) => {
+    const newTags = (search.tags || []).filter(t => t !== tagName);
+    navigate({
+      to: "/wiki",
+      replace: true,
+      search: (prev: any) => ({
+        ...prev,
+        tags: newTags.length > 0 ? newTags : undefined,
+      }),
     });
   };
 
@@ -166,49 +218,136 @@ function RouteComponent() {
       </div>
 
       {/* Filters + Search */}
-      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <form
-          onSubmit={handleSearchSubmit}
-          className="flex gap-2 w-full flex-1"
-        >
-          <Input
-            value={localQ}
-            onChange={(e) => setLocalQ(e.target.value)}
-            placeholder="Buscar artigos..."
-            className="w-full h-10"
-          />
-        </form>
-        <div className="flex gap-2 items-center shrink-0">
-          <Select
-            value={search.categoryId ? String(search.categoryId) : "default"}
-            onValueChange={(val) =>
-              navigate({
-                to: "/wiki",
-                replace: true,
-                search: (prev: any) => ({
-                  ...prev,
-                  categoryId: val === "default" ? undefined : Number(val),
-                }),
-              })
-            }
+      <div className="space-y-3">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="flex gap-2 w-full flex-1"
           >
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">Todas as categorias</SelectItem>
-              {categoriesQuery.isPending ? (
-                <div className="p-2 text-sm text-zinc-500">Carregando...</div>
-              ) : (
-                categoriesQuery.data?.data?.map((c: any) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+            <Input
+              value={localQ}
+              onChange={(e) => setLocalQ(e.target.value)}
+              placeholder="Buscar artigos..."
+              className="w-full h-10"
+            />
+          </form>
+          <div className="flex gap-2 items-center shrink-0">
+            <Select
+              value={search.categoryId ? String(search.categoryId) : "default"}
+              onValueChange={(val) =>
+                navigate({
+                  to: "/wiki",
+                  replace: true,
+                  search: (prev: any) => ({
+                    ...prev,
+                    categoryId: val === "default" ? undefined : Number(val),
+                  }),
+                })
+              }
+            >
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Todas as categorias</SelectItem>
+                {categoriesQuery.isPending ? (
+                  <div className="p-2 text-sm text-zinc-500">Carregando...</div>
+                ) : (
+                  categoriesQuery.data?.data?.map((c: any) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+
+            {/* Tags Filter Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Tag className="h-4 w-4" />
+                  Tags
+                  {search.tags && search.tags.length > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-1 rounded-full px-1.5 py-0 text-xs"
+                    >
+                      {search.tags.length}
+                    </Badge>
+                  )}
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Filtrar por Tags</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Selecione as tags para filtrar os artigos
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {tagsQuery.isPending ? (
+                      <div className="p-2 text-sm text-zinc-500">Carregando...</div>
+                    ) : tagsQuery.data?.data && tagsQuery.data.data.length > 0 ? (
+                      tagsQuery.data.data.map((tag: any) => {
+                        const selectedTags = search.tags || [];
+                        const isChecked = selectedTags.includes(tag.name);
+
+                        return (
+                          <label
+                            key={tag.id}
+                            className="flex items-center gap-2 text-sm cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={() => handleTagToggle(tag.name)}
+                            />
+                            <span className="inline-flex items-center gap-1.5">
+                              <span
+                                className="w-2 h-2 rounded-full flex-shrink-0"
+                                style={{
+                                  backgroundColor: tag.color || "#6b7280",
+                                }}
+                              />
+                              {tag.name}
+                            </span>
+                          </label>
+                        );
+                      })
+                    ) : (
+                      <div className="p-2 text-sm text-zinc-500">
+                        Nenhuma tag disponível
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
+
+        {/* Active Tags Display */}
+        {search.tags && search.tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">Tags ativas:</span>
+            {search.tags.map((tagName) => (
+              <Badge key={tagName} variant="secondary" className="gap-1">
+                {tagName}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 p-0 hover:bg-transparent"
+                  onClick={() => handleRemoveTag(tagName)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Tabs by status */}

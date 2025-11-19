@@ -27,7 +27,8 @@ export function TrailCard({
     <TouchableOpacity 
       onPress={onPress}
       activeOpacity={0.8}
-      className="bg-white rounded-[12.75px] mr-3.5 shadow-sm shadow-black/15"
+      className="bg-white rounded-[12.75px] shadow-sm shadow-black/15"
+      style={{ width: 280 }}
     >
       {/* Gradient Header */}
       <LinearGradient

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { categoriesListQueryOptions } from "@/features/questions/api/categoriesAndTagsQueries";
 import { Clock, Users, Target, Hash, Settings, FileText } from "lucide-react";
+import { ImageUpload } from "@/features/questions/components/image-upload";
 
 interface QuizFormData {
   title: string;
@@ -24,6 +25,7 @@ interface QuizFormData {
   randomizeOptions: boolean;
   passingScore: number;
   imageUrl?: string;
+  imageKey?: string;
 }
 
 interface QuizFormProps {
@@ -103,13 +105,16 @@ export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
           </div>
           
           <div>
-            <Label htmlFor="imageUrl">URL da Imagem</Label>
-            <Input
-              id="imageUrl"
-              value={formData.imageUrl || ""}
-              onChange={(e) => handleInputChange("imageUrl", e.target.value || undefined)}
-              placeholder="https://..."
-              className="mt-1"
+            <ImageUpload
+              label="Imagem do Quiz"
+              value={formData.imageUrl}
+              keyValue={formData.imageKey}
+              uploadPath="/admin/quizzes/images/upload"
+              deletePath="/admin/quizzes/images"
+              onChange={(data) => {
+                handleInputChange("imageUrl", data?.url || undefined);
+                handleInputChange("imageKey", data?.key || undefined);
+              }}
             />
           </div>
         </CardContent>

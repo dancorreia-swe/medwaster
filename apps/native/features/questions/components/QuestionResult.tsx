@@ -6,18 +6,15 @@ import type { QuestionResultProps, Question } from "../types";
  * Question Result Component
  * Displays feedback after question submission (without button - handled by parent)
  */
-export function QuestionResult({
-  result,
-  question,
-}: QuestionResultProps) {
+export function QuestionResult({ result, question }: QuestionResultProps) {
   const isCorrect = result.isCorrect;
+
+  console.log(question);
 
   return (
     <View
       className={`rounded-2xl p-6 border-2 ${
-        isCorrect
-          ? "bg-green-50 border-green-500"
-          : "bg-red-50 border-red-500"
+        isCorrect ? "bg-green-50 border-green-500" : "bg-red-50 border-red-500"
       }`}
     >
       {/* Result Header */}
@@ -43,9 +40,11 @@ export function QuestionResult({
           <Text className="text-sm font-semibold text-gray-700 mb-2">
             EXPLICAÇÃO
           </Text>
-          <Text className={`text-base leading-relaxed ${
-            isCorrect ? "text-green-900" : "text-red-900"
-          }`}>
+          <Text
+            className={`text-base leading-relaxed ${
+              isCorrect ? "text-green-900" : "text-red-900"
+            }`}
+          >
             {result.explanation}
           </Text>
         </View>
@@ -59,7 +58,18 @@ export function QuestionResult({
           </Text>
           {question?.type === "matching" ? (
             <View className="bg-white rounded-xl p-4 border border-gray-200 gap-2">
-              {formatMatchingAnswer(result.correctAnswer as Record<string, string>, question)}
+              {formatMatchingAnswer(
+                result.correctAnswer as Record<string, string>,
+                question,
+              )}
+            </View>
+          ) : question?.type === "fill_in_the_blank" ? (
+            <View className="bg-white rounded-xl p-4 border border-gray-200 gap-3">
+              {formatFillInBlankAnswer(
+                result.correctAnswer as Record<string, string>,
+                result.userAnswer as Record<string, string>,
+                question,
+              )}
             </View>
           ) : (
             <View className="bg-white rounded-xl p-4 border border-gray-200">
@@ -75,11 +85,95 @@ export function QuestionResult({
 }
 
 /**
+ * Helper function to format fill-in-blank answers with visual feedback
+ */
+function formatFillInBlankAnswer(
+  correctAnswer: Record<string, string>,
+  userAnswer: Record<string, string>,
+  question?: Question,
+) {
+  if (!question?.fillInBlanks) {
+    return Object.entries(correctAnswer).map(([blankId, correct], index) => {
+      const user = userAnswer?.[blankId] || "";
+      const isCorrect = user === correct;
+
+      return (
+        <View key={blankId} className={index > 0 ? "mt-3" : ""}>
+          <View className="flex-row items-center gap-2 mb-2">
+            {isCorrect ? (
+              <CheckCircle2 size={16} color="#10B981" strokeWidth={2.5} />
+            ) : (
+              <XCircle size={16} color="#EF4444" strokeWidth={2.5} />
+            )}
+            <Text className="text-sm font-semibold text-gray-700">
+              Espaço {index + 1}
+            </Text>
+          </View>
+          {!isCorrect && user && (
+            <View className="bg-red-50 rounded-lg p-3 mb-2 border border-red-200">
+              <Text className="text-xs font-semibold text-red-600 mb-1">
+                SUA RESPOSTA
+              </Text>
+              <Text className="text-base text-red-900">{user}</Text>
+            </View>
+          )}
+          <View className="bg-green-50 rounded-lg p-3 border border-green-200">
+            <Text className="text-xs font-semibold text-green-600 mb-1">
+              CORRETO
+            </Text>
+            <Text className="text-base text-green-900">{correct}</Text>
+          </View>
+        </View>
+      );
+    });
+  }
+
+  return question.fillInBlanks
+    .sort((a, b) => a.sequence - b.sequence)
+    .map((blank, index) => {
+      const blankId = blank.id.toString();
+      const correct = correctAnswer[blankId];
+      const user = userAnswer?.[blankId] || "";
+      const isCorrect = user === correct;
+
+      return (
+        <View key={blank.id} className={index > 0 ? "mt-3" : ""}>
+          <View className="flex-row items-center gap-2 mb-2">
+            {isCorrect ? (
+              <CheckCircle2 size={16} color="#10B981" strokeWidth={2.5} />
+            ) : (
+              <XCircle size={16} color="#EF4444" strokeWidth={2.5} />
+            )}
+            <Text className="text-sm font-semibold text-gray-700">
+              Espaço {blank.sequence}
+              {blank.placeholder && `: ${blank.placeholder}`}
+            </Text>
+          </View>
+          {!isCorrect && user && (
+            <View className="bg-red-50 rounded-lg p-3 mb-2 border border-red-200">
+              <Text className="text-xs font-semibold text-red-600 mb-1">
+                SUA RESPOSTA
+              </Text>
+              <Text className="text-base text-red-900">{user}</Text>
+            </View>
+          )}
+          <View className="bg-green-50 rounded-lg p-3 border border-green-200">
+            <Text className="text-xs font-semibold text-green-600 mb-1">
+              CORRETO
+            </Text>
+            <Text className="text-base text-green-900">{correct}</Text>
+          </View>
+        </View>
+      );
+    });
+}
+
+/**
  * Helper function to format matching pairs as visual components
  */
 function formatMatchingAnswer(
   answer: Record<string, string>,
-  question?: Question
+  question?: Question,
 ) {
   if (!question?.matchingPairs) {
     return (
@@ -93,10 +187,10 @@ function formatMatchingAnswer(
 
   return Object.entries(answer).map(([leftId, rightId], index) => {
     const leftPair = question.matchingPairs!.find(
-      (p) => p.id.toString() === leftId
+      (p) => p.id.toString() === leftId,
     );
     const rightPair = question.matchingPairs!.find(
-      (p) => p.id.toString() === rightId
+      (p) => p.id.toString() === rightId,
     );
 
     const leftText = leftPair?.leftText || leftId;
@@ -105,9 +199,7 @@ function formatMatchingAnswer(
     return (
       <View
         key={`${leftId}-${rightId}`}
-        className={`flex-row items-center gap-3 ${
-          index > 0 ? "mt-2" : ""
-        }`}
+        className={`flex-row items-center gap-3 ${index > 0 ? "mt-2" : ""}`}
       >
         <View className="flex-1 bg-blue-50 rounded-lg p-3">
           <Text className="text-sm text-gray-900">{leftText}</Text>
@@ -126,7 +218,7 @@ function formatMatchingAnswer(
  */
 function formatCorrectAnswer(
   answer: number | number[] | string | Record<string, string>,
-  question?: Question
+  question?: Question,
 ): string {
   if (typeof answer === "string") {
     return answer;
@@ -137,7 +229,9 @@ function formatCorrectAnswer(
     if (question?.options) {
       const option = question.options.find((opt) => opt.id === answer);
       if (option) {
-        return (option as any).content || option.optionText || `Opção ${answer}`;
+        return (
+          (option as any).content || option.optionText || `Opção ${answer}`
+        );
       }
     }
     return `Opção ${answer}`;
@@ -165,34 +259,34 @@ function formatCorrectAnswer(
       return entries
         .map(([leftId, rightId]) => {
           const pair = question.matchingPairs!.find(
-            (p) => p.id.toString() === leftId
+            (p) => p.id.toString() === leftId,
           );
           const rightPair = question.matchingPairs!.find(
-            (p) => p.id.toString() === rightId
+            (p) => p.id.toString() === rightId,
           );
-          
+
           const leftText = pair?.leftText || leftId;
           const rightText = rightPair?.rightText || rightId;
-          
+
           return `${leftText} → ${rightText}`;
         })
         .join("\n");
     }
-    
+
     // For fill-in-blank answers
     if (question?.type === "fill_in_blank" && question.fillInBlanks) {
       const entries = Object.entries(answer);
       return entries
         .map(([blankId, value]) => {
           const blank = question.fillInBlanks!.find(
-            (b) => b.id.toString() === blankId
+            (b) => b.id.toString() === blankId,
           );
           const placeholder = blank?.placeholder || blankId;
           return `${placeholder}: ${value}`;
         })
         .join("\n");
     }
-    
+
     // Fallback for other object types
     return Object.entries(answer)
       .map(([key, value]) => `${key}: ${value}`)

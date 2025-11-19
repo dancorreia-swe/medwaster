@@ -14,7 +14,7 @@ export type Trail = {
   status: TrailStatus;
   unlockOrder: number;
   passPercentage: number;
-  attemptsAllowed: number;
+  attemptsAllowed: number | null;
   timeLimitMinutes: number | null;
   allowSkipQuestions: boolean;
   showImmediateExplanations: boolean;
@@ -119,7 +119,7 @@ export type CreateTrailBody = {
   status?: TrailStatus;
   unlockOrder?: number | null;
   passPercentage?: number;
-  attemptsAllowed?: number;
+  attemptsAllowed?: number | null;
   timeLimitMinutes?: number | null;
   allowSkipQuestions?: boolean;
   showImmediateExplanations?: boolean;

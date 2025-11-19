@@ -71,16 +71,16 @@ export default function Landing() {
           </Text>
         </TouchableOpacity>
 
-        <View className="flex-row items-center justify-center gap-1">
-          <Text className="text-[14px] text-[#364153] tracking-tight">
-            Já tem uma conta?
-          </Text>
-          <TouchableOpacity onPress={handleOpenSignIn}>
+        <TouchableOpacity onPress={handleOpenSignIn}>
+          <View className="flex-row items-center justify-center gap-1">
+            <Text className="text-[14px] text-[#364153] tracking-tight">
+              Já tem uma conta?
+            </Text>
             <Text className="text-blue-500 font-bold tracking-tight">
               Entre
             </Text>
-          </TouchableOpacity>
-        </View>
+          </View>
+        </TouchableOpacity>
       </View>
 
       <AuthBottomSheet ref={authBottomSheetRef} onClose={handleClose} />

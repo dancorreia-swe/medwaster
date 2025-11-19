@@ -19,6 +19,7 @@ import {
   Redo,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 interface MinimalTiptapProps {
   content?: string;
@@ -62,6 +63,13 @@ function MinimalTiptap({
       },
     },
   });
+
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [editor, content]);
 
   if (!editor) {
     return null;

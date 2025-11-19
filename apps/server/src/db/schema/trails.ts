@@ -56,7 +56,7 @@ export const trails = pgTable(
     unlockOrder: integer("unlock_order"),
 
     passPercentage: real("pass_percentage").notNull().default(70),
-    attemptsAllowed: integer("attempts_allowed").notNull().default(3),
+    attemptsAllowed: integer("attempts_allowed"),
     timeLimitMinutes: integer("time_limit_minutes"),
     allowSkipQuestions: boolean("allow_skip_questions")
       .notNull()

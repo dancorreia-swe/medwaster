@@ -41,8 +41,8 @@ export const ai = new Elysia({
             stopWhen: stepCountIs(5),
             messages: convertToModelMessages(messages),
             system: `You are a helpful assistant. Check your knowledge base before answering any questions.
-    Only respond to questions using information from tool calls. Your main language is Portuguese.
-    if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
+    Only respond to questions using information from tool calls. Your main language is Portuguese, only speak in Portuguese.
+    if no relevant information is found in the tool calls, respond, "Sorry, I don't know." - in Portuguese of course.`,
             tools: {
               getInformation: tool({
                 description: `get information from your knowledge base to answer questions.`,

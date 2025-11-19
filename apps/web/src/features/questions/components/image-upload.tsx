@@ -16,9 +16,22 @@ interface ImageUploadProps {
   onChange: (data: ImageData | null) => void;
   disabled?: boolean;
   className?: string;
+  label?: string;
+  uploadPath?: string; // custom endpoint; defaults to questions upload
+  keyValue?: string;
+  deletePath?: string; // optional delete endpoint (without trailing key)
 }
 
-export function ImageUpload({ value, onChange, disabled, className }: ImageUploadProps) {
+export function ImageUpload({
+  value,
+  onChange,
+  disabled,
+  className,
+  label = "Imagem da Questão",
+  uploadPath = "/admin/questions/images/upload",
+  keyValue,
+  deletePath,
+}: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(value || null);
   const [imageError, setImageError] = useState(false);
@@ -56,7 +69,7 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
       formData.append("image", file);
 
       // Upload using fetch directly since Elysia client might not support FormData well
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/admin/questions/images/upload`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${uploadPath}`, {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -90,6 +103,22 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
   };
 
   const handleRemove = () => {
+    const maybeDelete = async () => {
+      if (!deletePath || !keyValue) return;
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"}${deletePath}/${encodeURIComponent(keyValue)}`,
+          { method: "DELETE", credentials: "include" },
+        );
+        if (!response.ok) {
+          console.error("Failed to delete image key", keyValue);
+        }
+      } catch (error) {
+        console.error("Delete image error:", error);
+      }
+    };
+    void maybeDelete();
+
     setPreview(null);
     onChange(null);
     if (fileInputRef.current) {
@@ -103,7 +132,7 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
 
   return (
     <div className={cn("space-y-2", className)}>
-      <Label>Imagem da Questão</Label>
+      <Label>{label}</Label>
       
       <div className="flex flex-col gap-2">
         {preview && !imageError ? (

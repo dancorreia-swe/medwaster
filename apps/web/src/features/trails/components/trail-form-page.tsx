@@ -92,15 +92,25 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
     e.preventDefault();
 
     try {
+      // Clean the form data before submission
+      const cleanedData = {
+        ...formData,
+        attemptsAllowed: formData.attemptsAllowed && formData.attemptsAllowed >= 1 ? formData.attemptsAllowed : null,
+        timeLimitMinutes: formData.timeLimitMinutes && formData.timeLimitMinutes >= 1 ? formData.timeLimitMinutes : null,
+        estimatedTimeMinutes: formData.estimatedTimeMinutes && formData.estimatedTimeMinutes >= 1 ? formData.estimatedTimeMinutes : null,
+        categoryId: formData.categoryId || null,
+        description: formData.description?.trim() || undefined,
+      };
+
       if (onSave) {
         // When using custom onSave (from builder), don't navigate
-        await onSave(formData);
+        await onSave(cleanedData);
         return;
       }
 
       // Standalone form behavior (direct routes)
       if (mode === "create") {
-        const result = await createMutation.mutateAsync(formData);
+        const result = await createMutation.mutateAsync(cleanedData);
         navigate({
           to: "/trails/$trailId/edit",
           params: { trailId: result.data.id.toString() },
@@ -108,7 +118,7 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
       } else if (trailId) {
         await updateMutation.mutateAsync({
           id: trailId,
-          body: formData as UpdateTrailBody,
+          body: cleanedData as UpdateTrailBody,
         });
         navigate({ to: "/trails" });
       }
@@ -171,9 +181,12 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
               <Textarea
                 id="description"
                 value={formData.description || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
+                onChange={(e) => {
+                  setFormData({ 
+                    ...formData, 
+                    description: e.target.value || undefined 
+                  });
+                }}
                 placeholder="Descreva o objetivo e conteúdo desta trilha"
                 rows={4}
               />
@@ -356,15 +369,17 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
                         id="attemptsAllowed"
                         type="number"
                         min="1"
-                        value={formData.attemptsAllowed || ""}
-                        onChange={(e) =>
+                        value={formData.attemptsAllowed ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          const parsed = val === "" ? null : parseInt(val);
                           setFormData({
                             ...formData,
-                            attemptsAllowed: e.target.value
-                              ? parseInt(e.target.value)
+                            attemptsAllowed: parsed !== null && !isNaN(parsed) && parsed >= 1
+                              ? parsed
                               : null,
-                          })
-                        }
+                          });
+                        }}
                         placeholder="Ilimitado"
                       />
                       <p className="text-xs text-muted-foreground">
@@ -378,15 +393,17 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
                         id="timeLimitMinutes"
                         type="number"
                         min="1"
-                        value={formData.timeLimitMinutes || ""}
-                        onChange={(e) =>
+                        value={formData.timeLimitMinutes ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          const parsed = val === "" ? null : parseInt(val);
                           setFormData({
                             ...formData,
-                            timeLimitMinutes: e.target.value
-                              ? parseInt(e.target.value)
+                            timeLimitMinutes: parsed !== null && !isNaN(parsed) && parsed >= 1
+                              ? parsed
                               : null,
-                          })
-                        }
+                          });
+                        }}
                         placeholder="Sem limite"
                       />
                       <p className="text-xs text-muted-foreground">
@@ -402,15 +419,17 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
                         id="estimatedTimeMinutes"
                         type="number"
                         min="1"
-                        value={formData.estimatedTimeMinutes || ""}
-                        onChange={(e) =>
+                        value={formData.estimatedTimeMinutes ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          const parsed = val === "" ? null : parseInt(val);
                           setFormData({
                             ...formData,
-                            estimatedTimeMinutes: e.target.value
-                              ? parseInt(e.target.value)
+                            estimatedTimeMinutes: parsed !== null && !isNaN(parsed) && parsed >= 1
+                              ? parsed
                               : null,
-                          })
-                        }
+                          });
+                        }}
                         placeholder="Não estimado"
                       />
                       <p className="text-xs text-muted-foreground">

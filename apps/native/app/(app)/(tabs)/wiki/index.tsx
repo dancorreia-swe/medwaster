@@ -187,7 +187,9 @@ export default function WikiScreen() {
         selectedLevels.length === 0 ||
         selectedLevels.includes(article.difficulty.label);
 
+      // Only apply category filter when on "categorias" tab
       const matchesCategory =
+        activeTab !== "categorias" ||
         selectedCategories.length === 0 ||
         (!!article.category &&
           selectedCategories.includes(article.category.id));

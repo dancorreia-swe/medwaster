@@ -458,7 +458,6 @@ export default function WikiArticle() {
           categoryName={categoryName}
           categoryColor={categoryColor}
           categoryInitial={categoryInitial}
-          difficulty={articleDifficulty}
           readingTimeMinutes={readingTimeMinutes ?? undefined}
           isRead={articleIsRead}
         />

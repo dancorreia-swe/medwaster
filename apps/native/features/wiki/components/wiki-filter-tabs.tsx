@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Text } from "react-native";
+import { View, TouchableOpacity, Text, ScrollView } from "react-native";
 import { BookOpen, Heart, LayoutGrid, BookOpenCheck } from "lucide-react-native";
 import { Icon } from "@/components/icon";
 
@@ -18,7 +18,11 @@ export function WikiFilterTabs({
   selectedCategoriesCount,
 }: WikiFilterTabsProps) {
   return (
-    <View className="flex-row items-center gap-2.5 mb-7">
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 10, paddingBottom: 28 }}
+    >
       <TouchableOpacity
         onPress={() => onTabChange("todos")}
         className={`flex-row items-center gap-2.5 px-4 py-2 rounded-full min-h-10 ${
@@ -123,6 +127,6 @@ export function WikiFilterTabs({
           </View>
         )}
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }

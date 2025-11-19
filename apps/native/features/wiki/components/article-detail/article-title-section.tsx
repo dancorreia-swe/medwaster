@@ -6,10 +6,6 @@ interface ArticleTitleSectionProps {
   categoryName?: string;
   categoryColor?: string;
   categoryInitial?: string;
-  difficulty?: {
-    label: string;
-    color: string;
-  };
   readingTimeMinutes?: number;
   isRead?: boolean;
 }
@@ -20,7 +16,6 @@ export function ArticleTitleSection({
   categoryName,
   categoryColor,
   categoryInitial,
-  difficulty,
   readingTimeMinutes,
   isRead,
 }: ArticleTitleSectionProps) {
@@ -60,19 +55,6 @@ export function ArticleTitleSection({
             {title}
           </Text>
           <View className="flex-row flex-wrap gap-2 mt-3">
-            {difficulty ? (
-              <View
-                className="px-3 py-1 rounded-full"
-                style={{ backgroundColor: `${difficulty.color}20` }}
-              >
-                <Text
-                  className="text-xs font-semibold text-gray-900 uppercase"
-                  style={{ color: difficulty.color }}
-                >
-                  {difficulty.label}
-                </Text>
-              </View>
-            ) : null}
             {readingTimeMinutes ? (
               <View className="px-3 py-1 rounded-full bg-gray-100">
                 <Text className="text-xs font-semibold text-gray-600 uppercase">

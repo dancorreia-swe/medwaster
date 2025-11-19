@@ -1,6 +1,6 @@
 {
-  "id": "c6d01563-4b73-4bf8-b2ab-22abcc743206",
-  "prevId": "db12cbc3-9e92-4b61-808d-b465cf14e3d1",
+  "id": "b59708a9-2b6e-4146-ab55-f7ee67d41020",
+  "prevId": "e7973d43-6ae6-4419-b49a-b2f6fb3da334",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3327,12 +3327,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "plain_text_prompt": {
-          "name": "plain_text_prompt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "explanation": {
           "name": "explanation",
           "type": "text",
@@ -4771,8 +4765,7 @@
           "name": "attempts_allowed",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "default": 3
+          "notNull": false
         },
         "time_limit_minutes": {
           "name": "time_limit_minutes",
