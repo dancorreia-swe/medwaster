@@ -51,6 +51,8 @@ type MilestonesApiResponse = SuccessResponse<
   }>
 >;
 
+export type ActivityHistoryEntry = ActivityHistoryApiResponse["data"][number];
+
 function assertSuccess<T>(
   response: { data?: SuccessResponse<T>; error?: unknown } | undefined,
   fallbackMessage: string,

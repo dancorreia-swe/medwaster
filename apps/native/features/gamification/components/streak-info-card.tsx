@@ -1,54 +1,118 @@
-import { Text, View, TouchableOpacity } from "react-native";
-import { Flame, Snowflake, Trophy } from "lucide-react-native";
+import { Text, View } from "react-native";
+import { Image } from "expo-image";
+import { Activity, CalendarDays, Trophy } from "lucide-react-native";
 import type { UserStreakResponse } from "@server/modules/gamification/model";
 
 interface StreakInfoCardProps {
   streak: UserStreakResponse;
-  onUseFreeze?: () => void;
 }
 
-export function StreakInfoCard({ streak, onUseFreeze }: StreakInfoCardProps) {
+function formatDateLabel(date?: string | null) {
+  if (!date) return "--";
+
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return "--";
+
+  return parsed.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+export function StreakInfoCard({ streak }: StreakInfoCardProps) {
+  const nextMilestoneDays = streak.nextMilestone?.days ?? null;
+  const milestoneProgress = nextMilestoneDays
+    ? Math.min(streak.currentStreak / nextMilestoneDays, 1)
+    : 0;
+  const streakIllustration = require("../../../assets/streak.png");
+
   return (
-    <View className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+    <View className="bg-white rounded-2xl border border-gray-200 p-5 mb-5">
       {/* Current Streak */}
-      <View className="items-center mb-6">
-        <View className="w-20 h-20 bg-orange-100 rounded-full items-center justify-center mb-3">
-          <Flame size={40} color="#FF6900" strokeWidth={2} />
+      <View className="flex-row items-center justify-between bg-orange-50 rounded-2xl px-5 py-4 mb-6">
+        <View className="flex-1 pr-3">
+          <Text className="text-xs font-semibold text-orange-800 uppercase">
+            Sequência Atual
+          </Text>
+          <Text className="text-4xl font-bold text-gray-900 mt-1">
+            {streak.currentStreak}
+          </Text>
+          <Text className="text-sm text-gray-700">dias consecutivos</Text>
         </View>
-        <Text className="text-4xl font-bold text-gray-900">
-          {streak.currentStreak}
-        </Text>
-        <Text className="text-sm text-gray-600">dias de sequência</Text>
+        <View className="w-20 h-20">
+          <Image
+            source={streakIllustration}
+            contentFit="contain"
+            style={{ width: "100%", height: "100%" }}
+          />
+        </View>
       </View>
 
       {/* Stats Grid */}
-      <View className="flex-row gap-4 mb-6">
-        {/* Longest Streak */}
-        <View className="flex-1 bg-purple-50 rounded-lg p-4 items-center">
-          <Trophy size={20} color="#9810FA" strokeWidth={2} />
-          <Text className="text-2xl font-bold text-purple-900 mt-2">
+      <View className="flex-row gap-4 mb-5">
+        <View className="flex-1 bg-purple-50 rounded-2xl px-5 py-6">
+          <View className="flex-row items-center gap-3 mb-4">
+            <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center">
+              <Trophy size={18} color="#6B21A8" strokeWidth={2} />
+            </View>
+            <Text className="text-xs font-semibold text-purple-900 uppercase flex-1 leading-4">
+              Maior sequência
+            </Text>
+          </View>
+          <Text className="text-4xl font-bold text-purple-900">
             {streak.longestStreak}
           </Text>
-          <Text className="text-xs text-purple-700 text-center mt-1">
-            Maior sequência
+          <Text className="text-xs text-purple-700 mt-2">
+            dias no seu melhor período
           </Text>
         </View>
 
-        {/* Freezes Available */}
-        <View className="flex-1 bg-blue-50 rounded-lg p-4 items-center">
-          <Snowflake size={20} color="#155DFC" strokeWidth={2} />
-          <Text className="text-2xl font-bold text-blue-900 mt-2">
-            {streak.freezesAvailable}
+        <View className="flex-1 bg-blue-50 rounded-2xl px-5 py-6">
+          <View className="flex-row items-center gap-3 mb-4">
+            <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
+              <Activity size={18} color="#1D4ED8" strokeWidth={2} />
+            </View>
+            <Text className="text-xs font-semibold text-blue-900 uppercase flex-1 leading-4">
+              Dias ativos
+            </Text>
+          </View>
+          <Text className="text-4xl font-bold text-blue-900">
+            {streak.totalActiveDays}
           </Text>
-          <Text className="text-xs text-blue-700 text-center mt-1">
-            Congelamentos
+          <Text className="text-xs text-blue-700 mt-2">
+            desde que você entrou
           </Text>
         </View>
       </View>
 
-      {/* Next Milestone */}
+      <View className="bg-gray-50 rounded-xl p-4 mb-5">
+        <Text className="text-xs font-semibold text-gray-600 uppercase">
+          Linha do tempo
+        </Text>
+        <View className="flex-row items-center gap-3 mt-3">
+          <View className="flex-row items-center gap-2 flex-1">
+            <CalendarDays size={16} color="#4B5563" strokeWidth={2} />
+            <View>
+              <Text className="text-xs text-gray-500">Início da sequência</Text>
+              <Text className="text-base font-semibold text-gray-900">
+                {formatDateLabel(streak.currentStreakStartDate)}
+              </Text>
+            </View>
+          </View>
+          <View className="flex-row items-center gap-2 flex-1">
+            <CalendarDays size={16} color="#4B5563" strokeWidth={2} />
+            <View>
+              <Text className="text-xs text-gray-500">Último dia ativo</Text>
+              <Text className="text-base font-semibold text-gray-900">
+                {formatDateLabel(streak.lastActivityDate)}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
       {streak.nextMilestone && (
-        <View className="bg-gray-50 rounded-lg p-4 mb-4">
+        <View className="bg-gray-50 rounded-2xl p-4">
           <Text className="text-xs font-semibold text-gray-600 uppercase mb-2">
             Próxima Conquista
           </Text>
@@ -62,38 +126,18 @@ export function StreakInfoCard({ streak, onUseFreeze }: StreakInfoCardProps) {
             <Text className="text-xs text-gray-600">
               Faltam {streak.daysUntilNextMilestone} dias
             </Text>
-            {streak.nextMilestone.freezeReward > 0 && (
-              <View className="flex-row items-center gap-1">
-                <Snowflake size={12} color="#155DFC" strokeWidth={2} />
-                <Text className="text-xs font-semibold text-primary">
-                  +{streak.nextMilestone.freezeReward}
-                </Text>
-              </View>
-            )}
+            <Text className="text-xs font-semibold text-gray-900">
+              Meta: {streak.nextMilestone.days} dias
+            </Text>
+          </View>
+          <View className="h-2 bg-white rounded-full overflow-hidden mt-3">
+            <View
+              className="h-full bg-orange-500"
+              style={{ width: `${milestoneProgress * 100}%` }}
+            />
           </View>
         </View>
       )}
-
-      {/* Use Freeze Button */}
-      {streak.canUseFreeze && onUseFreeze && (
-        <TouchableOpacity
-          className="bg-blue-600 rounded-lg py-3 items-center"
-          onPress={onUseFreeze}
-        >
-          <Text className="text-white font-semibold">
-            Usar Congelamento
-          </Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Info */}
-      <View className="bg-amber-50 rounded-lg p-3 mt-4">
-        <Text className="text-xs text-amber-900">
-          💡 Complete pelo menos uma atividade por dia para manter sua
-          sequência! Use congelamentos para proteger sua sequência em dias que
-          não puder estudar.
-        </Text>
-      </View>
     </View>
   );
 }
