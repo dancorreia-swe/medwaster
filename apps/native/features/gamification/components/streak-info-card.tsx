@@ -22,11 +22,22 @@ function formatDateLabel(date?: string | null) {
 export function StreakInfoCard({ streak }: StreakInfoCardProps) {
   const currentStreak = Math.max(streak.currentStreak, 1);
   const longestStreak = Math.max(streak.longestStreak, currentStreak);
+  const totalActiveDays = Math.max(streak.totalActiveDays, currentStreak);
   const nextMilestoneDays = streak.nextMilestone?.days ?? null;
   const milestoneProgress = nextMilestoneDays
     ? Math.min(currentStreak / nextMilestoneDays, 1)
     : 0;
   const streakIllustration = require("../../../assets/streak.png");
+
+  // When the backend hasn't persisted streak dates yet (first login), infer "today"
+  const todayIso = new Date().toISOString();
+  const shouldInferStart = currentStreak > 0 && !streak.currentStreakStartDate;
+  const shouldInferLast = currentStreak > 0 && !streak.lastActivityDate;
+  const inferredToday = shouldInferStart || shouldInferLast ? todayIso : null;
+  const startDateForDisplay =
+    streak.currentStreakStartDate ?? streak.lastActivityDate ?? inferredToday;
+  const lastActivityForDisplay =
+    streak.lastActivityDate ?? streak.currentStreakStartDate ?? inferredToday;
 
   return (
     <View className="bg-white rounded-2xl border border-gray-200 p-5 mb-5">
@@ -79,7 +90,7 @@ export function StreakInfoCard({ streak }: StreakInfoCardProps) {
             </Text>
           </View>
           <Text className="text-4xl font-bold text-blue-900">
-            {streak.totalActiveDays}
+            {totalActiveDays}
           </Text>
           <Text className="text-xs text-blue-700 mt-2">
             desde que você entrou
@@ -97,7 +108,7 @@ export function StreakInfoCard({ streak }: StreakInfoCardProps) {
             <View>
               <Text className="text-xs text-gray-500">Início da sequência</Text>
               <Text className="text-base font-semibold text-gray-900">
-                {formatDateLabel(streak.currentStreakStartDate)}
+                {formatDateLabel(startDateForDisplay)}
               </Text>
             </View>
           </View>
@@ -106,7 +117,7 @@ export function StreakInfoCard({ streak }: StreakInfoCardProps) {
             <View>
               <Text className="text-xs text-gray-500">Último dia ativo</Text>
               <Text className="text-base font-semibold text-gray-900">
-                {formatDateLabel(streak.lastActivityDate)}
+                {formatDateLabel(lastActivityForDisplay)}
               </Text>
             </View>
           </View>

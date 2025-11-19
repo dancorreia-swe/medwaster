@@ -438,7 +438,7 @@ export default function WikiArticle() {
   }
 
   return (
-    <Container className="flex-1 bg-gray-50">
+    <Container className="flex-1">
       <ArticleHeader
         articleIsFavorite={articleIsFavorite}
         onToggleFavorite={handleFavoriteToggle}

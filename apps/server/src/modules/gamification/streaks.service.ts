@@ -41,10 +41,16 @@ export class StreaksService {
       streak.longestStreak,
       normalizedCurrentStreak,
     );
+    const normalizedTotalActiveDays = Math.max(
+      streak.totalActiveDays,
+      normalizedCurrentStreak,
+    );
+
     const normalizedStreak = {
       ...streak,
       currentStreak: normalizedCurrentStreak,
       longestStreak: normalizedLongestStreak,
+      totalActiveDays: normalizedTotalActiveDays,
     };
 
     const nextMilestone = await this.getNextMilestone(
@@ -237,7 +243,6 @@ export class StreaksService {
       new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
     );
 
-    // Find all streaks where last activity was 2+ days ago
     const streaksToBreak = await db.query.userStreaks.findMany({
       where: and(
         sql`${userStreaks.currentStreak} > 0`,
@@ -246,7 +251,6 @@ export class StreaksService {
     });
 
     for (const streak of streaksToBreak) {
-      // Check if they used a freeze yesterday
       const yesterdayActivity = await db.query.userDailyActivities.findFirst({
         where: and(
           eq(userDailyActivities.userId, streak.userId),
@@ -255,7 +259,6 @@ export class StreaksService {
       });
 
       if (!yesterdayActivity?.freezeUsed) {
-        // Break the streak
         await db
           .update(userStreaks)
           .set({
