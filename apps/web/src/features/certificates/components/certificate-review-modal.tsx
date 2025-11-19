@@ -92,7 +92,10 @@ export function CertificateReviewModal({
           {/* User Info */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-lg border bg-muted/50">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={undefined} alt={certificate.user.name} />
+              <AvatarImage
+                src={certificate.user.image ?? undefined}
+                alt={certificate.user.name}
+              />
               <AvatarFallback className="text-lg">{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">

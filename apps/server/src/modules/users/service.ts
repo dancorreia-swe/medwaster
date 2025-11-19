@@ -11,10 +11,12 @@ import {
 	userQuestionAttempts,
 } from "@/db/schema/trails";
 import { quizzes, quizAttempts } from "@/db/schema/quizzes";
+import { certificates } from "@/db/schema/certificates";
 import { BadRequestError, ConflictError, NotFoundError } from "@/lib/errors";
 import {
 	and,
 	count,
+	desc,
 	eq,
 	ilike,
 	inArray,
@@ -83,6 +85,23 @@ export abstract class UsersService {
 			orderBy: (user, { desc }) => [desc(user.createdAt)],
 		});
 
+		const userIds = users.map((record) => record.id);
+		let certificatesMap = new Map<string, { status: string; verificationCode?: string | null }>();
+		if (userIds.length > 0) {
+			const certificateRows = await db.query.certificates.findMany({
+				where: inArray(certificates.userId, userIds),
+				orderBy: (certificate, { desc }) => [desc(certificate.createdAt)],
+			});
+			for (const cert of certificateRows) {
+				if (!certificatesMap.has(cert.userId)) {
+					certificatesMap.set(cert.userId, {
+						status: cert.status,
+						verificationCode: cert.verificationCode,
+					});
+				}
+			}
+		}
+
 		// Get total count
 		const [{ total }] = await db
 			.select({ total: count() })
@@ -90,7 +109,10 @@ export abstract class UsersService {
 			.where(whereClause || sql`true`);
 
 		return {
-			users: users.map(mapUserRecord),
+			users: users.map((record) => ({
+				...mapUserRecord(record),
+				certificate: certificatesMap.get(record.id) ?? null,
+			})),
 			pagination: {
 				page,
 				pageSize,
@@ -247,11 +269,26 @@ export abstract class UsersService {
 				  )
 				: null;
 
+		const certificate = await db.query.certificates.findFirst({
+			where: eq(certificates.userId, userId),
+			orderBy: (certificate, { desc }) => [desc(certificate.createdAt)],
+		});
+
 		const tracked = Number(achievementSummary?.tracked ?? 0);
 		const unlocked = Number(achievementSummary?.unlocked ?? 0);
 
+		const userSummary = {
+			...userRecord,
+			certificate: certificate
+				? {
+					status: certificate.status,
+					verificationCode: certificate.verificationCode,
+				}
+				: null,
+		};
+
 		return {
-			user: userRecord,
+			user: userSummary,
 			stats: {
 				achievements: {
 					tracked,
@@ -280,6 +317,14 @@ export abstract class UsersService {
 				},
 				lastActivityAt,
 			},
+			certificate: certificate
+				? {
+					status: certificate.status,
+					verificationCode: certificate.verificationCode,
+					certificateUrl: certificate.certificateUrl,
+					issuedAt: certificate.issuedAt,
+				  }
+				: null,
 		};
 	}
 

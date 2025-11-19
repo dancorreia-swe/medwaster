@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, ScrollView, TextInput } from "react-native";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import {
   CheckCircle2,
   XCircle,
@@ -8,7 +8,7 @@ import {
   TrendingUp,
 } from "lucide-react-native";
 import { Image } from "react-native";
-import { PIConfetti, type ConfettiMethods } from "react-native-fast-confetti";
+import { ParticleDrizzle } from "@/components/particle-drizzle";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -33,7 +33,6 @@ export function QuizResults({
 }: QuizResultsProps) {
   const { score, earnedPoints, totalPoints, correctCount, incorrectCount, passed, timeSpentSeconds } = results;
   const accent = "#2563EB";
-  const confettiRef = useRef<ConfettiMethods | null>(null);
 
   // Animated score counter
   const animatedScore = useSharedValue(0);
@@ -46,17 +45,6 @@ export function QuizResults({
       easing: Easing.inOut(Easing.cubic),
     });
 
-    let drizzleTimeout: NodeJS.Timeout | null = null;
-    if (passed) {
-      drizzleTimeout = setTimeout(() => {
-        confettiRef.current?.restart();
-      }, 3000);
-    }
-    return () => {
-      if (drizzleTimeout) {
-        clearTimeout(drizzleTimeout);
-      }
-    };
   }, [passed, score]);
 
   const totalQuestions = correctCount + incorrectCount;
@@ -196,9 +184,7 @@ export function QuizResults({
           </View>
         </View>
 
-        {/* Action Buttons */}
         <View className="gap-3">
-          {/* Continue Button */}
           <TouchableOpacity
             onPress={onContinue}
             className="rounded-2xl py-5 items-center"
@@ -212,31 +198,7 @@ export function QuizResults({
         </View>
       </ScrollView>
 
-      {/* Particle drizzle overlay */}
-      {passed && (
-        <PIConfetti
-          ref={confettiRef}
-          count={24}
-          colors={["#2563EB", "#10B981", "#FACC15", "#FFFFFF"]}
-          fallDuration={1400}
-          blastDuration={320}
-          fadeOutOnEnd
-          radiusRange={[2, 4]}
-          sizeVariation={0.3}
-          randomOffset={{
-            x: { min: -40, max: 40 },
-            y: { min: 0, max: 80 },
-          }}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            pointerEvents: "none",
-          }}
-        />
-      )}
+      <ParticleDrizzle active={passed} delay={3000} />
     </View>
   );
 }

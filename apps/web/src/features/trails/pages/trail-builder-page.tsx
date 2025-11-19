@@ -74,15 +74,13 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
   useEffect(() => {
     const requested = initialTab || "basic";
     const isUnlockedTab =
-      requested === "basic" || (!!localTrailId && (requested === "content" || requested === "prerequisites"));
+      requested === "basic" ||
+      (!!localTrailId &&
+        (requested === "content" || requested === "prerequisites"));
 
-    // Fallback to a safe tab if the requested one isn't available.
     const nextTab = isUnlockedTab ? requested : "basic";
-
-    if (nextTab !== activeTab) {
-      setActiveTab(nextTab);
-    }
-  }, [initialTab, localTrailId, activeTab]);
+    setActiveTab((prev) => (prev === nextTab ? prev : nextTab));
+  }, [initialTab, localTrailId]);
 
   // Update local content when trail data loads
   useEffect(() => {
@@ -416,7 +414,7 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
             />
           </TabsContent>
 
-          <TabsContent value="content" className="space-y-6">
+          <TabsContent value="content" className="space-y-6 pt-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-3">
@@ -445,7 +443,7 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
             />
           </TabsContent>
 
-          <TabsContent value="prerequisites" className="space-y-6">
+          <TabsContent value="prerequisites" className="space-y-6 pt-4">
             <PrerequisitesSelector
               trailId={localTrailId}
               prerequisites={

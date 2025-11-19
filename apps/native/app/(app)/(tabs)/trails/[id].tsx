@@ -237,6 +237,10 @@ export default function JourneyDetail() {
     const showConnector = index < modules.length - 1;
     const moduleType = module.type || "article";
     const style = moduleStyles[moduleType] || moduleStyles.article; // Fallback to article style
+    const totalQuestions =
+      module.questions ??
+      module.quiz?.questions?.length ??
+      0;
 
     const handleModulePress = () => {
       if (module.status === "locked") return;
@@ -283,9 +287,9 @@ export default function JourneyDetail() {
                   >
                     {module.title || "Conteúdo"}
                   </Text>
-                  {module.questions && module.type === "quiz" && (
+                  {totalQuestions > 0 && module.type === "quiz" && (
                     <Text className="text-gray-500 text-base">
-                      {module.questions} questões
+                      {totalQuestions} questões
                     </Text>
                   )}
                   {module.instructor && (
@@ -315,9 +319,9 @@ export default function JourneyDetail() {
               </View>
 
               {/* Progress bars for quizzes */}
-              {module.questions && module.type === "quiz" && (
+              {totalQuestions > 0 && module.type === "quiz" && (
                 <View className="flex-row gap-2 mb-5">
-                  {Array.from({ length: module.questions || 0 }).map((_, i) => (
+                  {Array.from({ length: totalQuestions }).map((_, i) => (
                     <View
                       key={i}
                       style={{ backgroundColor: `${style.borderColor}40` }}
@@ -367,21 +371,21 @@ export default function JourneyDetail() {
                   </View>
                 </View>
 
-                {/* Content */}
-                <View className="flex-1">
-                  <Text className="text-gray-900 text-base font-semibold mb-1">
-                    {module.title || "Conteúdo"}
-                  </Text>
-                  {module.instructor && (
-                    <Text className="text-gray-500 text-sm">
-                      {module.instructor}
-                    </Text>
-                  )}
-                  {module.questions && module.type === "quiz" && (
-                    <Text className="text-gray-500 text-sm">
-                      {module.questions} questões
-                    </Text>
-                  )}
+        {/* Content */}
+        <View className="flex-1">
+          <Text className="text-gray-900 text-base font-semibold mb-1">
+            {module.title || "Conteúdo"}
+          </Text>
+          {module.instructor && (
+            <Text className="text-gray-500 text-sm">
+              {module.instructor}
+            </Text>
+          )}
+          {totalQuestions > 0 && module.type === "quiz" && (
+            <Text className="text-gray-500 text-sm">
+              {totalQuestions} questões
+            </Text>
+          )}
                   {/* Question Type Badge */}
                   {module.type === "question" && module.questionType && (
                     <View className="flex-row items-center gap-1.5 mt-1">
@@ -403,16 +407,35 @@ export default function JourneyDetail() {
                 </View>
 
                 {/* Progress Indicator - Only for quizzes */}
-                {module.status === "completed" && module.type === "quiz" && (
-                  <View className="flex-row gap-2">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <View
-                        key={i}
-                        className="w-2 h-2 bg-green-500 rounded-full"
-                      />
-                    ))}
-                  </View>
-                )}
+                {module.status === "completed" &&
+                  module.type === "quiz" &&
+                  (() => {
+                    const questionCount = totalQuestions;
+                    const dotsToShow = Math.max(
+                      Math.min(questionCount || 1, 6),
+                      1,
+                    );
+                    const remaining =
+                      questionCount > dotsToShow
+                        ? questionCount - dotsToShow
+                        : 0;
+
+                    return (
+                      <View className="flex-row items-center gap-1.5">
+                        {Array.from({ length: dotsToShow }).map((_, i) => (
+                          <View
+                            key={i}
+                            className="w-2 h-2 bg-green-500 rounded-full"
+                          />
+                        ))}
+                        {remaining > 0 && (
+                          <Text className="text-[10px] font-semibold text-green-700">
+                            +{remaining}
+                          </Text>
+                        )}
+                      </View>
+                    );
+                  })()}
               </View>
             </View>
           )}

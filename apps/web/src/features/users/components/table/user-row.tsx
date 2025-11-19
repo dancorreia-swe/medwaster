@@ -25,6 +25,9 @@ import {
   ShieldCheck,
   Trash2,
   UserX,
+  Award,
+  XCircle,
+  Clock8,
 } from "lucide-react";
 
 interface UserRowProps {
@@ -40,6 +43,10 @@ interface UserRowProps {
     banExpires?: Date | string | null;
     createdAt: Date | string;
     updatedAt: Date | string;
+    certificate?: {
+      status: "pending" | "approved" | "rejected" | "revoked";
+      verificationCode?: string;
+    } | null;
   };
   onEdit?: (user: any) => void;
   onDelete?: (user: any) => void;
@@ -78,23 +85,37 @@ export function UserRow({ user, onEdit, onDelete, onView }: UserRowProps) {
       </TableCell>
 
       <TableCell>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">{user.email}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">{user.email}</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    {user.emailVerified ? (
+                      <MailCheck className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <MailX className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {user.emailVerified
+                    ? "Email verificado"
+                    : "Email não verificado"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  {user.emailVerified ? (
-                    <MailCheck className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <MailX className="h-4 w-4 text-muted-foreground" />
-                  )}
+                  <CertificateIcon status={user.certificate?.status} />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                {user.emailVerified
-                  ? "Email verificado"
-                  : "Email não verificado"}
+                {getCertificateTooltip(user.certificate)}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -180,4 +201,46 @@ export function UserRow({ user, onEdit, onDelete, onView }: UserRowProps) {
       </TableCell>
     </TableRow>
   );
+}
+
+const certificateIconConfig = {
+  approved: { icon: Award, className: "text-blue-600" },
+  pending: { icon: Clock8, className: "text-amber-500" },
+  rejected: { icon: XCircle, className: "text-red-500" },
+  revoked: { icon: XCircle, className: "text-red-500" },
+} as const;
+
+function CertificateIcon({ status }: { status?: string }) {
+  if (!status) {
+    return <XCircle className="h-4 w-4 text-muted-foreground/60" />;
+  }
+  const config =
+    certificateIconConfig[status as keyof typeof certificateIconConfig];
+  const Icon = config?.icon ?? XCircle;
+  return (
+    <Icon
+      className={`h-4 w-4 ${config?.className ?? "text-muted-foreground"}`}
+    />
+  );
+}
+
+function getCertificateTooltip(
+  certificate?: { status?: string; verificationCode?: string } | null,
+) {
+  if (!certificate?.status) {
+    return "Certificado ainda não solicitado";
+  }
+
+  const labels: Record<string, string> = {
+    pending: "Certificado em revisão",
+    approved: "Certificado aprovado",
+    rejected: "Certificado rejeitado",
+    revoked: "Certificado revogado",
+  };
+
+  const label = labels[certificate.status] ?? "Status desconhecido";
+  if (certificate.verificationCode) {
+    return `${label} - ${certificate.verificationCode}`;
+  }
+  return label;
 }

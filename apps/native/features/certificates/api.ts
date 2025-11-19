@@ -22,6 +22,7 @@ export interface Certificate {
     id: string;
     name: string;
     email: string;
+    image?: string | null;
   };
 }
 
@@ -45,9 +46,13 @@ export async function getUserCertificate(): Promise<GetCertificateResponse> {
 /**
  * React Query hook to fetch user's certificate
  */
+export const certificateKeys = {
+  user: ["certificate"] as const,
+};
+
 export function useUserCertificate() {
   return useQuery({
-    queryKey: ["certificate"],
+    queryKey: certificateKeys.user,
     queryFn: getUserCertificate,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

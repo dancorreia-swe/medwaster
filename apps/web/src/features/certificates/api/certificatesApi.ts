@@ -18,6 +18,19 @@ function throwEdenError(error: EdenError, fallbackMessage: string): never {
 	throw err;
 }
 
+export type CertificateVerificationResult =
+  | {
+      isValid: true;
+      userName: string;
+      issuedAt: string | null;
+      averageScore: number;
+      totalTrailsCompleted: number;
+    }
+  | {
+      isValid: false;
+      message?: string;
+    };
+
 export const certificatesApi = {
 	getPending: async () => {
 		const response = await certificatesClient.pending.get();
@@ -63,5 +76,13 @@ export const certificatesApi = {
 			throwEdenError(response.error as EdenError, "Failed to revoke certificate");
 		}
 		return response.data;
+	},
+
+	verifyCertificate: async (code: string) => {
+		const response = await client.certificates.verify({ code }).get();
+		if (response.error) {
+			throwEdenError(response.error as EdenError, "Falha ao verificar certificado");
+		}
+		return response.data as CertificateVerificationResult;
 	},
 };

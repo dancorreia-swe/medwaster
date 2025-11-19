@@ -10,6 +10,9 @@ export interface UserSummary {
   banExpires?: string | null;
   createdAt: string;
   updatedAt: string;
+  certificate?: {
+    status: "pending" | "approved" | "rejected" | "revoked";
+  } | null;
 }
 
 export interface UserOverviewStats {
@@ -38,6 +41,12 @@ export interface UserOverviewStats {
 export interface UserOverview {
   user: UserSummary;
   stats: UserOverviewStats;
+  certificate?: {
+    status: "pending" | "approved" | "rejected" | "revoked";
+    verificationCode: string;
+    certificateUrl?: string | null;
+    issuedAt?: string | null;
+  } | null;
 }
 
 export interface UserAchievementDetail {

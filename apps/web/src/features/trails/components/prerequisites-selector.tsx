@@ -37,7 +37,9 @@ export function PrerequisitesSelector({
 }: PrerequisitesSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [selectedTrailIds, setSelectedTrailIds] = useState<Set<number>>(new Set());
+  const [selectedTrailIds, setSelectedTrailIds] = useState<Set<number>>(
+    new Set(),
+  );
 
   // Fetch available trails
   const { data: trails } = useQuery({
@@ -50,13 +52,12 @@ export function PrerequisitesSelector({
   });
 
   const existingPrerequisiteIds = new Set(
-    prerequisites.map((p) => p.prerequisiteTrailId)
+    prerequisites.map((p) => p.prerequisiteTrailId),
   );
 
   const availableTrails =
     trails?.data.filter(
-      (trail) =>
-        trail.id !== trailId && !existingPrerequisiteIds.has(trail.id)
+      (trail) => trail.id !== trailId && !existingPrerequisiteIds.has(trail.id),
     ) || [];
 
   const toggleSelection = (trailId: number) => {
@@ -106,8 +107,8 @@ export function PrerequisitesSelector({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-medium">Pré-requisitos</h3>
-          <p className="text-xs text-muted-foreground mt-1">
+          <h2 className="text-xl font-semibold">Pré-requisitos</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             Trilhas que devem ser completadas antes desta
           </p>
         </div>
@@ -158,7 +159,9 @@ export function PrerequisitesSelector({
                         <Card
                           key={trail.id}
                           className={`p-4 cursor-pointer transition-colors ${
-                            isSelected ? "bg-accent border-primary" : "hover:bg-accent"
+                            isSelected
+                              ? "bg-accent border-primary"
+                              : "hover:bg-accent"
                           }`}
                           onClick={() => toggleSelection(trail.id)}
                         >
@@ -167,7 +170,9 @@ export function PrerequisitesSelector({
                               <div className="mt-1 flex items-center gap-2">
                                 <Checkbox
                                   checked={isSelected}
-                                  onCheckedChange={() => toggleSelection(trail.id)}
+                                  onCheckedChange={() =>
+                                    toggleSelection(trail.id)
+                                  }
                                   onClick={(e) => e.stopPropagation()}
                                 />
                                 <Lock className="h-4 w-4" />
@@ -183,17 +188,22 @@ export function PrerequisitesSelector({
                                 )}
                                 <div className="flex items-center gap-2 mt-2">
                                   <Badge
-                                    variant={getDifficultyColor(trail.difficulty)}
+                                    variant={getDifficultyColor(
+                                      trail.difficulty,
+                                    )}
                                     className="text-xs"
                                   >
                                     {trail.difficulty === "basic"
                                       ? "Básico"
                                       : trail.difficulty === "intermediate"
-                                      ? "Intermediário"
-                                      : "Avançado"}
+                                        ? "Intermediário"
+                                        : "Avançado"}
                                   </Badge>
                                   {trail.unlockOrder !== null && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
                                       #{trail.unlockOrder}
                                     </Badge>
                                   )}
@@ -215,7 +225,10 @@ export function PrerequisitesSelector({
                 <div className="text-sm text-muted-foreground">
                   {selectedTrailIds.size > 0 ? (
                     <span className="font-medium">
-                      {selectedTrailIds.size} {selectedTrailIds.size === 1 ? "trilha selecionada" : "trilhas selecionadas"}
+                      {selectedTrailIds.size}{" "}
+                      {selectedTrailIds.size === 1
+                        ? "trilha selecionada"
+                        : "trilhas selecionadas"}
                     </span>
                   ) : (
                     <span>Nenhuma trilha selecionada</span>
@@ -237,7 +250,10 @@ export function PrerequisitesSelector({
                     disabled={selectedTrailIds.size === 0}
                   >
                     <Plus className="mr-2 h-4 w-4" />
-                    Adicionar {selectedTrailIds.size > 0 ? `(${selectedTrailIds.size})` : ""}
+                    Adicionar{" "}
+                    {selectedTrailIds.size > 0
+                      ? `(${selectedTrailIds.size})`
+                      : ""}
                   </Button>
                 </div>
               </div>
@@ -267,16 +283,16 @@ export function PrerequisitesSelector({
                       <div className="flex items-center gap-2 mt-1">
                         <Badge
                           variant={getDifficultyColor(
-                            prereq.prerequisiteTrail.difficulty
+                            prereq.prerequisiteTrail.difficulty,
                           )}
                           className="text-xs"
                         >
                           {prereq.prerequisiteTrail.difficulty === "basic"
                             ? "Básico"
                             : prereq.prerequisiteTrail.difficulty ===
-                              "intermediate"
-                            ? "Intermediário"
-                            : "Avançado"}
+                                "intermediate"
+                              ? "Intermediário"
+                              : "Avançado"}
                         </Badge>
                       </div>
                     )}

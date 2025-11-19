@@ -13,6 +13,7 @@ import {
   fetchRecommendedCategories,
 } from "./api";
 import { gamificationKeys } from "../gamification/hooks";
+import { certificateKeys } from "../certificates";
 
 // ============================================================================
 // Query Keys
@@ -154,6 +155,7 @@ export function useSubmitTrailQuestion() {
       queryClient.invalidateQueries({ queryKey: trailKeys.content(trailId) });
       queryClient.invalidateQueries({ queryKey: trailKeys.detail(trailId) });
       queryClient.invalidateQueries({ queryKey: trailKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: certificateKeys.user });
 
       // Invalidate gamification data
       queryClient.invalidateQueries({ queryKey: gamificationKeys.missions() });
@@ -218,6 +220,7 @@ export function useSubmitTrailQuiz() {
       queryClient.invalidateQueries({ queryKey: trailKeys.content(trailId) });
       queryClient.invalidateQueries({ queryKey: trailKeys.detail(trailId) });
       queryClient.invalidateQueries({ queryKey: trailKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: certificateKeys.user });
 
       // Invalidate gamification data
       queryClient.invalidateQueries({ queryKey: gamificationKeys.missions() });
@@ -252,6 +255,7 @@ export function useMarkTrailArticleRead() {
       queryClient.invalidateQueries({ queryKey: trailKeys.content(trailId) });
       queryClient.invalidateQueries({ queryKey: trailKeys.detail(trailId) });
       queryClient.invalidateQueries({ queryKey: trailKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: certificateKeys.user });
 
       // Invalidate gamification data
       queryClient.invalidateQueries({ queryKey: gamificationKeys.missions() });

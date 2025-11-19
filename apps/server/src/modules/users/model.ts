@@ -49,6 +49,17 @@ export const userResponse = t.Object({
 	banExpires: t.Nullable(t.Date()),
 	createdAt: t.Date(),
 	updatedAt: t.Date(),
+	certificate: t.Nullable(
+		t.Object({
+			status: t.Union([
+				t.Literal("pending"),
+				t.Literal("approved"),
+				t.Literal("rejected"),
+				t.Literal("revoked"),
+			]),
+			verificationCode: t.Optional(t.String()),
+		}),
+	),
 });
 
 export type UserResponse = typeof userResponse.static;
@@ -84,6 +95,19 @@ export const userOverviewResponse = t.Object({
 		}),
 		lastActivityAt: t.Nullable(t.Date()),
 	}),
+	certificate: t.Nullable(
+		t.Object({
+			status: t.Union([
+				t.Literal("pending"),
+				t.Literal("approved"),
+				t.Literal("rejected"),
+				t.Literal("revoked"),
+			]),
+			verificationCode: t.String(),
+			certificateUrl: t.Nullable(t.String()),
+			issuedAt: t.Nullable(t.Date()),
+		}),
+	),
 });
 
 export type UserOverviewResponse = typeof userOverviewResponse.static;

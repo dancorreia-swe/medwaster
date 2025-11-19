@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity, Share, Linking, Alert } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity, Share, Linking, Alert, Image } from "react-native";
 import { Container } from "@/components/container";
 import { useUserCertificate, getCertificateDownloadUrl } from "@/features/certificates/api";
 import { Award, CheckCircle2, Clock, ChevronLeft, Share2, Download } from "lucide-react-native";
@@ -61,17 +61,27 @@ export default function CertificatesScreen() {
     
     try {
       const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
-      const pdfUrl = certificate.certificateUrl 
-        ? `${serverUrl}${certificate.certificateUrl}` 
-        : null;
+      const rawUrl = certificate.certificateUrl;
+      const pdfUrl = rawUrl
+        ? rawUrl.startsWith("http")
+          ? rawUrl
+          : `${serverUrl}${rawUrl}`
+        : undefined;
 
-      await Share.share({
-        message: `🎓 Conquistei meu Certificado de Conclusão no MedWaster!
+      const baseMessage = `🎓 Conquistei meu Certificado de Conclusão no MedWaster!\n\n${certificate.totalTrailsCompleted} trilhas • ${certificate.averageScore.toFixed(1)}% de média\n\nCódigo: ${certificate.verificationCode}`;
 
-${certificate.totalTrailsCompleted} trilhas • ${certificate.averageScore.toFixed(1)}% de média
-
-Código: ${certificate.verificationCode}${pdfUrl ? `\n\nBaixar certificado: ${pdfUrl}` : ""}`,
-      });
+      if (pdfUrl) {
+        await Share.share({
+          title: "Meu certificado MedWaster",
+          message: `${baseMessage}\n\nBaixar certificado: ${pdfUrl}`,
+          url: pdfUrl,
+        });
+      } else {
+        await Share.share({
+          title: "Meu certificado MedWaster",
+          message: baseMessage,
+        });
+      }
     } catch (error) {
       console.error("Error sharing:", error);
     }
@@ -133,6 +143,39 @@ Código: ${certificate.verificationCode}${pdfUrl ? `\n\nBaixar certificado: ${pd
   const isApproved = certificate.status === "approved";
   const isRejected = certificate.status === "rejected";
 
+  const statusContent = {
+    pending: {
+      badgeLabel: "Em revisão",
+      badgeBg: "border-yellow-200 bg-yellow-50",
+      badgeText: "text-yellow-900",
+      heroTitle: "Estamos revisando seu certificado",
+      heroDescription: "Nossa equipe confere suas trilhas e notas. Isso pode levar até 2 dias úteis.",
+      heroBackground: "#F59E0B",
+      description: "Assim que tudo estiver validado enviaremos uma notificação e você poderá baixar o documento.",
+    },
+    approved: {
+      badgeLabel: "Certificado liberado",
+      badgeBg: "border-blue-200 bg-blue-50",
+      badgeText: "text-blue-900",
+      heroTitle: "Parabéns! Seu certificado foi aprovado",
+      heroDescription: "Faça o download em PDF e compartilhe com seu time.",
+      heroBackground: "#155DFC",
+      description: "Você já pode baixar o documento oficialmente reconhecido e divulgar suas conquistas.",
+    },
+    rejected: {
+      badgeLabel: "Ajustes necessários",
+      badgeBg: "border-red-200 bg-red-50",
+      badgeText: "text-red-900",
+      heroTitle: "Precisamos de algumas correções",
+      heroDescription: "Revise o feedback e envie novamente para nova avaliação.",
+      heroBackground: "#DC2626",
+      description: "Se tiver dúvidas sobre o que precisa ser corrigido, consulte o motivo indicado abaixo.",
+    },
+  } as const;
+
+  const currentStatus =
+    statusContent[certificate.status as keyof typeof statusContent] ?? statusContent.pending;
+
   return (
     <Container className="flex-1 bg-gray-50">
       {/* Header with Back Button */}
@@ -148,10 +191,39 @@ Código: ${certificate.verificationCode}${pdfUrl ? `\n\nBaixar certificado: ${pd
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-6 py-8">
+          <View className="mb-4">
+            <View
+              className={`self-start rounded-full px-4 py-1 border ${currentStatus.badgeBg}`}
+            >
+              <Text className={`text-xs font-semibold uppercase tracking-wider ${currentStatus.badgeText}`}>
+                {currentStatus.badgeLabel}
+              </Text>
+            </View>
+          </View>
+
+          <View
+            className="rounded-3xl overflow-hidden mb-6"
+            style={{ backgroundColor: currentStatus.heroBackground }}
+          >
+            <View className="flex-row items-center px-5 py-6 gap-4">
+              <Image
+                source={require("@/assets/graduation.png")}
+                style={{ width: 88, height: 88 }}
+                resizeMode="contain"
+              />
+              <View className="flex-1">
+                <Text className="text-white text-xl font-semibold mb-1">
+                  {currentStatus.heroTitle}
+                </Text>
+                <Text className="text-white/90 text-sm leading-relaxed">
+                  {currentStatus.heroDescription}
+                </Text>
+              </View>
+            </View>
+          </View>
+
           <Text className="text-base text-gray-600 mb-8">
-            {isPending && "Aguardando aprovação"}
-            {isApproved && "Aprovado"}
-            {isRejected && "Rejeitado"}
+            {currentStatus.description}
           </Text>
 
           {/* Status Banner */}

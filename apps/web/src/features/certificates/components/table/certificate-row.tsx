@@ -88,7 +88,10 @@ export function CertificateRow({ certificate, onApprove, onReject, onView }: Cer
 			<TableCell>
 				<div className="flex items-center gap-3">
 					<Avatar className="h-8 w-8">
-						<AvatarImage src={undefined} alt={certificate.user.name} />
+						<AvatarImage
+							src={certificate.user.image ?? undefined}
+							alt={certificate.user.name}
+						/>
 						<AvatarFallback>{initials}</AvatarFallback>
 					</Avatar>
 					<div className="flex flex-col">

@@ -165,6 +165,19 @@ export abstract class CertificateService {
       .returning();
 
     console.log(`  ✅ Certificate created successfully (ID: ${certificate.id})`);
+
+    // Track achievement immediately so user sees it after last trail
+    try {
+      await trackCertificateEarned(
+        userId,
+        certificate.id,
+        Number(stats.averageScore) || 0,
+      );
+      console.log(`  🏆 Tracked certificate achievement for user ${userId}`);
+    } catch (error) {
+      console.error("  ✗ Failed to track certificate achievement:", error);
+    }
+
     return certificate;
   }
 
@@ -180,6 +193,7 @@ export abstract class CertificateService {
             id: true,
             name: true,
             email: true,
+            image: true,
           },
         },
         reviewer: {
@@ -206,6 +220,7 @@ export abstract class CertificateService {
             id: true,
             name: true,
             email: true,
+            image: true,
           },
         },
       },
@@ -247,6 +262,7 @@ export abstract class CertificateService {
       totalTimeMinutes: certificate.totalTimeMinutes,
       completionDate: certificate.allTrailsCompletedAt,
       verificationCode: certificate.verificationCode,
+      userImageUrl: certificate.user.image,
     });
 
     // Update certificate status
@@ -263,18 +279,6 @@ export abstract class CertificateService {
       })
       .where(eq(certificates.id, certificateId))
       .returning();
-
-    // Track achievement for certificate earned
-    try {
-      await trackCertificateEarned(
-        certificate.userId,
-        certificateId,
-        certificate.averageScore,
-      );
-      console.log(`🏆 Tracked certificate achievement for user ${certificate.userId}`);
-    } catch (error) {
-      console.error("Failed to track certificate achievement:", error);
-    }
 
     // TODO: Send notification to user
     // await notificationService.send(certificate.userId, {

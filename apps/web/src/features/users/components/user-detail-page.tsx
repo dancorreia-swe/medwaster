@@ -12,7 +12,8 @@ import { UserForm } from "./user-form";
 import { userOverviewQueryOptions } from "../api/usersQueries";
 import type { UserOverview } from "../types";
 import { formatDate } from "@/lib/utils";
-import { MailCheck, MailX } from "lucide-react";
+import { MailCheck, MailX, Award, Link as LinkIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { UserAchievementsTab } from "./user-achievements-tab";
 import { UserTrailsTab } from "./user-trails-tab";
 import { UserQuizzesTab } from "./user-quizzes-tab";
@@ -86,6 +87,12 @@ export function UserDetailPage({ userId }: UserDetailPageProps) {
   );
 
   const roleLabel = user.role ? roleLabels[user.role] || user.role : null;
+  const certificate = overview.certificate;
+  const certificateUrl = certificate?.certificateUrl
+    ? certificate.certificateUrl.startsWith("http")
+      ? certificate.certificateUrl
+      : `${import.meta.env.VITE_SERVER_URL}${certificate.certificateUrl}`
+    : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -168,6 +175,58 @@ export function UserDetailPage({ userId }: UserDetailPageProps) {
           </div>
 
           <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground">
+                    Certificado
+                  </h3>
+                  {certificate ? (
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <CertificateBadge status={certificate.status} />
+                      <p>
+                        Código:&nbsp;
+                        <span className="font-mono text-base text-foreground">
+                          {certificate.verificationCode}
+                        </span>
+                      </p>
+                      {certificate.issuedAt && (
+                        <p>
+                          Emitido em {formatDate(certificate.issuedAt)}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Este usuário ainda não possui certificado.
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {certificateUrl && (
+                    <Button asChild variant="outline" className="gap-2">
+                      <a href={certificateUrl} target="_blank" rel="noreferrer">
+                        <LinkIcon className="h-4 w-4" /> Ver PDF
+                      </a>
+                    </Button>
+                  )}
+                  {certificate && (
+                    <Button asChild variant="ghost" className="gap-2">
+                      <Link
+                        to="/verify/certificate/$code"
+                        params={{ code: certificate.verificationCode }}
+                        target="_blank"
+                      >
+                        <LinkIcon className="h-4 w-4" /> Página pública
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardContent className="grid gap-6 pt-6 md:grid-cols-2">
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground">
@@ -228,5 +287,36 @@ function StatCard({ title, value, description }: StatCardProps) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+const certificateStatusStyles: Record<string, { label: string; className: string }> = {
+  pending: {
+    label: "Em revisão",
+    className: "border-yellow-200 bg-yellow-50 text-yellow-900",
+  },
+  approved: {
+    label: "Certificado liberado",
+    className: "border-green-200 bg-green-50 text-green-900",
+  },
+  rejected: {
+    label: "Rejeitado",
+    className: "border-red-200 bg-red-50 text-red-900",
+  },
+  revoked: {
+    label: "Revogado",
+    className: "border-red-200 bg-red-50 text-red-900",
+  },
+};
+
+function CertificateBadge({ status }: { status: string }) {
+  const config = certificateStatusStyles[status] ?? certificateStatusStyles.pending;
+  return (
+    <Badge
+      variant="outline"
+      className={`text-xs font-semibold ${config.className}`}
+    >
+      {config.label}
+    </Badge>
   );
 }

@@ -11,7 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef } from "react";
-import { PIConfetti, type ConfettiMethods } from "react-native-fast-confetti";
+import { ParticleDrizzle } from "@/components/particle-drizzle";
 import { ChevronRight, Clock, Target } from "lucide-react-native";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -46,12 +46,8 @@ export default function TrailCelebrationScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   const ctaPulse = useRef(new Animated.Value(1)).current;
-  const confettiRef = useRef<ConfettiMethods | null>(null);
 
   useEffect(() => {
-    // Trigger confetti
-    confettiRef.current?.restart();
-
     // Start animations
     Animated.parallel([
       Animated.spring(slideAnim, {
@@ -121,29 +117,7 @@ export default function TrailCelebrationScreen() {
 
   return (
     <Container className="flex-1 bg-gray-50" edges={["top"]}>
-      {/* Confetti drizzle */}
-      <PIConfetti
-        ref={confettiRef}
-        count={28}
-        colors={["#2563EB", "#10B981", "#FACC15", "#FFFFFF"]}
-        fallDuration={1400}
-        blastDuration={320}
-        fadeOutOnEnd
-        radiusRange={[2, 4]}
-        sizeVariation={0.25}
-        randomOffset={{
-          x: { min: -60, max: 60 },
-          y: { min: 0, max: 100 },
-        }}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          pointerEvents: "none",
-        }}
-      />
+      <ParticleDrizzle active delay={200} />
 
       <Animated.View
         className="flex-1"

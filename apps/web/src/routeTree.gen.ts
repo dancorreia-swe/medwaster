@@ -23,6 +23,7 @@ import { Route as AuthQuestionsIndexRouteImport } from './routes/_auth/questions
 import { Route as AuthCertificatesIndexRouteImport } from './routes/_auth/certificates/index'
 import { Route as AuthCategoriesIndexRouteImport } from './routes/_auth/categories/index'
 import { Route as AuthAchievementsIndexRouteImport } from './routes/_auth/achievements/index'
+import { Route as VerifyCertificateCodeRouteImport } from './routes/verify/certificate/$code'
 import { Route as AuthTrailsCreateRouteImport } from './routes/_auth/trails/create'
 import { Route as AuthQuizzesCreateRouteImport } from './routes/_auth/quizzes/create'
 import { Route as AuthQuestionsNewRouteImport } from './routes/_auth/questions/new'
@@ -107,6 +108,11 @@ const AuthAchievementsIndexRoute = AuthAchievementsIndexRouteImport.update({
   id: '/achievements/',
   path: '/achievements/',
   getParentRoute: () => AuthRoute,
+} as any)
+const VerifyCertificateCodeRoute = VerifyCertificateCodeRouteImport.update({
+  id: '/verify/certificate/$code',
+  path: '/verify/certificate/$code',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthTrailsCreateRoute = AuthTrailsCreateRouteImport.update({
   id: '/trails/create',
@@ -199,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/questions/new': typeof AuthQuestionsNewRoute
   '/quizzes/create': typeof AuthQuizzesCreateRoute
   '/trails/create': typeof AuthTrailsCreateRoute
+  '/verify/certificate/$code': typeof VerifyCertificateCodeRoute
   '/achievements': typeof AuthAchievementsIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
   '/certificates': typeof AuthCertificatesIndexRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/questions/new': typeof AuthQuestionsNewRoute
   '/quizzes/create': typeof AuthQuizzesCreateRoute
   '/trails/create': typeof AuthTrailsCreateRoute
+  '/verify/certificate/$code': typeof VerifyCertificateCodeRoute
   '/achievements': typeof AuthAchievementsIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
   '/certificates': typeof AuthCertificatesIndexRoute
@@ -261,6 +269,7 @@ export interface FileRoutesById {
   '/_auth/questions/new': typeof AuthQuestionsNewRoute
   '/_auth/quizzes/create': typeof AuthQuizzesCreateRoute
   '/_auth/trails/create': typeof AuthTrailsCreateRoute
+  '/verify/certificate/$code': typeof VerifyCertificateCodeRoute
   '/_auth/achievements/': typeof AuthAchievementsIndexRoute
   '/_auth/categories/': typeof AuthCategoriesIndexRoute
   '/_auth/certificates/': typeof AuthCertificatesIndexRoute
@@ -293,6 +302,7 @@ export interface FileRouteTypes {
     | '/questions/new'
     | '/quizzes/create'
     | '/trails/create'
+    | '/verify/certificate/$code'
     | '/achievements'
     | '/categories'
     | '/certificates'
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/questions/new'
     | '/quizzes/create'
     | '/trails/create'
+    | '/verify/certificate/$code'
     | '/achievements'
     | '/categories'
     | '/certificates'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/_auth/questions/new'
     | '/_auth/quizzes/create'
     | '/_auth/trails/create'
+    | '/verify/certificate/$code'
     | '/_auth/achievements/'
     | '/_auth/categories/'
     | '/_auth/certificates/'
@@ -380,6 +392,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  VerifyCertificateCodeRoute: typeof VerifyCertificateCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -481,6 +494,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/achievements'
       preLoaderRoute: typeof AuthAchievementsIndexRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/verify/certificate/$code': {
+      id: '/verify/certificate/$code'
+      path: '/verify/certificate/$code'
+      fullPath: '/verify/certificate/$code'
+      preLoaderRoute: typeof VerifyCertificateCodeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_auth/trails/create': {
       id: '/_auth/trails/create'
@@ -663,6 +683,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  VerifyCertificateCodeRoute: VerifyCertificateCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
