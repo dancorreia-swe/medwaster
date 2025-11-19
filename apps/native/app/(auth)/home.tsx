@@ -1,4 +1,5 @@
 import { Text, TouchableOpacity, View } from "react-native";
+import { BUTTON_HEIGHT } from "@/components/styles/buttons";
 import { Container } from "@/components/container";
 import { Image } from "expo-image";
 import { LandingHeroImage } from "@/components/landing-hero-image";
@@ -57,27 +58,29 @@ export default function Landing() {
       <View className="px-5 pb-12 gap-6">
         <TouchableOpacity
           onPress={handleOpenSignUp}
-          className="bg-[#155DFC] rounded-[14px] py-4 items-center justify-center"
+          className="bg-[#155DFC] rounded-[14px] items-center justify-center"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 1 },
             shadowOpacity: 0.1,
             shadowRadius: 3,
             elevation: 2,
+            minHeight: BUTTON_HEIGHT,
+            paddingVertical: 14,
           }}
         >
-          <Text className="text-white font-bold text-xl tracking-tight">
-            COMEÇAR
+          <Text className="text-white font-bold text-[18px] tracking-tight">
+            Começar
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={handleOpenSignIn}>
           <View className="flex-row items-center justify-center gap-1">
-            <Text className="text-[14px] text-[#364153] tracking-tight">
+            <Text className="text-[15px] text-[#364153] tracking-tight">
               Já tem uma conta?
             </Text>
             <Text className="text-blue-500 font-bold tracking-tight">
-              Entre
+              Entrar
             </Text>
           </View>
         </TouchableOpacity>

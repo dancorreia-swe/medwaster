@@ -13,6 +13,7 @@ import React, {
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   Text,
   TextInput,
   TouchableOpacity,
@@ -20,6 +21,12 @@ import {
 } from "react-native";
 import { Eye, EyeOff, X } from "lucide-react-native";
 import { GoogleIcon } from "./google-icon";
+import {
+  BUTTON_HEIGHT,
+  BUTTON_TEXT_SIZE,
+  SECONDARY_BUTTON_HEIGHT,
+  SECONDARY_BUTTON_TEXT_SIZE,
+} from "./styles/buttons";
 
 type AuthMode = "signin" | "signup";
 
@@ -57,6 +64,7 @@ export const AuthBottomSheet = forwardRef<
   }));
 
   const handleSocialLogin = async () => {
+    // keep sheet visible and announce loading for accessibility
     setIsGoogleLoading(true);
 
     await authClient.signIn.social(
@@ -169,36 +177,42 @@ export const AuthBottomSheet = forwardRef<
       backgroundStyle={{ backgroundColor: "#FFFFFF" }}
       handleIndicatorStyle={{ backgroundColor: "#E5E7EB" }}
     >
-      <BottomSheetView style={{ flex: 1, paddingHorizontal: 20 }}>
-        <View className="flex-row justify-between items-center py-3">
-          <TouchableOpacity
+      <BottomSheetView style={{ flex: 1, paddingHorizontal: 20 }} accessible>
+        <View className="flex-row justify-between items-center py-3" accessible accessibilityRole="header">
+          <Pressable
             onPress={onClose}
+            accessibilityLabel="Fechar folha de login"
+            accessibilityHint="Fecha e retorna à tela anterior"
             className="rounded-full justify-center items-center"
+            hitSlop={12}
           >
             <X size={20} color="#4A5565" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            disabled={isLoading}
+          </Pressable>
+          <Pressable
+            disabled={isLoading || isGoogleLoading}
             onPress={() => setMode(isSignIn ? "signup" : "signin")}
+            accessibilityRole="button"
+            accessibilityLabel={isSignIn ? "Ir para cadastro" : "Ir para login"}
+            hitSlop={12}
           >
-            <Text className="text-sm font-medium text-[#155DFC] tracking-tight">
-              {isSignIn ? "CADASTRAR" : "ENTRAR"}
+            <Text className="text-[16.5px] font-semibold text-[#155DFC] tracking-tight">
+              {isSignIn ? "Cadastrar" : "Entrar"}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* Content */}
         <View className="mt-7">
           {/* Title */}
-          <View className="mb-3">
+          <View className="mb-3" accessible accessibilityRole="header">
             <Text className="text-3xl font-semibold text-[#0A0A0A] text-center tracking-tight">
               {isSignIn ? "Bem-vindo de volta" : "Crie sua conta"}
             </Text>
           </View>
 
           {/* Subtitle */}
-          <View className="mb-7">
-            <Text className="text-base font-normal text-[#4A5565] text-center tracking-tight">
+          <View className="mb-7" accessible accessibilityRole="text">
+            <Text className="text-[16.5px] font-normal text-[#4A5565] text-center tracking-tight">
               {isSignIn
                 ? "Continue seu aprendizado sobre gestão de resíduos médicos"
                 : "Junte-se a milhares de profissionais de saúde"}
@@ -210,13 +224,16 @@ export const AuthBottomSheet = forwardRef<
             <View className="mb-4">
               <TextInput
                 className="bg-[#F9FAFB] border border-gray-200 rounded-[12.75px] px-4 py-4 text-base text-[#0A0A0A] tracking-tight"
+                style={{ minHeight: 52, fontSize: 16, lineHeight: 22 }}
                 placeholder="Nome completo"
                 placeholderTextColor="#6B7280"
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="words"
                 autoComplete="name"
-                editable={!isLoading}
+                editable={!isLoading && !isGoogleLoading}
+                accessibilityLabel="Nome completo"
+                accessibilityHint="Digite seu nome completo para criar a conta"
               />
             </View>
           )}
@@ -225,6 +242,7 @@ export const AuthBottomSheet = forwardRef<
           <View className="mb-4">
             <TextInput
               className="bg-[#F9FAFB] border border-gray-200 rounded-[12.75px] px-4 py-4 text-base text-[#0A0A0A] tracking-tight"
+              style={{ minHeight: 52, fontSize: 16, lineHeight: 22 }}
               placeholder="Email ou usuário"
               placeholderTextColor="#6B7280"
               value={email}
@@ -232,7 +250,9 @@ export const AuthBottomSheet = forwardRef<
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
-              editable={!isLoading}
+              editable={!isLoading && !isGoogleLoading}
+              accessibilityLabel="Email ou usuário"
+              accessibilityHint="Digite seu email para entrar ou cadastrar"
             />
           </View>
 
@@ -240,17 +260,22 @@ export const AuthBottomSheet = forwardRef<
           <View className="mb-4 relative">
             <TextInput
               className="bg-[#F9FAFB] border border-gray-200 rounded-[12.75px] px-4 py-4 pr-12 text-base text-[#0A0A0A] tracking-tight"
+              style={{ minHeight: 52, fontSize: 16, lineHeight: 22 }}
               placeholder="Senha"
               placeholderTextColor="#6B7280"
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
               autoComplete={isSignIn ? "password" : "password-new"}
-              editable={!isLoading}
+              editable={!isLoading && !isGoogleLoading}
+              accessibilityLabel="Senha"
+              accessibilityHint="Digite sua senha"
             />
             <TouchableOpacity
               onPress={() => setShowPassword(!showPassword)}
               className="absolute right-4 top-1/2"
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? "Ocultar senha" : "Mostrar senha"}
               style={{ transform: [{ translateY: -10 }] }}
             >
               {showPassword ? (
@@ -264,14 +289,18 @@ export const AuthBottomSheet = forwardRef<
           {/* Action Button */}
           <TouchableOpacity
             onPress={isSignIn ? handleSignIn : handleSignUp}
-            disabled={isLoading}
+            disabled={isLoading || isGoogleLoading}
             className={`bg-[#51A2FF] rounded-full py-4 items-center justify-center ${isSignIn ? "mb-5" : "mb-6"}`}
+            style={{ minHeight: BUTTON_HEIGHT, paddingVertical: 14 }}
+            accessibilityRole="button"
+            accessibilityLabel={isSignIn ? "Entrar com email e senha" : "Criar conta com email e senha"}
+            accessibilityState={{ busy: isLoading }}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text className="text-white text-base font-semibold tracking-tight">
-                {isSignIn ? "ENTRAR" : "CRIAR CONTA"}
+              <Text className="text-white text-[17px] font-semibold tracking-tight">
+                {isSignIn ? "Entrar" : "Criar conta"}
               </Text>
             )}
           </TouchableOpacity>
@@ -281,15 +310,19 @@ export const AuthBottomSheet = forwardRef<
             <TouchableOpacity
               className="items-center mb-6"
               disabled={isLoading}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Esqueceu a senha"
+              accessibilityHint="Toque para recuperar ou redefinir sua senha"
             >
-              <Text className="text-sm font-semibold text-[#0A0A0A] tracking-tight">
-                ESQUECEU A SENHA?
+              <Text className="text-[15.5px] font-semibold text-[#0A0A0A] tracking-tight">
+                Esqueceu a senha?
               </Text>
             </TouchableOpacity>
           )}
 
           {/* Divider with OR */}
-          <View className="flex-row items-center mb-4">
+            <View className="flex-row items-center mb-4" accessibilityElementsHidden={false} importantForAccessibility="no">
             <View className="flex-1 h-[1.09px] bg-gray-200" />
             <View className="bg-white px-4">
               <Text className="text-sm font-medium text-[#6A7282]">OU</Text>
@@ -301,20 +334,26 @@ export const AuthBottomSheet = forwardRef<
           <TouchableOpacity
             onPress={handleSocialLogin}
             disabled={isLoading || isGoogleLoading}
-            className={`bg-white border border-gray-200 rounded-full py-4 items-center justify-center flex-row mb-4 gap-2 ${isGoogleLoading ? 'opacity-70' : ''}`}
+            accessibilityRole="button"
+            accessibilityLabel="Continuar com Google"
+            accessibilityHint="Abre o login com sua conta Google"
+            accessibilityState={{ busy: isGoogleLoading }}
+            className={`bg-white border border-gray-200 rounded-full items-center justify-center flex-row mb-4 gap-2 ${isGoogleLoading ? 'opacity-70' : ''}`}
+            style={{ minHeight: SECONDARY_BUTTON_HEIGHT, paddingVertical: 12 }}
+            hitSlop={12}
           >
             {isGoogleLoading ? (
-              <ActivityIndicator size="small" color="#155DFC" />
+              <ActivityIndicator size="small" color="#155DFC" accessibilityLabel="Carregando Google" />
             ) : (
               <GoogleIcon size={16} />
             )}
-            <Text className="text-[#0A0A0A] text-base font-medium tracking-tight">
-              {isGoogleLoading ? 'ABRINDO...' : 'CONTINUAR COM GOOGLE'}
+            <Text className="text-[#0A0A0A] text-[16px] font-semibold tracking-tight">
+              {isGoogleLoading ? 'ABRINDO...' : 'Continuar com Google'}
             </Text>
           </TouchableOpacity>
 
           {/* Privacy Note */}
-          <View className="px-4 mb-6">
+          <View className="px-4 mb-6" accessible accessibilityRole="text">
             <Text
               className="text-sm font-normal text-[#6A7282] text-center"
               style={{ lineHeight: 18 }}
@@ -324,7 +363,13 @@ export const AuthBottomSheet = forwardRef<
           </View>
 
           <View className="pt-4 mb-2.5">
-            <TouchableOpacity className="items-center" onPress={onClose}>
+            <TouchableOpacity
+              className="items-center"
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Continuar sem conta"
+              accessibilityHint="Fecha a folha e segue para o app sem login"
+            >
               <Text className="text-base font-normal text-[#4A5565] tracking-tight">
                 Continuar sem conta
               </Text>
