@@ -1,5 +1,6 @@
-import { View, Text } from "react-native";
-import { CheckCircle2, XCircle } from "lucide-react-native";
+import { useMemo, useState } from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import { CheckCircle2, XCircle, Sparkles } from "lucide-react-native";
 import type { QuestionResultProps, Question } from "../types";
 
 /**
@@ -9,24 +10,28 @@ import type { QuestionResultProps, Question } from "../types";
 export function QuestionResult({ result, question }: QuestionResultProps) {
   const isCorrect = result.isCorrect;
 
-  console.log(question);
+  const [showFullExplanation, setShowFullExplanation] = useState(false);
+
+  const explanationPreview = useMemo(() => {
+    if (!result.explanation) return "";
+    const max = 160;
+    return result.explanation.length > max
+      ? `${result.explanation.slice(0, max)}...`
+      : result.explanation;
+  }, [result.explanation]);
 
   return (
-    <View
-      className={`rounded-2xl p-6 border-2 ${
-        isCorrect ? "bg-green-50 border-green-500" : "bg-red-50 border-red-500"
-      }`}
-    >
+    <View className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
       {/* Result Header */}
       <View className="flex-row items-center gap-3 mb-4">
         {isCorrect ? (
-          <CheckCircle2 size={32} color="#10B981" strokeWidth={2.5} />
+          <CheckCircle2 size={28} color="#16A34A" strokeWidth={2.5} />
         ) : (
-          <XCircle size={32} color="#EF4444" strokeWidth={2.5} />
+          <XCircle size={28} color="#EF4444" strokeWidth={2.5} />
         )}
 
         <Text
-          className={`text-2xl font-bold ${
+          className={`text-xl font-bold ${
             isCorrect ? "text-green-700" : "text-red-700"
           }`}
         >
@@ -34,37 +39,53 @@ export function QuestionResult({ result, question }: QuestionResultProps) {
         </Text>
       </View>
 
+      {/* Status chips */}
+      <View className="flex-row items-center flex-wrap gap-2 mb-5">
+        {typeof result.score === "number" && (
+          <Pill label={`Pontuação ${result.score}%`} color="#2563EB" icon={Sparkles} />
+        )}
+        {typeof result.earnedPoints === "number" && result.earnedPoints > 0 && (
+          <Pill label={`+${result.earnedPoints} pts`} color="#2563EB" />
+        )}
+      </View>
+
       {/* Explanation */}
       {result.explanation && (
-        <View className="mb-4">
-          <Text className="text-sm font-semibold text-gray-700 mb-2">
+        <View className="mb-5 gap-2">
+          <Text className="text-xs font-semibold text-gray-600 tracking-wide">
             EXPLICAÇÃO
           </Text>
-          <Text
-            className={`text-base leading-relaxed ${
-              isCorrect ? "text-green-900" : "text-red-900"
-            }`}
-          >
-            {result.explanation}
+          <Text className="text-base leading-relaxed text-gray-900">
+            {showFullExplanation ? result.explanation : explanationPreview}
           </Text>
+          {result.explanation.length > explanationPreview.length && (
+            <TouchableOpacity
+              onPress={() => setShowFullExplanation((v) => !v)}
+              className="self-start"
+            >
+              <Text className="text-sm font-semibold text-blue-600">
+                {showFullExplanation ? "Ver menos" : "Ver mais"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
       {/* Correct Answer (if incorrect) */}
       {!isCorrect && result.correctAnswer !== undefined && (
         <View>
-          <Text className="text-sm font-semibold text-gray-700 mb-2">
+          <Text className="text-xs font-semibold text-gray-600 tracking-wide mb-2">
             RESPOSTA CORRETA
           </Text>
           {question?.type === "matching" ? (
-            <View className="bg-white rounded-xl p-4 border border-gray-200 gap-2">
+            <View className="bg-gray-50 rounded-xl p-4 border border-gray-200 gap-2">
               {formatMatchingAnswer(
                 result.correctAnswer as Record<string, string>,
                 question,
               )}
             </View>
           ) : question?.type === "fill_in_the_blank" ? (
-            <View className="bg-white rounded-xl p-4 border border-gray-200 gap-3">
+            <View className="bg-gray-50 rounded-xl p-4 border border-gray-200 gap-3">
               {formatFillInBlankAnswer(
                 result.correctAnswer as Record<string, string>,
                 result.userAnswer as Record<string, string>,
@@ -72,7 +93,7 @@ export function QuestionResult({ result, question }: QuestionResultProps) {
               )}
             </View>
           ) : (
-            <View className="bg-white rounded-xl p-4 border border-gray-200">
+            <View className="bg-gray-50 rounded-xl p-4 border border-gray-200">
               <Text className="text-base text-gray-900">
                 {formatCorrectAnswer(result.correctAnswer, question)}
               </Text>
@@ -101,7 +122,7 @@ function formatFillInBlankAnswer(
         <View key={blankId} className={index > 0 ? "mt-3" : ""}>
           <View className="flex-row items-center gap-2 mb-2">
             {isCorrect ? (
-              <CheckCircle2 size={16} color="#10B981" strokeWidth={2.5} />
+              <CheckCircle2 size={16} color="#16A34A" strokeWidth={2.5} />
             ) : (
               <XCircle size={16} color="#EF4444" strokeWidth={2.5} />
             )}
@@ -140,7 +161,7 @@ function formatFillInBlankAnswer(
         <View key={blank.id} className={index > 0 ? "mt-3" : ""}>
           <View className="flex-row items-center gap-2 mb-2">
             {isCorrect ? (
-              <CheckCircle2 size={16} color="#10B981" strokeWidth={2.5} />
+              <CheckCircle2 size={16} color="#16A34A" strokeWidth={2.5} />
             ) : (
               <XCircle size={16} color="#EF4444" strokeWidth={2.5} />
             )}
@@ -197,16 +218,19 @@ function formatMatchingAnswer(
     const rightText = rightPair?.rightText || rightId;
 
     return (
-      <View
-        key={`${leftId}-${rightId}`}
-        className={`flex-row items-center gap-3 ${index > 0 ? "mt-2" : ""}`}
-      >
-        <View className="flex-1 bg-blue-50 rounded-lg p-3">
-          <Text className="text-sm text-gray-900">{leftText}</Text>
-        </View>
-        <Text className="text-gray-400 text-lg">→</Text>
-        <View className="flex-1 bg-green-50 rounded-lg p-3">
-          <Text className="text-sm text-gray-900">{rightText}</Text>
+      <View key={`${leftId}-${rightId}`} className={index > 0 ? "mt-3" : ""}>
+        <View className="flex-row gap-2 items-stretch">
+          <View className="flex-1 bg-white border border-gray-200 rounded-lg p-3">
+            <Text className="text-xs font-semibold text-gray-500 mb-1">Esquerda</Text>
+            <Text className="text-sm text-gray-900">{leftText}</Text>
+          </View>
+          <View className="w-10 items-center justify-center">
+            <View className="h-full w-px bg-gray-200" />
+          </View>
+          <View className="flex-1 bg-white border border-gray-200 rounded-lg p-3">
+            <Text className="text-xs font-semibold text-gray-500 mb-1">Direita</Text>
+            <Text className="text-sm text-gray-900">{rightText}</Text>
+          </View>
         </View>
       </View>
     );
@@ -294,4 +318,31 @@ function formatCorrectAnswer(
   }
 
   return "Resposta não disponível";
+}
+
+// -----------------
+// Small pill chip
+// -----------------
+type PillProps = {
+  label: string;
+  color: string;
+  icon?: typeof CheckCircle2;
+};
+
+function Pill({ label, color, icon: Icon }: PillProps) {
+  return (
+    <View
+      className="flex-row items-center gap-2 px-3 py-1.5 rounded-full"
+      style={{
+        backgroundColor: `${color}15`,
+        borderColor: `${color}40`,
+        borderWidth: 1,
+      }}
+    >
+      {Icon && <Icon size={16} color={color} strokeWidth={2.25} />}
+      <Text className="text-sm font-semibold" style={{ color }}>
+        {label}
+      </Text>
+    </View>
+  );
 }

@@ -118,8 +118,13 @@ export function QuizAttempt({
       const userMatches = answer as Record<string, string>;
       return (
         currentQuestion.question.matchingPairs?.every((pair) => {
-          const userMatch = userMatches[pair.id.toString()];
-          return userMatch === pair.id.toString();
+          // Accept either ID keys or leftText keys; map to rightText
+          const userRight =
+            userMatches[pair.id.toString()] ??
+            userMatches[pair.leftText] ??
+            userMatches[pair.leftText.trim()] ??
+            userMatches[pair.leftText.toLowerCase()];
+          return userRight === pair.rightText;
         }) || false
       );
     }
@@ -182,9 +187,24 @@ export function QuizAttempt({
         }
 
         if (questionType === "matching") {
+          // Normalize to backend format: leftText -> rightText
+          const pairs = quizQuestion.question.matchingPairs || [];
+          const userMatches = (answer || {}) as Record<string, string>;
+          const normalized: Record<string, string> = {};
+          pairs.forEach((pair) => {
+            const userRight =
+              userMatches[pair.id.toString()] ??
+              userMatches[pair.leftText] ??
+              userMatches[pair.leftText.trim()] ??
+              userMatches[pair.leftText.toLowerCase()];
+            if (userRight) {
+              normalized[pair.leftText] = userRight;
+            }
+          });
+
           return {
             quizQuestionId: quizQuestion.id,
-            matchingAnswers: answer as Record<string, string>,
+            matchingAnswers: normalized,
             timeSpent: 0,
           };
         }
@@ -311,6 +331,7 @@ export function QuizAttempt({
             onSubmit={handleAnswerSubmit}
             isSubmitting={false}
             disabled={feedback !== "none"}
+            textSize="md"
           />
         </Animated.View>
       </ScrollView>
@@ -318,37 +339,44 @@ export function QuizAttempt({
       {/* Feedback Section - Fixed at bottom above button */}
       {feedback !== "none" && (
         <View className="px-5 pb-3">
-          <Animated.View entering={FadeIn.duration(400)}>
-            <View
-              className={`rounded-2xl p-5 ${
-                feedback === "correct"
-                  ? "bg-green-50 border-2 border-green-500"
-                  : "bg-red-50 border-2 border-red-500"
-              }`}
-            >
-            <View className="flex-row items-center gap-3 mb-2">
-              {feedback === "correct" ? (
-                <CheckCircle2 size={28} color="#10B981" strokeWidth={2.5} />
-              ) : (
-                <XCircle size={28} color="#EF4444" strokeWidth={2.5} />
+          <Animated.View entering={FadeIn.duration(300)}>
+            <View className="rounded-2xl p-5 bg-white border border-gray-200 shadow-sm">
+              <View className="flex-row items-center gap-3 mb-3">
+                {feedback === "correct" ? (
+                  <CheckCircle2 size={24} color="#16A34A" strokeWidth={2.5} />
+                ) : (
+                  <XCircle size={24} color="#EF4444" strokeWidth={2.5} />
+                )}
+                <Text
+                  className={`text-lg font-bold ${
+                    feedback === "correct" ? "text-green-700" : "text-red-700"
+                  }`}
+                >
+                  {feedback === "correct" ? "Correto!" : "Incorreto"}
+                </Text>
+              </View>
+
+              {currentQuestion.question.explanation && (
+                <Text className="text-base leading-relaxed text-gray-900">
+                  {currentQuestion.question.explanation}
+                </Text>
               )}
-              <Text
-                className={`text-xl font-bold ${
-                  feedback === "correct" ? "text-green-700" : "text-red-700"
-                }`}
-              >
-                {feedback === "correct" ? "Correto!" : "Incorreto"}
-              </Text>
-            </View>
-            {currentQuestion.question.explanation && (
-              <Text
-                className={`text-sm mt-1 ${
-                  feedback === "correct" ? "text-green-900" : "text-red-900"
-                }`}
-              >
-                {currentQuestion.question.explanation}
-              </Text>
-            )}
+
+              {currentQuestion.question.correctAnswer &&
+                currentQuestion.question.correctAnswer !== undefined &&
+                quiz.showCorrectAnswers && (
+                  <View className="mt-3">
+                    <Text className="text-xs font-semibold text-gray-600 tracking-wide mb-1">
+                      Resposta correta
+                    </Text>
+                    <Text className="text-sm text-gray-900 leading-relaxed">
+                      {formatInlineCorrect(
+                        currentQuestion.question.correctAnswer,
+                        currentQuestion.question,
+                      )}
+                    </Text>
+                  </View>
+                )}
             </View>
           </Animated.View>
         </View>

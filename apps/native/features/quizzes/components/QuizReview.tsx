@@ -1,5 +1,5 @@
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { CheckCircle2, XCircle, Award, ChevronLeft } from "lucide-react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import { CheckCircle2, XCircle, ChevronLeft } from "lucide-react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import type { QuizResults } from "../types";
 import type { Question } from "../../questions/types";
@@ -16,6 +16,7 @@ export interface QuizReviewProps {
 export function QuizReview({ results, onClose }: QuizReviewProps) {
   const { attempt, answers } = results;
   const showCorrectAnswers = attempt.quiz?.showCorrectAnswers ?? true;
+  const accent = "#2563EB";
 
   // Helper function to get option text by ID
   const getOptionText = (question: Question, optionId: number): string => {
@@ -60,15 +61,27 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
     if (questionType === "matching") {
       const matches = answer.matchingAnswers || {};
       return (
-        <View className="gap-2">
-          {Object.entries(matches).map(([leftId, rightId]) => (
+        <View className="gap-3">
+          {Object.entries(matches).map(([leftId, rightId], idx) => (
             <View
-              key={leftId}
-              className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex-row items-center gap-2"
+              key={`${leftId}-${rightId}-${idx}`}
+              className="flex-row gap-2 items-stretch"
             >
-              <Text className="flex-1 text-blue-800 text-sm">
-                {leftId} → {rightId}
-              </Text>
+              <View className="flex-1 bg-white border border-blue-200 rounded-lg p-3">
+                <Text className="text-[11px] font-semibold text-gray-500 mb-1">
+                  Esquerda
+                </Text>
+                <Text className="text-sm text-gray-900">{leftId}</Text>
+              </View>
+              <View className="w-10 items-center justify-center">
+                <View className="h-full w-px bg-gray-200" />
+              </View>
+              <View className="flex-1 bg-white border border-blue-200 rounded-lg p-3">
+                <Text className="text-[11px] font-semibold text-gray-500 mb-1">
+                  Direita
+                </Text>
+                <Text className="text-sm text-gray-900">{rightId}</Text>
+              </View>
             </View>
           ))}
         </View>
@@ -130,15 +143,27 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
     if (questionType === "matching") {
       const correctMatches = correctAnswerData || {};
       return (
-        <View className="gap-2">
-          {Object.entries(correctMatches).map(([leftId, rightId]) => (
+        <View className="gap-3">
+          {Object.entries(correctMatches).map(([leftId, rightId], idx) => (
             <View
-              key={leftId}
-              className="bg-green-50 border border-green-200 rounded-xl p-3 flex-row items-center gap-2"
+              key={`${leftId}-${rightId}-${idx}`}
+              className="flex-row gap-2 items-stretch"
             >
-              <Text className="flex-1 text-green-800 text-sm">
-                {leftId} → {rightId}
-              </Text>
+              <View className="flex-1 bg-white border border-green-200 rounded-lg p-3">
+                <Text className="text-[11px] font-semibold text-gray-500 mb-1">
+                  Esquerda
+                </Text>
+                <Text className="text-sm text-gray-900">{leftId}</Text>
+              </View>
+              <View className="w-10 items-center justify-center">
+                <View className="h-full w-px bg-gray-200" />
+              </View>
+              <View className="flex-1 bg-white border border-green-200 rounded-lg p-3">
+                <Text className="text-[11px] font-semibold text-gray-500 mb-1">
+                  Direita
+                </Text>
+                <Text className="text-sm text-gray-900">{rightId}</Text>
+              </View>
             </View>
           ))}
         </View>
@@ -180,9 +205,9 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
         contentContainerStyle={{ padding: 16 }}
       >
         {/* Questions Review */}
-        {answers.map((answer, index) => {
-          const question = answer.question;
-          if (!question) return null;
+      {answers.map((answer, index) => {
+        const question = answer.question;
+        if (!question) return null;
 
           return (
             <Animated.View
@@ -226,16 +251,20 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
                   </View>
 
                   {/* Points Badge */}
-                  <View className="bg-yellow-50 rounded-full px-3 py-1.5 flex-row items-center gap-1.5">
-                    <Award size={14} color="#F59E0B" strokeWidth={2.5} />
-                    <Text className="text-yellow-700 text-sm font-bold">
-                      {answer.earnedPoints}
+                  <View className="flex-row items-center gap-2 bg-gray-100 rounded-full px-3 py-1.5">
+                    <Image
+                      source={require("@/assets/ribbon.png")}
+                      style={{ width: 18, height: 18 }}
+                      resizeMode="contain"
+                    />
+                    <Text className="text-sm font-semibold text-gray-800">
+                      {answer.earnedPoints} pts
                     </Text>
                   </View>
                 </View>
 
                 {/* Question Text */}
-                <Text className="text-lg text-gray-900 font-semibold mb-4 leading-relaxed">
+                <Text className="text-[17px] text-gray-900 font-semibold mb-4 leading-relaxed">
                   {question.prompt || question.questionText}
                 </Text>
 
@@ -274,42 +303,47 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
         })}
 
         {/* Summary at Bottom */}
-        <View className="bg-gradient-to-b from-primary to-blue-600 rounded-3xl p-6 mt-4 shadow-lg">
-          <Text className="text-white text-xl font-bold mb-4 text-center">
-            Resumo da Revisão
+        <View className="bg-white border border-gray-200 rounded-3xl p-6 mt-4 shadow-sm">
+          <Text className="text-lg font-bold text-gray-900 mb-4 text-center">
+            Resumo
           </Text>
-          <View className="flex-row justify-around">
-            <View className="items-center">
-              <Text className="text-white/80 text-sm mb-1">Corretas</Text>
-              <Text className="text-white text-3xl font-black">
-                {results.correctCount}
-              </Text>
-            </View>
-            <View className="items-center">
-              <Text className="text-white/80 text-sm mb-1">Incorretas</Text>
-              <Text className="text-white text-3xl font-black">
-                {results.incorrectCount}
-              </Text>
-            </View>
-            <View className="items-center">
-              <Text className="text-white/80 text-sm mb-1">Pontuação</Text>
-              <Text className="text-white text-3xl font-black">
-                {results.score}%
-              </Text>
-            </View>
+          <View className="flex-row justify-between gap-3">
+            <SummaryChip label="Corretas" value={results.correctCount} accent={accent} />
+            <SummaryChip label="Incorretas" value={results.incorrectCount} accent="#EF4444" />
+            <SummaryChip label="Pontuação" value={`${results.score}%`} accent={accent} />
           </View>
         </View>
 
         {/* Close Button */}
         <TouchableOpacity
           onPress={onClose}
-          className="bg-white border-2 border-gray-300 rounded-full py-4 mt-4 items-center shadow-sm"
+          className="bg-white border border-gray-300 rounded-full py-4 mt-4 items-center shadow-sm"
         >
           <Text className="text-gray-900 text-base font-semibold">
             Fechar Revisão
           </Text>
         </TouchableOpacity>
       </ScrollView>
+    </View>
+  );
+}
+
+// ----------------
+// Summary chip
+// ----------------
+type SummaryChipProps = {
+  label: string;
+  value: string | number;
+  accent: string;
+};
+
+function SummaryChip({ label, value, accent }: SummaryChipProps) {
+  return (
+    <View className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 items-center">
+      <Text className="text-xs font-semibold text-gray-600 mb-1">{label}</Text>
+      <Text className="text-xl font-bold" style={{ color: accent }}>
+        {value}
+      </Text>
     </View>
   );
 }

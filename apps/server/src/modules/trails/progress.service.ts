@@ -9,7 +9,7 @@ import {
 } from "@/db/schema/trails";
 import { questions, questionOptions } from "@/db/schema/questions";
 import { quizzes, quizAttempts } from "@/db/schema/quizzes";
-import { articles } from "@/db/schema/wiki";
+import { articles, userArticleReads } from "@/db/schema/wiki";
 import type { SubmitQuestionAnswerBody } from "./model";
 import { eq, and, sql, inArray, isNull, desc, asc } from "drizzle-orm";
 import {
@@ -205,7 +205,7 @@ export abstract class ProgressService {
   }
 
   static async getUserTrailProgress(userId: string, trailId: number) {
-    const progress = await db.query.userTrailProgress.findFirst({
+    let progress = await db.query.userTrailProgress.findFirst({
       where: and(
         eq(userTrailProgress.userId, userId),
         eq(userTrailProgress.trailId, trailId),
@@ -224,6 +224,13 @@ export abstract class ProgressService {
     if (!trailRecord) {
       throw new NotFoundError("Trail");
     }
+
+    // Auto-complete articles that were read before or outside the trail
+    progress = await this.syncArticleCompletionsFromReads(
+      userId,
+      trailId,
+      progress,
+    );
 
     const contentItems = await db.query.trailContent.findMany({
       where: eq(trailContent.trailId, trailId),
@@ -282,6 +289,13 @@ export abstract class ProgressService {
       // Use the existing enrollInTrail method
       progress = await this.enrollInTrail(userId, trailId);
     }
+
+    // Sync previously read articles so progress is up to date for gating
+    progress = await this.syncArticleCompletionsFromReads(
+      userId,
+      trailId,
+      progress,
+    );
 
     // Fetch ordered content items with their linked records
     const contentItems = await db.query.trailContent.findMany({
@@ -987,7 +1001,7 @@ export abstract class ProgressService {
         trailContentId: contentId,
         score: 100,
         attempts: 1,
-        timeSpent: 0, // Time tracking is separate
+        timeSpentMinutes: 0, // Time tracking is separate
         isCompleted: true,
         completedAt: new Date(),
       });
@@ -1041,6 +1055,111 @@ export abstract class ProgressService {
   // ===================================
   // Helper Methods
   // ===================================
+
+  /**
+   * When a user enrolls in or opens a trail, automatically mark article
+   * steps as completed if the article was already read in the wiki.
+   * This prevents users from having to uncheck/recheck to advance.
+   */
+  private static async syncArticleCompletionsFromReads(
+    userId: string,
+    trailId: number,
+    progress: (typeof userTrailProgress.$inferSelect) | null,
+  ) {
+    if (!progress) return progress;
+
+    const completedIdsRaw =
+      typeof progress.completedContentIds === "string"
+        ? JSON.parse(progress.completedContentIds || "[]")
+        : progress.completedContentIds;
+    const completedIds: number[] = Array.isArray(completedIdsRaw)
+      ? completedIdsRaw.map((id) => Number(id)).filter((id) => !Number.isNaN(id))
+      : [];
+
+    const alreadyReadArticles = await db
+      .select({
+        contentId: trailContent.id,
+        articleId: trailContent.articleId,
+      })
+      .from(trailContent)
+      .innerJoin(
+        userArticleReads,
+        and(
+          eq(userArticleReads.articleId, trailContent.articleId),
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.isRead, true),
+        ),
+      )
+      .where(eq(trailContent.trailId, trailId));
+
+    const newCompletions = alreadyReadArticles.filter(
+      (item) => item.contentId && !completedIds.includes(item.contentId),
+    );
+
+    if (newCompletions.length === 0) {
+      return progress;
+    }
+
+    for (const item of newCompletions) {
+      if (!item.contentId) continue;
+
+      const existingContentProgress =
+        await db.query.userContentProgress.findFirst({
+          where: and(
+            eq(userContentProgress.userId, userId),
+            eq(userContentProgress.trailContentId, item.contentId),
+          ),
+        });
+
+      if (existingContentProgress) {
+        await db
+          .update(userContentProgress)
+          .set({
+            isCompleted: true,
+            score: existingContentProgress.score ?? 100,
+            completedAt: existingContentProgress.completedAt ?? new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(userContentProgress.id, existingContentProgress.id));
+      } else {
+        await db.insert(userContentProgress).values({
+          userId,
+          trailContentId: item.contentId,
+          isCompleted: true,
+          score: 100,
+          attempts: 1,
+          timeSpentMinutes: 0,
+          completedAt: new Date(),
+        });
+      }
+    }
+
+    const updatedCompletedIds = Array.from(
+      new Set([
+        ...completedIds,
+        ...newCompletions
+          .map((c) => c.contentId)
+          .filter((id): id is number => typeof id === "number"),
+      ]),
+    );
+
+    await db
+      .update(userTrailProgress)
+      .set({
+        completedContentIds: JSON.stringify(updatedCompletedIds),
+        lastAccessedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(userTrailProgress.id, progress.id));
+
+    // Ensure trail-wide completion status reflects the auto-completed items
+    await this.checkAndCompleteTrail(userId, trailId);
+
+    return {
+      ...progress,
+      completedContentIds: updatedCompletedIds,
+    };
+  }
 
   private static async checkTrailEligibility(
     userId: string,

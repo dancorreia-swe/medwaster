@@ -1,20 +1,19 @@
 import { View, Text, TouchableOpacity, ScrollView, TextInput } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
-  Award,
   CheckCircle2,
   XCircle,
   Clock,
   Target,
   TrendingUp,
 } from "lucide-react-native";
-import ConfettiCannon from "react-native-confetti-cannon";
+import { Image } from "react-native";
+import { PIConfetti, type ConfettiMethods } from "react-native-fast-confetti";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
   withTiming,
   Easing,
-  runOnJS,
 } from "react-native-reanimated";
 import type { QuizResultsProps } from "../types";
 
@@ -33,7 +32,8 @@ export function QuizResults({
   showReviewButton = false,
 }: QuizResultsProps) {
   const { score, earnedPoints, totalPoints, correctCount, incorrectCount, passed, timeSpentSeconds } = results;
-  const confettiRef = useRef<any>(null);
+  const accent = "#2563EB";
+  const confettiRef = useRef<ConfettiMethods | null>(null);
 
   // Animated score counter
   const animatedScore = useSharedValue(0);
@@ -46,12 +46,17 @@ export function QuizResults({
       easing: Easing.inOut(Easing.cubic),
     });
 
-    // Trigger confetti if passed
-    if (passed && confettiRef.current) {
-      setTimeout(() => {
-        confettiRef.current?.start();
-      }, 3000); // Delay to sync with score animation
+    let drizzleTimeout: NodeJS.Timeout | null = null;
+    if (passed) {
+      drizzleTimeout = setTimeout(() => {
+        confettiRef.current?.restart();
+      }, 3000);
     }
+    return () => {
+      if (drizzleTimeout) {
+        clearTimeout(drizzleTimeout);
+      }
+    };
   }, [passed, score]);
 
   const totalQuestions = correctCount + incorrectCount;
@@ -82,13 +87,17 @@ export function QuizResults({
         <View
           className="rounded-3xl p-10 mb-6 items-center"
           style={{
-            backgroundColor: passed ? "#10B981" : "#F97316",
+            backgroundColor: passed ? "#0F172A" : "#1E1B4B",
           }}
         >
           {/* Icon */}
-          <View className="w-24 h-24 rounded-full bg-white/30 items-center justify-center mb-6">
+          <View className="w-24 h-24 rounded-full bg-white/15 items-center justify-center mb-6 overflow-hidden">
             {passed ? (
-              <Award size={48} color="#FFFFFF" strokeWidth={2.5} />
+              <Image
+                source={require("@/assets/ribbon.png")}
+                style={{ width: 90, height: 90 }}
+                resizeMode="contain"
+              />
             ) : (
               <TrendingUp size={48} color="#FFFFFF" strokeWidth={2.5} />
             )}
@@ -103,7 +112,7 @@ export function QuizResults({
           </Text>
 
           {/* Score */}
-          <View className="mt-8 bg-white/20 rounded-2xl px-12 py-6">
+          <View className="mt-8 bg-white/15 rounded-2xl px-12 py-6 border border-white/10">
             <Text className="text-white/80 text-xs text-center mb-1 font-medium tracking-wide">
               Pontuação Final
             </Text>
@@ -137,7 +146,7 @@ export function QuizResults({
             <View className="flex-row items-center justify-between p-5 border-b border-gray-100">
               <View className="flex-row items-center gap-3">
                 <View className="w-11 h-11 rounded-full bg-blue-50 items-center justify-center">
-                  <Target size={22} color="#3B82F6" strokeWidth={2.5} />
+                  <Target size={22} color={accent} strokeWidth={2.5} />
                 </View>
                 <Text className="text-base text-gray-700 font-medium">Precisão</Text>
               </View>
@@ -187,40 +196,13 @@ export function QuizResults({
           </View>
         </View>
 
-        {/* Status Section */}
-        <View
-          className={`rounded-2xl p-5 mb-6 border-2 ${
-            passed
-              ? "bg-green-50 border-green-200"
-              : "bg-red-50 border-red-200"
-          }`}
-        >
-          <Text
-            className={`text-sm font-bold mb-1 uppercase tracking-wide ${
-              passed ? "text-green-700" : "text-red-700"
-            }`}
-          >
-            Status
-          </Text>
-          <Text
-            className={`text-base leading-relaxed ${
-              passed ? "text-green-900" : "text-red-900"
-            }`}
-          >
-            {passed
-              ? `Você atingiu a pontuação mínima.`
-              : `Você precisa de ${results.attempt.quiz?.passingScore || 70}% para passar. Tente novamente!`}
-          </Text>
-        </View>
-
         {/* Action Buttons */}
         <View className="gap-3">
           {/* Continue Button */}
           <TouchableOpacity
             onPress={onContinue}
-            className={`rounded-2xl py-5 items-center ${
-              passed ? "bg-green-500" : "bg-blue-500"
-            }`}
+            className="rounded-2xl py-5 items-center"
+            style={{ backgroundColor: accent }}
             activeOpacity={0.8}
           >
             <Text className="text-white text-lg font-bold">
@@ -230,19 +212,30 @@ export function QuizResults({
         </View>
       </ScrollView>
 
-      {/* Confetti - Positioned at the end to be on top */}
+      {/* Particle drizzle overlay */}
       {passed && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, pointerEvents: 'none' }}>
-          <ConfettiCannon
-            ref={confettiRef}
-            count={200}
-            origin={{ x: -10, y: 0 }}
-            autoStart={false}
-            fadeOut={true}
-            explosionSpeed={350}
-            fallSpeed={2500}
-          />
-        </View>
+        <PIConfetti
+          ref={confettiRef}
+          count={24}
+          colors={["#2563EB", "#10B981", "#FACC15", "#FFFFFF"]}
+          fallDuration={1400}
+          blastDuration={320}
+          fadeOutOnEnd
+          radiusRange={[2, 4]}
+          sizeVariation={0.3}
+          randomOffset={{
+            x: { min: -40, max: 40 },
+            y: { min: 0, max: 80 },
+          }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            pointerEvents: "none",
+          }}
+        />
       )}
     </View>
   );
