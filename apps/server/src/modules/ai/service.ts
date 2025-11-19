@@ -1,15 +1,13 @@
 import { MarkdownTextSplitter } from "langchain/text_splitter";
 import { Document } from "@langchain/core/documents";
-import { openai } from "@ai-sdk/openai";
 import { embed, embedMany } from "ai";
 import { cosineDistance, desc, gt, sql } from "drizzle-orm";
 import { embeddings } from "@/db/schema/embeddings";
 import { db } from "@/db";
+import { getEmbeddingModel } from "./domain/provider";
 
 export abstract class AIService {
-  private static embeddingModel = openai.textEmbeddingModel(
-    "text-embedding-3-small",
-  );
+  private static embeddingModel = getEmbeddingModel();
 
   static async generateEmbeddings(
     content: string,

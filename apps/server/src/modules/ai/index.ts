@@ -7,11 +7,11 @@ import {
   tool,
   type UIMessage,
 } from "ai";
-import { openai } from "@ai-sdk/openai";
 
 import Elysia, { t } from "elysia";
 import { z } from "zod";
 import { AIService } from "./service";
+import { getChatModel } from "./domain/provider";
 
 export const ai = new Elysia({
   prefix: "/ai",
@@ -37,7 +37,7 @@ export const ai = new Elysia({
             experimental_telemetry: {
               isEnabled: true,
             },
-            model: openai("gpt-4o"),
+            model: getChatModel(),
             stopWhen: stepCountIs(5),
             messages: convertToModelMessages(messages),
             system: `You are a helpful assistant. Check your knowledge base before answering any questions.
