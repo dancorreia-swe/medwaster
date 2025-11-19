@@ -28,14 +28,22 @@ class CertificateStorageService {
     this.bucketEnsured = true;
   }
 
-  static async uploadPdf(key: string, buffer: ArrayBuffer | Buffer) {
+  static async uploadPdf(key: string, buffer: ArrayBuffer | Buffer | Uint8Array) {
     await this.ensureBucket();
+
+    const normalizedBuffer = Buffer.isBuffer(buffer)
+      ? buffer
+      : buffer instanceof ArrayBuffer
+        ? Buffer.from(buffer)
+        : Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+
     await s3Client.send(
       new PutObjectCommand({
         Bucket: BUCKET_NAME,
         Key: key,
-        Body: buffer,
+        Body: normalizedBuffer,
         ContentType: "application/pdf",
+        ContentLength: normalizedBuffer.byteLength,
       }),
     );
 

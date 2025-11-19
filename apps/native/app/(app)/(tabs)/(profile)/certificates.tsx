@@ -90,18 +90,15 @@ export default function CertificatesScreen() {
 
       const baseMessage = `🎓 Conquistei meu Certificado de Conclusão no MedWaster!\n\n${certificate.totalTrailsCompleted} trilhas • ${certificate.averageScore.toFixed(1)}% de média\n\nCódigo: ${certificate.verificationCode}`;
 
-      if (pdfUrl) {
-        await Share.share({
-          title: "Meu certificado MedWaster",
-          message: `${baseMessage}\n\nBaixar certificado: ${pdfUrl}`,
-          url: pdfUrl,
-        });
-      } else {
-        await Share.share({
-          title: "Meu certificado MedWaster",
-          message: baseMessage,
-        });
-      }
+      const shareMessage = pdfUrl
+        ? `${baseMessage}\n\nBaixar certificado: ${pdfUrl}`
+        : baseMessage;
+
+      await Share.share({
+        title: "Meu certificado MedWaster",
+        subject: "Meu certificado MedWaster",
+        message: shareMessage,
+      });
     } catch (error) {
       console.error("Error sharing:", error);
     }

@@ -300,7 +300,7 @@ export async function generateCertificatePDF(
     });
     const userImage = await getImageDataUrl(data.userImageUrl, data.userName);
 
-    const pdfBuffer = await pdf(
+    const pdfInstance = pdf(
       <CertificateDocument
         userName={data.userName}
         averageScore={data.averageScore}
@@ -312,7 +312,10 @@ export async function generateCertificatePDF(
         userImage={userImage}
         qrCode={qrCode}
       />,
-    ).toBuffer();
+    );
+
+    const pdfStreamOrBuffer = await pdfInstance.toBuffer();
+    const pdfBuffer = await ensureBufferFromReactPdf(pdfStreamOrBuffer);
 
     const key = `certificate-${data.id}-${data.verificationCode}.pdf`;
     const url = await CertificateStorageService.uploadPdf(key, pdfBuffer);
@@ -322,4 +325,37 @@ export async function generateCertificatePDF(
     console.error("Failed to generate certificate PDF:", error);
     throw error;
   }
+}
+
+async function ensureBufferFromReactPdf(
+  result: Buffer | Uint8Array | NodeJS.ReadableStream,
+): Promise<Buffer> {
+  if (Buffer.isBuffer(result)) {
+    return result;
+  }
+
+  if (result instanceof Uint8Array) {
+    return Buffer.from(result);
+  }
+
+  if (typeof (result as NodeJS.ReadableStream)?.on === "function") {
+    return new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      const stream = result as NodeJS.ReadableStream;
+
+      stream.on("data", (chunk) => {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      });
+
+      stream.on("end", () => {
+        resolve(Buffer.concat(chunks));
+      });
+
+      stream.on("error", (error) => {
+        reject(error);
+      });
+    });
+  }
+
+  throw new Error("Unsupported output from react-pdf renderer");
 }
