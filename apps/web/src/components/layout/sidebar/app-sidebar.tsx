@@ -143,11 +143,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data } = authClient.useSession();
   const { canAccessSuperAdmin } = usePermissions();
 
-  // Helper function to check if a collapsible item should be open
+  const normalizeTarget = (target: string) =>
+    target === "/" ? "/" : target.replace(/\/$/, "");
+
+  const isPathActive = (target: string) => {
+    const normalizedTarget = normalizeTarget(target);
+    if (normalizedTarget === "/") {
+      return location.pathname === "/";
+    }
+
+    return (
+      location.pathname === normalizedTarget ||
+      location.pathname.startsWith(`${normalizedTarget}/`)
+    );
+  };
+
   const isCollapsibleOpen = (item: SidebarCollapsibleItem) => {
     if (item.isActive !== undefined) return item.isActive;
 
-    // Check if any sub-item matches the current path
     return item.items.some(
       (subItem) =>
         location.pathname === subItem.to ||
@@ -221,12 +234,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             {item.items.map((subItem) => (
                               <SidebarMenuSubItem key={subItem.title}>
                                 <SidebarMenuSubButton
-                                  isActive={
-                                    location.pathname === subItem.to ||
-                                    location.pathname.startsWith(
-                                      `${subItem.to}/`,
-                                    )
-                                  }
+                                  isActive={isPathActive(subItem.to)}
                                   asChild
                                 >
                                   <Link to={subItem.to}>
@@ -248,7 +256,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
-                        isActive={location.pathname === item.to}
+                        isActive={isPathActive(item.to)}
                       >
                         <Link to={item.to}>
                           <item.icon />
@@ -273,10 +281,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 {superAdminItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === item.to}
-                    >
+                    <SidebarMenuButton asChild isActive={isPathActive(item.to)}>
                       <Link to={item.to}>
                         <item.icon />
                         <span>{item.title}</span>
