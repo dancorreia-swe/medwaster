@@ -50,11 +50,12 @@ export const certificateKeys = {
   user: ["certificate"] as const,
 };
 
-export function useUserCertificate() {
+export function useUserCertificate(enabled: boolean = true) {
   return useQuery({
     queryKey: certificateKeys.user,
     queryFn: getUserCertificate,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled,
   });
 }
 

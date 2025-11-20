@@ -90,22 +90,28 @@ export function useTrailContent(id: number) {
 /**
  * Fetch recommended trails based on user activity
  */
-export function useRecommendedTrails() {
+export function useRecommendedTrails(options?: { enabled?: boolean }) {
+  const enabled = options?.enabled ?? true;
+
   return useQuery({
     queryKey: trailKeys.recommended(),
     queryFn: fetchRecommendedTrails,
     staleTime: 10 * 60 * 1000, // 10 minutes
+    enabled,
   });
 }
 
 /**
  * Fetch recommended categories based on user activity
  */
-export function useRecommendedCategories() {
+export function useRecommendedCategories(options?: { enabled?: boolean }) {
+  const enabled = options?.enabled ?? true;
+
   return useQuery({
     queryKey: trailKeys.recommendedCategories(),
     queryFn: fetchRecommendedCategories,
     staleTime: 10 * 60 * 1000, // 10 minutes
+    enabled,
   });
 }
 

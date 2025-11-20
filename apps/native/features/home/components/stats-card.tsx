@@ -45,22 +45,22 @@ export function StatsCard() {
 
   if (isLoading) {
     return (
-      <View className="mx-5 mb-5 bg-white rounded-[14px] border border-gray-200 p-6 items-center justify-center">
+      <View className="mx-5 mb-5 bg-white dark:bg-gray-900 rounded-[14px] border border-gray-200 dark:border-gray-800 p-6 items-center justify-center">
         <ActivityIndicator size="small" color="#155DFC" />
-        <Text className="text-xs text-gray-600 mt-2">Carregando...</Text>
+        <Text className="text-xs text-gray-600 dark:text-gray-400 mt-2">Carregando...</Text>
       </View>
     );
   }
 
   return (
-    <View className="mx-5 mb-5 bg-white rounded-[14px] border border-gray-200 overflow-hidden">
+    <View className="mx-5 mb-5 bg-white dark:bg-gray-900 rounded-[14px] border border-gray-200 dark:border-gray-800 overflow-hidden">
       <View className="px-5 pt-5 pb-4 gap-4">
         <TouchableOpacity
-          className="flex-row items-center gap-4 bg-orange-50 rounded-2xl px-4 py-3"
+          className="flex-row items-center gap-4 bg-orange-50 dark:bg-orange-900/30 rounded-2xl px-4 py-3"
           activeOpacity={0.85}
           onPress={() => router.push("/streak")}
         >
-          <View className="w-16 h-16 bg-white rounded-2xl items-center justify-center">
+          <View className="w-16 h-16 bg-white dark:bg-gray-800 rounded-2xl items-center justify-center">
             <Image
               source={streakIllustration}
               contentFit="contain"
@@ -68,21 +68,21 @@ export function StatsCard() {
             />
           </View>
           <View className="flex-1">
-            <Text className="text-xs font-semibold text-orange-900 uppercase">
+            <Text className="text-xs font-semibold text-orange-900 dark:text-orange-200 uppercase">
               Sequência
             </Text>
             <View className="flex-row items-baseline gap-2 mt-1">
-              <Text className="text-3xl font-bold text-gray-900">
+              <Text className="text-3xl font-bold text-gray-900 dark:text-gray-50">
                 {streak?.currentStreak ?? 0}
               </Text>
-              <Text className="text-sm text-gray-700">dias consecutivos</Text>
+              <Text className="text-sm text-gray-700 dark:text-gray-300">dias consecutivos</Text>
             </View>
           </View>
           <Search size={22} color="#1D4ED8" strokeWidth={2.2} />
         </TouchableOpacity>
 
         <View className="items-center">
-          <Text className="text-xs text-gray-600">
+          <Text className="text-xs text-gray-600 dark:text-gray-400">
             Seu crescimento essa semana
           </Text>
         </View>
@@ -91,19 +91,19 @@ export function StatsCard() {
           {weeklyHighlights.map((item) => (
             <View
               key={item.id}
-              className="flex-1 bg-gray-50 rounded-2xl px-3 py-4 items-center"
+              className="flex-1 bg-gray-50 dark:bg-gray-800/60 rounded-2xl px-3 py-4 items-center"
             >
-              <View className="w-11 h-11 rounded-full bg-white items-center justify-center mb-2">
+              <View className="w-11 h-11 rounded-full bg-white dark:bg-gray-900 items-center justify-center mb-2">
                 <Image
                   source={item.illustration}
                   contentFit="contain"
                   style={{ width: item.imageSize, height: item.imageSize }}
                 />
               </View>
-              <Text className={`text-2xl font-semibold ${item.valueClass}`}>
+              <Text className={`text-2xl font-semibold ${item.valueClass} dark:text-gray-50`}>
                 {item.value}
               </Text>
-              <Text className="text-xs text-gray-600 text-center whitespace-nowrap">
+              <Text className="text-xs text-gray-600 dark:text-gray-400 text-center whitespace-nowrap">
                 {item.label}
               </Text>
             </View>

@@ -6,6 +6,7 @@ import { toast } from "sonner-native";
 import { Icon } from "@/components/icon";
 import { getLucideIcon } from "./utils";
 import { useRouter } from "expo-router";
+import { authClient } from "@/lib/auth-client";
 
 /**
  * Hook to check for unnotified achievements and show notifications
@@ -17,8 +18,13 @@ import { useRouter } from "expo-router";
 export function useAchievementNotifications() {
   const isCheckingRef = useRef(false);
   const router = useRouter();
+  const { data: session } = authClient.useSession();
 
   const checkForUnnotifiedAchievements = async () => {
+    if (!session) {
+      return;
+    }
+
     // Prevent duplicate checks
     if (isCheckingRef.current) {
       return;
@@ -106,6 +112,10 @@ export function useAchievementNotifications() {
   };
 
   useEffect(() => {
+    if (!session) {
+      return;
+    }
+
     // Check on mount
     checkForUnnotifiedAchievements();
 
@@ -122,7 +132,7 @@ export function useAchievementNotifications() {
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [session]);
 
   return {
     checkForUnnotifiedAchievements,

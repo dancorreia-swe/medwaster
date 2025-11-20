@@ -38,10 +38,10 @@ const CATEGORY_COLORS = [
 export default function Home() {
   const { data: session } = authClient.useSession();
   const { data: recommendedCategories, isLoading: isLoadingCategories } =
-    useRecommendedCategories();
+    useRecommendedCategories({ enabled: !!session });
   const { data: recommendedTrails, isLoading: isLoadingRecommended } =
-    useRecommendedTrails();
-  const { data: certificateData } = useUserCertificate();
+    useRecommendedTrails({ enabled: !!session });
+  const { data: certificateData } = useUserCertificate(!!session);
   const setSelectedCategoriesInStore = useArticleStore(
     (state) => state.setSelectedCategories,
   );
@@ -111,10 +111,10 @@ export default function Home() {
   };
 
   return (
-    <Container className="flex-1 bg-gray-50">
+    <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* App Header */}
-        <View className="border-gray-100 px-5 py-3.5">
+        <View className="border-gray-100 dark:border-gray-800 px-5 py-3.5">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2.5">
               <Image 
@@ -122,7 +122,7 @@ export default function Home() {
                 style={{ width: 48, height: 48 }}
                 resizeMode="contain"
               />
-              <Text className="text-xl font-semibold text-gray-900">
+              <Text className="text-xl font-semibold text-gray-900 dark:text-gray-50">
                 Medwaster
               </Text>
             </View>
@@ -138,7 +138,7 @@ export default function Home() {
         </View>
 
         {/* Main Content */}
-        <View className="pt-2 bg-gray-50 flex gap-3">
+        <View className="pt-2 bg-gray-50 dark:bg-gray-950 flex gap-3">
           {/* Stats Card */}
           <StatsCard />
 
@@ -150,11 +150,11 @@ export default function Home() {
                 style={{ width: 24, height: 24 }}
                 resizeMode="contain"
               />
-              <Text className="text-lg font-bold text-gray-900">
+              <Text className="text-lg font-bold text-gray-900 dark:text-gray-50">
                 Categorias de Interesse
               </Text>
             </View>
-            <Text className="text-sm text-gray-600 mb-3.5 ml-[34px]">
+            <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3.5 ml-[34px]">
               Temas sugeridos com base nos conteúdos que você mais explora
             </Text>
             {isLoadingCategories ? (
@@ -178,7 +178,7 @@ export default function Home() {
                 })}
               </View>
             ) : (
-              <Text className="text-sm text-gray-500 text-center py-8">
+              <Text className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
                 Continue explorando conteúdos para receber recomendações
                 personalizadas!
               </Text>
@@ -194,11 +194,11 @@ export default function Home() {
                   style={{ width: 24, height: 24 }}
                   resizeMode="contain"
                 />
-                <Text className="text-lg font-bold text-gray-900">
+                <Text className="text-lg font-bold text-gray-900 dark:text-gray-50">
                   Para você começar
                 </Text>
               </View>
-              <Text className="text-sm text-gray-600 ml-[34px]">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 ml-[34px]">
                 Trilhas recomendadas especialmente para você
               </Text>
             </View>
@@ -235,7 +235,7 @@ export default function Home() {
               </ScrollView>
             ) : (
               <View className="px-5">
-                <Text className="text-sm text-gray-500 text-center py-8">
+                <Text className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
                   {hasCompletedAllTrails
                     ? "🎉 Parabéns! Você completou todas as trilhas disponíveis!"
                     : "Comece completando trilhas para receber recomendações personalizadas!"}
@@ -252,11 +252,11 @@ export default function Home() {
                 style={{ width: 24, height: 24 }}
                 resizeMode="contain"
               />
-              <Text className="text-lg font-bold text-gray-900">
+              <Text className="text-lg font-bold text-gray-900 dark:text-gray-50">
                 Continue aprendendo
               </Text>
             </View>
-            <Text className="text-sm text-gray-600 mb-3.5 ml-[34px]">
+            <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3.5 ml-[34px]">
               Acompanhe seu progresso e conquistas
             </Text>
 
@@ -300,22 +300,22 @@ export default function Home() {
             )}
 
             {/* Learning Stats */}
-            <View className="bg-white rounded-2xl p-5 border border-gray-100">
+            <View className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-100 dark:border-gray-800">
               <View className="flex-row items-center justify-between">
                 <View className="flex-1">
-                  <Text className="text-xs text-gray-500 mb-1">
+                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                     Trilhas Concluídas
                   </Text>
-                  <Text className="text-2xl font-bold text-gray-900">
+                  <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
                     {certificateData?.certificate?.totalTrailsCompleted ?? 0}
                   </Text>
                 </View>
                 <View className="w-px h-10 bg-gray-200" />
                 <View className="flex-1 items-center">
-                  <Text className="text-xs text-gray-500 mb-1">
+                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                     Média Geral
                   </Text>
-                  <Text className="text-2xl font-bold text-gray-900">
+                  <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
                     {certificateData?.certificate?.averageScore
                       ? `${certificateData.certificate.averageScore.toFixed(0)}%`
                       : "-"}
@@ -323,10 +323,10 @@ export default function Home() {
                 </View>
                 <View className="w-px h-10 bg-gray-200" />
                 <View className="flex-1 items-end">
-                  <Text className="text-xs text-gray-500 mb-1">
+                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                     Tempo Total
                   </Text>
-                  <Text className="text-2xl font-bold text-gray-900">
+                  <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
                     {certificateData?.certificate?.totalTimeMinutes
                       ? `${Math.floor(certificateData.certificate.totalTimeMinutes / 60)}h`
                       : "-"}

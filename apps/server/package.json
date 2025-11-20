@@ -63,6 +63,7 @@
     "nodemailer": "^7.0.6",
     "openai": "^6.4.0",
     "pg": "^8.14.1",
+    "puppeteer": "^24.30.0",
     "qrcode": "^1.5.4",
     "react": "19.2.0",
     "react-dom": "19.2.0",

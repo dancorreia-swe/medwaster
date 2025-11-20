@@ -3,6 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { authClient } from "@/lib/auth-client";
 import {
   fetchUserStreak,
   fetchUserMissions,
@@ -40,18 +41,26 @@ export const gamificationKeys = {
 // ============================================================================
 
 export function useUserStreak() {
+  const { data: session, isPending } = authClient.useSession();
+
   return useQuery({
     queryKey: gamificationKeys.streak(),
     queryFn: fetchUserStreak,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!session && !isPending,
+    retry: false,
   });
 }
 
 export function useStreakMilestones() {
+  const { data: session, isPending } = authClient.useSession();
+
   return useQuery({
     queryKey: gamificationKeys.streakMilestones(),
     queryFn: fetchStreakMilestones,
     staleTime: 30 * 60 * 1000, // 30 minutes
+    enabled: !!session && !isPending,
+    retry: false,
   });
 }
 
@@ -93,10 +102,14 @@ export function useUseStreakFreeze() {
 // ============================================================================
 
 export function useUserMissions() {
+  const { data: session, isPending } = authClient.useSession();
+
   const query = useQuery({
     queryKey: gamificationKeys.missions(),
     queryFn: fetchUserMissions,
     staleTime: 2 * 60 * 1000, // 2 minutes
+    enabled: !!session && !isPending,
+    retry: false,
   });
 
   console.log("📱 [useUserMissions] Hook state:", {
@@ -118,26 +131,38 @@ export function useUserMissions() {
 // ============================================================================
 
 export function useTodayActivity() {
+  const { data: session, isPending } = authClient.useSession();
+
   return useQuery({
     queryKey: gamificationKeys.todayActivity(),
     queryFn: fetchTodayActivity,
     staleTime: 1 * 60 * 1000, // 1 minute
+    enabled: !!session && !isPending,
+    retry: false,
   });
 }
 
 export function useWeeklyStats() {
+  const { data: session, isPending } = authClient.useSession();
+
   return useQuery({
     queryKey: gamificationKeys.weeklyStats(),
     queryFn: fetchWeeklyStats,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!session && !isPending,
+    retry: false,
   });
 }
 
 export function useActivityHistory(days: number = 30) {
+  const { data: session, isPending } = authClient.useSession();
+
   return useQuery({
     queryKey: gamificationKeys.activityHistory(days),
     queryFn: () => fetchActivityHistory(days),
     staleTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!session && !isPending,
+    retry: false,
   });
 }
 

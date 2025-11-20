@@ -13,7 +13,15 @@
       "expo-router",
       "expo-secure-store",
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "imageWidth": 160
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

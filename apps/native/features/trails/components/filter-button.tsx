@@ -11,27 +11,27 @@ interface FilterButtonProps {
 const filterVariants = {
   default: {
     active: "bg-primary",
-    inactive: "bg-gray-100",
+    inactive: "bg-gray-100 dark:bg-gray-800",
     activeText: "text-white",
-    inactiveText: "text-gray-700",
+    inactiveText: "text-gray-700 dark:text-gray-200",
   },
   progress: {
     active: "bg-orange-500",
-    inactive: "bg-orange-50",
+    inactive: "bg-orange-50 dark:bg-orange-900/30",
     activeText: "text-white",
-    inactiveText: "text-orange-700",
+    inactiveText: "text-orange-700 dark:text-orange-200",
   },
   available: {
     active: "bg-blue-500",
-    inactive: "bg-blue-50",
+    inactive: "bg-blue-50 dark:bg-blue-900/30",
     activeText: "text-white",
-    inactiveText: "text-blue-700",
+    inactiveText: "text-blue-700 dark:text-blue-200",
   },
   completed: {
     active: "bg-green-500",
-    inactive: "bg-green-50",
+    inactive: "bg-green-50 dark:bg-green-900/30",
     activeText: "text-white",
-    inactiveText: "text-green-700",
+    inactiveText: "text-green-700 dark:text-green-200",
   },
 };
 
@@ -63,7 +63,7 @@ export function FilterButton({
       </Text>
       <View
         className={`px-2 py-1 rounded-full min-w-[24px] items-center justify-center ${
-          isActive ? "bg-white/20" : "bg-white"
+          isActive ? "bg-white/20" : "bg-white dark:bg-gray-900"
         }`}
       >
         <Text

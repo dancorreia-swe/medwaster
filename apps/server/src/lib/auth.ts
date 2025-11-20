@@ -30,6 +30,7 @@ export const auth = betterAuth({
   trustedOrigins: [
     process.env.CORS_ORIGIN || "",
     "medwaster://",
+    "medwaster://reset-password",
     "exp://",
   ],
   emailAndPassword: {

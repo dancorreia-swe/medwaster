@@ -50,14 +50,14 @@ export default function Trails() {
   };
 
   return (
-    <Container className="flex-1 bg-gray-50">
+    <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
       {/* Header - Fixed at top */}
       <View className="px-6 pt-4 pb-2">
         <View className="flex-row items-center gap-2.5 py-3 mb-3">
-          <Text className="text-4xl font-bold text-gray-900 leading-tight">
+          <Text className="text-4xl font-bold text-gray-900 dark:text-gray-50 leading-tight">
             Trilhas
           </Text>
-          <Text className="text-4xl font-light text-gray-400 leading-tight">
+          <Text className="text-4xl font-light text-gray-400 dark:text-gray-400 leading-tight">
             de Aprendizado
           </Text>
         </View>
@@ -118,19 +118,19 @@ export default function Trails() {
           {isLoading ? (
             <View className="items-center justify-center py-12">
               <ActivityIndicator size="large" color="#155DFC" />
-              <Text className="text-gray-600 mt-3">
+              <Text className="text-gray-600 dark:text-gray-300 mt-3">
                 Carregando trilhas...
               </Text>
             </View>
           ) : isError ? (
             <View className="items-center justify-center py-12">
-              <Text className="text-gray-600 text-center">
+              <Text className="text-gray-600 dark:text-gray-300 text-center">
                 Erro ao carregar trilhas.{"\n"}Tente novamente mais tarde.
               </Text>
             </View>
           ) : filteredTrails.length === 0 ? (
             <View className="items-center justify-center py-12">
-              <Text className="text-gray-600 text-center">
+              <Text className="text-gray-600 dark:text-gray-300 text-center">
                 Nenhuma trilha encontrada.
               </Text>
             </View>

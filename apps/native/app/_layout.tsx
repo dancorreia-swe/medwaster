@@ -29,7 +29,8 @@ const DARK_THEME: Theme = {
 };
 
 export const unstable_settings = {
-  initialRouteName: "(app)",
+  // Logged-out users should land on auth first to avoid mounted app tabs firing requests
+  initialRouteName: "(auth)",
 };
 
 export default function RootLayout() {

@@ -49,13 +49,13 @@ export function TrailCard({ trail, onPress }: TrailCardProps) {
     <TouchableOpacity
       onPress={onPress}
       disabled={trail.isLocked}
-      className={`bg-white rounded-xl border border-gray-200 p-4 mb-3 ${trail.isLocked ? "opacity-50" : ""}`}
+      className={`bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-3 ${trail.isLocked ? "opacity-50" : ""}`}
     >
       {/* Header */}
       <View className="flex-row items-start justify-between mb-2">
         <View className="flex-1">
           <View className="flex-row items-center gap-2 mb-1">
-            <Text className="text-base font-bold text-gray-900">
+            <Text className="text-base font-bold text-gray-900 dark:text-gray-50">
               {trail.name}
             </Text>
             {trail.isLocked && (
@@ -63,7 +63,7 @@ export function TrailCard({ trail, onPress }: TrailCardProps) {
             )}
           </View>
           {trail.description && (
-            <Text className="text-sm text-gray-600" numberOfLines={2}>
+            <Text className="text-sm text-gray-600 dark:text-gray-400" numberOfLines={2}>
               {trail.description}
             </Text>
           )}
@@ -82,20 +82,20 @@ export function TrailCard({ trail, onPress }: TrailCardProps) {
       {/* Badges */}
       <View className="flex-row items-center gap-2 mb-3">
         <View className={`${difficulty.color} px-3 py-1 rounded-full`}>
-          <Text className={`text-xs font-semibold ${difficulty.textColor}`}>
+          <Text className={`text-xs font-semibold ${difficulty.textColor} dark:text-gray-900`}>
             {difficulty.label}
           </Text>
         </View>
         {trail.estimatedTimeMinutes && (
-          <View className="bg-gray-100 px-3 py-1 rounded-full">
-            <Text className="text-xs font-semibold text-gray-700">
+          <View className="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
+            <Text className="text-xs font-semibold text-gray-700 dark:text-gray-200">
               ~{trail.estimatedTimeMinutes} min
             </Text>
           </View>
         )}
         {isCompleted && (
-          <View className="bg-green-100 px-3 py-1 rounded-full">
-            <Text className="text-xs font-semibold text-green-700">
+          <View className="bg-green-100 dark:bg-green-900/40 px-3 py-1 rounded-full">
+            <Text className="text-xs font-semibold text-green-700 dark:text-green-200">
               Concluída
             </Text>
           </View>
@@ -105,13 +105,15 @@ export function TrailCard({ trail, onPress }: TrailCardProps) {
       {/* Progress Bar (if enrolled) */}
       {isEnrolled && (
         <View>
-          <View className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
+          <View className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-1">
             <View
               className={`h-full ${isCompleted ? "bg-green-500" : "bg-primary"}`}
               style={{ width: `${progressPercentage}%` }}
             />
           </View>
-          <Text className={`text-xs ${isCompleted ? "text-green-700 font-semibold" : "text-gray-600"}`}>
+          <Text
+            className={`text-xs ${isCompleted ? "text-green-700 dark:text-green-200 font-semibold" : "text-gray-600 dark:text-gray-400"}`}
+          >
             {progressPercentage}% concluído
           </Text>
         </View>

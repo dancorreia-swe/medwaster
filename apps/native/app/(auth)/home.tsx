@@ -48,7 +48,7 @@ export default function Landing() {
         </View>
 
         <View className="mb-8">
-          <Text className="text-[15.75px] leading-[25.6px] text-[#4A5565] text-center tracking-tight">
+          <Text className="text-[15.75px] leading-[25.6px] text-center tracking-tight text-muted-foreground dark:text-gray-200">
             A maneira gratuita, divertida e eficaz de aprender sobre descarte
             correto de resíduos hospitalares!
           </Text>
@@ -76,7 +76,7 @@ export default function Landing() {
 
         <TouchableOpacity onPress={handleOpenSignIn}>
           <View className="flex-row items-center justify-center gap-1">
-            <Text className="text-[15px] text-[#364153] tracking-tight">
+            <Text className="text-[15px] tracking-tight text-muted-foreground dark:text-gray-200">
               Já tem uma conta?
             </Text>
             <Text className="text-blue-500 font-bold tracking-tight">

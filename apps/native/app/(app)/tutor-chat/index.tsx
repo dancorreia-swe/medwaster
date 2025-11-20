@@ -125,22 +125,22 @@ export default function TutorScreen() {
   }, [status]);
 
   return (
-    <Container className="flex-1 bg-white" edges={["top", "bottom"]}>
+    <Container className="flex-1 bg-white dark:bg-gray-950" edges={["top", "bottom"]}>
       {/* Header */}
-      <View className="border-b border-gray-200 px-4 pt-3.5 pb-3">
+      <View className="border-b border-gray-200 dark:border-gray-800 px-4 pt-3.5 pb-3">
         <View className="flex-row items-center gap-4">
           <TouchableOpacity
             onPress={handleBack}
             className="rounded-full items-center justify-center"
           >
-            <Icon icon={ArrowLeft} size={24} className="text-neutral-600" />
+            <Icon icon={ArrowLeft} size={24} className="text-neutral-600 dark:text-gray-300" />
           </TouchableOpacity>
 
           <View className="flex-row items-center gap-2.5">
-            <Text className="text-4xl font-bold text-gray-900 leading-tight">
+            <Text className="text-4xl font-bold text-gray-900 dark:text-gray-50 leading-tight">
               Tutor
             </Text>
-            <Text className="text-4xl font-light text-gray-400 leading-tight">
+            <Text className="text-4xl font-light text-gray-400 dark:text-gray-500 leading-tight">
               AI
             </Text>
           </View>
@@ -164,7 +164,7 @@ export default function TutorScreen() {
         {messages.length === 0 ? (
           <View className="flex-1 items-center justify-center px-5">
             <View className="items-center gap-3.5">
-              <View className="w-14 h-14 rounded-full bg-secondary items-center justify-center">
+              <View className="w-14 h-14 rounded-full bg-secondary dark:bg-primary/15 items-center justify-center">
                 <Icon
                   icon={GraduationCap}
                   size={28}
@@ -172,11 +172,11 @@ export default function TutorScreen() {
                 />
               </View>
 
-              <Text className="text-2xl font-medium text-gray-900 text-center leading-snug tracking-tight">
+              <Text className="text-2xl font-medium text-gray-900 dark:text-gray-50 text-center leading-snug tracking-tight">
                 Tutor Medwaster
               </Text>
 
-              <Text className="text-base text-gray-500 text-center leading-tight px-4">
+              <Text className="text-base text-gray-500 dark:text-gray-400 text-center leading-tight px-4">
                 Faça perguntas sobre classificação, descarte e gestão de
                 resíduos médicos.
               </Text>
@@ -220,7 +220,7 @@ export default function TutorScreen() {
               <View className="px-4 py-3 gap-3">
                 <View className="flex-row items-center gap-2">
                   <ActivityIndicator size="small" color="rgb(21, 93, 252)" />
-                  <Text className="text-sm text-gray-500">Pensando...</Text>
+                  <Text className="text-sm text-gray-500 dark:text-gray-400">Pensando...</Text>
                 </View>
               </View>
             )}
@@ -235,14 +235,14 @@ export default function TutorScreen() {
       >
         <View className="px-3.5 pb-2 pt-3">
           <View className="flex-row items-end justify-end gap-2">
-            <View className="flex-1 bg-gray-50 rounded-3xl border border-gray-200 px-4 py-2">
+            <View className="flex-1 bg-gray-50 dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 px-4 py-2">
               {/* <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center mb-1"> */}
               {/*   <Paperclip size={18} className="text-gray-500" /> */}
               {/* </TouchableOpacity> */}
 
               <TextInput
                 placeholder="Pergunte algo..."
-                className="text-lg leading-tight text-neutral-900 px-2.5 py-2 placeholder:text-muted-foreground/80"
+                className="text-lg leading-tight text-neutral-900 dark:text-gray-50 px-2.5 py-2 placeholder:text-muted-foreground/80 dark:placeholder:text-muted-foreground/60"
                 value={inputText}
                 onChangeText={setInputText}
                 onSubmitEditing={handleSend}
@@ -259,7 +259,7 @@ export default function TutorScreen() {
                 disabled={!(status === "submitted" || status === "streaming")}
                 className="mb-1"
               >
-                <View className="size-14 rounded-full items-center justify-center bg-gray-700">
+                <View className="size-14 rounded-full items-center justify-center bg-gray-700 dark:bg-gray-600">
                   <Icon
                     icon={Square}
                     size={14}
