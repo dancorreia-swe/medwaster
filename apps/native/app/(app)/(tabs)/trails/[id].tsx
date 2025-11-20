@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   useColorScheme,
+  Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -23,6 +24,14 @@ import {
   useEnrollInTrail,
 } from "@/features/trails/hooks";
 import { HtmlText } from "@/components/HtmlText";
+
+import multipleChoiceIcon from "@/assets/questions/multiple-choice.png";
+import trueFalseIcon from "@/assets/questions/true-false.png";
+import fillInTheBlanksIcon from "@/assets/questions/fill-in-the-blanks.png";
+import matchingPairsIcon from "@/assets/questions/matching-pairs.png";
+import quizBookletIcon from "@/assets/quiz-booklet.png";
+import openBookIcon from "@/assets/open-book.png";
+import lockIcon from "@/assets/lock.png";
 
 type ModuleStatus = "completed" | "current" | "locked";
 type ModuleType = "quiz" | "article" | "question";
@@ -102,17 +111,33 @@ const getQuestionCount = (content: any) => {
 const getQuestionTypeIcon = (questionType?: string) => {
   switch (questionType) {
     case "multiple_choice":
-      return { Icon: ListChecks, color: "#8B5CF6", label: "Múltipla escolha" };
+      return {
+        icon: multipleChoiceIcon,
+        Icon: ListChecks,
+        color: "#8B5CF6",
+        label: "Múltipla escolha",
+      };
     case "true_false":
       return {
+        icon: trueFalseIcon,
         Icon: CheckCircle2,
         color: "#10B981",
         label: "Verdadeiro ou Falso",
       };
     case "fill_in_the_blank":
-      return { Icon: Edit3, color: "#F59E0B", label: "Preencher" };
+      return {
+        icon: fillInTheBlanksIcon,
+        Icon: Edit3,
+        color: "#F59E0B",
+        label: "Preencher",
+      };
     case "matching":
-      return { Icon: Link2, color: "#EC4899", label: "Relacionar" };
+      return {
+        icon: matchingPairsIcon,
+        Icon: Link2,
+        color: "#EC4899",
+        label: "Relacionar",
+      };
     default:
       return null;
   }
@@ -270,7 +295,27 @@ export default function JourneyDetail() {
                   }}
                   className="w-20 h-20 rounded-2xl items-center justify-center"
                 >
-                  <Text className="text-[40px]">{module.emoji || "📄"}</Text>
+                  {module.type === "question" && module.questionType ? (
+                    <Image
+                      source={getQuestionTypeIcon(module.questionType)?.icon}
+                      style={{ width: 48, height: 48, borderRadius: 10 }}
+                      resizeMode="contain"
+                    />
+                  ) : module.type === "quiz" ? (
+                    <Image
+                      source={quizBookletIcon}
+                      style={{ width: 48, height: 48, borderRadius: 10 }}
+                      resizeMode="contain"
+                    />
+                  ) : module.type === "article" ? (
+                    <Image
+                      source={openBookIcon}
+                      style={{ width: 48, height: 48, borderRadius: 10 }}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <Text className="text-[40px]">{module.emoji || "📄"}</Text>
+                  )}
                 </View>
                 <View className="flex-1">
                   <Text
@@ -349,7 +394,27 @@ export default function JourneyDetail() {
                 {/* Emoji Badge */}
                 <View className="relative mr-5">
                   <View className="w-16 h-16 bg-gray-100 rounded-2xl items-center justify-center dark:bg-gray-800">
-                    <Text className="text-[32px]">{module.emoji || "📄"}</Text>
+                    {module.type === "question" && module.questionType ? (
+                      <Image
+                        source={getQuestionTypeIcon(module.questionType)?.icon}
+                        style={{ width: 48, height: 48, borderRadius: 8 }}
+                       resizeMode="contain"
+                     />
+                    ) : module.type === "quiz" ? (
+                      <Image
+                        source={quizBookletIcon}
+                        style={{ width: 48, height: 48, borderRadius: 8 }}
+                        resizeMode="contain"
+                      />
+                    ) : module.type === "article" ? (
+                      <Image
+                        source={openBookIcon}
+                        style={{ width: 48, height: 48, borderRadius: 8 }}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <Text className="text-[32px]">{module.emoji || "📄"}</Text>
+                    )}
                   </View>
                   {/* Status Badge */}
                   <View
@@ -357,14 +422,18 @@ export default function JourneyDetail() {
                       module.status === "completed" ||
                       module.status === "current"
                         ? "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center bg-green-500 dark:border-gray-900"
-                        : "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center bg-gray-400 dark:border-gray-900 dark:bg-gray-600"
+                        : "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center dark:border-gray-900 dark:bg-gray-600"
                     }
                   >
                     {module.status === "completed" && (
                       <Text className="text-white text-xs">✓</Text>
                     )}
                     {module.status === "locked" && (
-                      <Text className="text-white text-xs">🔒</Text>
+                      <Image
+                        source={lockIcon}
+                        style={{ width: 32, height: 32, borderRadius: 8 }}
+                        resizeMode="contain"
+                      />
                     )}
                   </View>
                 </View>

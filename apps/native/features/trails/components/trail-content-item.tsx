@@ -1,11 +1,11 @@
-import { Text, View, TouchableOpacity } from "react-native";
-import {
-  FileText,
-  HelpCircle,
-  BookOpen,
-  CheckCircle2,
-  Lock,
-} from "lucide-react-native";
+import { Text, View, TouchableOpacity, Image } from "react-native";
+import { CheckCircle2, Lock } from "lucide-react-native";
+import multipleChoiceIcon from "@/assets/questions/multiple-choice.png";
+import trueFalseIcon from "@/assets/questions/true-false.png";
+import fillInTheBlanksIcon from "@/assets/questions/fill-in-the-blanks.png";
+import matchingPairsIcon from "@/assets/questions/matching-pairs.png";
+import quizBookletIcon from "@/assets/quiz-booklet.png";
+import openBookIcon from "@/assets/open-book.png";
 
 interface TrailContentItemProps {
   content: {
@@ -18,6 +18,7 @@ interface TrailContentItemProps {
     question?: {
       id: number;
       questionText: string;
+      type?: string;
     };
     quiz?: {
       id: number;
@@ -39,17 +40,14 @@ interface TrailContentItemProps {
 
 const contentTypeConfig = {
   question: {
-    icon: HelpCircle,
     label: "Questão",
     color: "#155DFC",
   },
   quiz: {
-    icon: FileText,
     label: "Quiz",
     color: "#7C3AED",
   },
   article: {
-    icon: BookOpen,
     label: "Artigo",
     color: "#00A63E",
   },
@@ -61,8 +59,22 @@ export function TrailContentItem({
   onPress,
 }: TrailContentItemProps) {
   const config = contentTypeConfig[content.contentType];
-  const Icon = config.icon;
   const isCompleted = content.progress?.isCompleted;
+
+  const getQuestionIcon = (questionType?: string) => {
+    switch (questionType) {
+      case "multiple_choice":
+        return multipleChoiceIcon;
+      case "true_false":
+        return trueFalseIcon;
+      case "fill_in_the_blank":
+        return fillInTheBlanksIcon;
+      case "matching":
+        return matchingPairsIcon;
+      default:
+        return multipleChoiceIcon;
+    }
+  };
 
   // Get title based on content type
   const getTitle = () => {
@@ -90,7 +102,27 @@ export function TrailContentItem({
           className="w-10 h-10 rounded-full items-center justify-center"
           style={{ backgroundColor: `${config.color}15` }}
         >
-          <Icon size={20} color={config.color} strokeWidth={2} />
+          {content.contentType === "question" ? (
+            <Image
+              source={getQuestionIcon(content.question?.type)}
+              style={{ width: 20, height: 20, borderRadius: 4 }}
+              resizeMode="contain"
+            />
+          ) : content.contentType === "quiz" ? (
+            <Image
+              source={quizBookletIcon}
+              style={{ width: 20, height: 20, borderRadius: 4 }}
+              resizeMode="contain"
+            />
+          ) : content.contentType === "article" ? (
+            <Image
+              source={openBookIcon}
+              style={{ width: 20, height: 20, borderRadius: 4 }}
+              resizeMode="contain"
+            />
+          ) : (
+            <CheckCircle2 size={20} color={config.color} strokeWidth={2} />
+          )}
         </View>
 
         {/* Content Info */}
