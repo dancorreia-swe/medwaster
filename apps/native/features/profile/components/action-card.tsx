@@ -21,7 +21,7 @@ export function ActionCard({
 }: ActionCardProps) {
   return (
     <TouchableOpacity 
-      className="bg-white rounded-xl border border-gray-100 shadow-sm shadow-black/15"
+      className="bg-white rounded-xl border border-gray-100 shadow-sm shadow-black/15 dark:bg-gray-900 dark:border-gray-800"
       onPress={onPress}
     >
       <View className="p-3.5 flex-row items-center gap-3.5">
@@ -29,14 +29,14 @@ export function ActionCard({
           <Icon icon={icon} size={21} className={iconColor} />
         </View>
         <View className="flex-1">
-          <Text className="text-sm font-semibold text-gray-900 mb-0.5">
+          <Text className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-0.5">
             {title}
           </Text>
-          <Text className="text-sm text-gray-600">
+          <Text className="text-sm text-gray-600 dark:text-gray-400">
             {description}
           </Text>
         </View>
-        <Icon icon={ChevronRight} size={17.5} className="text-gray-400" />
+        <Icon icon={ChevronRight} size={17.5} className="text-gray-400 dark:text-gray-400" />
       </View>
     </TouchableOpacity>
   );

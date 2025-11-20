@@ -31,20 +31,20 @@ export default function ProfileScreen() {
 
   return (
     <Container 
-      className="flex-1"
+      className="flex-1 bg-gray-50 dark:bg-gray-950"
     >
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="px-5 pt-3.5 pb-0">
           <View className="py-4">
-            <Text className="text-4xl font-bold text-gray-900">Perfil</Text>
+            <Text className="text-4xl font-bold text-gray-900 dark:text-gray-50">Perfil</Text>
           </View>
         </View>
 
         {/* User Card */}
-        <View className="bg-white border-b border-gray-200 px-5 py-3.5">
+        <View className="bg-white border-b border-gray-200 px-5 py-3.5 dark:bg-gray-900 dark:border-gray-800">
           <View className="flex-row items-center justify-between">
-            <Text className="text-3xl font-bold text-gray-900">{userName}</Text>
+            <Text className="text-3xl font-bold text-gray-900 dark:text-gray-50">{userName}</Text>
             <UserAvatar
               name={userName}
               imageUrl={userImage}
@@ -55,7 +55,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Stats Section */}
-        <View className="bg-white px-5 py-5">
+        <View className="bg-white px-5 py-5 dark:bg-gray-900">
           {isLoading ? (
             <View className="h-24 items-center justify-center">
               <ActivityIndicator size="small" color="#2B7FFF" />
@@ -64,24 +64,24 @@ export default function ProfileScreen() {
             <View className="flex-row gap-[10.5px]">
               <ProfileStat
                 icon={Award}
-                iconColor="text-purple-600"
-                iconBgColor="bg-purple-50"
+                iconColor="text-purple-600 dark:text-purple-200"
+                iconBgColor="bg-purple-50 dark:bg-purple-900/30"
                 value={completedTrails.toString()}
                 label="Trilhas"
                 sublabel="completas"
               />
               <ProfileStat
                 icon={HelpCircle}
-                iconColor="text-blue-600"
-                iconBgColor="bg-blue-50"
+                iconColor="text-blue-600 dark:text-blue-200"
+                iconBgColor="bg-blue-50 dark:bg-blue-900/30"
                 value={questionsAnswered.toString()}
                 label="Questões"
                 sublabel="respondidas"
               />
               <ProfileStat
                 icon={Calendar}
-                iconColor="text-red-600"
-                iconBgColor="bg-red-50"
+                iconColor="text-red-600 dark:text-red-200"
+                iconBgColor="bg-red-50 dark:bg-red-900/30"
                 value={`${longestStreak} ${longestStreak === 1 ? 'dia' : 'dias'}`}
                 label="Maior"
                 sublabel="sequência"
@@ -109,16 +109,16 @@ export default function ProfileScreen() {
           {/* /> */}
           <ActionCard
             icon={Award}
-            iconColor="text-blue-600"
-            iconBgColor="bg-blue-50"
+            iconColor="text-blue-600 dark:text-blue-200"
+            iconBgColor="bg-blue-50 dark:bg-blue-900/30"
             title="Meu Certificado"
             description="Veja o status do seu certificado"
             onPress={() => router.push("/(app)/(tabs)/(profile)/certificates")}
           />
           <ActionCard
             icon={Settings}
-            iconColor="text-gray-600"
-            iconBgColor="bg-gray-50"
+            iconColor="text-gray-600 dark:text-gray-200"
+            iconBgColor="bg-gray-50 dark:bg-gray-900"
             title="Configurações"
             description="Preferências e notificações"
             onPress={() => router.push("/(app)/(tabs)/(profile)/settings")}

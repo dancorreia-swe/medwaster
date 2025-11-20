@@ -24,13 +24,13 @@ export function ProfileStat({
       <View className={`size-12 rounded-full ${iconBgColor} items-center justify-center mb-2`}>
         <Icon icon={icon} size={20} className={iconColor} />
       </View>
-      <Text className="text-lg font-bold text-gray-900 text-center">
+      <Text className="text-lg font-bold text-gray-900 dark:text-gray-50 text-center">
         {value}
       </Text>
-      <Text className="text-sm font-normal text-gray-600 uppercase tracking-wider text-center">
+      <Text className="text-sm font-normal text-gray-600 dark:text-gray-400 uppercase tracking-wider text-center">
         {label}
       </Text>
-      <Text className="text-xs font-normal text-gray-400 text-center">
+      <Text className="text-xs font-normal text-gray-400 dark:text-gray-500 text-center">
         {sublabel}
       </Text>
     </View>

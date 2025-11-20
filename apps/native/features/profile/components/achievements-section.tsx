@@ -67,7 +67,7 @@ function AchievementBadge({
         </View>
       )}
       <Text
-        className="text-sm text-gray-600 text-center"
+        className="text-sm text-gray-600 dark:text-gray-300 text-center"
         numberOfLines={2}
         ellipsizeMode="tail"
       >
@@ -108,8 +108,8 @@ export function AchievementsSection({ onViewAll }: AchievementsSectionProps) {
   };
 
   return (
-    <View className="bg-white px-5 py-5">
-      <Text className="text-base font-bold text-gray-900 mb-4">
+    <View className="bg-white dark:bg-gray-900 px-5 py-5 border-t border-b border-gray-100 dark:border-gray-800">
+      <Text className="text-base font-bold text-gray-900 dark:text-gray-50 mb-4">
         Minhas conquistas
       </Text>
 
@@ -138,13 +138,13 @@ export function AchievementsSection({ onViewAll }: AchievementsSectionProps) {
             style={{ width: 70 }}
           >
             <View
-              className="rounded-full bg-gray-100 items-center justify-center"
+              className="rounded-full bg-gray-100 dark:bg-gray-800 items-center justify-center"
               style={{ width: 70, height: 70 }}
             >
-              <Icon icon={MoreHorizontal} size={28} className="text-gray-600" />
+              <Icon icon={MoreHorizontal} size={28} className="text-gray-600 dark:text-gray-300" />
             </View>
             <Text
-              className="text-sm text-gray-600 text-center"
+              className="text-sm text-gray-600 dark:text-gray-300 text-center"
               numberOfLines={2}
               ellipsizeMode="tail"
             >
