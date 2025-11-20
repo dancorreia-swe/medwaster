@@ -40,17 +40,17 @@ export function StreakInfoCard({ streak }: StreakInfoCardProps) {
     streak.lastActivityDate ?? streak.currentStreakStartDate ?? inferredToday;
 
   return (
-    <View className="bg-white rounded-2xl border border-gray-200 p-5 mb-5">
+    <View className="bg-white rounded-2xl border border-gray-200 p-5 mb-5 dark:bg-gray-900 dark:border-gray-800">
       {/* Current Streak */}
-      <View className="flex-row items-center justify-between bg-orange-50 rounded-2xl px-5 py-4 mb-6">
+      <View className="flex-row items-center justify-between bg-orange-50 rounded-2xl px-5 py-4 mb-6 dark:bg-orange-500/20">
         <View className="flex-1 pr-3">
-          <Text className="text-xs font-semibold text-orange-800 uppercase">
+          <Text className="text-xs font-semibold text-orange-800 uppercase dark:text-orange-200">
             Sequência Atual
           </Text>
-          <Text className="text-4xl font-bold text-gray-900 mt-1">
+          <Text className="text-4xl font-bold text-gray-900 dark:text-gray-50 mt-1">
             {currentStreak}
           </Text>
-          <Text className="text-sm text-gray-700">dias consecutivos</Text>
+          <Text className="text-sm text-gray-700 dark:text-gray-300">dias consecutivos</Text>
         </View>
         <View className="w-20 h-20">
           <Image
@@ -63,60 +63,60 @@ export function StreakInfoCard({ streak }: StreakInfoCardProps) {
 
       {/* Stats Grid */}
       <View className="flex-row gap-4 mb-5">
-        <View className="flex-1 bg-purple-50 rounded-2xl px-5 py-6">
+        <View className="flex-1 bg-purple-50 rounded-2xl px-5 py-6 dark:bg-purple-500/10">
           <View className="flex-row items-center gap-3 mb-4">
-            <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center">
+            <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center dark:bg-purple-500/30">
               <Trophy size={18} color="#6B21A8" strokeWidth={2} />
             </View>
-            <Text className="text-xs font-semibold text-purple-900 uppercase flex-1 leading-4">
+            <Text className="text-xs font-semibold text-purple-900 uppercase flex-1 leading-4 dark:text-purple-100">
               Maior sequência
             </Text>
           </View>
-          <Text className="text-4xl font-bold text-purple-900">
+          <Text className="text-4xl font-bold text-purple-900 dark:text-purple-100">
             {longestStreak}
           </Text>
-          <Text className="text-xs text-purple-700 mt-2">
+          <Text className="text-xs text-purple-700 mt-2 dark:text-purple-200">
             dias no seu melhor período
           </Text>
         </View>
 
-        <View className="flex-1 bg-blue-50 rounded-2xl px-5 py-6">
+        <View className="flex-1 bg-blue-50 rounded-2xl px-5 py-6 dark:bg-blue-500/10">
           <View className="flex-row items-center gap-3 mb-4">
-            <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
+            <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center dark:bg-blue-500/30">
               <Activity size={18} color="#1D4ED8" strokeWidth={2} />
             </View>
-            <Text className="text-xs font-semibold text-blue-900 uppercase flex-1 leading-4">
+            <Text className="text-xs font-semibold text-blue-900 uppercase flex-1 leading-4 dark:text-blue-100">
               Dias ativos
             </Text>
           </View>
-          <Text className="text-4xl font-bold text-blue-900">
+          <Text className="text-4xl font-bold text-blue-900 dark:text-blue-100">
             {totalActiveDays}
           </Text>
-          <Text className="text-xs text-blue-700 mt-2">
+          <Text className="text-xs text-blue-700 mt-2 dark:text-blue-200">
             desde que você entrou
           </Text>
         </View>
       </View>
 
-      <View className="bg-gray-50 rounded-xl p-4 mb-5">
-        <Text className="text-xs font-semibold text-gray-600 uppercase">
+      <View className="bg-gray-50 rounded-xl p-4 mb-5 dark:bg-gray-800">
+        <Text className="text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
           Linha do tempo
         </Text>
         <View className="flex-row items-center gap-3 mt-3">
           <View className="flex-row items-center gap-2 flex-1">
-            <CalendarDays size={16} color="#4B5563" strokeWidth={2} />
+            <CalendarDays size={16} color="#9CA3AF" strokeWidth={2} />
             <View>
-              <Text className="text-xs text-gray-500">Início da sequência</Text>
-              <Text className="text-base font-semibold text-gray-900">
+              <Text className="text-xs text-gray-500 dark:text-gray-400">Início da sequência</Text>
+              <Text className="text-base font-semibold text-gray-900 dark:text-gray-50">
                 {formatDateLabel(startDateForDisplay)}
               </Text>
             </View>
           </View>
           <View className="flex-row items-center gap-2 flex-1">
-            <CalendarDays size={16} color="#4B5563" strokeWidth={2} />
+            <CalendarDays size={16} color="#9CA3AF" strokeWidth={2} />
             <View>
-              <Text className="text-xs text-gray-500">Último dia ativo</Text>
-              <Text className="text-base font-semibold text-gray-900">
+              <Text className="text-xs text-gray-500 dark:text-gray-400">Último dia ativo</Text>
+              <Text className="text-base font-semibold text-gray-900 dark:text-gray-50">
                 {formatDateLabel(lastActivityForDisplay)}
               </Text>
             </View>
@@ -125,25 +125,25 @@ export function StreakInfoCard({ streak }: StreakInfoCardProps) {
       </View>
 
       {streak.nextMilestone && (
-        <View className="bg-gray-50 rounded-2xl p-4">
-          <Text className="text-xs font-semibold text-gray-600 uppercase mb-2">
+        <View className="bg-gray-50 rounded-2xl p-4 dark:bg-gray-800">
+          <Text className="text-xs font-semibold text-gray-600 uppercase mb-2 dark:text-gray-400">
             Próxima Conquista
           </Text>
-          <Text className="text-base font-bold text-gray-900 mb-1">
+          <Text className="text-base font-bold text-gray-900 dark:text-gray-50 mb-1">
             {streak.nextMilestone.title}
           </Text>
-          <Text className="text-sm text-gray-600 mb-3">
+          <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3">
             {streak.nextMilestone.description}
           </Text>
           <View className="flex-row items-center justify-between">
-            <Text className="text-xs text-gray-600">
+            <Text className="text-xs text-gray-600 dark:text-gray-400">
               Faltam {streak.daysUntilNextMilestone} dias
             </Text>
-            <Text className="text-xs font-semibold text-gray-900">
+            <Text className="text-xs font-semibold text-gray-900 dark:text-gray-100">
               Meta: {streak.nextMilestone.days} dias
             </Text>
           </View>
-          <View className="h-2 bg-white rounded-full overflow-hidden mt-3">
+          <View className="h-2 bg-white rounded-full overflow-hidden mt-3 dark:bg-gray-700">
             <View
               className="h-full bg-orange-500"
               style={{ width: `${milestoneProgress * 100}%` }}

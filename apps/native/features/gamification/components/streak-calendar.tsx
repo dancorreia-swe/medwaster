@@ -90,13 +90,13 @@ export function StreakCalendar({
   }, [calendar]);
 
   return (
-    <View className="bg-white rounded-2xl border border-gray-200 p-5">
+    <View className="bg-white rounded-2xl border border-gray-200 p-5 dark:bg-gray-900 dark:border-gray-800">
       <View className="flex-row items-center justify-between mb-4">
         <View>
-          <Text className="text-xs font-semibold text-gray-600 uppercase">
+          <Text className="text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
             Calendário da sequência
           </Text>
-          <Text className="text-lg font-bold text-gray-900">
+          <Text className="text-lg font-bold text-gray-900 dark:text-gray-50">
             Últimas {weeks} semanas
           </Text>
         </View>
@@ -107,7 +107,7 @@ export function StreakCalendar({
         {WEEKDAY_LABELS.map((label, index) => (
           <Text
             key={`${label}-${index}`}
-            className="flex-1 text-center text-xs font-semibold text-gray-500"
+            className="flex-1 text-center text-xs font-semibold text-gray-500 dark:text-gray-400"
           >
             {label}
           </Text>
@@ -119,22 +119,22 @@ export function StreakCalendar({
           <View key={`${index}`} className="flex-row gap-2">
             {week.map((day) => {
               const backgroundClass = day.isActive
-                ? "bg-primary/10"
+                ? "bg-primary/10 dark:bg-primary/20"
                 : day.isFuture
                   ? "bg-transparent"
-                  : "bg-gray-50";
+                  : "bg-gray-50 dark:bg-gray-800";
 
               const borderColorClass = day.isFuture
-                ? "border-gray-300 border-dashed"
+                ? "border-gray-300 border-dashed dark:border-gray-600"
                 : day.isActive
-                  ? "border-primary/40"
-                  : "border-gray-200";
+                  ? "border-primary/40 dark:border-primary/60"
+                  : "border-gray-200 dark:border-gray-700";
 
               const textStyles = day.isActive
                 ? "text-primary"
                 : day.isFuture
-                  ? "text-gray-300"
-                  : "text-gray-600";
+                  ? "text-gray-300 dark:text-gray-600"
+                  : "text-gray-600 dark:text-gray-200";
 
               const borderClasses = day.isToday
                 ? "border-2 border-primary"
@@ -157,16 +157,16 @@ export function StreakCalendar({
 
       <View className="flex-row gap-4 mt-6">
         <View className="flex-row items-center gap-2">
-          <View className="w-4 h-4 rounded-md bg-primary/20 border border-primary/40" />
-          <Text className="text-xs text-gray-600">Dias ativos</Text>
+          <View className="w-4 h-4 rounded-md bg-primary/20 border border-primary/40 dark:bg-primary/20 dark:border-primary/60" />
+          <Text className="text-xs text-gray-600 dark:text-gray-300">Dias ativos</Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <View className="w-4 h-4 rounded-md bg-gray-100 border border-gray-200" />
-          <Text className="text-xs text-gray-600">Dias livres</Text>
+          <View className="w-4 h-4 rounded-md bg-gray-100 border border-gray-200 dark:bg-gray-800 dark:border-gray-700" />
+          <Text className="text-xs text-gray-600 dark:text-gray-300">Dias livres</Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <View className="w-4 h-4 rounded-md border border-dashed border-gray-300" />
-          <Text className="text-xs text-gray-600">Próximos dias</Text>
+          <View className="w-4 h-4 rounded-md border border-dashed border-gray-300 dark:border-gray-600" />
+          <Text className="text-xs text-gray-600 dark:text-gray-300">Próximos dias</Text>
         </View>
       </View>
     </View>

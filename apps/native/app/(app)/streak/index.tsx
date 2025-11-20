@@ -28,22 +28,26 @@ export default function StreakScreen() {
   const isLoading = streakLoading || milestonesLoading;
 
   return (
-    <Container className="flex-1 ">
+    <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <View className="px-5 pt-4 pb-3 bg-white flex-row items-center border-b border-gray-100">
+      <View className="px-5 pt-4 pb-3 bg-white flex-row items-center border-b border-gray-100 dark:bg-gray-900 dark:border-gray-800">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center"
+          className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center dark:border-gray-800"
         >
           <ChevronLeft size={24} color="#364153" strokeWidth={2} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold text-gray-900 ml-3">Sequência</Text>
+        <Text className="text-lg font-bold text-gray-900 dark:text-gray-50 ml-3">
+          Sequência
+        </Text>
       </View>
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#155DFC" />
-          <Text className="text-gray-600 mt-3">Carregando sequência...</Text>
+          <Text className="text-gray-600 dark:text-gray-300 mt-3">
+            Carregando sequência...
+          </Text>
         </View>
       ) : (
         <ScrollView
@@ -63,23 +67,23 @@ export default function StreakScreen() {
           {/* Milestones Section */}
           {milestones && milestones.length > 0 && (
             <View className="mb-6">
-              <Text className="text-lg font-bold text-gray-900 mb-3">
+              <Text className="text-lg font-bold text-gray-900 dark:text-gray-50 mb-3">
                 Conquistas de Sequência
               </Text>
 
               {milestones.map((achievement, index) => (
                 <View
                   key={achievement.milestoneId}
-                  className={`bg-white rounded-xl border border-gray-200 p-4 flex-row items-center ${index !== milestones.length - 1 ? "mb-3" : ""}`}
+                  className={`bg-white rounded-xl border border-gray-200 p-4 flex-row items-center dark:bg-gray-900 dark:border-gray-800 ${index !== milestones.length - 1 ? "mb-3" : ""}`}
                 >
                   <View className="w-12 h-12 bg-green-100 rounded-full items-center justify-center mr-4">
                     <Medal size={24} color="#059669" strokeWidth={2} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-base font-semibold text-gray-900">
+                    <Text className="text-base font-semibold text-gray-900 dark:text-gray-50">
                       {achievement.milestone.title}
                     </Text>
-                    <Text className="text-sm text-gray-600">
+                    <Text className="text-sm text-gray-600 dark:text-gray-400">
                       {achievement.milestone.days} dias de sequência
                     </Text>
                   </View>
@@ -90,12 +94,12 @@ export default function StreakScreen() {
 
           {/* Empty State */}
           {(!milestones || milestones.length === 0) && (
-            <View className="bg-white rounded-xl border border-gray-200 p-6 items-center">
+            <View className="bg-white rounded-xl border border-gray-200 p-6 items-center dark:bg-gray-900 dark:border-gray-800">
               <Trophy size={48} color="#D1D5DB" strokeWidth={1.5} />
-              <Text className="text-gray-900 font-semibold mt-3">
+              <Text className="text-gray-900 dark:text-gray-50 font-semibold mt-3">
                 Nenhuma conquista ainda
               </Text>
-              <Text className="text-gray-600 text-sm text-center mt-1">
+              <Text className="text-gray-600 dark:text-gray-400 text-sm text-center mt-1">
                 Continue sua sequência para desbloquear conquistas!
               </Text>
             </View>
