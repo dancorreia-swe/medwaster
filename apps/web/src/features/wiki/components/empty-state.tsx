@@ -1,19 +1,21 @@
-import { Button } from "@/components/ui/button";
-import { Link } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { BookText } from "lucide-react";
 
 export function EmptyState() {
   return (
-    <div className="border rounded-lg p-10 text-center">
-      <h3 className="text-lg font-semibold">Nenhum artigo encontrado</h3>
-      <p className="text-sm text-slate-600 mt-1">
-        Tente alterar os filtros ou criar um novo artigo.
-      </p>
-      <Button asChild className="mt-4">
-        <Link to="/wiki">
-          <Plus className="mr-2 h-4 w-4" /> Um novo artigo
-        </Link>
-      </Button>
-    </div>
+    <Empty className="border rounded-lg">
+      <EmptyHeader>
+        <BookText className="h-8 w-8 text-muted-foreground" />
+        <EmptyTitle>Nenhum artigo encontrado</EmptyTitle>
+        <EmptyDescription>
+          Ajuste os filtros ou tente buscar novamente para encontrar conteúdos.
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 }

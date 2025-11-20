@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate, stripHtml } from "@/lib/utils";
 import { FileQuestion } from "lucide-react";
 
 interface QuestionListItemProps {
@@ -23,12 +23,15 @@ const typeLabels: Record<string, string> = {
 };
 
 const difficultyLabels: Record<string, string> = {
-  easy: "Fácil",
-  medium: "Médio",
-  hard: "Difícil",
+  basic: "Básico",
+  intermediate: "Intermediário",
+  advanced: "Avançado",
 };
 
 export function QuestionListItem({ question }: QuestionListItemProps) {
+  const promptText = stripHtml(question.prompt);
+  const explanationText = question.explanation ? stripHtml(question.explanation) : null;
+
   return (
     <Link
       to="/questions/$questionId"
@@ -42,12 +45,12 @@ export function QuestionListItem({ question }: QuestionListItemProps) {
       <div className="flex flex-1 flex-col gap-1.5">
         <div className="flex items-center gap-2">
           <h4 className="text-sm font-medium line-clamp-1 group-hover:text-primary transition-colors">
-            {question.prompt}
+            {promptText}
           </h4>
         </div>
-        {question.explanation && (
+        {explanationText && (
           <p className="text-xs text-muted-foreground line-clamp-1">
-            {question.explanation}
+            {explanationText}
           </p>
         )}
         <div className="flex items-center gap-2">

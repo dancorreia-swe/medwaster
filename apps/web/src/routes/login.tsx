@@ -1,5 +1,6 @@
 import { SignInForm } from "@/features/auth/components/sign-in-form";
 import { authClient } from "@/lib/auth-client";
+import { buildPageHead } from "@/lib/page-title";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PillBottleIcon } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
@@ -8,10 +9,12 @@ import { z } from "zod";
 const loginSearch = z.object({
   redirect: z.string().optional(),
 });
+const PAGE_TITLE = "Login";
 
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
   validateSearch: zodValidator(loginSearch),
+  head: () => buildPageHead(PAGE_TITLE),
 
   beforeLoad: async () => {
     const { data: session } = await authClient.getSession();
@@ -19,6 +22,8 @@ export const Route = createFileRoute("/login")({
     if (session) {
       throw redirect({ to: "/" });
     }
+
+    return { getTitle: () => PAGE_TITLE };
   },
 });
 

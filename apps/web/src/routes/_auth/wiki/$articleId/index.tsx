@@ -23,8 +23,10 @@ import {
 } from "@/features/wiki/components";
 import { useArticleEditor } from "@/features/wiki/hooks/use-article-editor";
 import { toast } from "sonner";
+import { buildPageHead } from "@/lib/page-title";
 
 export const Route = createFileRoute("/_auth/wiki/$articleId/")({
+  head: ({ params }) => buildPageHead(`Editar Artigo ${params.articleId}`),
   loader: async ({ context: { queryClient }, params: { articleId } }) => {
     const numericArticleId = Number(articleId);
 

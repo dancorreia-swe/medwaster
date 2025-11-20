@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate, stripHtml } from "@/lib/utils";
 import { FileText } from "lucide-react";
 
 interface ArticleListItemProps {
@@ -26,6 +26,9 @@ const statusVariants: Record<string, "default" | "secondary" | "outline"> = {
 };
 
 export function ArticleListItem({ article }: ArticleListItemProps) {
+  const titleText = stripHtml(article.title);
+  const excerptText = article.excerpt ? stripHtml(article.excerpt) : null;
+
   return (
     <Link
       to="/wiki/$articleId"
@@ -39,7 +42,7 @@ export function ArticleListItem({ article }: ArticleListItemProps) {
       <div className="flex flex-1 flex-col gap-1.5">
         <div className="flex items-center gap-2">
           <h4 className="text-sm font-medium line-clamp-1 group-hover:text-primary transition-colors">
-            {article.title}
+            {titleText}
           </h4>
           <Badge
             variant={statusVariants[article.status] || "outline"}
@@ -48,9 +51,9 @@ export function ArticleListItem({ article }: ArticleListItemProps) {
             {statusLabels[article.status] || article.status}
           </Badge>
         </div>
-        {article.excerpt && (
+        {excerptText && (
           <p className="text-xs text-muted-foreground line-clamp-1">
-            {article.excerpt}
+            {excerptText}
           </p>
         )}
         <span className="text-xs text-muted-foreground">

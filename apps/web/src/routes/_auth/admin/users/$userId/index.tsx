@@ -3,9 +3,13 @@ import {
   UserDetailPage,
   userOverviewQueryOptions,
 } from "@/features/users";
+import { buildPageHead } from "@/lib/page-title";
+
+const PAGE_TITLE = "Detalhes do Usuário";
 
 export const Route = createFileRoute("/_auth/admin/users/$userId/")({
-  beforeLoad: () => ({ getTitle: () => "Detalhes do Usuário" }),
+  head: () => buildPageHead(PAGE_TITLE),
+  beforeLoad: () => ({ getTitle: () => PAGE_TITLE }),
   loader: async ({ context, params }) => {
     const { queryClient } = context;
     const { userId } = params;

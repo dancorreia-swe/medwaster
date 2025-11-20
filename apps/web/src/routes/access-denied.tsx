@@ -16,9 +16,16 @@ import { Badge } from "@/components/ui/badge";
 import { authClient } from "@/lib/auth-client";
 import { getRoleDisplayName } from "@/lib/rbac";
 import { signOut } from "@/lib/utils";
+import { buildPageHead } from "@/lib/page-title";
+
+const PAGE_TITLE = "Acesso Negado";
 
 export const Route = createFileRoute("/access-denied")({
   component: RouteComponent,
+  head: () => buildPageHead(PAGE_TITLE),
+  beforeLoad: () => ({
+    getTitle: () => PAGE_TITLE,
+  }),
 });
 
 function RouteComponent() {

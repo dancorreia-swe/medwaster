@@ -1,8 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AchievementForm } from "@/features/achievements/components/achievement-form";
 import { achievementQueryOptions } from "@/features/achievements/api/achievementQueries";
+import { buildPageHead } from "@/lib/page-title";
 
 export const Route = createFileRoute("/_auth/achievements/$achievementId/")({
+  head: ({ params }) =>
+    buildPageHead(
+      params.achievementId === "new"
+        ? "Nova Conquista"
+        : `Editar Conquista ${params.achievementId}`,
+    ),
   loader: async ({ context: { queryClient }, params: { achievementId } }) => {
     if (achievementId === "new") {
       return null;

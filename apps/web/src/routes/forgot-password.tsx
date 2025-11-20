@@ -1,16 +1,22 @@
 import { ForgotPasswordForm } from "@/features/auth/components/forgot-password-form";
 import { authClient } from "@/lib/auth-client";
+import { buildPageHead } from "@/lib/page-title";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PillBottleIcon } from "lucide-react";
 
+const PAGE_TITLE = "Recuperar Senha";
+
 export const Route = createFileRoute("/forgot-password")({
   component: RouteComponent,
+  head: () => buildPageHead(PAGE_TITLE),
   beforeLoad: async () => {
     const { data: session } = await authClient.getSession();
 
     if (session) {
       throw redirect({ to: "/" });
     }
+
+    return { getTitle: () => PAGE_TITLE };
   },
 });
 

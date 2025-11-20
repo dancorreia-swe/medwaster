@@ -1,9 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { QuizDetail } from "@/features/quizzes/components/quiz-detail";
 import { quizQueryOptions } from "@/features/quizzes/api/quizzesQueries";
+import { buildPageHead } from "@/lib/page-title";
+
+const PAGE_TITLE = "Detalhes do Quiz";
 
 export const Route = createFileRoute("/_auth/quizzes/$quizId/")({
-  beforeLoad: () => ({ getTitle: () => "Detalhes do Quiz" }),
+  head: () => buildPageHead(PAGE_TITLE),
+  beforeLoad: () => ({ getTitle: () => PAGE_TITLE }),
   loader: ({ context, params }) => {
     const quizId = Number(params.quizId);
     return context.queryClient.ensureQueryData(quizQueryOptions(quizId));

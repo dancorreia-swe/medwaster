@@ -10,11 +10,15 @@ import { User, Mail, Calendar, Shield, Edit2, Save, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
+import { buildPageHead } from "@/lib/page-title";
+
+const PAGE_TITLE = "Perfil do Administrador";
 
 export const Route = createFileRoute("/_auth/admin/profile")({
   component: ProfilePage,
+  head: () => buildPageHead(PAGE_TITLE),
   beforeLoad() {
-    return { getTitle: () => "Perfil do Administrador" };
+    return { getTitle: () => PAGE_TITLE };
   },
 });
 

@@ -1,8 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { questionQueryOptions } from "@/features/questions/api/questionsQueries";
 import { QuestionDetail } from "@/features/questions/components/question-detail";
+import { buildPageHead } from "@/lib/page-title";
 
 export const Route = createFileRoute("/_auth/questions/$questionId/")({
+  head: ({ params }) => buildPageHead(`Questão #${params.questionId}`),
   loader: async ({ context: { queryClient }, params: { questionId } }) => {
     const numericQuestionId = Number(questionId);
     if (Number.isNaN(numericQuestionId)) {

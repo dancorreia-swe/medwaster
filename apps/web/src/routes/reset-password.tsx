@@ -1,5 +1,6 @@
 import { ResetPasswordForm } from "@/features/auth/components/reset-password-form";
 import { authClient } from "@/lib/auth-client";
+import { buildPageHead } from "@/lib/page-title";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PillBottleIcon } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
@@ -8,16 +9,20 @@ import { z } from "zod";
 const resetPasswordSearch = z.object({
   token: z.string().optional(),
 });
+const PAGE_TITLE = "Redefinir Senha";
 
 export const Route = createFileRoute("/reset-password")({
   component: RouteComponent,
   validateSearch: zodValidator(resetPasswordSearch),
+  head: () => buildPageHead(PAGE_TITLE),
   beforeLoad: async () => {
     const { data: session } = await authClient.getSession();
 
     if (session) {
       throw redirect({ to: "/" });
     }
+
+    return { getTitle: () => PAGE_TITLE };
   },
 });
 

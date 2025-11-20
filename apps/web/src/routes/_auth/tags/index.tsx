@@ -5,10 +5,14 @@ import { listTagsQueryOptions } from "@/features/tags/api";
 import { TagsPage } from "@/features/tags/components";
 import { searchSchema, type TagsSearch } from "@/features/tags/types";
 import { buildListQuery } from "@/features/tags/hooks";
+import { buildPageHead } from "@/lib/page-title";
+
+const PAGE_TITLE = "Tags";
 
 export const Route = createFileRoute("/_auth/tags/")({
   validateSearch: searchSchema,
-  beforeLoad: () => ({ getTitle: () => "Tags" }),
+  head: () => buildPageHead(PAGE_TITLE),
+  beforeLoad: () => ({ getTitle: () => PAGE_TITLE }),
   loaderDeps: ({ search }) => ({ search }),
   loader: ({ context: { queryClient }, deps: { search } }) => {
     const query = buildListQuery(search as TagsSearch);

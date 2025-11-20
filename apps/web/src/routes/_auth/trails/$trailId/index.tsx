@@ -4,8 +4,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TrailDetailPage } from "@/features/trails/pages/trail-detail-page";
 import { trailQueryOptions } from "@/features/trails/api/trailsQueries";
+import { buildPageHead } from "@/lib/page-title";
 
 export const Route = createFileRoute("/_auth/trails/$trailId/")({
+  head: ({ params }) => buildPageHead(`Trilha ${params.trailId}`),
   loader: ({ context: { queryClient }, params: { trailId } }) => {
     const numericTrailId = Number(trailId);
     if (Number.isNaN(numericTrailId)) {

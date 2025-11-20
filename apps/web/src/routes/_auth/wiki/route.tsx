@@ -38,7 +38,11 @@ import {
   useNavigate,
   useSearch,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
+import { buildPageHead } from "@/lib/page-title";
+
+const PAGE_TITLE = "Wiki";
 
 const STATUS_TABS = [
   { value: "all", label: "Todos" },
@@ -117,7 +121,8 @@ export const Route = createFileRoute("/_auth/wiki")({
     queryClient.prefetchQuery(categoriesQueryOptions());
     queryClient.prefetchQuery(wikiStatsQueryOptions());
   },
-  beforeLoad: () => ({ getTitle: () => "Wiki" }),
+  head: () => buildPageHead(PAGE_TITLE),
+  beforeLoad: () => ({ getTitle: () => PAGE_TITLE }),
   component: wrapRouteWithOutletIfNested(RouteComponent),
 });
 
@@ -125,6 +130,7 @@ function RouteComponent() {
   const search = useSearch({ from: "/_auth/wiki" });
   const navigate = useNavigate();
   const [localQ, setLocalQ] = useState(search.q ?? "");
+  const debouncedQ = useDebounce(localQ, 400);
   const status = (search.status as string) ?? "all";
 
   // Data is preloaded by loader - these hooks return cached data instantly
@@ -161,6 +167,21 @@ function RouteComponent() {
       }),
     });
   };
+
+  useEffect(() => {
+    if ((search.q ?? "") === (debouncedQ ?? "")) {
+      return;
+    }
+
+    navigate({
+      to: "/wiki",
+      replace: true,
+      search: (prev: any) => ({
+        ...prev,
+        q: debouncedQ || undefined,
+      }),
+    });
+  }, [debouncedQ, navigate, search.q]);
 
   const handleTagToggle = (tagName: string) => {
     const currentTags = search.tags || [];
@@ -251,13 +272,19 @@ function RouteComponent() {
               <SelectContent>
                 <SelectItem value="default">Todas as categorias</SelectItem>
                 {categoriesQuery.isPending ? (
-                  <div className="p-2 text-sm text-zinc-500">Carregando...</div>
-                ) : (
-                  categoriesQuery.data?.data?.map((c: any) => (
+                  <SelectItem value="__loading" disabled>
+                    Carregando...
+                  </SelectItem>
+                ) : categoriesQuery.data && categoriesQuery.data.length > 0 ? (
+                  categoriesQuery.data.map((c: any) => (
                     <SelectItem key={c.id} value={String(c.id)}>
                       {c.name}
                     </SelectItem>
                   ))
+                ) : (
+                  <SelectItem value="__empty" disabled>
+                    Nenhuma categoria disponível
+                  </SelectItem>
                 )}
               </SelectContent>
             </Select>

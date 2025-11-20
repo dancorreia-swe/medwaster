@@ -2,9 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { CategoriesPage } from "@/features/categories/components";
 import { categoriesListQueryOptions } from "@/features/categories/api";
+import { buildPageHead } from "@/lib/page-title";
+
+const PAGE_TITLE = "Categorias";
 
 export const Route = createFileRoute("/_auth/categories/")({
-  beforeLoad: () => ({ getTitle: () => "Categorias" }),
+  head: () => buildPageHead(PAGE_TITLE),
+  beforeLoad: () => ({ getTitle: () => PAGE_TITLE }),
   loader: ({ context: { queryClient } }) => {
     return queryClient.ensureQueryData(categoriesListQueryOptions());
   },

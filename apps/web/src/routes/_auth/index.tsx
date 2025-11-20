@@ -2,11 +2,15 @@ import { authClient } from "@/lib/auth-client";
 import { Dashboard } from "@/components/admin-dashboard";
 import { createFileRoute } from "@tanstack/react-router";
 import { client } from "@/lib/client";
+import { buildPageHead } from "@/lib/page-title";
+
+const PAGE_TITLE = "Painel Administrativo";
 
 export const Route = createFileRoute("/_auth/")({
   component: RouteComponent,
+  head: () => buildPageHead(PAGE_TITLE),
   beforeLoad() {
-    return { getTitle: () => "Painel Administrativo" };
+    return { getTitle: () => PAGE_TITLE };
   },
 });
 
