@@ -1,4 +1,5 @@
 import { TouchableOpacity, Animated } from "react-native";
+import { useColorScheme } from "@/lib/use-color-scheme";
 import { Play, Pause } from "lucide-react-native";
 
 interface PauseButtonProps {
@@ -16,6 +17,9 @@ export function PauseButton({
   pauseButtonScale,
   onPress,
 }: PauseButtonProps) {
+  const { isDarkColorScheme } = useColorScheme();
+  const backgroundColor = isDarkColorScheme ? "#1d4ed8" : "#3B82F6";
+
   return (
     <Animated.View
       style={{
@@ -27,11 +31,11 @@ export function PauseButton({
         position: "absolute",
         bottom: 35,
         left: 24,
-        backgroundColor: "#3B82F6",
+        backgroundColor,
         borderRadius: 9999,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.25,
+        shadowOpacity: isDarkColorScheme ? 0.35 : 0.25,
         shadowRadius: 25,
         elevation: 25,
       }}

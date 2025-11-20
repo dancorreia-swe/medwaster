@@ -1,4 +1,5 @@
 import { View, TouchableOpacity, Animated } from "react-native";
+import { useColorScheme } from "@/lib/use-color-scheme";
 import {
   Headphones,
   Square,
@@ -20,6 +21,8 @@ export function AudioControlFab({
   onAudioPress,
   onReadToggle,
 }: AudioControlFabProps) {
+  const { isDarkColorScheme } = useColorScheme();
+
   return (
     <Animated.View
       style={{
@@ -35,7 +38,13 @@ export function AudioControlFab({
         elevation: 25,
       }}
     >
-      <View className="flex-row items-center px-3 py-2.5 gap-2 bg-primary rounded-full">
+      <View
+        className="flex-row items-center px-3 py-2.5 gap-2 bg-primary rounded-full"
+        style={{
+          shadowColor: isDarkColorScheme ? "#000" : "#000",
+          shadowOpacity: isDarkColorScheme ? 0.35 : 0.25,
+        }}
+      >
         <TouchableOpacity
           onPress={onAudioPress}
           className={`w-11 h-11 rounded-full items-center justify-center ${

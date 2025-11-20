@@ -1,4 +1,5 @@
 import { View, Text } from "react-native";
+import { useColorScheme } from "@/lib/use-color-scheme";
 
 interface ArticleTitleSectionProps {
   title: string;
@@ -20,13 +21,15 @@ export function ArticleTitleSection({
   isRead,
 }: ArticleTitleSectionProps) {
   const categoryColorValue = categoryColor || "#155DFC";
+  const { isDarkColorScheme } = useColorScheme();
+  const badgeBackground = isDarkColorScheme ? "#111827" : "#F9FAFB";
 
   return (
     <View className="px-6 pt-6 pb-4">
       <View className="flex-row gap-4">
         <View
           style={{
-            backgroundColor: "#F9FAFB",
+            backgroundColor: badgeBackground,
             ...(isRead
               ? {
                   borderWidth: 1,
@@ -51,20 +54,20 @@ export function ArticleTitleSection({
           )}
         </View>
         <View className="flex-1">
-          <Text className="text-2xl font-bold text-gray-900 leading-tight">
+          <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50 leading-tight">
             {title}
           </Text>
           <View className="flex-row flex-wrap gap-2 mt-3">
             {readingTimeMinutes ? (
-              <View className="px-3 py-1 rounded-full bg-gray-100">
-                <Text className="text-xs font-semibold text-gray-600 uppercase">
+              <View className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
+                <Text className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">
                   {readingTimeMinutes} min
                 </Text>
               </View>
             ) : null}
             {categoryName ? (
-              <View className="px-3 py-1 rounded-full bg-blue-50">
-                <Text className="text-xs font-semibold text-blue-700 uppercase">
+              <View className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30">
+                <Text className="text-xs font-semibold text-blue-700 dark:text-blue-200 uppercase">
                   {categoryName}
                 </Text>
               </View>

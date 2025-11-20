@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMarkdown } from "react-native-marked";
 import { useArticleStore } from "@/lib/stores/article-store";
+import { useColorScheme } from "@/lib/use-color-scheme";
 import {
   useStudentArticleDetail,
   useToggleFavorite,
@@ -28,6 +29,7 @@ export default function WikiArticle() {
     trailId?: string;
     contentId?: string;
   }>();
+  const { isDarkColorScheme } = useColorScheme();
   const articleId = Number(id);
   const trailIdNum = trailId ? Number(trailId) : null;
   const contentIdNum = contentId ? Number(contentId) : null;
@@ -228,7 +230,7 @@ export default function WikiArticle() {
   const markdownElements = useMarkdown(contentText, {
     styles: {
       text: {
-        color: "#111827",
+        color: isDarkColorScheme ? "#E5E7EB" : "#111827",
         fontSize: 16,
         lineHeight: 26,
       },
@@ -236,12 +238,12 @@ export default function WikiArticle() {
         marginBottom: 16,
         fontSize: 16,
         lineHeight: 26,
-        color: "#111827",
+        color: isDarkColorScheme ? "#E5E7EB" : "#111827",
       },
       h1: {
         fontSize: 28,
         fontWeight: "700",
-        color: "#111827",
+        color: isDarkColorScheme ? "#F3F4F6" : "#111827",
         marginTop: 24,
         marginBottom: 16,
         lineHeight: 34,
@@ -249,7 +251,7 @@ export default function WikiArticle() {
       h2: {
         fontSize: 24,
         fontWeight: "700",
-        color: "#111827",
+        color: isDarkColorScheme ? "#F3F4F6" : "#111827",
         marginTop: 20,
         marginBottom: 12,
         lineHeight: 30,
@@ -257,7 +259,7 @@ export default function WikiArticle() {
       h3: {
         fontSize: 20,
         fontWeight: "600",
-        color: "#111827",
+        color: isDarkColorScheme ? "#E5E7EB" : "#111827",
         marginTop: 16,
         marginBottom: 10,
         lineHeight: 26,
@@ -265,7 +267,7 @@ export default function WikiArticle() {
       h4: {
         fontSize: 18,
         fontWeight: "600",
-        color: "#111827",
+        color: isDarkColorScheme ? "#E5E7EB" : "#111827",
         marginTop: 14,
         marginBottom: 8,
         lineHeight: 24,
@@ -278,18 +280,18 @@ export default function WikiArticle() {
         marginBottom: 8,
         fontSize: 16,
         lineHeight: 26,
-        color: "#111827",
+        color: isDarkColorScheme ? "#D1D5DB" : "#111827",
       },
       bullet: {
-        color: "#155DFC",
+        color: isDarkColorScheme ? "#93C5FD" : "#155DFC",
         fontSize: 20,
       },
       blockquote: {
         borderLeftWidth: 4,
-        borderLeftColor: "#155DFC",
+        borderLeftColor: isDarkColorScheme ? "#1d4ed8" : "#155DFC",
         paddingLeft: 16,
         marginVertical: 16,
-        backgroundColor: "#EFF6FF",
+        backgroundColor: isDarkColorScheme ? "#0f172a" : "#EFF6FF",
         paddingVertical: 12,
         paddingRight: 12,
         borderRadius: 8,
@@ -297,20 +299,20 @@ export default function WikiArticle() {
       blockquoteText: {
         fontSize: 16,
         lineHeight: 26,
-        color: "#1e40af",
+        color: isDarkColorScheme ? "#BFDBFE" : "#1e40af",
         fontStyle: "italic",
       },
       code: {
-        backgroundColor: "#F3F4F6",
+        backgroundColor: isDarkColorScheme ? "#111827" : "#F3F4F6",
         paddingHorizontal: 6,
         paddingVertical: 2,
         borderRadius: 4,
         fontFamily: "monospace",
         fontSize: 14,
-        color: "#DC2626",
+        color: isDarkColorScheme ? "#F59E0B" : "#DC2626",
       },
       codeBlock: {
-        backgroundColor: "#1F2937",
+        backgroundColor: isDarkColorScheme ? "#0b1220" : "#1F2937",
         padding: 16,
         borderRadius: 8,
         marginVertical: 16,
@@ -319,21 +321,21 @@ export default function WikiArticle() {
         fontFamily: "monospace",
         fontSize: 14,
         lineHeight: 20,
-        color: "#F9FAFB",
+        color: isDarkColorScheme ? "#E5E7EB" : "#F9FAFB",
       },
       strong: {
         fontWeight: "700",
-        color: "#111827",
+        color: isDarkColorScheme ? "#F3F4F6" : "#111827",
       },
       em: {
         fontStyle: "italic",
       },
       link: {
-        color: "#155DFC",
+        color: isDarkColorScheme ? "#93C5FD" : "#155DFC",
         textDecorationLine: "underline",
       },
       hr: {
-        backgroundColor: "#E5E7EB",
+        backgroundColor: isDarkColorScheme ? "#1F2937" : "#E5E7EB",
         height: 1,
         marginVertical: 24,
       },
@@ -405,8 +407,8 @@ export default function WikiArticle() {
 
   if (!Number.isFinite(articleId)) {
     return (
-      <Container className="flex-1 bg-gray-50 items-center justify-center">
-        <Text className="text-gray-600 text-base">
+      <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
+        <Text className="text-gray-600 dark:text-gray-300 text-base">
           Artigo inválido. Volte e selecione novamente.
         </Text>
       </Container>
@@ -415,7 +417,7 @@ export default function WikiArticle() {
 
   if (isPending) {
     return (
-      <Container className="flex-1 bg-gray-50 items-center justify-center">
+      <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
         <ActivityIndicator size="large" color={FALLBACK_CATEGORY_COLOR} />
       </Container>
     );
@@ -423,8 +425,8 @@ export default function WikiArticle() {
 
   if (isError || !article) {
     return (
-      <Container className="flex-1 bg-gray-50 items-center justify-center gap-4">
-        <Text className="text-gray-600 text-base">
+      <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center gap-4">
+        <Text className="text-gray-600 dark:text-gray-300 text-base">
           Não foi possível carregar o artigo.
         </Text>
         <TouchableOpacity
@@ -438,7 +440,7 @@ export default function WikiArticle() {
   }
 
   return (
-    <Container className="flex-1">
+    <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
       <ArticleHeader
         articleIsFavorite={articleIsFavorite}
         onToggleFavorite={handleFavoriteToggle}
