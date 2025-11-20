@@ -90,8 +90,8 @@ export function QuestionRenderer({
 
 function ErrorMessage({ message }: { message: string }) {
   return (
-    <View className="bg-white rounded-xl p-6 border border-gray-200">
-      <Text className="text-gray-600 text-center">{message}</Text>
+    <View className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-800">
+      <Text className="text-gray-600 dark:text-gray-400 text-center">{message}</Text>
     </View>
   );
 }

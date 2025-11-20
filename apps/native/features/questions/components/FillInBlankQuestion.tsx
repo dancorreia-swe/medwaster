@@ -126,7 +126,7 @@ export function FillInBlankQuestion({
             return (
               <Text
                 key={`text-${index}`}
-                className="text-lg text-gray-900 leading-relaxed"
+                className="text-lg text-gray-900 dark:text-gray-50 leading-relaxed"
               >
                 {part.content}
               </Text>
@@ -144,14 +144,16 @@ export function FillInBlankQuestion({
                 disabled={disabled}
                 className={`px-3 py-1.5 mx-1 my-1 rounded-lg border-b-2 ${
                   answer
-                    ? "bg-blue-50 border-blue-500"
-                    : "bg-gray-100 border-gray-400 border-dashed"
+                    ? "bg-blue-50 border-blue-500 dark:bg-blue-900/30 dark:border-blue-400"
+                    : "bg-gray-100 border-gray-400 border-dashed dark:bg-gray-800 dark:border-gray-600"
                 }`}
                 style={{ minWidth: 100 }}
               >
                 <Text
                   className={`text-lg text-center ${
-                    answer ? "text-blue-700 font-semibold" : "text-gray-400"
+                    answer
+                      ? "text-blue-700 dark:text-blue-200 font-semibold"
+                      : "text-gray-400 dark:text-gray-500"
                   }`}
                 >
                   {answer || "_____"}
@@ -167,9 +169,9 @@ export function FillInBlankQuestion({
   return (
     <Animated.View entering={FadeIn.duration(400)}>
       {/* Question Card */}
-      <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm">
-        <View className="mb-4 bg-amber-50 self-start px-3 py-1.5 rounded-full">
-          <Text className="text-xs text-amber-700 font-bold tracking-wide">
+      <View className="bg-white dark:bg-gray-900 rounded-3xl p-6 mb-6 shadow-sm border border-gray-100 dark:border-gray-800">
+        <View className="mb-4 bg-amber-50 dark:bg-amber-900/30 self-start px-3 py-1.5 rounded-full">
+          <Text className="text-xs text-amber-700 dark:text-amber-200 font-bold tracking-wide">
             PREENCHA OS ESPAÇOS
           </Text>
         </View>
@@ -186,8 +188,8 @@ export function FillInBlankQuestion({
           />
         )}
 
-        <View className="mt-5 bg-blue-50 rounded-xl p-3.5">
-          <Text className="text-sm text-blue-700 font-medium text-center">
+        <View className="mt-5 bg-blue-50 dark:bg-blue-900/30 rounded-xl p-3.5">
+          <Text className="text-sm text-blue-700 dark:text-blue-200 font-medium text-center">
             💡 Toque nos espaços em branco para selecionar as respostas
           </Text>
         </View>
@@ -205,17 +207,17 @@ export function FillInBlankQuestion({
             onPress={handleModalClose}
             className="absolute inset-0"
           />
-          <View className="bg-white rounded-3xl w-full max-w-lg shadow-xl" style={{ maxHeight: '80%' }}>
+          <View className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-lg shadow-xl border border-gray-100 dark:border-gray-800" style={{ maxHeight: '80%' }}>
             {/* Header */}
-            <View className="px-6 pt-6 pb-4 flex-row items-center justify-between border-b border-gray-200">
-              <Text className="text-lg font-bold text-gray-900 flex-1">
+            <View className="px-6 pt-6 pb-4 flex-row items-center justify-between border-b border-gray-200 dark:border-gray-800">
+              <Text className="text-lg font-bold text-gray-900 dark:text-gray-50 flex-1">
                 Selecione a resposta
               </Text>
               <TouchableOpacity
                 onPress={handleModalClose}
-                className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"
+                className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full items-center justify-center"
               >
-                <X size={20} color="#6B7280" />
+                <X size={20} color={isModalVisible ? "#9CA3AF" : "#6B7280"} />
               </TouchableOpacity>
             </View>
 
@@ -247,16 +249,16 @@ export function FillInBlankQuestion({
                           }
                           className={`rounded-2xl p-4 border-2 ${
                             isSelected
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-gray-200 bg-white"
+                              ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/30"
+                              : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
                           }`}
                           activeOpacity={0.7}
                         >
                           <Text
                             className={`text-base text-center ${
                               isSelected
-                                ? "text-blue-700 font-semibold"
-                                : "text-gray-900"
+                                ? "text-blue-700 dark:text-blue-200 font-semibold"
+                                : "text-gray-900 dark:text-gray-50"
                             }`}
                           >
                             {optionText}
@@ -267,7 +269,7 @@ export function FillInBlankQuestion({
                 </View>
               ) : (
                 <View className="py-12">
-                  <Text className="text-center text-gray-500 text-base">
+                  <Text className="text-center text-gray-500 dark:text-gray-400 text-base">
                     Nenhuma opção disponível para este espaço
                   </Text>
                 </View>

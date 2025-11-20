@@ -1,6 +1,7 @@
 import React from "react";
 import { useWindowDimensions, View } from "react-native";
 import RenderHtml from "react-native-render-html";
+import { useColorScheme } from "@/lib/use-color-scheme";
 
 interface HtmlTextProps {
   html: string;
@@ -10,12 +11,14 @@ interface HtmlTextProps {
 
 export function HtmlText({ html, baseStyle }: HtmlTextProps) {
   const { width } = useWindowDimensions();
+  const { isDarkColorScheme } = useColorScheme();
+  const defaultColor = isDarkColorScheme ? "#E5E7EB" : "#111827";
 
   const defaultStyle = {
     body: {
       fontSize: 28,
       fontWeight: "700",
-      color: "#111827",
+      color: defaultColor,
       lineHeight: 36,
       ...baseStyle,
     },

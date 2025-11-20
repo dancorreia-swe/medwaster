@@ -121,8 +121,8 @@ export function MatchingQuestion({
       {/* Question Text */}
       <HtmlText html={question.prompt || question.questionText} />
 
-      <View className="mb-8 bg-blue-50 rounded-2xl p-4">
-        <Text className="text-sm text-blue-700 font-medium text-center">
+      <View className="mb-8 bg-blue-50 dark:bg-blue-900/30 rounded-2xl p-4">
+        <Text className="text-sm text-blue-700 dark:text-blue-200 font-medium text-center">
           💡 Toque em um item da esquerda, depois toque no correspondente da direita
         </Text>
       </View>
@@ -132,7 +132,7 @@ export function MatchingQuestion({
         <View className="flex-row gap-4">
           {/* Left Column */}
           <View className="flex-1">
-            <Text className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">
+            <Text className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide">
               Coluna A
             </Text>
             {sortedPairs.map((pair, index) => {
@@ -145,33 +145,33 @@ export function MatchingQuestion({
                   <TouchableOpacity
                     onPress={() => handleLeftItemPress(pair.id)}
                     disabled={disabled}
-                    className={`rounded-3xl p-5 border-2 shadow-sm ${
+                  className={`rounded-3xl p-5 border-2 shadow-sm ${
                       isSelected
                         ? "border-primary bg-primary/10"
                         : isMatched
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 bg-white"
+                          ? "border-green-500 bg-green-50 dark:border-green-500 dark:bg-green-900/30"
+                          : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
                     } ${disabled ? "opacity-50" : ""}`}
-                    activeOpacity={0.7}
-                  >
-                    <View className="flex-row items-center gap-3">
-                      <View className={`w-7 h-7 rounded-full items-center justify-center ${
-                        isSelected || isMatched ? "bg-primary" : "bg-gray-100"
+                  activeOpacity={0.7}
+                >
+                  <View className="flex-row items-center gap-3">
+                    <View className={`w-7 h-7 rounded-full items-center justify-center ${
+                        isSelected || isMatched ? "bg-primary" : "bg-gray-100 dark:bg-gray-800"
                       }`}>
-                        <Text className={`text-xs font-bold ${
-                          isSelected || isMatched ? "text-white" : "text-gray-600"
+                      <Text className={`text-xs font-bold ${
+                          isSelected || isMatched ? "text-white" : "text-gray-600 dark:text-gray-400"
                         }`}>
-                          {index + 1}
-                        </Text>
-                      </View>
-                      <Text
-                        className={`flex-1 text-base leading-relaxed ${
-                          isSelected || isMatched
-                            ? "text-gray-900 font-semibold"
-                            : "text-gray-700"
+                        {index + 1}
+                      </Text>
+                    </View>
+                    <Text
+                      className={`flex-1 text-base leading-relaxed ${
+                        isSelected || isMatched
+                            ? "text-gray-900 dark:text-gray-50 font-semibold"
+                            : "text-gray-700 dark:text-gray-300"
                         }`}
-                        numberOfLines={3}
-                      >
+                      numberOfLines={3}
+                    >
                         {pair.leftText}
                       </Text>
                     </View>
@@ -179,17 +179,17 @@ export function MatchingQuestion({
 
                   {/* Show matched right item */}
                   {isMatched && matchedRightId && (
-                    <View className="mt-3 ml-2 flex-row items-center gap-2 bg-green-50 rounded-xl p-3 border border-green-200">
+                    <View className="mt-3 ml-2 flex-row items-center gap-2 bg-green-50 dark:bg-green-900/30 rounded-xl p-3 border border-green-200 dark:border-green-700">
                       <Link2 size={16} color="#10B981" strokeWidth={2.5} />
                       <Text
-                        className="flex-1 text-sm text-green-700 font-medium"
+                        className="flex-1 text-sm text-green-700 dark:text-green-100 font-medium"
                         numberOfLines={2}
                       >
                         {getRightTextForMatch(matchedRightId)}
                       </Text>
                       <TouchableOpacity
                         onPress={() => handleRemoveMatch(pair.id)}
-                        className="p-1.5 bg-red-50 rounded-full"
+                        className="p-1.5 bg-red-50 dark:bg-red-900/30 rounded-full"
                       >
                         <Minus size={16} color="#EF4444" strokeWidth={2.5} />
                       </TouchableOpacity>
@@ -202,7 +202,7 @@ export function MatchingQuestion({
 
           {/* Right Column */}
           <View className="flex-1">
-            <Text className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">
+            <Text className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide">
               Coluna B
             </Text>
             {rightItems.map((item, index) => {
@@ -216,10 +216,10 @@ export function MatchingQuestion({
                   disabled={disabled || !canSelect}
                   className={`rounded-3xl p-5 border-2 mb-4 shadow-sm ${
                     isMatched
-                      ? "border-green-500 bg-green-50 opacity-50"
+                      ? "border-green-500 bg-green-50 dark:border-green-500 dark:bg-green-900/30 opacity-50"
                       : canSelect
                         ? "border-primary bg-primary/10"
-                        : "border-gray-200 bg-white"
+                        : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
                   } ${disabled ? "opacity-50" : ""}`}
                   activeOpacity={0.7}
                 >
@@ -229,10 +229,10 @@ export function MatchingQuestion({
                         ? "bg-green-500"
                         : canSelect
                           ? "bg-primary"
-                          : "bg-gray-100"
+                          : "bg-gray-100 dark:bg-gray-800"
                     }`}>
                       <Text className={`text-xs font-bold ${
-                        isMatched || canSelect ? "text-white" : "text-gray-600"
+                        isMatched || canSelect ? "text-white" : "text-gray-600 dark:text-gray-400"
                       }`}>
                         {String.fromCharCode(65 + index)}
                       </Text>
@@ -240,10 +240,10 @@ export function MatchingQuestion({
                     <Text
                       className={`flex-1 text-base leading-relaxed ${
                         isMatched
-                          ? "text-green-700 font-semibold"
+                          ? "text-green-700 dark:text-green-100 font-semibold"
                           : canSelect
                             ? "text-primary font-semibold"
-                            : "text-gray-700"
+                            : "text-gray-700 dark:text-gray-300"
                       }`}
                       numberOfLines={3}
                     >

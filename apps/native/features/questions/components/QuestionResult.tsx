@@ -23,7 +23,7 @@ export function QuestionResult({ result, question }: QuestionResultProps) {
   }, [result.explanation]);
 
   return (
-    <View className="rounded-2xl p-6 bg-white border border-gray-200 shadow-sm">
+    <View className="rounded-2xl p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
       {/* Result Header */}
       <View className="flex-row items-center gap-3 mb-4">
         {isCorrect ? (
@@ -34,7 +34,7 @@ export function QuestionResult({ result, question }: QuestionResultProps) {
 
         <Text
           className={`text-xl font-bold ${
-            isCorrect ? "text-green-700" : "text-red-700"
+            isCorrect ? "text-green-700 dark:text-green-200" : "text-red-700 dark:text-red-200"
           }`}
         >
           {isCorrect ? "Resposta Correta!" : "Resposta Incorreta"}
@@ -58,10 +58,10 @@ export function QuestionResult({ result, question }: QuestionResultProps) {
       {/* Explanation */}
       {result.explanation && (
         <View className="mb-5 gap-2">
-          <Text className="text-xs font-semibold text-gray-600 tracking-wide">
+          <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400 tracking-wide">
             EXPLICAÇÃO
           </Text>
-          <Text className="text-base leading-relaxed text-gray-900">
+          <Text className="text-base leading-relaxed text-gray-900 dark:text-gray-50">
             {showFullExplanation ? result.explanation : explanationPreview}
           </Text>
           {result.explanation.length > explanationPreview.length && (
@@ -69,7 +69,7 @@ export function QuestionResult({ result, question }: QuestionResultProps) {
               onPress={() => setShowFullExplanation((v) => !v)}
               className="self-start"
             >
-              <Text className="text-sm font-semibold text-blue-600">
+              <Text className="text-sm font-semibold text-blue-600 dark:text-blue-300">
                 {showFullExplanation ? "Ver menos" : "Ver mais"}
               </Text>
             </TouchableOpacity>
@@ -80,18 +80,18 @@ export function QuestionResult({ result, question }: QuestionResultProps) {
       {/* Correct Answer (if incorrect) */}
       {!isCorrect && result.correctAnswer !== undefined && (
         <View>
-          <Text className="text-xs font-semibold text-gray-600 tracking-wide mb-2">
+          <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400 tracking-wide mb-2">
             RESPOSTA CORRETA
           </Text>
           {question?.type === "matching" ? (
-            <View className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <View className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
               {formatMatchingAnswer(
                 result.correctAnswer as Record<string, string>,
                 question,
               )}
             </View>
           ) : question?.type === "fill_in_the_blank" ? (
-            <View className="bg-gray-50 rounded-xl p-4 border border-gray-200 gap-3">
+            <View className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 gap-3">
               {formatFillInBlankAnswer(
                 result.correctAnswer as Record<string, string>,
                 (result.userAnswer as Record<string, string>) || {},
@@ -99,8 +99,8 @@ export function QuestionResult({ result, question }: QuestionResultProps) {
               )}
             </View>
           ) : (
-            <View className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <Text className="text-base text-gray-900">
+            <View className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+              <Text className="text-base text-gray-900 dark:text-gray-50">
                 {formatCorrectAnswer(result.correctAnswer, question)}
               </Text>
             </View>
@@ -132,23 +132,23 @@ function formatFillInBlankAnswer(
             ) : (
               <XCircle size={16} color="#EF4444" strokeWidth={2.5} />
             )}
-            <Text className="text-sm font-semibold text-gray-700">
+            <Text className="text-sm font-semibold text-gray-700 dark:text-gray-200">
               Espaço {index + 1}
             </Text>
           </View>
           {!isCorrect && user && (
-            <View className="bg-red-50 rounded-lg p-3 mb-2 border border-red-200">
-              <Text className="text-xs font-semibold text-red-600 mb-1">
+            <View className="bg-red-50 dark:bg-red-900/30 rounded-lg p-3 mb-2 border border-red-200 dark:border-red-700">
+              <Text className="text-xs font-semibold text-red-600 dark:text-red-200 mb-1">
                 SUA RESPOSTA
               </Text>
-              <Text className="text-base text-red-900">{user}</Text>
+              <Text className="text-base text-red-900 dark:text-red-100">{user}</Text>
             </View>
           )}
-          <View className="bg-green-50 rounded-lg p-3 border border-green-200">
-            <Text className="text-xs font-semibold text-green-600 mb-1">
+          <View className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 border border-green-200 dark:border-green-700">
+            <Text className="text-xs font-semibold text-green-600 dark:text-green-200 mb-1">
               CORRETO
             </Text>
-            <Text className="text-base text-green-900">{correct}</Text>
+            <Text className="text-base text-green-900 dark:text-green-100">{correct}</Text>
           </View>
         </View>
       );
@@ -171,24 +171,24 @@ function formatFillInBlankAnswer(
             ) : (
               <XCircle size={16} color="#EF4444" strokeWidth={2.5} />
             )}
-            <Text className="text-sm font-semibold text-gray-700">
+            <Text className="text-sm font-semibold text-gray-700 dark:text-gray-200">
               Espaço {blank.sequence}
               {blank.placeholder && `: ${blank.placeholder}`}
             </Text>
           </View>
           {!isCorrect && user && (
-            <View className="bg-red-50 rounded-lg p-3 mb-2 border border-red-200">
-              <Text className="text-xs font-semibold text-red-600 mb-1">
+            <View className="bg-red-50 dark:bg-red-900/30 rounded-lg p-3 mb-2 border border-red-200 dark:border-red-700">
+              <Text className="text-xs font-semibold text-red-600 dark:text-red-200 mb-1">
                 SUA RESPOSTA
               </Text>
-              <Text className="text-base text-red-900">{user}</Text>
+              <Text className="text-base text-red-900 dark:text-red-100">{user}</Text>
             </View>
           )}
-          <View className="bg-green-50 rounded-lg p-3 border border-green-200">
-            <Text className="text-xs font-semibold text-green-600 mb-1">
+          <View className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 border border-green-200 dark:border-green-700">
+            <Text className="text-xs font-semibold text-green-600 dark:text-green-200 mb-1">
               CORRETO
             </Text>
-            <Text className="text-base text-green-900">{correct}</Text>
+            <Text className="text-base text-green-900 dark:text-green-100">{correct}</Text>
           </View>
         </View>
       );
@@ -206,7 +206,7 @@ function formatMatchingAnswer(
 
   if (!pairs.length) {
     return (
-      <Text className="text-base text-gray-900">
+      <Text className="text-base text-gray-900 dark:text-gray-50">
         {Object.entries(answer)
           .map(([key, value]) => `${key}: ${value}`)
           .join(", ")}

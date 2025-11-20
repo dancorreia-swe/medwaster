@@ -76,14 +76,14 @@ export function MultipleChoiceQuestion({
               key={option.id}
               onPress={() => handleOptionPress(option.id)}
               disabled={disabled || isSubmitting}
-              className={`bg-white rounded-2xl p-6 border-2 ${
+              className={`bg-white dark:bg-gray-900 rounded-2xl p-6 border-2 ${
                 isSelected
-                  ? "border-blue-500"
-                  : "border-gray-200"
+                  ? "border-blue-500 dark:border-blue-400"
+                  : "border-gray-200 dark:border-gray-800"
               } ${disabled || isSubmitting ? "opacity-50" : ""}`}
               activeOpacity={0.7}
             >
-              <Text className="text-lg text-gray-900">
+              <Text className="text-lg text-gray-900 dark:text-gray-50">
                 {(option as any).content || option.optionText}
               </Text>
             </TouchableOpacity>

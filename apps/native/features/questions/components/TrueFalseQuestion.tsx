@@ -71,16 +71,16 @@ export function TrueFalseQuestion({
           <TouchableOpacity
             onPress={() => handleOptionPress(options.true.id)}
             disabled={disabled || isSubmitting}
-            className={`bg-white rounded-2xl p-6 border-2 ${
+            className={`bg-white dark:bg-gray-900 rounded-2xl p-6 border-2 ${
               selectedOption === options.true.id
-                ? "border-blue-500"
-                : "border-gray-200"
+                ? "border-blue-500 dark:border-blue-400"
+                : "border-gray-200 dark:border-gray-800"
             } ${disabled || isSubmitting ? "opacity-50" : ""}`}
             activeOpacity={0.7}
           >
             <View className="flex-row items-center gap-3">
               <Check size={24} color="#10B981" strokeWidth={3} />
-              <Text className="text-lg text-gray-900">
+              <Text className="text-lg text-gray-900 dark:text-gray-50">
                 Verdadeiro
               </Text>
             </View>
@@ -92,16 +92,16 @@ export function TrueFalseQuestion({
           <TouchableOpacity
             onPress={() => handleOptionPress(options.false.id)}
             disabled={disabled || isSubmitting}
-            className={`bg-white rounded-2xl p-6 border-2 ${
+            className={`bg-white dark:bg-gray-900 rounded-2xl p-6 border-2 ${
               selectedOption === options.false.id
-                ? "border-blue-500"
-                : "border-gray-200"
+                ? "border-blue-500 dark:border-blue-400"
+                : "border-gray-200 dark:border-gray-800"
             } ${disabled || isSubmitting ? "opacity-50" : ""}`}
             activeOpacity={0.7}
           >
             <View className="flex-row items-center gap-3">
               <X size={24} color="#EF4444" strokeWidth={3} />
-              <Text className="text-lg text-gray-900">
+              <Text className="text-lg text-gray-900 dark:text-gray-50">
                 Falso
               </Text>
             </View>
