@@ -2,7 +2,6 @@ import { ResetPasswordForm } from "@/features/auth/components/reset-password-for
 import { authClient } from "@/lib/auth-client";
 import { buildPageHead } from "@/lib/page-title";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { PillBottleIcon } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
@@ -32,7 +31,11 @@ function RouteComponent() {
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center justify-center gap-14 px-6 py-16">
         {/* Logo */}
         <div className="flex items-center gap-2 text-xl font-normal text-slate-900">
-          <PillBottleIcon className="h-5 w-5" />
+          <img
+            src="/light-mascot.png"
+            alt="MedWaster"
+            className="h-7 w-7"
+          />
           <span className="font-medium">MedWaster</span>
         </div>
 

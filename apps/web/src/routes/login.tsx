@@ -2,7 +2,6 @@ import { SignInForm } from "@/features/auth/components/sign-in-form";
 import { authClient } from "@/lib/auth-client";
 import { buildPageHead } from "@/lib/page-title";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { PillBottleIcon } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
@@ -33,7 +32,11 @@ function RouteComponent() {
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center justify-center gap-10 px-6 py-16">
         <div className="flex items-center gap-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
           <span className="flex items-center gap-2">
-            <PillBottleIcon />
+            <img
+              src="/light-mascot.png"
+              alt="MedWaster"
+              className="h-8 w-8"
+            />
             MedWaster
           </span>
         </div>
