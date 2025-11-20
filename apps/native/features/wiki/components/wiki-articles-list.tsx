@@ -21,7 +21,7 @@ export function WikiArticlesList({
   if (articles.length === 0) {
     return (
       <View className="px-6 pt-16 pb-20 items-center">
-        <Text className="text-base text-gray-500 text-center">
+        <Text className="text-base text-gray-500 dark:text-gray-400 text-center">
           Nenhum artigo encontrado com os filtros selecionados.
         </Text>
       </View>

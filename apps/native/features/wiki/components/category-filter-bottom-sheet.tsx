@@ -7,6 +7,7 @@ import BottomSheet, {
 } from "@gorhom/bottom-sheet";
 import { useCallback, useMemo, forwardRef, type Ref } from "react";
 import type { BottomSheetBackdropProps } from "@gorhom/bottom-sheet";
+import { useColorScheme } from "@/lib/use-color-scheme";
 
 interface CategorySummary {
   id: number;
@@ -40,6 +41,9 @@ const CategoryFilterBottomSheetComponent = (
   ref: Ref<BottomSheet>,
 ) => {
   const snapPoints = useMemo(() => ["85%"], []);
+  const { isDarkColorScheme } = useColorScheme();
+  const sheetBackground = isDarkColorScheme ? "#0f172a" : "#ffffff";
+  const indicatorColor = isDarkColorScheme ? "#1f2937" : "#e5e7eb";
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -60,12 +64,12 @@ const CategoryFilterBottomSheetComponent = (
       snapPoints={snapPoints}
       enablePanDownToClose
       backdropComponent={renderBackdrop}
-      backgroundStyle={{ backgroundColor: "#FFFFFF" }}
-      handleIndicatorStyle={{ backgroundColor: "#E5E7EB" }}
+      backgroundStyle={{ backgroundColor: sheetBackground }}
+      handleIndicatorStyle={{ backgroundColor: indicatorColor }}
     >
-      <BottomSheetView style={{ flex: 1 }}>
-        <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-100">
-          <Text className="text-2xl font-semibold text-gray-900">
+      <BottomSheetView style={{ flex: 1, backgroundColor: sheetBackground }}>
+        <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+          <Text className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
             Categorias
           </Text>
 
@@ -95,7 +99,7 @@ const CategoryFilterBottomSheetComponent = (
                 >
                   <Text
                     className={`text-sm font-medium ${
-                      selected ? "text-white" : "text-gray-500"
+                      selected ? "text-white" : "text-gray-500 dark:text-gray-300"
                     }`}
                   >
                     {level}
@@ -121,13 +125,13 @@ const CategoryFilterBottomSheetComponent = (
                   className={`border rounded-xl px-3.5 py-3.5 ${
                     selected
                       ? "bg-primary/10 border-primary"
-                      : "bg-white border-gray-100"
+                      : "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800"
                   }`}
                 >
                   <View className="flex-row items-center gap-3.5">
                     <View
                       className={`size-12 rounded-xl items-center justify-center ${
-                        selected ? "bg-primary/20" : "bg-gray-50"
+                        selected ? "bg-primary/20" : "bg-gray-50 dark:bg-gray-800"
                       }`}
                     >
                       <Text
@@ -141,12 +145,12 @@ const CategoryFilterBottomSheetComponent = (
                     <View className="flex-1 gap-0.5">
                       <Text
                         className={`text-sm font-semibold ${
-                          selected ? "text-primary" : "text-gray-900"
+                          selected ? "text-primary" : "text-gray-900 dark:text-gray-50"
                         }`}
                       >
                         {category.name}
                       </Text>
-                      <Text className="text-xs text-gray-500">
+                      <Text className="text-xs text-gray-500 dark:text-gray-400">
                         {category.articleCount}{" "}
                         {category.articleCount === 1 ? "artigo" : "artigos"}
                       </Text>
@@ -160,7 +164,7 @@ const CategoryFilterBottomSheetComponent = (
                       <Icon
                         icon={ChevronRight}
                         size={17.5}
-                        className="text-gray-900"
+                        className="text-gray-900 dark:text-gray-200"
                       />
                     )}
                   </View>

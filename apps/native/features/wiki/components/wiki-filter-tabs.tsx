@@ -26,7 +26,7 @@ export function WikiFilterTabs({
       <TouchableOpacity
         onPress={() => onTabChange("todos")}
         className={`flex-row items-center gap-2.5 px-4 py-2 rounded-full min-h-10 ${
-          activeTab === "todos" ? "bg-primary" : "bg-gray-100"
+          activeTab === "todos" ? "bg-primary" : "bg-gray-100 dark:bg-gray-800"
         }`}
         accessibilityRole="button"
         accessibilityLabel="Ver todos os artigos"
@@ -35,11 +35,11 @@ export function WikiFilterTabs({
         <Icon
           icon={BookOpen}
           size={18}
-          className={activeTab === "todos" ? "text-white" : "text-gray-600"}
+          className={activeTab === "todos" ? "text-white" : "text-gray-600 dark:text-gray-300"}
         />
         <Text
           className={`text-sm font-semibold ${
-            activeTab === "todos" ? "text-white" : "text-gray-700"
+            activeTab === "todos" ? "text-white" : "text-gray-700 dark:text-gray-200"
           }`}
         >
           Todos
@@ -49,7 +49,7 @@ export function WikiFilterTabs({
       <TouchableOpacity
         onPress={() => onTabChange("favoritos")}
         className={`flex-row items-center gap-2.5 px-4 py-2 rounded-full min-h-10 ${
-          activeTab === "favoritos" ? "bg-pink-500" : "bg-pink-50"
+          activeTab === "favoritos" ? "bg-pink-500" : "bg-pink-50 dark:bg-pink-900/30"
         }`}
         accessibilityRole="button"
         accessibilityLabel="Ver artigos favoritos"
@@ -58,11 +58,11 @@ export function WikiFilterTabs({
         <Icon
           icon={Heart}
           size={18}
-          className={activeTab === "favoritos" ? "text-white" : "text-pink-600"}
+          className={activeTab === "favoritos" ? "text-white" : "text-pink-600 dark:text-pink-200"}
         />
         <Text
           className={`text-sm font-semibold ${
-            activeTab === "favoritos" ? "text-white" : "text-pink-700"
+            activeTab === "favoritos" ? "text-white" : "text-pink-700 dark:text-pink-200"
           }`}
         >
           Favoritos
@@ -72,7 +72,7 @@ export function WikiFilterTabs({
       <TouchableOpacity
         onPress={() => onTabChange("lidos")}
         className={`flex-row items-center gap-2.5 px-4 py-2 rounded-full min-h-10 ${
-          activeTab === "lidos" ? "bg-green-500" : "bg-green-50"
+          activeTab === "lidos" ? "bg-green-500" : "bg-green-50 dark:bg-green-900/30"
         }`}
         accessibilityRole="button"
         accessibilityLabel="Ver artigos lidos"
@@ -81,11 +81,11 @@ export function WikiFilterTabs({
         <Icon
           icon={BookOpenCheck}
           size={18}
-          className={activeTab === "lidos" ? "text-white" : "text-green-600"}
+          className={activeTab === "lidos" ? "text-white" : "text-green-600 dark:text-green-200"}
         />
         <Text
           className={`text-sm font-semibold ${
-            activeTab === "lidos" ? "text-white" : "text-green-700"
+            activeTab === "lidos" ? "text-white" : "text-green-700 dark:text-green-200"
           }`}
         >
           Lidos
@@ -95,7 +95,7 @@ export function WikiFilterTabs({
       <TouchableOpacity
         onPress={onCategoriesPress}
         className={`flex-row items-center gap-2.5 px-4 py-2 rounded-full min-h-10 ${
-          activeTab === "categorias" ? "bg-purple-500" : "bg-purple-50"
+          activeTab === "categorias" ? "bg-purple-500" : "bg-purple-50 dark:bg-purple-900/30"
         }`}
         accessibilityRole="button"
         accessibilityLabel={`Filtrar por categorias${selectedCategoriesCount > 0 ? `. ${selectedCategoriesCount} selecionadas` : ""}`}
@@ -105,22 +105,22 @@ export function WikiFilterTabs({
           icon={LayoutGrid}
           size={18}
           className={
-            activeTab === "categorias" ? "text-white" : "text-purple-600"
+            activeTab === "categorias" ? "text-white" : "text-purple-600 dark:text-purple-200"
           }
         />
         <Text
           className={`text-sm font-semibold ${
-            activeTab === "categorias" ? "text-white" : "text-purple-700"
+            activeTab === "categorias" ? "text-white" : "text-purple-700 dark:text-purple-200"
           }`}
         >
           Categorias
         </Text>
         {selectedCategoriesCount > 0 && (
           <View className={`rounded-full min-w-[24px] h-6 px-2 items-center justify-center ${
-            activeTab === "categorias" ? "bg-white/20" : "bg-white"
+            activeTab === "categorias" ? "bg-white/20" : "bg-white dark:bg-gray-900"
           }`}>
             <Text className={`text-xs font-bold ${
-              activeTab === "categorias" ? "text-white" : "text-purple-700"
+              activeTab === "categorias" ? "text-white" : "text-purple-700 dark:text-purple-200"
             }`}>
               {selectedCategoriesCount}
             </Text>

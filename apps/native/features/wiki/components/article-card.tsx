@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { ChevronRight, Heart } from "lucide-react-native";
 import { Icon } from "@/components/icon";
+import { useColorScheme } from "@/lib/use-color-scheme";
 
 interface ArticleCardProps {
   title: string;
@@ -44,11 +45,12 @@ export function ArticleCard({
 
   const categoryInitial = getCategoryInitial(categoryName);
   const readingTime = formatReadingTime(readingTimeMinutes);
+  const { isDarkColorScheme } = useColorScheme();
 
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="bg-white rounded-2xl shadow-sm shadow-black/10 border border-gray-100"
+      className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm shadow-black/10 dark:shadow-none border border-gray-100 dark:border-gray-800"
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${excerpt}. ${readingTime} de leitura.${isRead ? " Já lido." : ""}`}
       accessibilityHint="Toque para ler o artigo"
@@ -58,7 +60,13 @@ export function ArticleCard({
         <View
           className="w-16 h-16 rounded-2xl items-center justify-center"
           style={{
-            backgroundColor: "#F9FAFB",
+            backgroundColor: isRead
+              ? isDarkColorScheme
+                ? "#0f172a" // gray-950 for read in dark
+                : "#ecfdf3" // green tint in light
+              : isDarkColorScheme
+                ? "#111827" // gray-900-ish for unread in dark
+                : "#F9FAFB",
             ...(isRead && {
               borderWidth: 1,
               borderColor: "#22c55e",
@@ -79,22 +87,22 @@ export function ArticleCard({
 
         {/* Content */}
         <View className="flex-1 gap-2.5">
-          <Text className="text-base font-semibold text-gray-900 leading-snug">
+          <Text className="text-base font-semibold text-gray-900 dark:text-gray-50 leading-snug">
             {title}
           </Text>
-          <Text className="text-sm text-gray-600 leading-relaxed">
+          <Text className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
             {excerpt}
           </Text>
 
           <View className="flex-row flex-wrap items-center gap-2 mt-1">
-            <View className="px-2.5 py-1 rounded-full bg-gray-100">
-              <Text className="text-xs font-semibold text-gray-600">
+            <View className="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
+              <Text className="text-xs font-semibold text-gray-600 dark:text-gray-300">
                 {readingTime}
               </Text>
             </View>
             {categoryName ? (
-              <View className="px-2.5 py-1 rounded-full bg-blue-50">
-                <Text className="text-xs font-semibold text-blue-700">
+              <View className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30">
+                <Text className="text-xs font-semibold text-blue-700 dark:text-blue-200">
                   {categoryName}
                 </Text>
               </View>
@@ -119,7 +127,9 @@ export function ArticleCard({
             <Icon
               icon={Heart}
               size={22}
-              className={isFavorite ? "text-red-500" : "text-gray-300"}
+              className={
+                isFavorite ? "text-red-500" : "text-gray-300 dark:text-gray-500"
+              }
               fill={isFavorite ? "#ef4444" : "none"}
             />
           </TouchableOpacity>

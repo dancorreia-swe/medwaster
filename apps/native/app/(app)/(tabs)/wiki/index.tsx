@@ -231,7 +231,7 @@ export default function WikiScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Container className="flex-1 bg-gray-50">
+      <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
         <View className="px-6 pt-4 pb-2">
           <WikiHeader />
 
@@ -246,7 +246,7 @@ export default function WikiScreen() {
         </View>
 
         <ScrollView
-          className="flex-1"
+          className="flex-1 bg-gray-50 dark:bg-gray-950"
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
