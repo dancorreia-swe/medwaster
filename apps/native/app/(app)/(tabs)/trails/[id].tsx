@@ -6,17 +6,16 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
+  useColorScheme,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ChevronLeft,
   CheckCircle2,
-  Circle,
   Edit3,
   Link2,
   ListChecks,
 } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import {
   useTrail,
   useTrailProgress,
@@ -27,22 +26,6 @@ import { HtmlText } from "@/components/HtmlText";
 
 type ModuleStatus = "completed" | "current" | "locked";
 type ModuleType = "quiz" | "article" | "question";
-
-interface Module {
-  id: string;
-  contentId: number;
-  trailId: number;
-  emoji: string;
-  title: string;
-  instructor: string;
-  status: ModuleStatus;
-  progress?: any;
-  questions?: number;
-  type: ModuleType;
-  isRequired: boolean;
-  points: number | null;
-  questionType?: "multiple_choice" | "true_false" | "fill_in_the_blank" | "matching";
-}
 
 const moduleStyles = {
   quiz: {
@@ -84,7 +67,8 @@ const getContentTitle = (content: any): string => {
   if (!content) return "Conteúdo";
   // Check by ID presence since contentType doesn't exist in DB
   if (content.questionId && content.question) {
-    const questionText = content.question.prompt || content.question.questionText || "Questão";
+    const questionText =
+      content.question.prompt || content.question.questionText || "Questão";
     return stripHtml(questionText);
   }
   if (content.quizId && content.quiz) {
@@ -120,7 +104,11 @@ const getQuestionTypeIcon = (questionType?: string) => {
     case "multiple_choice":
       return { Icon: ListChecks, color: "#8B5CF6", label: "Múltipla escolha" };
     case "true_false":
-      return { Icon: CheckCircle2, color: "#10B981", label: "Verdadeiro ou Falso" };
+      return {
+        Icon: CheckCircle2,
+        color: "#10B981",
+        label: "Verdadeiro ou Falso",
+      };
     case "fill_in_the_blank":
       return { Icon: Edit3, color: "#F59E0B", label: "Preencher" };
     case "matching":
@@ -136,6 +124,7 @@ export default function JourneyDetail() {
   const trailId = Number(id);
 
   const router = useRouter();
+  const colorScheme = useColorScheme();
 
   const { data: trail, isLoading: trailLoading } = useTrail(trailId);
   const {
@@ -158,74 +147,74 @@ export default function JourneyDetail() {
     content
       ?.filter((item: any) => item && item.id) // Filter out null/undefined items
       ?.map((item: any, index: number) => {
-      const isCompleted = item.progress?.isCompleted || false;
-      const isEnrolled = progress?.isEnrolled || false;
+        const isCompleted = item.progress?.isCompleted || false;
+        const isEnrolled = progress?.isEnrolled || false;
 
-      let status: ModuleStatus = "locked";
-      if (!isEnrolled) {
-        status = index === 0 ? "current" : "locked";
-      } else if (isCompleted) {
-        status = "completed";
-      } else {
-        const previousIndex = index - 1;
-        if (previousIndex < 0) {
-          status = "current";
+        let status: ModuleStatus = "locked";
+        if (!isEnrolled) {
+          status = index === 0 ? "current" : "locked";
+        } else if (isCompleted) {
+          status = "completed";
         } else {
-          const previousContent = content[previousIndex];
-          if (previousContent?.progress?.isCompleted) {
+          const previousIndex = index - 1;
+          if (previousIndex < 0) {
             status = "current";
+          } else {
+            const previousContent = content[previousIndex];
+            if (previousContent?.progress?.isCompleted) {
+              status = "current";
+            }
           }
         }
-      }
 
-      // Derive content type from ID presence
-      let contentType: ModuleType;
-      if (item.questionId) {
-        contentType = "question";
-      } else if (item.quizId) {
-        contentType = "quiz";
-      } else if (item.articleId) {
-        contentType = "article";
-      } else {
-        contentType = "article"; // fallback
-      }
+        // Derive content type from ID presence
+        let contentType: ModuleType;
+        if (item.questionId) {
+          contentType = "question";
+        } else if (item.quizId) {
+          contentType = "quiz";
+        } else if (item.articleId) {
+          contentType = "article";
+        } else {
+          contentType = "article"; // fallback
+        }
 
-      const emoji = getContentEmoji(item);
-      const title = getContentTitle(item);
-      
-      return {
-        id: String(item.id),
-        contentId: item.id,
-        trailId: trailId,
-        emoji: emoji || "📄", // Ensure we always have a valid emoji
-        title: title || "Conteúdo", // Ensure we always have a valid title
-        instructor: "",
-        status,
-        type: contentType,
-        questions: getQuestionCount(item),
-        isRequired: item.isRequired,
-        points: item.points,
-        progress: item.progress,
-        articleId: item.articleId, // Store articleId for navigation
-        questionId: item.questionId, // Store questionId for reference
-        quizId: item.quizId, // Store quizId for reference
-        questionType: item.question?.type, // Store question type for icon
-      };
-    }) || [];
+        const emoji = getContentEmoji(item);
+        const title = getContentTitle(item);
+
+        return {
+          id: String(item.id),
+          contentId: item.id,
+          trailId: trailId,
+          emoji: emoji || "📄", // Ensure we always have a valid emoji
+          title: title || "Conteúdo", // Ensure we always have a valid title
+          instructor: "",
+          status,
+          type: contentType,
+          questions: getQuestionCount(item),
+          isRequired: item.isRequired,
+          points: item.points,
+          progress: item.progress,
+          articleId: item.articleId, // Store articleId for navigation
+          questionId: item.questionId, // Store questionId for reference
+          quizId: item.quizId, // Store quizId for reference
+          questionType: item.question?.type, // Store question type for icon
+        };
+      }) || [];
 
   if (isLoading) {
     return (
-      <Container className="flex-1 bg-gray-50 items-center justify-center">
+      <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
         <ActivityIndicator size="large" color="#155DFC" />
-        <Text className="text-gray-600 mt-3">Carregando trilha...</Text>
+        <Text className="text-gray-600 dark:text-gray-300 mt-3">Carregando trilha...</Text>
       </Container>
     );
   }
 
   if (!trail) {
     return (
-      <Container className="flex-1 bg-gray-50 items-center justify-center">
-        <Text className="text-gray-600">Trilha não encontrada</Text>
+      <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
+        <Text className="text-gray-600 dark:text-gray-300">Trilha não encontrada</Text>
       </Container>
     );
   }
@@ -238,9 +227,8 @@ export default function JourneyDetail() {
     const moduleType = module.type || "article";
     const style = moduleStyles[moduleType] || moduleStyles.article; // Fallback to article style
     const totalQuestions =
-      module.questions ??
-      module.quiz?.questions?.length ??
-      0;
+      module.questions ?? module.quiz?.questions?.length ?? 0;
+    const textColor = colorScheme === "dark" ? "#F8FAFC" : style.textColor;
 
     const handleModulePress = () => {
       if (module.status === "locked") return;
@@ -250,7 +238,7 @@ export default function JourneyDetail() {
       // Pass trail context as query params so article page can mark content complete
       if (module.type === "article" && module.articleId) {
         router.push(
-          `/article/${module.articleId}?trailId=${module.trailId}&contentId=${module.contentId}` as any
+          `/article/${module.articleId}?trailId=${module.trailId}&contentId=${module.contentId}` as any,
         );
       } else {
         // For questions and quizzes, use the trail content screen
@@ -271,29 +259,33 @@ export default function JourneyDetail() {
             // Current Activity Card - Consistent bordered style for all types
             <View
               style={{ borderColor: style.borderColor }}
-              className="bg-white border-2 rounded-3xl p-7 shadow-lg mb-4"
+              className="bg-white border-2 rounded-3xl p-7 shadow-lg mb-4 dark:bg-gray-900 dark:border-gray-700"
             >
               <View className="flex-row gap-4 mb-5">
                 <View
-                  style={{ backgroundColor: style.borderColor ? `${style.borderColor}20` : "#3B82F620" }}
+                  style={{
+                    backgroundColor: style.borderColor
+                      ? `${style.borderColor}20`
+                      : "#3B82F620",
+                  }}
                   className="w-20 h-20 rounded-2xl items-center justify-center"
                 >
                   <Text className="text-[40px]">{module.emoji || "📄"}</Text>
                 </View>
                 <View className="flex-1">
                   <Text
-                    style={{ color: style.textColor }}
+                    style={{ color: textColor }}
                     className="text-lg font-semibold mb-2"
                   >
                     {module.title || "Conteúdo"}
                   </Text>
                   {totalQuestions > 0 && module.type === "quiz" && (
-                    <Text className="text-gray-500 text-base">
+                    <Text className="text-gray-500 dark:text-gray-400 text-base">
                       {totalQuestions} questões
                     </Text>
                   )}
                   {module.instructor && (
-                    <Text className="text-gray-500 text-base">
+                    <Text className="text-gray-500 dark:text-gray-400 text-base">
                       {module.instructor}
                     </Text>
                   )}
@@ -301,13 +293,18 @@ export default function JourneyDetail() {
                   {module.type === "question" && module.questionType && (
                     <View className="flex-row items-center gap-1.5 mt-1">
                       {(() => {
-                        const typeInfo = getQuestionTypeIcon(module.questionType);
+                        const typeInfo = getQuestionTypeIcon(
+                          module.questionType,
+                        );
                         if (!typeInfo) return null;
                         const { Icon, color, label } = typeInfo;
                         return (
                           <>
                             <Icon size={14} color={color} strokeWidth={2} />
-                            <Text className="text-xs font-medium" style={{ color }}>
+                            <Text
+                              className="text-xs font-medium"
+                              style={{ color }}
+                            >
                               {label || "Questão"}
                             </Text>
                           </>
@@ -347,19 +344,20 @@ export default function JourneyDetail() {
             </View>
           ) : (
             // Regular Module Card
-            <View className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm mb-2">
+            <View className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm mb-2 dark:bg-gray-900 dark:border-gray-800">
               <View className="flex-row items-center">
                 {/* Emoji Badge */}
                 <View className="relative mr-5">
-                  <View className="w-16 h-16 bg-gray-100 rounded-2xl items-center justify-center">
+                  <View className="w-16 h-16 bg-gray-100 rounded-2xl items-center justify-center dark:bg-gray-800">
                     <Text className="text-[32px]">{module.emoji || "📄"}</Text>
                   </View>
                   {/* Status Badge */}
                   <View
                     className={
-                      module.status === "completed" || module.status === "current"
-                        ? "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center bg-green-500"
-                        : "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center bg-gray-400"
+                      module.status === "completed" ||
+                      module.status === "current"
+                        ? "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center bg-green-500 dark:border-gray-900"
+                        : "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white items-center justify-center bg-gray-400 dark:border-gray-900 dark:bg-gray-600"
                     }
                   >
                     {module.status === "completed" && (
@@ -371,26 +369,28 @@ export default function JourneyDetail() {
                   </View>
                 </View>
 
-        {/* Content */}
-        <View className="flex-1">
-          <Text className="text-gray-900 text-base font-semibold mb-1">
-            {module.title || "Conteúdo"}
-          </Text>
-          {module.instructor && (
-            <Text className="text-gray-500 text-sm">
-              {module.instructor}
-            </Text>
-          )}
-          {totalQuestions > 0 && module.type === "quiz" && (
-            <Text className="text-gray-500 text-sm">
-              {totalQuestions} questões
-            </Text>
-          )}
+                {/* Content */}
+                <View className="flex-1">
+                  <Text className="text-gray-900 dark:text-gray-50 text-base font-semibold mb-1">
+                    {module.title || "Conteúdo"}
+                  </Text>
+                  {module.instructor && (
+                    <Text className="text-gray-500 dark:text-gray-400 text-sm">
+                      {module.instructor}
+                    </Text>
+                  )}
+                  {totalQuestions > 0 && module.type === "quiz" && (
+                    <Text className="text-gray-500 dark:text-gray-400 text-sm">
+                      {totalQuestions} questões
+                    </Text>
+                  )}
                   {/* Question Type Badge */}
                   {module.type === "question" && module.questionType && (
                     <View className="flex-row items-center gap-1.5 mt-1">
                       {(() => {
-                        const typeInfo = getQuestionTypeIcon(module.questionType);
+                        const typeInfo = getQuestionTypeIcon(
+                          module.questionType,
+                        );
                         if (!typeInfo) return null;
                         const { Icon, color, label } = typeInfo;
                         return (
@@ -449,8 +449,8 @@ export default function JourneyDetail() {
                 <View
                   className={
                     module.status === "completed"
-                      ? "w-1 h-2 rounded-full bg-blue-400"
-                      : "w-1 h-2 rounded-full bg-gray-300"
+                      ? "w-1 h-2 rounded-full bg-blue-400 dark:bg-blue-500"
+                      : "w-1 h-2 rounded-full bg-gray-300 dark:bg-gray-700"
                   }
                 />
               </View>
@@ -468,33 +468,39 @@ export default function JourneyDetail() {
   };
 
   return (
-    <Container className="flex-1 bg-gray-50">
+    <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="px-6 pt-4 pb-8">
           {/* Back Button */}
           <TouchableOpacity
             onPress={() => router.navigate("/(app)/(tabs)/trails")}
-            className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center mb-6 mt-1"
+            className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center mb-6 mt-1 dark:border-gray-800"
           >
             <ChevronLeft size={24} color="#364153" strokeWidth={2} />
           </TouchableOpacity>
 
           {/* Category Label */}
           <Text className="text-primary text-xs font-semibold tracking-wider mb-2 uppercase">
-            TRILHA DE APRENDIZADO • {difficultyLabels[trail.difficulty] || trail.difficulty}
+            TRILHA DE APRENDIZADO •{" "}
+            {difficultyLabels[trail.difficulty] || trail.difficulty}
           </Text>
 
           {/* Title */}
-          <Text className="text-gray-900 text-3xl font-bold leading-tight mb-4">
+          <Text className="text-gray-900 dark:text-gray-50 text-3xl font-bold leading-tight mb-4">
             {trail.name}
           </Text>
 
           {/* Description */}
           {trail.description && (
-            <HtmlText 
-              html={trail.description} 
-              baseStyle={{ fontSize: 16, fontWeight: "400", color: "#4B5563", lineHeight: 24 }}
+            <HtmlText
+              html={trail.description}
+              baseStyle={{
+                fontSize: 16,
+                fontWeight: "400",
+                color: colorScheme === "dark" ? "#CBD5F5" : "#4B5563",
+                lineHeight: 24,
+              }}
             />
           )}
 
@@ -502,14 +508,14 @@ export default function JourneyDetail() {
           <View className="flex-row items-center gap-4 mb-4">
             {trail.estimatedTimeMinutes && (
               <View className="flex-row items-center gap-1">
-                <Text className="text-gray-600 text-sm">
+                <Text className="text-gray-600 dark:text-gray-300 text-sm">
                   ⏱️ {trail.estimatedTimeMinutes} min
                 </Text>
               </View>
             )}
             {modules.length > 0 && (
               <View className="flex-row items-center gap-1">
-                <Text className="text-gray-600 text-sm">
+                <Text className="text-gray-600 dark:text-gray-300 text-sm">
                   📚 {modules.length} módulos
                 </Text>
               </View>
@@ -518,30 +524,31 @@ export default function JourneyDetail() {
 
           {/* Info Badge - Not enrolled */}
           {!isEnrolled && (
-            <View className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-              <Text className="text-blue-900 font-semibold mb-1">
+            <View className="bg-blue-50 rounded-xl p-4 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-900/40">
+              <Text className="text-blue-900 dark:text-blue-100 font-semibold mb-1">
                 ✨ Comece sua jornada
               </Text>
-              <Text className="text-blue-700 text-sm">
-                Clique em qualquer módulo para começar. Você será inscrito automaticamente!
+              <Text className="text-blue-700 dark:text-blue-200 text-sm">
+                Clique em qualquer módulo para começar. Você será inscrito
+                automaticamente!
               </Text>
             </View>
           )}
 
           {/* Progress Badge - Enrolled with progress */}
           {isEnrolled && progress && progress.progressPercentage > 0 && (
-            <View className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+            <View className="bg-blue-50 rounded-xl p-4 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-900/40">
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-blue-900 font-semibold">
+                <Text className="text-blue-900 dark:text-blue-100 font-semibold">
                   Seu Progresso
                 </Text>
-                <Text className="text-blue-600 font-bold">
+                <Text className="text-blue-600 dark:text-blue-200 font-bold">
                   {progress.progressPercentage || 0}%
                 </Text>
               </View>
-              <View className="h-2 bg-blue-100 rounded-full overflow-hidden">
+              <View className="h-2 bg-blue-100 rounded-full overflow-hidden dark:bg-blue-900/40">
                 <View
-                  className="h-full bg-blue-600"
+                  className="h-full bg-blue-600 dark:bg-blue-400"
                   style={{ width: `${progress.progressPercentage || 0}%` }}
                 />
               </View>

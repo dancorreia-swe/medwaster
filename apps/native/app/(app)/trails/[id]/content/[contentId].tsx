@@ -345,9 +345,9 @@ export default function TrailContentScreen() {
   // Show loading while content is loading
   if (isLoading) {
     return (
-      <Container className="flex-1 bg-white items-center justify-center">
+      <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
         <ActivityIndicator size="large" color="#615FFF" />
-        <Text className="text-gray-600 mt-3">Carregando...</Text>
+        <Text className="text-gray-600 dark:text-gray-300 mt-3">Carregando...</Text>
       </Container>
     );
   }
@@ -356,17 +356,17 @@ export default function TrailContentScreen() {
   if (contentItem?.quizId && !quizAttemptId && !quizResults && isStartingQuiz) {
     console.log("Showing loading screen, isStartingQuiz:", isStartingQuiz);
     return (
-      <Container className="flex-1 bg-white items-center justify-center">
+      <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
         <ActivityIndicator size="large" color="#615FFF" />
-        <Text className="text-gray-600 mt-3">Iniciando quiz...</Text>
+        <Text className="text-gray-600 dark:text-gray-300 mt-3">Iniciando quiz...</Text>
       </Container>
     );
   }
 
   if (!contentItem) {
     return (
-      <Container className="flex-1 bg-gray-50 items-center justify-center">
-        <Text className="text-gray-600">Conteúdo não encontrado</Text>
+      <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
+        <Text className="text-gray-600 dark:text-gray-300">Conteúdo não encontrado</Text>
         <TouchableOpacity
           onPress={() => router.back()}
           className="mt-4 bg-primary px-6 py-3 rounded-full"
@@ -421,14 +421,14 @@ export default function TrailContentScreen() {
     return (
       <View>
         {/* Article Content */}
-        <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200">
+        <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200 dark:bg-gray-900 dark:border-gray-800">
           <Text className="text-sm text-primary font-semibold mb-4">
             ARTIGO
           </Text>
-          <Text className="text-2xl font-bold text-gray-900 mb-4">
+          <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-4">
             {article.title}
           </Text>
-          <Text className="text-base text-gray-700 leading-relaxed">
+          <Text className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
             {article.summary || "Conteúdo do artigo..."}
           </Text>
           {/* TODO: Render full article content/body */}
@@ -474,36 +474,36 @@ export default function TrailContentScreen() {
     // Show start quiz button
     return (
       <View>
-        <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200">
+        <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200 dark:bg-gray-900 dark:border-gray-800">
           <Text className="text-sm text-primary font-semibold mb-2">QUIZ</Text>
-          <Text className="text-2xl font-bold text-gray-900 mb-4">
+          <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-4">
             {quiz.title}
           </Text>
           {quiz.description && (
-            <Text className="text-base text-gray-700 leading-relaxed mb-4">
+            <Text className="text-base text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
               {quiz.description}
             </Text>
           )}
 
           {/* Quiz Info */}
-          <View className="bg-gray-50 rounded-lg p-4 gap-2">
+          <View className="bg-gray-50 rounded-lg p-4 gap-2 dark:bg-gray-800">
             <View className="flex-row items-center justify-between">
-              <Text className="text-sm text-gray-600">Questões</Text>
-              <Text className="text-sm font-semibold text-gray-900">
+              <Text className="text-sm text-gray-600 dark:text-gray-400">Questões</Text>
+              <Text className="text-sm font-semibold text-gray-900 dark:text-gray-50">
                 {quiz.questions?.length || 0}
               </Text>
             </View>
             {quiz.timeLimit && (
               <View className="flex-row items-center justify-between">
-                <Text className="text-sm text-gray-600">Tempo Limite</Text>
-                <Text className="text-sm font-semibold text-gray-900">
+                <Text className="text-sm text-gray-600 dark:text-gray-400">Tempo Limite</Text>
+                <Text className="text-sm font-semibold text-gray-900 dark:text-gray-50">
                   {quiz.timeLimit} minutos
                 </Text>
               </View>
             )}
             <View className="flex-row items-center justify-between">
-              <Text className="text-sm text-gray-600">Pontuação Mínima</Text>
-              <Text className="text-sm font-semibold text-gray-900">
+              <Text className="text-sm text-gray-600 dark:text-gray-400">Pontuação Mínima</Text>
+              <Text className="text-sm font-semibold text-gray-900 dark:text-gray-50">
                 {quiz.passingScore}%
               </Text>
             </View>
@@ -531,7 +531,7 @@ export default function TrailContentScreen() {
   // For quiz mode, render full screen
   if (contentItem.contentType === "quiz" && (quizAttemptId || quizResults)) {
     return (
-      <Container className="flex-1 bg-white">
+      <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
         {quizResults ? (
           <QuizResultsComponent
             results={quizResults}
@@ -555,7 +555,7 @@ export default function TrailContentScreen() {
   }
 
   return (
-    <Container className="flex-1 bg-white">
+    <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
       <View className="flex-1">
         <ScrollView
           className="flex-1"
@@ -567,37 +567,37 @@ export default function TrailContentScreen() {
             {/* Back Button */}
             <TouchableOpacity
               onPress={() => router.back()}
-              className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center mb-4"
+              className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center mb-4 dark:border-gray-800"
             >
               <ChevronLeft size={24} color="#364153" strokeWidth={2} />
             </TouchableOpacity>
 
             {/* Trail Title */}
             {trail && (
-              <Text className="text-sm text-gray-500 mb-3">
+              <Text className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                 {trail.name}
               </Text>
             )}
 
             {/* Content Type Badge */}
             <View className="flex-row items-center gap-2">
-              <View className="bg-blue-50 px-3 py-1.5 rounded-lg">
-                <Text className="text-blue-700 text-xs font-semibold">
+              <View className="bg-blue-50 px-3 py-1.5 rounded-lg dark:bg-blue-900/30">
+                <Text className="text-blue-700 dark:text-blue-200 text-xs font-semibold">
                   {contentItem.contentType === "question" && "Questão"}
                   {contentItem.contentType === "quiz" && "Quiz"}
                   {contentItem.contentType === "article" && "Artigo"}
                 </Text>
               </View>
               {contentItem.isRequired && (
-                <View className="bg-orange-50 px-3 py-1.5 rounded-lg">
-                  <Text className="text-orange-700 text-xs font-semibold">
+                <View className="bg-orange-50 px-3 py-1.5 rounded-lg dark:bg-orange-900/30">
+                  <Text className="text-orange-700 dark:text-orange-200 text-xs font-semibold">
                     Obrigatório
                   </Text>
                 </View>
               )}
               {contentItem.progress?.isCompleted && (
-                <View className="bg-green-50 px-3 py-1.5 rounded-lg">
-                  <Text className="text-green-700 text-xs font-semibold">
+                <View className="bg-green-50 px-3 py-1.5 rounded-lg dark:bg-green-900/30">
+                  <Text className="text-green-700 dark:text-green-200 text-xs font-semibold">
                     ✓ Concluído
                   </Text>
                 </View>
@@ -615,7 +615,7 @@ export default function TrailContentScreen() {
 
         {/* Fixed Bottom Button for Questions */}
         {contentItem.contentType === "question" && (
-          <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4 pb-8">
+          <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4 pb-8 dark:bg-gray-900 dark:border-gray-800">
             {!showQuestionResult ? (
               <TouchableOpacity
                 onPress={() => {
@@ -629,7 +629,7 @@ export default function TrailContentScreen() {
                 disabled={!hasCurrentAnswer() || submitQuestionMutation.isPending}
                 className={`rounded-2xl py-5 ${
                   !hasCurrentAnswer() || submitQuestionMutation.isPending
-                    ? "bg-gray-300"
+                    ? "bg-gray-300 dark:bg-gray-700"
                     : "bg-blue-500"
                 }`}
                 activeOpacity={0.8}
