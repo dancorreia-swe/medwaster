@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/tooltip";
 import { HelpCircle, Calendar, ExternalLink } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { stripHtml } from "@/lib/utils";
 import type { Category } from "../../api";
 
 interface QuestionListItemProps {
@@ -24,9 +25,9 @@ const getTypeBadge = (type: string) => {
 
 const getDifficultyBadge = (difficulty: string) => {
   const badges = {
-    easy: { label: "Fácil", variant: "secondary" as const },
-    medium: { label: "Médio", variant: "default" as const },
-    hard: { label: "Difícil", variant: "destructive" as const },
+    basic: { label: "Básico", variant: "secondary" as const },
+    intermediate: { label: "Intermediário", variant: "default" as const },
+    advanced: { label: "Avançado", variant: "destructive" as const },
   };
   return badges[difficulty as keyof typeof badges] || { label: difficulty, variant: "default" as const };
 };
@@ -34,6 +35,8 @@ const getDifficultyBadge = (difficulty: string) => {
 export function QuestionListItem({ question }: QuestionListItemProps) {
   const typeBadge = question.type ? getTypeBadge(question.type) : null;
   const difficultyBadge = question.difficulty ? getDifficultyBadge(question.difficulty) : null;
+  const promptText = stripHtml(question.prompt);
+  const explanationText = question.explanation ? stripHtml(question.explanation) : null;
 
   return (
     <Link
@@ -56,11 +59,11 @@ export function QuestionListItem({ question }: QuestionListItemProps) {
 
       <div className="flex-1 min-w-0 w-full overflow-hidden">
         <p className="text-sm font-medium group-hover/question:text-primary transition-colors truncate">
-          {question.prompt}
+          {promptText}
         </p>
-        {question.explanation && (
+        {explanationText && (
           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 text-wrap max-w-2/3">
-            {question.explanation}
+            {explanationText}
           </p>
         )}
       </div>

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ClipboardList, Calendar, ExternalLink, Clock, Target } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { stripHtml } from "@/lib/utils";
 import type { Category } from "../../api";
 
 interface QuizListItemProps {
@@ -24,9 +25,10 @@ const getStatusBadge = (status: string) => {
 
 const getDifficultyBadge = (difficulty: string) => {
   const badges = {
-    easy: { label: "Fácil", variant: "secondary" as const },
-    medium: { label: "Médio", variant: "default" as const },
-    hard: { label: "Difícil", variant: "destructive" as const },
+    basic: { label: "Básico", variant: "secondary" as const },
+    intermediate: { label: "Intermediário", variant: "default" as const },
+    advanced: { label: "Avançado", variant: "destructive" as const },
+    mixed: { label: "Misto", variant: "outline" as const },
   };
   return badges[difficulty as keyof typeof badges] || { label: difficulty, variant: "default" as const };
 };
@@ -34,6 +36,8 @@ const getDifficultyBadge = (difficulty: string) => {
 export function QuizListItem({ quiz }: QuizListItemProps) {
   const statusBadge = quiz.status ? getStatusBadge(quiz.status) : null;
   const difficultyBadge = quiz.difficulty ? getDifficultyBadge(quiz.difficulty) : null;
+  const titleText = stripHtml(quiz.title);
+  const descriptionText = quiz.description ? stripHtml(quiz.description) : null;
 
   return (
     <Link
@@ -56,11 +60,11 @@ export function QuizListItem({ quiz }: QuizListItemProps) {
 
       <div className="flex-1 min-w-0 w-full overflow-hidden">
         <p className="text-sm font-medium group-hover/quiz:text-primary transition-colors truncate">
-          {quiz.title}
+          {titleText}
         </p>
-        {quiz.description && (
+        {descriptionText && (
           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 text-wrap max-w-2/3">
-            {quiz.description}
+            {descriptionText}
           </p>
         )}
       </div>

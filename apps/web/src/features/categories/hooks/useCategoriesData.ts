@@ -1,6 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { wikiQueryKeys } from "@/features/wiki/api/wikiQueries";
+import { questionsQueryKeys } from "@/features/questions/api/questionsQueries";
 import { categoriesApi, categoriesListQueryOptions, categoriesQueryKeys } from "../api";
+
+const invalidateCategoryDependentQueries = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  options?: { skipCategoryLists?: boolean },
+) => {
+  if (!options?.skipCategoryLists) {
+    queryClient.invalidateQueries({ queryKey: categoriesQueryKeys.lists() });
+  }
+
+  queryClient.invalidateQueries({ queryKey: wikiQueryKeys.categories() });
+  queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
+  queryClient.invalidateQueries({ queryKey: questionsQueryKeys.all });
+};
 
 export const useCategories = (params?: { page?: number; pageSize?: number }) =>
   useQuery(categoriesListQueryOptions(params));
@@ -12,7 +27,7 @@ export const useCreateCategory = () => {
     mutationFn: categoriesApi.createCategory,
     onSuccess: () => {
       toast.success("Categoria criada com sucesso");
-      queryClient.invalidateQueries({ queryKey: categoriesQueryKeys.lists() });
+      invalidateCategoryDependentQueries(queryClient);
     },
     onError: (error) => {
       toast.error(
@@ -67,10 +82,10 @@ export const useUpdateCategory = (options?: { silent?: boolean; skipRefetch?: bo
         error instanceof Error ? error.message : "Erro ao atualizar categoria"
       );
     },
-    onSettled: (_, __, variables) => {
-      if (!options?.skipRefetch) {
-        queryClient.invalidateQueries({ queryKey: categoriesQueryKeys.lists() });
-      }
+    onSettled: () => {
+      invalidateCategoryDependentQueries(queryClient, {
+        skipCategoryLists: options?.skipRefetch,
+      });
     },
   });
 };
@@ -83,7 +98,7 @@ export const useDeleteCategory = () => {
     onSuccess: (_, id) => {
       toast.success("Categoria excluída com sucesso");
       queryClient.removeQueries({ queryKey: categoriesQueryKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: categoriesQueryKeys.lists() });
+      invalidateCategoryDependentQueries(queryClient);
     },
     onError: (error) => {
       toast.error(

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/tooltip";
 import { FileText, Calendar, ExternalLink } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { stripHtml } from "@/lib/utils";
 import type { Category } from "../../api";
 import { getStatusBadge } from "./article-status-config";
 
@@ -16,6 +17,8 @@ interface ArticleListItemProps {
 
 export function ArticleListItem({ article }: ArticleListItemProps) {
   const statusBadge = article.status ? getStatusBadge(article.status) : null;
+  const titleText = stripHtml(article.title);
+  const excerptText = article.excerpt ? stripHtml(article.excerpt) : null;
 
   return (
     <Link
@@ -38,11 +41,11 @@ export function ArticleListItem({ article }: ArticleListItemProps) {
 
       <div className="flex-1 min-w-0 w-full overflow-hidden">
         <p className="text-sm font-medium group-hover/article:text-primary transition-colors truncate">
-          {article.title}
+          {titleText}
         </p>
-        {article.excerpt && (
+        {excerptText && (
           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 text-wrap max-w-2/3">
-            {article.excerpt}
+            {excerptText}
           </p>
         )}
       </div>
