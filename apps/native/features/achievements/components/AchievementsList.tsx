@@ -106,7 +106,7 @@ export function AchievementsList({ achievements, highlightAchievementId }: Achie
         {sortedCategories.map((category) => (
           <View key={category} className="mb-8">
             {/* Category header */}
-            <Text className="text-xl font-bold text-gray-900 mb-4">
+            <Text className="text-xl font-bold text-gray-900 dark:text-gray-50 mb-4">
               {categoryLabels[category] || category}
             </Text>
 
@@ -127,10 +127,10 @@ export function AchievementsList({ achievements, highlightAchievementId }: Achie
         {achievements.length === 0 && (
           <View className="items-center justify-center py-16">
             <Text className="text-6xl mb-4">🏆</Text>
-            <Text className="text-lg font-bold text-gray-900 mb-2">
+            <Text className="text-lg font-bold text-gray-900 dark:text-gray-50 mb-2">
               Nenhuma conquista disponível
             </Text>
-            <Text className="text-sm text-gray-500 text-center px-8">
+            <Text className="text-sm text-gray-500 dark:text-gray-400 text-center px-8">
               As conquistas aparecerão aqui quando estiverem disponíveis.
             </Text>
           </View>

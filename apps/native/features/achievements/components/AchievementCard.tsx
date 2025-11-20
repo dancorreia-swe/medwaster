@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { Icon } from "@/components/icon";
 import type { Achievement } from "../api";
 import { getLucideIcon } from "../utils";
+import { useColorScheme } from "@/lib/use-color-scheme";
 
 interface AchievementCardProps {
   achievement: Achievement;
@@ -31,6 +32,7 @@ export function AchievementCard({
   locked = true,
   highlighted = false,
 }: AchievementCardProps) {
+  const { isDarkColorScheme } = useColorScheme();
   const badgeColor = achievement.badgeColor || "#fbbf24";
   const categoryColor =
     categoryColors[achievement.category] || categoryColors.general;
@@ -91,13 +93,16 @@ export function AchievementCard({
   // Interpolate border color
   const borderColor = borderColorAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#E5E7EB', '#2B7FFF'], // gray-200 to blue-500
+    outputRange: [
+      isDarkColorScheme ? "#1F2937" : "#E5E7EB", // gray-800 (dark) or gray-200 (light)
+      "#2B7FFF",
+    ], // animate to blue-500
   });
 
   return (
     <Animated.View
       style={{
-        backgroundColor: 'white',
+        backgroundColor: isDarkColorScheme ? '#0b1220' : 'white',
         borderRadius: 12,
         padding: 20,
         marginBottom: 12,
@@ -116,14 +121,18 @@ export function AchievementCard({
         <View
           className="size-16 rounded-full items-center justify-center mb-4"
           style={{
-            backgroundColor: locked ? "#F3F4F6" : `${badgeColor}20`,
+            backgroundColor: locked
+              ? isDarkColorScheme
+                ? "#111827"
+                : "#F3F4F6"
+              : `${badgeColor}20`,
             opacity: locked ? 0.5 : 1,
           }}
         >
           <Icon
             icon={IconComponent}
             size={32}
-            color={locked ? "#9CA3AF" : badgeColor}
+            color={locked ? (isDarkColorScheme ? "#9CA3AF" : "#9CA3AF") : badgeColor}
           />
         </View>
 
@@ -135,32 +144,32 @@ export function AchievementCard({
         )}
 
         {/* Title */}
-        <Text className="text-lg font-bold text-gray-900 mb-2 text-center">
+        <Text className="text-lg font-bold text-gray-900 dark:text-gray-50 mb-2 text-center">
           {achievement.name}
         </Text>
 
         {/* Description */}
-        <Text className="text-sm text-gray-600 mb-4 text-center">
+        <Text className="text-sm text-gray-600 dark:text-gray-400 mb-4 text-center">
           {achievement.description}
         </Text>
 
         {/* Progress bar for locked achievements */}
         {locked && achievement.progressPercentage > 0 && (
           <View className="w-full mb-4">
-            <View className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <View className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
               <View
                 className="h-full bg-blue-500 rounded-full"
                 style={{ width: `${achievement.progressPercentage}%` }}
               />
             </View>
-            <Text className="text-xs text-gray-500 text-center mt-1">
+            <Text className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1">
               {Math.round(achievement.progressPercentage)}% concluído
             </Text>
           </View>
         )}
 
         {/* Badges row */}
-        <View className="flex-row items-center justify-center gap-2 pt-3 border-t border-gray-100 w-full">
+        <View className="flex-row items-center justify-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-800 w-full">
           <View
             className="px-2 py-1 rounded-full"
             style={{ backgroundColor: `${categoryColor}20` }}
@@ -172,8 +181,8 @@ export function AchievementCard({
               {achievement.category}
             </Text>
           </View>
-          <View className="px-2 py-1 rounded-full bg-gray-100">
-            <Text className="text-xs font-medium text-gray-600">
+          <View className="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
+            <Text className="text-xs font-medium text-gray-600 dark:text-gray-300">
               {difficultyLabel}
             </Text>
           </View>
