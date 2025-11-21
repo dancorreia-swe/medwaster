@@ -24,9 +24,7 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import {
-  CheckCheck
-} from 'lucide-react'
+import { CheckCheck } from "lucide-react";
 
 export function CertificatesPage() {
   const queryClient = useQueryClient();
