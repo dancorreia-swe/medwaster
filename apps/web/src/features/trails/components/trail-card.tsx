@@ -88,7 +88,7 @@ export function TrailCard({
             className="inline-flex items-center gap-1 text-xs"
           >
             <Hash className="h-3 w-3 text-muted-foreground" />
-            {trail.unlockOrder ? trail.unlockOrder + 1 : "?"}
+            {trail.unlockOrder ? trail.unlockOrder : "?"}
           </Badge>
         </div>
       </CardHeader>

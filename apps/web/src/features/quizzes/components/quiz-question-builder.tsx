@@ -16,7 +16,7 @@ import {
   Target,
   XCircle,
   FileQuestion,
-  Plus
+  Plus,
 } from "lucide-react";
 import { stripHtml } from "@/lib/utils";
 import { DRAG_TYPES as QUESTION_SELECTOR_DRAG_TYPES } from "./question-selector";
@@ -54,7 +54,6 @@ interface QuestionFromBankDragItem {
   question: QuestionListItem;
 }
 
-
 const getQuestionTypeIcon = (type: string) => {
   switch (type) {
     case "multiple_choice":
@@ -84,7 +83,11 @@ const getDifficultyColor = (difficulty: string) => {
 };
 
 const getDifficultyLabel = (difficulty: string) => {
-  return QUESTION_DIFFICULTY_LABELS[difficulty as keyof typeof QUESTION_DIFFICULTY_LABELS] || difficulty;
+  return (
+    QUESTION_DIFFICULTY_LABELS[
+      difficulty as keyof typeof QUESTION_DIFFICULTY_LABELS
+    ] || difficulty
+  );
 };
 
 interface QuestionCardProps {
@@ -95,7 +98,13 @@ interface QuestionCardProps {
   onMove: (dragIndex: number, hoverIndex: number) => void;
 }
 
-function QuestionCard({ question, index, onRemove, onUpdate, onMove }: QuestionCardProps) {
+function QuestionCard({
+  question,
+  index,
+  onRemove,
+  onUpdate,
+  onMove,
+}: QuestionCardProps) {
   const [{ isDragging }, drag] = useDrag({
     type: DRAG_TYPES.QUIZ_QUESTION,
     item: { id: question.id, index },
@@ -127,13 +136,16 @@ function QuestionCard({ question, index, onRemove, onUpdate, onMove }: QuestionC
               {question.order}
             </Badge>
           </div>
-          
+
           <div className="flex-1 min-w-0">
             {question.question && (
               <>
                 <div className="flex items-center gap-2 mb-2">
                   {getQuestionTypeIcon(question.question.type)}
-                  <Badge variant="secondary" className={getDifficultyColor(question.question.difficulty)}>
+                  <Badge
+                    variant="secondary"
+                    className={getDifficultyColor(question.question.difficulty)}
+                  >
                     {getDifficultyLabel(question.question.difficulty)}
                   </Badge>
                 </div>
@@ -148,25 +160,26 @@ function QuestionCard({ question, index, onRemove, onUpdate, onMove }: QuestionC
                   </Badge>
                 )}
 
-                {question.question.tags && question.question.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-2">
-                {question.question.tags.slice(0, 2).map((tag) => (
-                  <Badge 
-                    key={tag.id} 
-                    variant="outline" 
-                    className="text-xs h-4 px-1"
-                    style={{ color: tag.color || undefined }}
-                  >
-                    {tag.name}
-                  </Badge>
-                ))}
-                {question.question.tags.length > 2 && (
-                  <Badge variant="outline" className="text-xs h-4 px-1">
-                    +{question.question.tags.length - 2}
-                  </Badge>
-                )}
-              </div>
-            )}
+                {question.question.tags &&
+                  question.question.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {question.question.tags.slice(0, 2).map((tag) => (
+                        <Badge
+                          key={tag.id}
+                          variant="outline"
+                          className="text-xs h-4 px-1"
+                          style={{ color: tag.color || undefined }}
+                        >
+                          {tag.name}
+                        </Badge>
+                      ))}
+                      {question.question.tags.length > 2 && (
+                        <Badge variant="outline" className="text-xs h-4 px-1">
+                          +{question.question.tags.length - 2}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
               </>
             )}
             {!question.question && (
@@ -175,7 +188,7 @@ function QuestionCard({ question, index, onRemove, onUpdate, onMove }: QuestionC
               </p>
             )}
           </div>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -186,7 +199,7 @@ function QuestionCard({ question, index, onRemove, onUpdate, onMove }: QuestionC
           </Button>
         </div>
       </CardHeader>
-      
+
       <CardContent className="pt-0">
         <div className="flex items-center gap-2">
           <Switch
@@ -230,13 +243,15 @@ export function QuizQuestionBuilder({
   });
 
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
-  const requiredQuestions = questions.filter(q => q.required).length;
+  const requiredQuestions = questions.filter((q) => q.required).length;
 
   return (
-    <Card 
+    <Card
       ref={drop}
-      className={`h-full flex flex-col transition-all ${
-        isOver && canDrop ? 'ring-2 ring-primary ring-offset-2 bg-primary/5' : ''
+      className={`h-full flex flex-col transition-all gap-0 ${
+        isOver && canDrop
+          ? "ring-2 ring-primary ring-offset-2 bg-primary/5"
+          : ""
       }`}
     >
       <CardHeader className="pb-3">
@@ -244,10 +259,10 @@ export function QuizQuestionBuilder({
           <Settings className="h-4 w-4" />
           Construtor do Quiz
           <Badge variant="secondary" className="ml-auto">
-            {questions.length} pergunta{questions.length !== 1 ? 's' : ''}
+            {questions.length} pergunta{questions.length !== 1 ? "s" : ""}
           </Badge>
         </CardTitle>
-        
+
         {questions.length > 0 && (
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>Total: {totalPoints} pontos</span>
@@ -260,22 +275,27 @@ export function QuizQuestionBuilder({
       <CardContent className="flex-1 flex flex-col p-4">
         {questions.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className={`text-center py-12 transition-all ${
-              isOver && canDrop ? 'scale-105' : ''
-            }`}>
-              <Plus className={`h-12 w-12 mx-auto mb-4 transition-colors ${
-                isOver && canDrop 
-                  ? 'text-primary' 
-                  : 'text-muted-foreground/50'
-              }`} />
+            <div
+              className={`text-center py-12 transition-all ${
+                isOver && canDrop ? "scale-105" : ""
+              }`}
+            >
+              <Plus
+                className={`h-12 w-12 mx-auto mb-4 transition-colors ${
+                  isOver && canDrop
+                    ? "text-primary"
+                    : "text-muted-foreground/50"
+                }`}
+              />
               <h3 className="text-lg font-medium mb-2">
-                {isOver && canDrop ? 'Solte aqui para adicionar' : 'Nenhuma pergunta adicionada'}
+                {isOver && canDrop
+                  ? "Solte aqui para adicionar"
+                  : "Nenhuma pergunta adicionada"}
               </h3>
               <p className="text-sm text-muted-foreground max-w-sm">
-                {isOver && canDrop 
-                  ? 'Solte a pergunta para adicioná-la ao quiz'
-                  : 'Arraste perguntas do banco de dados no painel à esquerda para adicioná-las ao seu quiz.'
-                }
+                {isOver && canDrop
+                  ? "Solte a pergunta para adicioná-la ao quiz"
+                  : "Arraste perguntas do banco de dados no painel à esquerda para adicioná-las ao seu quiz."}
               </p>
             </div>
           </div>
@@ -301,7 +321,9 @@ export function QuizQuestionBuilder({
             <Separator className="my-4" />
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total de Perguntas:</span>
+                <span className="text-muted-foreground">
+                  Total de Perguntas:
+                </span>
                 <span className="font-medium">{questions.length}</span>
               </div>
               <div className="flex justify-between text-sm">
@@ -309,13 +331,19 @@ export function QuizQuestionBuilder({
                 <span className="font-medium">{totalPoints} pontos</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Perguntas Obrigatórias:</span>
+                <span className="text-muted-foreground">
+                  Perguntas Obrigatórias:
+                </span>
                 <span className="font-medium">{requiredQuestions}</span>
               </div>
               {requiredQuestions < questions.length && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Perguntas Opcionais:</span>
-                  <span className="font-medium">{questions.length - requiredQuestions}</span>
+                  <span className="text-muted-foreground">
+                    Perguntas Opcionais:
+                  </span>
+                  <span className="font-medium">
+                    {questions.length - requiredQuestions}
+                  </span>
                 </div>
               )}
             </div>
@@ -325,3 +353,4 @@ export function QuizQuestionBuilder({
     </Card>
   );
 }
+

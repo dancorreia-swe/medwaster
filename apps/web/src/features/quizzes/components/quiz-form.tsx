@@ -61,8 +61,8 @@ export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
   return (
     <div className="space-y-4 h-full overflow-y-auto">
       {/* Basic Information */}
-      <Card>
-        <CardHeader className="pb-3">
+      <Card >
+        <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Informações Básicas

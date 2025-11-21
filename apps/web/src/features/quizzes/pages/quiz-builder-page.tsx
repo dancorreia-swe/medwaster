@@ -370,8 +370,7 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="border-b bg-card shrink-0">
+        <div className="shrink-0">
           <div className="px-4 sm:px-6">
             <div className="flex h-16 items-center justify-between">
               <div className="flex items-center gap-4">
@@ -388,10 +387,10 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
                 </h1>
                 {formData.title && (
                   <span className="text-sm text-muted-foreground">
-                    • {formData.title}
+                    {formData.title}
                   </span>
                 )}
-                {/* Auto-save status indicator - only for drafts in edit mode */}
+
                 {mode === "edit" && formData.status === "draft" && (
                   <>
                     {autoSaveStatus === "saving" && (

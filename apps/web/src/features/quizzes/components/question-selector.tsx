@@ -209,12 +209,16 @@ function DraggableQuestionCard({
   );
 }
 
-export function QuestionSelector({ onAddQuestion, addedQuestionIds }: QuestionSelectorProps) {
+export function QuestionSelector({
+  onAddQuestion,
+  addedQuestionIds,
+}: QuestionSelectorProps) {
   const [filters, setFilters] = useState<QuestionFilters>({});
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [localAddedQuestions, setLocalAddedQuestions] = useState<Set<number>>(new Set());
-  
-  // Use external addedQuestionIds if provided, otherwise use local state
+  const [localAddedQuestions, setLocalAddedQuestions] = useState<Set<number>>(
+    new Set(),
+  );
+
   const addedQuestions = addedQuestionIds || localAddedQuestions;
 
   const { data: categories = [] } = useQuery(categoriesListQueryOptions());
@@ -226,12 +230,10 @@ export function QuestionSelector({ onAddQuestion, addedQuestionIds }: QuestionSe
   } = useQuery(
     questionsListQueryOptions({
       q: filters.search,
-      types: filters.type ? [filters.type] : undefined,
+      type: filters.type ? [filters.type] : undefined,
       difficulty: filters.difficulty,
       categoryId: filters.categoryId,
-      // Temporarily remove status filter to see all questions
-      // status: "active", // Only show active questions for quiz creation
-      pageSize: 50, // Show more questions for selection
+      pageSize: 50,
     }),
   );
 
@@ -250,7 +252,6 @@ export function QuestionSelector({ onAddQuestion, addedQuestionIds }: QuestionSe
   const handleAddQuestion = useCallback(
     (question: QuestionListItem) => {
       onAddQuestion(question.id, question);
-      // Only update local state if we're not using external state
       if (!addedQuestionIds) {
         setLocalAddedQuestions((prev) => new Set([...prev, question.id]));
       }
@@ -267,7 +268,7 @@ export function QuestionSelector({ onAddQuestion, addedQuestionIds }: QuestionSe
   );
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col gap-0">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <FileQuestion className="h-4 w-4" />
@@ -278,7 +279,7 @@ export function QuestionSelector({ onAddQuestion, addedQuestionIds }: QuestionSe
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col space-y-4 p-4">
+      <CardContent className="flex-1 flex flex-col space-y-4 p-4 pt-2">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -324,13 +325,15 @@ export function QuestionSelector({ onAddQuestion, addedQuestionIds }: QuestionSe
               <label className="text-xs font-medium text-muted-foreground">
                 Tipo
               </label>
+
               <Select
                 value={filters.type || "all"}
                 onValueChange={(value) => handleFilterChange("type", value)}
               >
-                <SelectTrigger className="mt-1 h-8">
+                <SelectTrigger className="mt-1 h-8 focus:ring-0">
                   <SelectValue />
                 </SelectTrigger>
+
                 <SelectContent>
                   <SelectItem value="all">Todos os tipos</SelectItem>
                   {questionTypeOptions.map((option) => (
@@ -355,7 +358,7 @@ export function QuestionSelector({ onAddQuestion, addedQuestionIds }: QuestionSe
                   handleFilterChange("difficulty", value)
                 }
               >
-                <SelectTrigger className="mt-1 h-8">
+                <SelectTrigger className="mt-1 h-8 focus:ring-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -384,7 +387,7 @@ export function QuestionSelector({ onAddQuestion, addedQuestionIds }: QuestionSe
                   )
                 }
               >
-                <SelectTrigger className="mt-1 h-8">
+                <SelectTrigger className="mt-1 h-8 focus:ring-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -467,4 +470,3 @@ export function QuestionSelector({ onAddQuestion, addedQuestionIds }: QuestionSe
     </Card>
   );
 }
-
