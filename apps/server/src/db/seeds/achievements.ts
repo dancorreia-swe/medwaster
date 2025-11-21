@@ -18,7 +18,7 @@ export async function achievementsSeed() {
       email: "system@medwaster.com",
       name: "Sistema",
       emailVerified: true,
-      role: "super_admin",
+      role: "super-admin",
     }).returning();
     systemUser = newSystemUser;
   }

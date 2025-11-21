@@ -41,6 +41,7 @@ export async function trailsSeed() {
 
     if (existingCategories.length === 0) {
       console.log("Creating sample categories...");
+
       const newCategories = await db
         .insert(contentCategories)
         .values([
