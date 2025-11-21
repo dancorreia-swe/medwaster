@@ -1,6 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -38,7 +36,6 @@ interface QuizFormData {
   status: "draft" | "active" | "inactive" | "archived";
   categoryId?: number;
   timeLimit?: number;
-  maxAttempts: number;
   showResults: boolean;
   showCorrectAnswers: boolean;
   randomizeQuestions: boolean;
@@ -54,7 +51,6 @@ const initialFormData: QuizFormData = {
   instructions: "",
   difficulty: "basic",
   status: "draft",
-  maxAttempts: 3,
   showResults: true,
   showCorrectAnswers: true,
   randomizeQuestions: false,
@@ -100,7 +96,6 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
         status: existingQuiz.status,
         categoryId: existingQuiz.categoryId || undefined,
         timeLimit: existingQuiz.timeLimit || undefined,
-        maxAttempts: existingQuiz.maxAttempts || 3,
         showResults: existingQuiz.showResults ?? true,
         showCorrectAnswers: existingQuiz.showCorrectAnswers ?? true,
         randomizeQuestions: existingQuiz.randomizeQuestions ?? false,
@@ -368,7 +363,6 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
       <div className="flex flex-col h-full">
         <div className="shrink-0">
           <div className="px-4 sm:px-6">
@@ -447,17 +441,17 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
 
         {/* Main Layout */}
         <div className="flex-1 flex flex-col p-4">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-h-0">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(280px,1fr)_2fr_minmax(280px,1fr)] gap-4 flex-1 min-h-0">
             {/* Questions Selector Panel */}
-            <div className="lg:col-span-1">
-              <QuestionSelector 
+            <div className="min-w-0">
+              <QuestionSelector
                 onAddQuestion={handleAddQuestion}
                 addedQuestionIds={new Set(questions.map(q => q.questionId))}
               />
             </div>
 
             {/* Quiz Builder Panel */}
-            <div className="lg:col-span-2">
+            <div className="min-w-0">
               <QuizQuestionBuilder
                 questions={questions}
                 onRemoveQuestion={handleRemoveQuestion}
@@ -468,7 +462,7 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
             </div>
 
             {/* Quiz Form Panel */}
-            <div className="lg:col-span-1">
+            <div className="min-w-0">
               <QuizForm
                 formData={formData}
                 onChange={handleFormChange}
@@ -478,6 +472,5 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
           </div>
         </div>
       </div>
-    </DndProvider>
   );
 }

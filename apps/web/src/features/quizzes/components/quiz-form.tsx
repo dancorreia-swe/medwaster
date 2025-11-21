@@ -1,13 +1,35 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
+import { NumberInput } from "@/components/ui/number-input";
 import { categoriesListQueryOptions } from "@/features/questions/api/categoriesAndTagsQueries";
-import { Clock, Users, Target, Hash, Settings, FileText } from "lucide-react";
+import {
+  Clock,
+  Target,
+  Hash,
+  Settings,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { ImageUpload } from "@/features/questions/components/image-upload";
 
 interface QuizFormData {
@@ -18,7 +40,6 @@ interface QuizFormData {
   status: "draft" | "active" | "inactive" | "archived";
   categoryId?: number;
   timeLimit?: number;
-  maxAttempts: number;
   showResults: boolean;
   showCorrectAnswers: boolean;
   randomizeQuestions: boolean;
@@ -36,7 +57,11 @@ interface QuizFormProps {
 
 const difficultyOptions = [
   { value: "basic", label: "Básico", color: "bg-green-100 text-green-800" },
-  { value: "intermediate", label: "Intermediário", color: "bg-yellow-100 text-yellow-800" },
+  {
+    value: "intermediate",
+    label: "Intermediário",
+    color: "bg-yellow-100 text-yellow-800",
+  },
   { value: "advanced", label: "Avançado", color: "bg-red-100 text-red-800" },
   { value: "mixed", label: "Misto", color: "bg-purple-100 text-purple-800" },
 ];
@@ -44,24 +69,31 @@ const difficultyOptions = [
 const statusOptions = [
   { value: "draft", label: "Rascunho", color: "bg-gray-100 text-gray-800" },
   { value: "active", label: "Ativo", color: "bg-green-100 text-green-800" },
-  { value: "inactive", label: "Inativo", color: "bg-yellow-100 text-yellow-800" },
+  {
+    value: "inactive",
+    label: "Inativo",
+    color: "bg-yellow-100 text-yellow-800",
+  },
   { value: "archived", label: "Arquivado", color: "bg-red-100 text-red-800" },
 ];
 
 export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
   const { data: categories = [] } = useQuery(categoriesListQueryOptions());
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   const handleInputChange = (field: keyof QuizFormData, value: any) => {
     onChange({ [field]: value });
   };
 
-  const selectedDifficulty = difficultyOptions.find(d => d.value === formData.difficulty);
-  const selectedStatus = statusOptions.find(s => s.value === formData.status);
+  const selectedDifficulty = difficultyOptions.find(
+    (d) => d.value === formData.difficulty,
+  );
+  const selectedStatus = statusOptions.find((s) => s.value === formData.status);
 
   return (
     <div className="space-y-4 h-full overflow-y-auto">
       {/* Basic Information */}
-      <Card >
+      <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -79,7 +111,7 @@ export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
               className="mt-1"
             />
           </div>
-          
+
           <div>
             <Label htmlFor="description">Descrição</Label>
             <Textarea
@@ -91,19 +123,21 @@ export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
               rows={3}
             />
           </div>
-          
+
           <div>
             <Label htmlFor="instructions">Instruções</Label>
             <Textarea
               id="instructions"
               value={formData.instructions}
-              onChange={(e) => handleInputChange("instructions", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("instructions", e.target.value)
+              }
               placeholder="Instruções para os alunos"
               className="mt-1 resize-none"
               rows={3}
             />
           </div>
-          
+
           <div>
             <ImageUpload
               label="Imagem do Quiz"
@@ -133,7 +167,9 @@ export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
             <Label>Dificuldade</Label>
             <Select
               value={formData.difficulty}
-              onValueChange={(value: any) => handleInputChange("difficulty", value)}
+              onValueChange={(value: any) =>
+                handleInputChange("difficulty", value)
+              }
             >
               <SelectTrigger className="mt-1">
                 <SelectValue />
@@ -151,7 +187,7 @@ export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Label>Status</Label>
             <Select
@@ -174,12 +210,17 @@ export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Label>Categoria</Label>
             <Select
               value={formData.categoryId?.toString() || "none"}
-              onValueChange={(value) => handleInputChange("categoryId", value === "none" ? undefined : Number(value))}
+              onValueChange={(value) =>
+                handleInputChange(
+                  "categoryId",
+                  value === "none" ? undefined : Number(value),
+                )
+              }
             >
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Selecione uma categoria" />
@@ -197,140 +238,172 @@ export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
         </CardContent>
       </Card>
 
-      {/* Settings */}
+      {/* Core Settings */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Configurações
+            <Target className="h-4 w-4" />
+            Configurações Principais
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="timeLimit" className="flex items-center gap-2">
-                <Clock className="h-3 w-3" />
-                Tempo Limite
-              </Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input
-                  id="timeLimit"
-                  type="number"
-                  value={formData.timeLimit || ""}
-                  onChange={(e) => handleInputChange("timeLimit", e.target.value ? Number(e.target.value) : undefined)}
-                  placeholder="0"
-                  min="0"
-                />
-                <span className="text-sm text-muted-foreground">min</span>
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="maxAttempts" className="flex items-center gap-2">
-                <Users className="h-3 w-3" />
-                Max. Tentativas
-              </Label>
-              <Input
-                id="maxAttempts"
-                type="number"
-                value={formData.maxAttempts}
-                onChange={(e) => handleInputChange("maxAttempts", Number(e.target.value))}
-                min="1"
-                className="mt-1"
-              />
-            </div>
-          </div>
-          
           <div>
-            <Label htmlFor="passingScore" className="flex items-center gap-2">
-              <Target className="h-3 w-3" />
+            <Label
+              htmlFor="passingScore"
+              className="text-sm font-medium mb-2 block"
+            >
               Nota de Aprovação
             </Label>
-            <div className="flex items-center gap-2 mt-1">
-              <Input
-                id="passingScore"
-                type="number"
-                value={formData.passingScore}
-                onChange={(e) => handleInputChange("passingScore", Number(e.target.value))}
-                min="0"
-                max="100"
-              />
-              <span className="text-sm text-muted-foreground">%</span>
-            </div>
+            <NumberInput
+              id="passingScore"
+              value={formData.passingScore}
+              onValueChange={(value) =>
+                handleInputChange("passingScore", value || 0)
+              }
+              min={0}
+              max={100}
+              stepper={5}
+              suffix="%"
+              placeholder="70"
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Porcentagem mínima necessária para aprovação
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Behavior Settings */}
+      {/* Advanced Settings */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Comportamento</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="showResults" className="text-sm font-medium">
-                Mostrar Resultados
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Exibe a pontuação final ao aluno
-              </p>
-            </div>
-            <Switch
-              id="showResults"
-              checked={formData.showResults}
-              onCheckedChange={(checked) => handleInputChange("showResults", checked)}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="showCorrectAnswers" className="text-sm font-medium">
-                Mostrar Respostas Corretas
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Mostra as respostas corretas após submissão
-              </p>
-            </div>
-            <Switch
-              id="showCorrectAnswers"
-              checked={formData.showCorrectAnswers}
-              onCheckedChange={(checked) => handleInputChange("showCorrectAnswers", checked)}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="randomizeQuestions" className="text-sm font-medium">
-                Randomizar Perguntas
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Altera a ordem das perguntas para cada tentativa
-              </p>
-            </div>
-            <Switch
-              id="randomizeQuestions"
-              checked={formData.randomizeQuestions}
-              onCheckedChange={(checked) => handleInputChange("randomizeQuestions", checked)}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="randomizeOptions" className="text-sm font-medium">
-                Randomizar Opções
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Altera a ordem das opções de resposta
-              </p>
-            </div>
-            <Switch
-              id="randomizeOptions"
-              checked={formData.randomizeOptions}
-              onCheckedChange={(checked) => handleInputChange("randomizeOptions", checked)}
-            />
-          </div>
-        </CardContent>
+        <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+          <CardHeader>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between p-0 hover:bg-transparent"
+              >
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Settings className="size-4" />
+                  Configurações Avançadas
+                </CardTitle>
+                {isAdvancedOpen ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="space-y-4 pt-2">
+              <div>
+                <Label
+                  htmlFor="timeLimit"
+                  className="text-sm font-medium mb-2 flex items-center gap-2"
+                >
+                  <Clock className="h-3 w-3" />
+                  Tempo Limite
+                </Label>
+                <NumberInput
+                  id="timeLimit"
+                  value={formData.timeLimit}
+                  onValueChange={(value) =>
+                    handleInputChange("timeLimit", value)
+                  }
+                  min={0}
+                  max={600}
+                  stepper={5}
+                  suffix=" min"
+                  placeholder="0"
+                />
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Deixe em 0 para sem limite de tempo
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="showResults" className="text-sm font-medium">
+                    Mostrar Resultados
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Exibe a pontuação final ao aluno
+                  </p>
+                </div>
+                <Switch
+                  id="showResults"
+                  checked={formData.showResults}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("showResults", checked)
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label
+                    htmlFor="showCorrectAnswers"
+                    className="text-sm font-medium"
+                  >
+                    Mostrar Respostas Corretas
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Mostra as respostas corretas após submissão
+                  </p>
+                </div>
+                <Switch
+                  id="showCorrectAnswers"
+                  checked={formData.showCorrectAnswers}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("showCorrectAnswers", checked)
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label
+                    htmlFor="randomizeQuestions"
+                    className="text-sm font-medium"
+                  >
+                    Randomizar Perguntas
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Altera a ordem das perguntas para cada tentativa
+                  </p>
+                </div>
+                <Switch
+                  id="randomizeQuestions"
+                  checked={formData.randomizeQuestions}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("randomizeQuestions", checked)
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label
+                    htmlFor="randomizeOptions"
+                    className="text-sm font-medium"
+                  >
+                    Randomizar Opções
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Altera a ordem das opções de resposta
+                  </p>
+                </div>
+                <Switch
+                  id="randomizeOptions"
+                  checked={formData.randomizeOptions}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("randomizeOptions", checked)
+                  }
+                />
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
       {/* Quiz Summary */}

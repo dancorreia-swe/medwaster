@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useDrag } from "react-dnd";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,7 @@ import {
   XCircle,
   Target,
   GripVertical,
+  Plus,
 } from "lucide-react";
 import { stripHtml } from "@/lib/utils";
 import { categoriesListQueryOptions } from "@/features/questions/api/categoriesAndTagsQueries";
@@ -45,9 +45,6 @@ import type {
   QuestionDifficulty,
 } from "@/features/questions/types";
 
-export const DRAG_TYPES = {
-  QUESTION_FROM_BANK: "question-from-bank",
-} as const;
 
 interface QuestionFilters {
   search?: string;
@@ -98,15 +95,6 @@ function DraggableQuestionCard({
   isAdded,
   onAddQuestion,
 }: DraggableQuestionCardProps) {
-  const [{ isDragging }, drag] = useDrag({
-    type: DRAG_TYPES.QUESTION_FROM_BANK,
-    item: { question },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-    canDrag: !isAdded,
-  });
-
   const getQuestionTypeIcon = (type: string) => {
     const option = questionTypeOptions.find((opt) => opt.value === type);
     const Icon = option?.icon || FileQuestion;
@@ -118,18 +106,22 @@ function DraggableQuestionCard({
     return option?.color || "bg-gray-100 text-gray-800";
   };
 
+  const handleClick = () => {
+    if (!isAdded) {
+      onAddQuestion(question);
+    }
+  };
+
   return (
     <Card
-      ref={drag}
-      className={`p-3 transition-all group relative ${
-        isDragging
-          ? "opacity-50 rotate-2 scale-105"
-          : isAdded
-            ? "bg-muted/50 border-muted cursor-not-allowed opacity-60 grayscale"
-            : "hover:shadow-md hover:scale-[1.02] cursor-grab active:cursor-grabbing"
+      onClick={handleClick}
+      className={`p-2.5 transition-all group relative ${
+        isAdded
+          ? "bg-muted/50 border-muted cursor-not-allowed opacity-60 grayscale"
+          : "hover:shadow-md cursor-pointer hover:border-primary/50"
       }`}
     >
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="flex items-start gap-2">
           <div className="flex items-center gap-1 shrink-0">
             <GripVertical
@@ -138,7 +130,7 @@ function DraggableQuestionCard({
             {getQuestionTypeIcon(question.type)}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium leading-tight">
+            <p className="text-sm font-medium leading-tight break-words">
               {stripHtml(question.prompt)}
             </p>
           </div>
@@ -189,18 +181,18 @@ function DraggableQuestionCard({
           </div>
         )}
 
-        {/* Hover tooltip for draggable questions */}
+        {/* Hover tooltip for clickable questions */}
         {!isAdded && (
           <div className="absolute bottom-2 left-3 right-3 text-xs text-blue-600 font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-background/95 backdrop-blur-sm rounded px-2 py-1 shadow-sm border">
-            <GripVertical className="h-3 w-3" />
-            Arraste para o quiz
+            <Plus className="h-3 w-3" />
+            Clique para adicionar ao quiz
           </div>
         )}
 
         {/* Static text for already added questions */}
         {isAdded && (
           <div className="text-xs text-muted-foreground flex items-center gap-1 pt-1">
-            <GripVertical className="h-3 w-3 opacity-50" />
+            <CheckCircle className="h-3 w-3 opacity-50" />
             Já foi adicionada ao quiz
           </div>
         )}
@@ -269,7 +261,7 @@ export function QuestionSelector({
 
   return (
     <Card className="h-full flex flex-col gap-0">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 px-3">
         <CardTitle className="text-base flex items-center gap-2">
           <FileQuestion className="h-4 w-4" />
           Banco de Perguntas
@@ -279,7 +271,7 @@ export function QuestionSelector({
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col space-y-4 p-4 pt-2">
+      <CardContent className="flex-1 flex flex-col space-y-4 px-3 py-0 pt-2 min-h-0">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -420,9 +412,10 @@ export function QuestionSelector({
         <Separator />
 
         {/* Questions List */}
-        <ScrollArea className="flex-1">
-          <div className="space-y-3">
-            {isLoadingQuestions ? (
+        <div className="flex-1 relative">
+          <ScrollArea className="absolute inset-0">
+            <div className="space-y-3 py-1 pr-3">
+              {isLoadingQuestions ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="animate-pulse">
@@ -464,8 +457,9 @@ export function QuestionSelector({
                 );
               })
             )}
-          </div>
-        </ScrollArea>
+            </div>
+          </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );

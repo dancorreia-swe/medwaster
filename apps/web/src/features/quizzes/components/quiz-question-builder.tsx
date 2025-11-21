@@ -1,4 +1,23 @@
-import { useDrag, useDrop } from "react-dnd";
+import React, { useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +38,6 @@ import {
   Plus,
 } from "lucide-react";
 import { stripHtml } from "@/lib/utils";
-import { DRAG_TYPES as QUESTION_SELECTOR_DRAG_TYPES } from "./question-selector";
 import { QUESTION_DIFFICULTY_LABELS } from "@/features/questions/types";
 import type { QuestionListItem } from "@/features/questions/types";
 
@@ -38,20 +56,6 @@ interface QuizQuestionBuilderProps {
   onReorderQuestions: (questions: QuizQuestion[]) => void;
   onUpdateQuestion: (id: string, updates: Partial<QuizQuestion>) => void;
   onAddQuestion: (questionId: number, questionData: QuestionListItem) => void;
-}
-
-const DRAG_TYPES = {
-  QUIZ_QUESTION: "quiz-question",
-  QUESTION_FROM_BANK: QUESTION_SELECTOR_DRAG_TYPES.QUESTION_FROM_BANK,
-} as const;
-
-interface DragItem {
-  id: string;
-  index: number;
-}
-
-interface QuestionFromBankDragItem {
-  question: QuestionListItem;
 }
 
 const getQuestionTypeIcon = (type: string) => {
@@ -95,7 +99,7 @@ interface QuestionCardProps {
   index: number;
   onRemove: () => void;
   onUpdate: (updates: Partial<QuizQuestion>) => void;
-  onMove: (dragIndex: number, hoverIndex: number) => void;
+  isDragOverlay?: boolean;
 }
 
 function QuestionCard({
@@ -103,35 +107,45 @@ function QuestionCard({
   index,
   onRemove,
   onUpdate,
-  onMove,
+  isDragOverlay = false,
 }: QuestionCardProps) {
-  const [{ isDragging }, drag] = useDrag({
-    type: DRAG_TYPES.QUIZ_QUESTION,
-    item: { id: question.id, index },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: question.id,
+    disabled: isDragOverlay,
   });
 
-  const [, drop] = useDrop({
-    accept: DRAG_TYPES.QUIZ_QUESTION,
-    hover: (item: DragItem) => {
-      if (item.index !== index) {
-        onMove(item.index, index);
-        item.index = index;
-      }
-    },
-  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    ...(isDragging && { willChange: 'transform' }),
+  };
 
   return (
-    <Card
-      ref={(node) => drag(drop(node))}
-      className={`transition-all ${isDragging ? "opacity-50" : "hover:shadow-md"} cursor-move`}
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={isDragging ? 'opacity-0' : ''}
     >
+      <Card
+        className={`transition-all ${isDragOverlay ? 'shadow-2xl ring-2 ring-primary cursor-grabbing' : 'hover:shadow-md'}`}
+      >
       <CardHeader className="pb-3">
         <div className="flex items-start gap-3">
           <div className="flex items-center gap-2 mt-1">
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
+            <div
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none"
+            >
+              <GripVertical className="h-4 w-4" />
+            </div>
             <Badge variant="outline" className="font-mono text-xs">
               {question.order}
             </Badge>
@@ -213,6 +227,7 @@ function QuestionCard({
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 }
 
@@ -223,37 +238,57 @@ export function QuizQuestionBuilder({
   onUpdateQuestion,
   onAddQuestion,
 }: QuizQuestionBuilderProps) {
-  const moveQuestion = (dragIndex: number, hoverIndex: number) => {
-    const draggedQuestion = questions[dragIndex];
-    const newQuestions = [...questions];
-    newQuestions.splice(dragIndex, 1);
-    newQuestions.splice(hoverIndex, 0, draggedQuestion);
-    onReorderQuestions(newQuestions);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 10,
+        delay: 100,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
   };
 
-  const [{ isOver, canDrop }, drop] = useDrop({
-    accept: DRAG_TYPES.QUESTION_FROM_BANK,
-    drop: (item: QuestionFromBankDragItem) => {
-      onAddQuestion(item.question.id, item.question);
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
-    }),
-  });
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (over && active.id !== over.id) {
+      const oldIndex = questions.findIndex((item) => item.id === active.id);
+      const newIndex = questions.findIndex((item) => item.id === over.id);
+
+      const reordered = arrayMove(questions, oldIndex, newIndex).map(
+        (item, index) => ({
+          ...item,
+          order: index + 1,
+        })
+      );
+
+      onReorderQuestions(reordered);
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+  };
+
+  const activeItem = activeId
+    ? questions.find((item) => item.id === activeId)
+    : null;
 
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
   const requiredQuestions = questions.filter((q) => q.required).length;
 
   return (
-    <Card
-      ref={drop}
-      className={`h-full flex flex-col transition-all gap-0 ${
-        isOver && canDrop
-          ? "ring-2 ring-primary ring-offset-2 bg-primary/5"
-          : ""
-      }`}
-    >
+    <Card className="h-full flex flex-col transition-all gap-0">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Settings className="h-4 w-4" />
@@ -275,45 +310,61 @@ export function QuizQuestionBuilder({
       <CardContent className="flex-1 flex flex-col p-4">
         {questions.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <div
-              className={`text-center py-12 transition-all ${
-                isOver && canDrop ? "scale-105" : ""
-              }`}
-            >
-              <Plus
-                className={`h-12 w-12 mx-auto mb-4 transition-colors ${
-                  isOver && canDrop
-                    ? "text-primary"
-                    : "text-muted-foreground/50"
-                }`}
-              />
+            <div className="text-center py-12">
+              <Plus className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
               <h3 className="text-lg font-medium mb-2">
-                {isOver && canDrop
-                  ? "Solte aqui para adicionar"
-                  : "Nenhuma pergunta adicionada"}
+                Nenhuma pergunta adicionada
               </h3>
               <p className="text-sm text-muted-foreground max-w-sm">
-                {isOver && canDrop
-                  ? "Solte a pergunta para adicioná-la ao quiz"
-                  : "Arraste perguntas do banco de dados no painel à esquerda para adicioná-las ao seu quiz."}
+                Arraste perguntas do banco de dados no painel à esquerda para adicioná-las ao seu quiz.
               </p>
             </div>
           </div>
         ) : (
-          <ScrollArea className="flex-1">
-            <div className="space-y-4">
-              {questions.map((question, index) => (
-                <QuestionCard
-                  key={question.id}
-                  question={question}
-                  index={index}
-                  onRemove={() => onRemoveQuestion(question.id)}
-                  onUpdate={(updates) => onUpdateQuestion(question.id, updates)}
-                  onMove={moveQuestion}
-                />
-              ))}
-            </div>
-          </ScrollArea>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <SortableContext
+              items={questions.map((q) => q.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ScrollArea className="flex-1">
+                <div className="space-y-4 pr-2">
+                  {questions.map((question, index) => (
+                    <QuestionCard
+                      key={question.id}
+                      question={question}
+                      index={index}
+                      onRemove={() => onRemoveQuestion(question.id)}
+                      onUpdate={(updates) => onUpdateQuestion(question.id, updates)}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            </SortableContext>
+            <DragOverlay
+              dropAnimation={{
+                duration: 200,
+                easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+              }}
+            >
+              {activeItem ? (
+                <div style={{ cursor: 'grabbing' }}>
+                  <QuestionCard
+                    question={activeItem}
+                    index={questions.findIndex((q) => q.id === activeItem.id)}
+                    onRemove={() => {}}
+                    onUpdate={() => {}}
+                    isDragOverlay
+                  />
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         )}
 
         {questions.length > 0 && (
