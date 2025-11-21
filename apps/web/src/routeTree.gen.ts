@@ -33,6 +33,7 @@ import { Route as AuthTrailsTrailIdIndexRouteImport } from './routes/_auth/trail
 import { Route as AuthQuizzesQuizIdIndexRouteImport } from './routes/_auth/quizzes/$quizId/index'
 import { Route as AuthQuestionsQuestionIdIndexRouteImport } from './routes/_auth/questions/$questionId/index'
 import { Route as AuthAdminUsersIndexRouteImport } from './routes/_auth/admin/users/index'
+import { Route as AuthAdminTeamIndexRouteImport } from './routes/_auth/admin/team/index'
 import { Route as AuthAdminSettingsIndexRouteImport } from './routes/_auth/admin/settings/index'
 import { Route as AuthAchievementsAchievementIdIndexRouteImport } from './routes/_auth/achievements/$achievementId/index'
 import { Route as AuthTrailsTrailIdEditRouteImport } from './routes/_auth/trails/$trailId/edit'
@@ -160,6 +161,11 @@ const AuthAdminUsersIndexRoute = AuthAdminUsersIndexRouteImport.update({
   path: '/admin/users/',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthAdminTeamIndexRoute = AuthAdminTeamIndexRouteImport.update({
+  id: '/admin/team/',
+  path: '/admin/team/',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthAdminSettingsIndexRoute = AuthAdminSettingsIndexRouteImport.update({
   id: '/admin/settings/',
   path: '/admin/settings/',
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/trails/$trailId/edit': typeof AuthTrailsTrailIdEditRoute
   '/achievements/$achievementId': typeof AuthAchievementsAchievementIdIndexRoute
   '/admin/settings': typeof AuthAdminSettingsIndexRoute
+  '/admin/team': typeof AuthAdminTeamIndexRoute
   '/admin/users': typeof AuthAdminUsersIndexRoute
   '/questions/$questionId': typeof AuthQuestionsQuestionIdIndexRoute
   '/quizzes/$quizId': typeof AuthQuizzesQuizIdIndexRoute
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/trails/$trailId/edit': typeof AuthTrailsTrailIdEditRoute
   '/achievements/$achievementId': typeof AuthAchievementsAchievementIdIndexRoute
   '/admin/settings': typeof AuthAdminSettingsIndexRoute
+  '/admin/team': typeof AuthAdminTeamIndexRoute
   '/admin/users': typeof AuthAdminUsersIndexRoute
   '/questions/$questionId': typeof AuthQuestionsQuestionIdIndexRoute
   '/quizzes/$quizId': typeof AuthQuizzesQuizIdIndexRoute
@@ -282,6 +290,7 @@ export interface FileRoutesById {
   '/_auth/trails/$trailId/edit': typeof AuthTrailsTrailIdEditRoute
   '/_auth/achievements/$achievementId/': typeof AuthAchievementsAchievementIdIndexRoute
   '/_auth/admin/settings/': typeof AuthAdminSettingsIndexRoute
+  '/_auth/admin/team/': typeof AuthAdminTeamIndexRoute
   '/_auth/admin/users/': typeof AuthAdminUsersIndexRoute
   '/_auth/questions/$questionId/': typeof AuthQuestionsQuestionIdIndexRoute
   '/_auth/quizzes/$quizId/': typeof AuthQuizzesQuizIdIndexRoute
@@ -315,6 +324,7 @@ export interface FileRouteTypes {
     | '/trails/$trailId/edit'
     | '/achievements/$achievementId'
     | '/admin/settings'
+    | '/admin/team'
     | '/admin/users'
     | '/questions/$questionId'
     | '/quizzes/$quizId'
@@ -346,6 +356,7 @@ export interface FileRouteTypes {
     | '/trails/$trailId/edit'
     | '/achievements/$achievementId'
     | '/admin/settings'
+    | '/admin/team'
     | '/admin/users'
     | '/questions/$questionId'
     | '/quizzes/$quizId'
@@ -378,6 +389,7 @@ export interface FileRouteTypes {
     | '/_auth/trails/$trailId/edit'
     | '/_auth/achievements/$achievementId/'
     | '/_auth/admin/settings/'
+    | '/_auth/admin/team/'
     | '/_auth/admin/users/'
     | '/_auth/questions/$questionId/'
     | '/_auth/quizzes/$quizId/'
@@ -565,6 +577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminUsersIndexRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/admin/team/': {
+      id: '/_auth/admin/team/'
+      path: '/admin/team'
+      fullPath: '/admin/team'
+      preLoaderRoute: typeof AuthAdminTeamIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/admin/settings/': {
       id: '/_auth/admin/settings/'
       path: '/admin/settings'
@@ -641,6 +660,7 @@ interface AuthRouteChildren {
   AuthTrailsTrailIdEditRoute: typeof AuthTrailsTrailIdEditRoute
   AuthAchievementsAchievementIdIndexRoute: typeof AuthAchievementsAchievementIdIndexRoute
   AuthAdminSettingsIndexRoute: typeof AuthAdminSettingsIndexRoute
+  AuthAdminTeamIndexRoute: typeof AuthAdminTeamIndexRoute
   AuthAdminUsersIndexRoute: typeof AuthAdminUsersIndexRoute
   AuthQuestionsQuestionIdIndexRoute: typeof AuthQuestionsQuestionIdIndexRoute
   AuthQuizzesQuizIdIndexRoute: typeof AuthQuizzesQuizIdIndexRoute
@@ -668,6 +688,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthAchievementsAchievementIdIndexRoute:
     AuthAchievementsAchievementIdIndexRoute,
   AuthAdminSettingsIndexRoute: AuthAdminSettingsIndexRoute,
+  AuthAdminTeamIndexRoute: AuthAdminTeamIndexRoute,
   AuthAdminUsersIndexRoute: AuthAdminUsersIndexRoute,
   AuthQuestionsQuestionIdIndexRoute: AuthQuestionsQuestionIdIndexRoute,
   AuthQuizzesQuizIdIndexRoute: AuthQuizzesQuizIdIndexRoute,

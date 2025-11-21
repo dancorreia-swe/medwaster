@@ -52,7 +52,7 @@ export function RoleGuard({
       return hasMinimumRole(user?.role, minimumRole);
     }
 
-    return true; // If no conditions specified, allow access
+    return true;
   };
 
   if (hasAccess()) {

@@ -13,6 +13,7 @@ import {
   ClipboardList,
   BrainCircuit,
   BadgeCheck,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar,
@@ -116,7 +117,7 @@ const adminItems = [
     icon: Trophy,
   },
   {
-    title: "Usuários",
+    title: "Usuários do App",
     to: "/admin/users",
     icon: Users,
   },
@@ -128,6 +129,11 @@ const adminItems = [
 ] as const satisfies readonly SidebarItem[];
 
 const superAdminItems = [
+  {
+    title: "Equipe Administrativa",
+    to: "/admin/team",
+    icon: Shield,
+  },
   {
     title: "Configurações do Sistema",
     to: "/admin/settings",
@@ -275,25 +281,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
 
         {/* Super Admin Section - Only visible to super-admin */}
-        {/* <SuperAdminOnly hideOnNoAccess> */}
-        {/*   <SidebarGroup> */}
-        {/*     <SidebarGroupLabel>Super Administrador</SidebarGroupLabel> */}
-        {/*     <SidebarGroupContent> */}
-        {/*       <SidebarMenu> */}
-        {/*         {superAdminItems.map((item) => ( */}
-        {/*           <SidebarMenuItem key={item.title}> */}
-        {/*             <SidebarMenuButton asChild isActive={isPathActive(item.to)}> */}
-        {/*               <Link to={item.to}> */}
-        {/*                 <item.icon /> */}
-        {/*                 <span>{item.title}</span> */}
-        {/*               </Link> */}
-        {/*             </SidebarMenuButton> */}
-        {/*           </SidebarMenuItem> */}
-        {/*         ))} */}
-        {/*       </SidebarMenu> */}
-        {/*     </SidebarGroupContent> */}
-        {/*   </SidebarGroup> */}
-        {/* </SuperAdminOnly> */}
+        <SuperAdminOnly hideOnNoAccess>
+          <SidebarGroup>
+            <SidebarGroupLabel>Super Administrador</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {superAdminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isPathActive(item.to)}>
+                      <Link to={item.to}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SuperAdminOnly>
       </SidebarContent>
       <SidebarFooter>
         {data?.user && <NavUser user={data.user as AuthenticatedUser} />}
