@@ -189,7 +189,14 @@ export function ArticleTagsInput({ selectedTags, onTagsChange }: ArticleTagsInpu
                 {searchResultTags.map((tag: any) => {
                   const color = tag.color || DEFAULT_COLOR;
                   return (
-                    <TagsItem key={tag.id} onSelect={handleTagSelect} value={tag.id.toString()}>
+                    <TagsItem
+                      key={tag.id}
+                      // Use the tag's text for Command's internal filtering and
+                      // explicitly pass the numeric id to the select handler.
+                      value={`${tag.name}${tag.slug ? ` ${tag.slug}` : ""}`}
+                      keywords={[tag.slug, String(tag.id)].filter(Boolean)}
+                      onSelect={() => handleTagSelect(tag.id.toString())}
+                    >
                       <span className="flex items-center gap-2 flex-1">
                         <span
                           aria-hidden
