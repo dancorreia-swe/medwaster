@@ -9,6 +9,7 @@ import {
   Easing,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { Route, useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -26,6 +27,8 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
 import { authClient } from "@/lib/auth-client";
+
+import graduationHatIcon from "@/assets/graduation.png";
 
 export default function TutorScreen() {
   const router = useRouter();
@@ -125,7 +128,10 @@ export default function TutorScreen() {
   }, [status]);
 
   return (
-    <Container className="flex-1 bg-white dark:bg-gray-950" edges={["top", "bottom"]}>
+    <Container
+      className="flex-1 bg-white dark:bg-gray-950"
+      edges={["top", "bottom"]}
+    >
       {/* Header */}
       <View className="border-b border-gray-200 dark:border-gray-800 px-4 pt-3.5 pb-3">
         <View className="flex-row items-center gap-4">
@@ -133,7 +139,11 @@ export default function TutorScreen() {
             onPress={handleBack}
             className="rounded-full items-center justify-center"
           >
-            <Icon icon={ArrowLeft} size={24} className="text-neutral-600 dark:text-gray-300" />
+            <Icon
+              icon={ArrowLeft}
+              size={24}
+              className="text-neutral-600 dark:text-gray-300"
+            />
           </TouchableOpacity>
 
           <View className="flex-row items-center gap-2.5">
@@ -151,9 +161,7 @@ export default function TutorScreen() {
       <ScrollView
         ref={scrollViewRef}
         className="flex-1 h-auto"
-        contentContainerStyle={
-          messages.length === 0 ? { flex: 1 } : undefined
-        }
+        contentContainerStyle={messages.length === 0 ? { flex: 1 } : undefined}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => {
           if (status === "streaming" || status === "submitted") {
@@ -165,10 +173,10 @@ export default function TutorScreen() {
           <View className="flex-1 items-center justify-center px-5">
             <View className="items-center gap-3.5">
               <View className="w-14 h-14 rounded-full bg-secondary dark:bg-primary/15 items-center justify-center">
-                <Icon
-                  icon={GraduationCap}
-                  size={28}
-                  className="text-primary"
+                <Image
+                  source={graduationHatIcon}
+                  style={{ width: 40, height: 40, borderRadius: 8 }}
+                  resizeMode="contain"
                 />
               </View>
 
@@ -198,7 +206,7 @@ export default function TutorScreen() {
                     message={message.parts
                       .map((part) => (part.type === "text" ? part.text : ""))
                       .join("")}
-                    />
+                  />
                 );
               }
 
@@ -220,7 +228,9 @@ export default function TutorScreen() {
               <View className="px-4 py-3 gap-3">
                 <View className="flex-row items-center gap-2">
                   <ActivityIndicator size="small" color="rgb(21, 93, 252)" />
-                  <Text className="text-sm text-gray-500 dark:text-gray-400">Pensando...</Text>
+                  <Text className="text-sm text-gray-500 dark:text-gray-400">
+                    Pensando...
+                  </Text>
                 </View>
               </View>
             )}

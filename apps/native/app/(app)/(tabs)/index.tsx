@@ -26,6 +26,8 @@ import { toast } from "sonner-native";
 import { Icon } from "@/components/icon";
 import { Trophy } from "lucide-react-native";
 
+import digitalCertificate from "@/assets/digital-certificate.png";
+
 const CATEGORY_COLORS = [
   { bg: "#EFF6FF", icon: "#155DFC" },
   { bg: "#FAF5FF", icon: "#9810FA" },
@@ -279,6 +281,11 @@ export default function Home() {
                 >
                   <View className="flex-row items-center gap-3">
                     <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center">
+                      <Image
+                        source={graduationHatIcon}
+                        style={{ width: 40, height: 40, borderRadius: 8 }}
+                        resizeMode="contain"
+                      />
                       <Text className="text-2xl">🏆</Text>
                     </View>
                     <View className="flex-1">
