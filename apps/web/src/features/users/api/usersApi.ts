@@ -1,4 +1,5 @@
 import { client } from "@/lib/client";
+import { authClient } from "@/lib/auth-client";
 
 export const usersClient = client.admin.users;
 
@@ -104,6 +105,19 @@ export const usersApi = {
 		const response = await usersClient({ id }).delete();
 		if (response.error) {
 			throwEdenError(response.error as EdenError, "Failed to delete user");
+		}
+		return response.data;
+	},
+
+	createUser: async (body: {
+		name: string;
+		email: string;
+		password: string;
+		role?: string | string[];
+	}) => {
+		const response = await authClient.admin.createUser(body);
+		if (response.error) {
+			throwEdenError(response.error as EdenError, "Failed to create user");
 		}
 		return response.data;
 	},

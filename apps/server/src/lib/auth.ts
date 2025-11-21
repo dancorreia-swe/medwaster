@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { expo } from "@better-auth/expo";
 import { db } from "../db";
 import { admin, openAPI } from "better-auth/plugins";
+import { createAccessControl } from "better-auth/plugins/access";
 import * as schema from "../db/schema/auth";
 import Elysia from "elysia";
 import { EmailService } from "./email-service";
@@ -20,6 +21,33 @@ export const ROLES = {
 };
 
 type Roles = (typeof ROLES)[keyof typeof ROLES];
+
+/**
+ * Centralized Access Control configuration for better-auth admin plugin.
+ * Keeps role capabilities explicit so the admin API and guards stay in sync.
+ */
+const accessStatement = {
+  user: ["create", "read", "update", "ban", "delete", "impersonate"],
+  content: ["create", "update", "delete", "publish"],
+  system: ["manage"],
+} as const;
+
+const ac = createAccessControl(accessStatement);
+
+const userRole = ac.newRole({
+  content: ["create"],
+});
+
+const adminRole = ac.newRole({
+  user: ["create", "read", "update", "ban"],
+  content: ["create", "update", "delete", "publish"],
+});
+
+const superAdminRole = ac.newRole({
+  user: ["create", "read", "update", "ban", "delete", "impersonate"],
+  content: ["create", "update", "delete", "publish"],
+  system: ["manage"],
+});
 
 export const auth = betterAuth({
   basePath: "/api/auth",
@@ -114,8 +142,14 @@ export const auth = betterAuth({
     expo(),
     openAPI(),
     admin({
-      defaultRole: "user",
-      adminRoles: ["admin", "super-admin"],
+      defaultRole: ROLES.USER,
+      adminRoles: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
+      ac,
+      roles: {
+        [ROLES.USER]: userRole,
+        [ROLES.ADMIN]: adminRole,
+        [ROLES.SUPER_ADMIN]: superAdminRole,
+      },
     }),
   ],
   hooks: {

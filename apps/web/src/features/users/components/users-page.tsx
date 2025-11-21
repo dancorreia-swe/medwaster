@@ -26,6 +26,9 @@ import {
   usersQueryKeys,
 } from "../api";
 import type { UserStats } from "./users-stats";
+import { usePermissions } from "@/components/auth/role-guard";
+import { CreateUserDialog } from "./create-user-dialog";
+import { Plus } from "lucide-react";
 
 interface UsersFiltersInternal extends UsersFiltersState {
   page: number;
@@ -44,8 +47,10 @@ export function UsersPage() {
   });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
+  const { canAccessSuperAdmin } = usePermissions();
 
   const queryParams = useMemo(() => {
     return {
@@ -173,6 +178,12 @@ export function UsersPage() {
             Gerencie e acompanhe todos os usuários da plataforma. Aplique filtros, revise status e atualize informações com segurança.
           </p>
         </div>
+        {canAccessSuperAdmin && (
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Criar usuário
+          </Button>
+        )}
       </header>
 
       <UsersStats stats={stats ?? undefined} isLoading={statsQuery.isLoading} />
@@ -265,6 +276,13 @@ export function UsersPage() {
           userId={selectedUserId}
           open={isFormOpen}
           onOpenChange={handleFormOpenChange}
+        />
+      )}
+
+      {canAccessSuperAdmin && (
+        <CreateUserDialog
+          open={isCreateOpen}
+          onOpenChange={setIsCreateOpen}
         />
       )}
     </div>

@@ -12,6 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import { zodValidator } from "@tanstack/zod-form-adapter";
@@ -19,6 +26,14 @@ import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { usersApi, userQueryOptions, usersQueryKeys } from "../api";
 import { toast } from "sonner";
+import { usePermissions } from "@/components/auth/role-guard";
+import { getAvailableRoles } from "@/lib/rbac";
+
+const ROLE_LABEL: Record<string, string> = {
+	user: "Usuário",
+	admin: "Admin",
+	"super-admin": "Super Admin",
+};
 
 const userFormSchema = z
 	.object({
@@ -53,6 +68,8 @@ interface UserFormProps {
 
 export function UserForm({ userId, open, onOpenChange }: UserFormProps) {
 	const queryClient = useQueryClient();
+	const { user: currentUser } = usePermissions();
+	const roleOptions = getAvailableRoles(currentUser?.role);
 
 	// Fetch user data
 	const { data: userData, isLoading } = useQuery({
@@ -196,13 +213,22 @@ export function UserForm({ userId, open, onOpenChange }: UserFormProps) {
 							{(field) => (
 								<div className="space-y-2">
 									<Label htmlFor={field.name}>Função</Label>
-									<Input
-										id={field.name}
-										value={field.state.value}
-										onChange={(e) => field.handleChange(e.target.value)}
-										onBlur={field.handleBlur}
-										placeholder="admin, super-admin, etc."
-									/>
+									<Select
+										value={field.state.value || roleOptions[0] || ""}
+										onValueChange={(val) => field.handleChange(val)}
+										disabled={roleOptions.length === 0}
+									>
+										<SelectTrigger id={field.name}>
+											<SelectValue placeholder="Selecione a função" />
+										</SelectTrigger>
+										<SelectContent>
+											{roleOptions.map((role) => (
+												<SelectItem key={role} value={role}>
+													{ROLE_LABEL[role] ?? role}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 									{field.state.meta.errors.length > 0 && (
 										<p className="text-sm text-destructive">
 											{field.state.meta.errors[0]}

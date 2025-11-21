@@ -15,6 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatDate } from "@/lib/utils";
+import { getRoleDisplayName } from "@/lib/rbac";
 import {
   Ban,
   CheckCircle,
@@ -77,7 +78,7 @@ export function UserRow({ user, onEdit, onDelete, onView }: UserRowProps) {
             {user.role && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <ShieldCheck className="h-3 w-3" />
-                {user.role}
+                {getRoleDisplayName(user.role)}
               </span>
             )}
           </div>
@@ -125,7 +126,7 @@ export function UserRow({ user, onEdit, onDelete, onView }: UserRowProps) {
       <TableCell>
         {user.role ? (
           <Badge variant="outline" className="font-mono text-xs">
-            {user.role}
+            {getRoleDisplayName(user.role)}
           </Badge>
         ) : (
           <span className="text-sm text-muted-foreground">—</span>
