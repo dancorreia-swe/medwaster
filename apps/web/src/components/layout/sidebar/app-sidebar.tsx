@@ -275,25 +275,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
 
         {/* Super Admin Section - Only visible to super-admin */}
-        <SuperAdminOnly hideOnNoAccess>
-          <SidebarGroup>
-            <SidebarGroupLabel>Super Administrador</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {superAdminItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isPathActive(item.to)}>
-                      <Link to={item.to}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SuperAdminOnly>
+        {/* <SuperAdminOnly hideOnNoAccess> */}
+        {/*   <SidebarGroup> */}
+        {/*     <SidebarGroupLabel>Super Administrador</SidebarGroupLabel> */}
+        {/*     <SidebarGroupContent> */}
+        {/*       <SidebarMenu> */}
+        {/*         {superAdminItems.map((item) => ( */}
+        {/*           <SidebarMenuItem key={item.title}> */}
+        {/*             <SidebarMenuButton asChild isActive={isPathActive(item.to)}> */}
+        {/*               <Link to={item.to}> */}
+        {/*                 <item.icon /> */}
+        {/*                 <span>{item.title}</span> */}
+        {/*               </Link> */}
+        {/*             </SidebarMenuButton> */}
+        {/*           </SidebarMenuItem> */}
+        {/*         ))} */}
+        {/*       </SidebarMenu> */}
+        {/*     </SidebarGroupContent> */}
+        {/*   </SidebarGroup> */}
+        {/* </SuperAdminOnly> */}
       </SidebarContent>
       <SidebarFooter>
         {data?.user && <NavUser user={data.user as AuthenticatedUser} />}

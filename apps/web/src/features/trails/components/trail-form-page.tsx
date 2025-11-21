@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { categoriesListQueryOptions } from "@/features/questions/api/categoriesAndTagsQueries";
 import { useCreateTrail, useUpdateTrail, trailQueryOptions } from "../api/trailsQueries";
 import type { CreateTrailBody, UpdateTrailBody } from "../types";
@@ -27,6 +28,13 @@ interface TrailFormPageProps {
   onSave?: (formData: CreateTrailBody) => Promise<any>;
   hideActions?: boolean;
 }
+
+const trailStatusOptions = [
+  { value: "draft", label: "Rascunho", color: "bg-gray-100 text-gray-800" },
+  { value: "published", label: "Publicada", color: "bg-green-100 text-green-800" },
+  { value: "inactive", label: "Inativa", color: "bg-yellow-100 text-yellow-800" },
+  { value: "archived", label: "Arquivada", color: "bg-red-100 text-red-800" },
+];
 
 export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: TrailFormPageProps) {
   const navigate = useNavigate();
@@ -259,10 +267,15 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="draft">Rascunho</SelectItem>
-                        <SelectItem value="published">Publicada</SelectItem>
-                        <SelectItem value="inactive">Inativa</SelectItem>
-                        <SelectItem value="archived">Arquivada</SelectItem>
+                        {trailStatusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className={option.color}>
+                                {option.label}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -273,8 +286,8 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Configurações Avançadas</CardTitle>
+          <CardHeader className="flex flex-row items-center gap-2">
+            <CardTitle className="text-base">Configurações Avançadas</CardTitle>
             <Button
               type="button"
               variant="ghost"

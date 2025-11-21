@@ -10,6 +10,7 @@ import {
 import crypto from "crypto";
 import { trackCertificateEarned } from "../achievements/trackers";
 import { generateCertificatePDF } from "./pdf-generator";
+import { ConfigService } from "../config/config.service";
 
 export abstract class CertificateService {
   /**
@@ -178,6 +179,17 @@ export abstract class CertificateService {
       console.error("  ✗ Failed to track certificate achievement:", error);
     }
 
+    // Auto-approve if global setting is enabled
+    try {
+      const config = await ConfigService.getConfig();
+      if (config.autoApproveCertificates) {
+        console.log("  🤖 Auto-approving certificate (config enabled)...");
+        await this.autoApproveCertificate(certificate.id);
+      }
+    } catch (error) {
+      console.error("  ✗ Failed to auto-approve certificate:", error);
+    }
+
     return certificate;
   }
 
@@ -287,6 +299,53 @@ export abstract class CertificateService {
     //   message: "Seu certificado foi aprovado e está disponível para download.",
     //   data: { certificateId: certificate.id }
     // });
+
+    return updated;
+  }
+
+  /**
+   * Auto-approve certificate without human reviewer (system action)
+   */
+  private static async autoApproveCertificate(certificateId: number) {
+    const certificate = await db.query.certificates.findFirst({
+      where: eq(certificates.id, certificateId),
+      with: {
+        user: true,
+      },
+    });
+
+    if (!certificate) {
+      throw new NotFoundError("Certificate not found");
+    }
+
+    if (certificate.status !== "pending") {
+      return certificate;
+    }
+
+    const certificateUrl = await generateCertificatePDF({
+      id: certificate.id,
+      userName: certificate.user.name,
+      averageScore: certificate.averageScore,
+      totalTrailsCompleted: certificate.totalTrailsCompleted,
+      totalTimeMinutes: certificate.totalTimeMinutes,
+      completionDate: certificate.allTrailsCompletedAt,
+      verificationCode: certificate.verificationCode,
+      userImageUrl: certificate.user.image,
+    });
+
+    const [updated] = await db
+      .update(certificates)
+      .set({
+        status: "approved",
+        reviewedBy: null,
+        reviewedAt: new Date(),
+        reviewNotes: "Auto-approved",
+        issuedAt: new Date(),
+        certificateUrl,
+        updatedAt: new Date(),
+      })
+      .where(eq(certificates.id, certificateId))
+      .returning();
 
     return updated;
   }

@@ -9,6 +9,7 @@ import * as quizzes from "./schema/quizzes";
 import * as trails from "./schema/trails";
 import * as gamification from "./schema/gamification";
 import * as certificates from "./schema/certificates";
+import * as systemConfig from "./schema/system-config";
 
 import type { PgColumn, PgSelect } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
@@ -25,6 +26,7 @@ export const db = drizzle(process.env.DATABASE_URL || "", {
     ...trails,
     ...gamification,
     ...certificates,
+    ...systemConfig,
   },
 });
 

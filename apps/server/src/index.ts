@@ -20,6 +20,7 @@ import { dashboard } from "./modules/dashboard";
 import { adminUsers, userProfile } from "./modules/users";
 import { gamification } from "./modules/gamification";
 import { adminCertificates, studentCertificates } from "./modules/certificates";
+import { adminConfig } from "./modules/config";
 import { initializeCronJobs } from "./lib/cron";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -112,6 +113,7 @@ export const app = new Elysia({ name: "medwaster-api" })
   .use(adminUsers)
   .use(userProfile)
   .use(gamification)
+  .use(adminConfig)
   .use(adminCertificates)
   .use(studentCertificates)
   .use(audit)

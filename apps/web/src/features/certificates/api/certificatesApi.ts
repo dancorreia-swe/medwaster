@@ -1,6 +1,7 @@
 import { client } from "@/lib/client";
 
 export const certificatesClient = client.admin.certificates;
+const configClient = client.admin.config;
 
 type EdenError = {
 	message?: string;
@@ -84,5 +85,21 @@ export const certificatesApi = {
 			throwEdenError(response.error as EdenError, "Falha ao verificar certificado");
 		}
 		return response.data as CertificateVerificationResult;
+	},
+
+	getSettings: async () => {
+		const response = await configClient.get();
+		if (response.error) {
+			throwEdenError(response.error as EdenError, "Failed to load certificate settings");
+		}
+		return response.data as { autoApproveCertificates: boolean };
+	},
+
+	updateSettings: async (payload: { autoApproveCertificates: boolean }) => {
+		const response = await configClient.patch(payload);
+		if (response.error) {
+			throwEdenError(response.error as EdenError, "Failed to update settings");
+		}
+		return response.data as { autoApproveCertificates: boolean };
 	},
 };
