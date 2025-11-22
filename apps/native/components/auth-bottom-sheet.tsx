@@ -566,20 +566,6 @@ export const AuthBottomSheet = forwardRef<
                   Nunca compartilharemos seus dados sem sua permissão
                 </Text>
               </View>
-
-              <View className="pt-4 mb-2.5">
-                <TouchableOpacity
-                  className="items-center"
-                  onPress={handleRequestClose}
-                  accessibilityRole="button"
-                  accessibilityLabel="Continuar sem conta"
-                  accessibilityHint="Fecha a folha e segue para o app sem login"
-                >
-                  <Text className="text-base font-normal text-muted-foreground dark:text-gray-300 tracking-tight">
-                    Continuar sem conta
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </>
           )}
         </View>
