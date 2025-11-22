@@ -26,6 +26,17 @@ const matchingPairSchema = t.Object({
   sequence: t.Number({ minimum: 0 }),
 });
 
+const referenceSchema = t.Object({
+  title: t.String({ minLength: 1 }),
+  url: t.Optional(t.String()),
+  type: t.Union([
+    t.Literal("book"),
+    t.Literal("article"),
+    t.Literal("website"),
+    t.Literal("other"),
+  ]),
+});
+
 export const createQuestionBody = t.Object({
   prompt: t.String({ minLength: 1 }),
   explanation: t.Optional(t.String()),
@@ -51,7 +62,7 @@ export const createQuestionBody = t.Object({
   categoryId: t.Optional(t.Nullable(t.Number())),
   imageUrl: t.Optional(t.String()),
   imageKey: t.Optional(t.String()),
-  references: t.Optional(t.String()),
+  references: t.Optional(t.Array(referenceSchema)),
   options: t.Optional(t.Array(questionOptionSchema)),
   fillInBlanks: t.Optional(t.Array(fillBlankAnswerSchema)),
   matchingPairs: t.Optional(t.Array(matchingPairSchema)),
@@ -88,7 +99,7 @@ export const updateQuestionBody = t.Object({
   categoryId: t.Optional(t.Nullable(t.Number())),
   imageUrl: t.Optional(t.String()),
   imageKey: t.Optional(t.String()),
-  references: t.Optional(t.String()),
+  references: t.Optional(t.Array(referenceSchema)),
   options: t.Optional(t.Array(questionOptionSchema)),
   fillInBlanks: t.Optional(t.Array(fillBlankAnswerSchema)),
   matchingPairs: t.Optional(t.Array(matchingPairSchema)),

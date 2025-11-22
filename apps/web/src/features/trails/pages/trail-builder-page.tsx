@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
-import { TrailFormPage } from "../components/trail-form-page";
+import { TrailFormPage, type TrailFormHandle } from "../components/trail-form-page";
 import { ContentSelector } from "../components/content-selector";
 import { TrailContentList } from "../components/trail-content-list";
 import { PrerequisitesSelector } from "../components/prerequisites-selector";
@@ -46,6 +46,7 @@ interface ContentToAdd {
 
 export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPageProps) {
   const navigate = useNavigate();
+  const formRef = useRef<TrailFormHandle>(null);
   const [activeTab, setActiveTab] = useState(initialTab || "basic");
   const [localTrailId, setLocalTrailId] = useState<number | undefined>(trailId);
   const [localContent, setLocalContent] = useState<TrailContent[]>([]);
@@ -324,10 +325,16 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
     navigate({ to: "/trails" });
   };
 
-  const handleFinish = () => {
-    // All changes are auto-saved in each tab via their respective handlers
-    // This button just confirms completion and navigates back
-    toast.success("Trilha finalizada com sucesso!");
+  const handleSave = async () => {
+    // If on basic tab or creating a new trail, trigger form submission
+    if ((activeTab === "basic" || !localTrailId) && formRef.current) {
+      formRef.current.submit();
+      return;
+    }
+
+    // For other tabs (content/prerequisites), all changes are auto-saved
+    // Just show success and navigate back
+    toast.success("Trilha salva com sucesso!");
     navigate({ to: "/trails" });
   };
 
@@ -379,12 +386,10 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
                 : ((existingTrail as any)?.data || existingTrail)?.name}
             </p>
           </div>
-          {localTrailId && (
-            <Button onClick={handleFinish}>
-              <Save className="mr-2 h-4 w-4" />
-              Finalizar
-            </Button>
-          )}
+          <Button onClick={handleSave}>
+            <Save className="mr-2 h-4 w-4" />
+            {!localTrailId ? "Criar Trilha" : "Salvar"}
+          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -409,10 +414,10 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
               </div>
             )}
             <TrailFormPage
+              ref={formRef}
               mode={mode}
               trailId={localTrailId}
               onSave={mode === "create" ? handleCreateTrail : handleUpdateTrail}
-              hideActions={false}
             />
           </TabsContent>
 

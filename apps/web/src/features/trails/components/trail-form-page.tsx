@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
-import { ArrowLeft, Save, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,14 +18,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { categoriesListQueryOptions } from "@/features/questions/api/categoriesAndTagsQueries";
-import { useCreateTrail, useUpdateTrail, trailQueryOptions } from "../api/trailsQueries";
-import type { CreateTrailBody, UpdateTrailBody } from "../types";
+import { trailQueryOptions } from "../api/trailsQueries";
+import type { CreateTrailBody } from "../types";
 
 interface TrailFormPageProps {
   mode: "create" | "edit";
   trailId?: number;
   onSave?: (formData: CreateTrailBody) => Promise<any>;
-  hideActions?: boolean;
+}
+
+export interface TrailFormHandle {
+  submit: () => void;
+  isDirty: boolean;
 }
 
 const trailStatusOptions = [
@@ -36,12 +39,9 @@ const trailStatusOptions = [
   { value: "archived", label: "Arquivada", color: "bg-red-100 text-red-800" },
 ];
 
-export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: TrailFormPageProps) {
-  const navigate = useNavigate();
-  const createMutation = useCreateTrail();
-  const updateMutation = useUpdateTrail();
-
-  // Fetch trail data if editing
+export const TrailFormPage = forwardRef<TrailFormHandle, TrailFormPageProps>(
+  function TrailFormPage({ mode, trailId, onSave }, ref) {
+    // Fetch trail data if editing
   const { data: existingTrail, isLoading: isLoadingTrail } = useQuery({
     ...trailQueryOptions(trailId!),
     enabled: mode === "edit" && !!trailId,
@@ -88,27 +88,18 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
 
       console.log('[TrailForm] Cleaned data:', cleanedData);
 
+      // The parent component handles the save logic via onSave
       if (onSave) {
         await onSave(cleanedData);
-        return;
-      }
-
-      if (mode === "create") {
-        const result = await createMutation.mutateAsync(cleanedData);
-        navigate({
-          to: "/trails/$trailId/edit",
-          params: { trailId: result.data.id.toString() },
-        });
-      } else if (mode === "edit" && trailId) {
-        console.log('[TrailForm] Calling updateMutation');
-        await updateMutation.mutateAsync({
-          id: trailId,
-          body: cleanedData as UpdateTrailBody,
-        });
-        navigate({ to: "/trails" });
       }
     },
   });
+
+  // Expose submit method to parent via ref
+  useImperativeHandle(ref, () => ({
+    submit: () => form.handleSubmit(),
+    isDirty: form.state.isDirty,
+  }));
 
   // Update form when trail data loads
   useEffect(() => {
@@ -125,34 +116,12 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
     }
   }, [mode, trail]);
 
-  const handleCancel = () => {
-    navigate({ to: "/trails" });
-  };
-
   if (mode === "edit" && isLoadingTrail) {
     return <div>Carregando...</div>;
   }
 
   return (
     <div className="space-y-6">
-      {!hideActions && !onSave && (
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleCancel}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {mode === "create" ? "Nova Trilha" : "Editar Trilha"}
-            </h1>
-            <p className="text-muted-foreground">
-              {mode === "create"
-                ? "Crie uma nova trilha de aprendizado"
-                : "Atualize as informações da trilha"}
-            </p>
-          </div>
-        </div>
-      )}
-
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -362,33 +331,7 @@ export function TrailFormPage({ mode, trailId, onSave, hideActions = false }: Tr
             )}
           </CardContent>
         </Card>
-
-        {(!hideActions || onSave) && (
-          <div className="flex justify-end gap-4">
-            {!onSave && (
-              <Button type="button" variant="outline" onClick={handleCancel}>
-                Cancelar
-              </Button>
-            )}
-            <form.Subscribe
-              selector={(state) => [state.canSubmit, state.isSubmitting]}
-              children={([canSubmit, isSubmitting]) => (
-                <Button
-                  type="submit"
-                  disabled={!canSubmit || createMutation.isPending || updateMutation.isPending}
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {isSubmitting
-                    ? "Salvando..."
-                    : mode === "create"
-                      ? "Criar Trilha"
-                      : "Salvar Alterações"}
-                </Button>
-              )}
-            />
-          </div>
-        )}
       </form>
     </div>
   );
-}
+});

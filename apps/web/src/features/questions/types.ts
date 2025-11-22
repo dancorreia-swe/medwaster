@@ -54,6 +54,7 @@ export interface QuestionListItem {
     id: number;
     name: string;
     slug: string;
+    color?: string | null;
   } | null;
   author: {
     id: string;
@@ -74,6 +75,13 @@ export interface QuestionListItem {
       updatedAt: string;
     };
   }[];
+  imageUrl?: string | null;
+  imageKey?: string | null;
+  references?: Array<{
+    title: string;
+    url?: string;
+    type: "book" | "article" | "website" | "other";
+  }> | null;
   usageCount: number;
   createdAt: string | null;
   updatedAt: string | null;

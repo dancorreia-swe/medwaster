@@ -112,49 +112,46 @@ export function QuestionDetail({ questionId, onBack }: QuestionDetailProps) {
         
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
-            {/* Title and primary badges */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <h1 className="text-2xl font-bold lg:text-3xl">Questão #{typedQuestion.id}</h1>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge
-                  variant={
-                    typedQuestion.difficulty === "advanced"
-                      ? "destructive"
-                      : typedQuestion.difficulty === "intermediate"
-                        ? "default"
-                        : "secondary"
-                  }
-                  className="text-xs font-medium"
-                >
-                  {QUESTION_DIFFICULTY_LABELS[typedQuestion.difficulty as QuestionDifficulty]}
-                </Badge>
-                <Badge
-                  variant={
-                    typedQuestion.status === "active"
-                      ? "default"
-                      : typedQuestion.status === "draft"
-                        ? "secondary"
-                        : "outline"
-                  }
-                  className="text-xs font-medium"
-                >
-                  {QUESTION_STATUS_LABELS[typedQuestion.status as QuestionStatus]}
-                </Badge>
-              </div>
-            </div>
+            {/* Title */}
+            <h1 className="text-2xl font-bold lg:text-3xl">Questão #{typedQuestion.id}</h1>
 
-            {/* Metadata row */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
+            {/* Metadata and badges row */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+              <Badge
+                variant={
+                  typedQuestion.status === "active"
+                    ? "default"
+                    : typedQuestion.status === "draft"
+                      ? "secondary"
+                      : "outline"
+                }
+                className="text-xs font-medium"
+              >
+                {QUESTION_STATUS_LABELS[typedQuestion.status as QuestionStatus]}
+              </Badge>
+              <Badge
+                variant={
+                  typedQuestion.difficulty === "advanced"
+                    ? "destructive"
+                    : typedQuestion.difficulty === "intermediate"
+                      ? "default"
+                      : "secondary"
+                }
+                className="text-xs font-medium"
+              >
+                {QUESTION_DIFFICULTY_LABELS[typedQuestion.difficulty as QuestionDifficulty]}
+              </Badge>
+              <span className="hidden sm:inline text-muted-foreground">•</span>
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5" />
                 {typedQuestion.createdAt ? format(new Date(typedQuestion.createdAt), "dd/MM/yyyy") : "N/A"}
               </span>
-              <span className="hidden sm:inline">•</span>
-              <span>{QUESTION_TYPE_LABELS[typedQuestion.type as QuestionType]}</span>
+              <span className="hidden sm:inline text-muted-foreground">•</span>
+              <span className="text-muted-foreground">{QUESTION_TYPE_LABELS[typedQuestion.type as QuestionType]}</span>
               {(typedQuestion as any).usageCount !== undefined && (
                 <>
-                  <span className="hidden sm:inline">•</span>
-                  <span>{(typedQuestion as any).usageCount} uso{(typedQuestion as any).usageCount !== 1 ? 's' : ''}</span>
+                  <span className="hidden sm:inline text-muted-foreground">•</span>
+                  <span className="text-muted-foreground">{(typedQuestion as any).usageCount} uso{(typedQuestion as any).usageCount !== 1 ? 's' : ''}</span>
                 </>
               )}
             </div>
@@ -419,16 +416,6 @@ export function QuestionDetail({ questionId, onBack }: QuestionDetailProps) {
           )}
 
           {/* References */}
-          {typedQuestion.references && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Referências</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm break-all">{typedQuestion.references}</p>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Sidebar */}
@@ -482,6 +469,44 @@ export function QuestionDetail({ questionId, onBack }: QuestionDetailProps) {
               </div>
             </CardContent>
           </Card>
+
+
+          {typedQuestion.references && Array.isArray(typedQuestion.references) && typedQuestion.references.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Referências</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {typedQuestion.references.map((ref: any, index: number) => (
+                    <div key={index} className="flex flex-col gap-2 p-3 rounded-lg border bg-muted/30">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{ref.title}</p>
+                          {ref.url && (
+                            <a
+                              href={ref.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline break-all"
+                            >
+                              {ref.url}
+                            </a>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {ref.type === 'book' && 'Livro'}
+                          {ref.type === 'article' && 'Artigo'}
+                          {ref.type === 'website' && 'Website'}
+                          {ref.type === 'other' && 'Outro'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

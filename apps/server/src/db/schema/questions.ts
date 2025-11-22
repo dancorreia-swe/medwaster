@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -66,7 +67,11 @@ export const questions = pgTable(
       .references(() => user.id, { onDelete: "restrict" }),
     imageUrl: text("image_url"),
     imageKey: text("image_key"), // S3 key for the image
-    references: text("references"),
+    references: jsonb("references").$type<Array<{
+      title: string;
+      url?: string;
+      type: 'book' | 'article' | 'website' | 'other';
+    }>>(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

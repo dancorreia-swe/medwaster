@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,13 +15,16 @@ import {
 } from "@/components/ui/select";
 import { useCreateQuestion, useUpdateQuestion } from "../api/questionsApi";
 import { questionQueryOptions } from "../api/questionsQueries";
-import { categoriesListQueryOptions, tagsListQueryOptions } from "../api/categoriesAndTagsQueries";
+import {
+  categoriesListQueryOptions,
+  tagsListQueryOptions,
+} from "../api/categoriesAndTagsQueries";
 import { usePermissions } from "@/components/auth/role-guard";
 import { QuestionOptionsEditor } from "./question-options-editor";
 import { QuestionFillBlanksEditor } from "./question-fill-blanks-editor";
 import { QuestionMatchingEditor } from "./question-matching-editor";
 import { ImageUpload } from "./image-upload";
-import { Save, AlertCircle, X } from "lucide-react";
+import { Save, AlertCircle, X, Plus } from "lucide-react";
 import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +52,7 @@ import {
 import { validateQuestionForm } from "../validators";
 import { useQuestionFormState } from "../hooks";
 import type { QuestionType } from "../types";
-import { Check, ChevronsUpDown, Loader2, Tag } from "lucide-react";
+import { Check, ChevronsUpDown, FolderOpen, Loader2, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -66,7 +69,11 @@ interface QuestionFormProps {
   onCancel?: () => void;
 }
 
-export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormProps) {
+export function QuestionForm({
+  questionId,
+  onSuccess,
+  onCancel,
+}: QuestionFormProps) {
   const { user } = usePermissions();
   const navigate = useNavigate();
   const createQuestion = useCreateQuestion();
@@ -81,17 +88,18 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
   });
 
   // Fetch categories and tags
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery(categoriesListQueryOptions());
-  const { data: tagsResponse, isLoading: tagsLoading } = useQuery(tagsListQueryOptions());
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery(
+    categoriesListQueryOptions(),
+  );
+  const { data: tagsResponse, isLoading: tagsLoading } = useQuery(
+    tagsListQueryOptions(),
+  );
   const allTags = tagsResponse?.data || [];
 
   const [tagSearch, setTagSearch] = useState("");
   const debouncedTagSearch = useDebounce(tagSearch, 300);
 
-  const {
-    data: searchedTagsResponse,
-    isFetching: isSearchingTags,
-  } = useQuery({
+  const { data: searchedTagsResponse, isFetching: isSearchingTags } = useQuery({
     ...tagsListQueryOptions(
       debouncedTagSearch.trim()
         ? { search: debouncedTagSearch.trim(), keys: ["name", "slug"] }
@@ -100,13 +108,19 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
     enabled: debouncedTagSearch.trim().length > 0,
   });
 
-  const filteredTags = debouncedTagSearch.trim().length > 0
-    ? searchedTagsResponse?.data || []
-    : allTags;
+  const filteredTags =
+    debouncedTagSearch.trim().length > 0
+      ? searchedTagsResponse?.data || []
+      : allTags;
 
   // Selected tags state
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [isTagsOpen, setIsTagsOpen] = useState(false);
+
+  // Sticky header state
+  const [isHeaderStuck, setIsHeaderStuck] = useState(false);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const {
     questionType,
@@ -119,7 +133,9 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
     setMatchingPairs,
     setValidationErrors,
     handleTypeChange,
-  } = useQuestionFormState((existingQuestion?.type as QuestionType) || "multiple_choice");
+  } = useQuestionFormState(
+    (existingQuestion?.type as QuestionType) || "multiple_choice",
+  );
 
   const form = useForm({
     defaultValues: {
@@ -130,7 +146,11 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
       categoryId: null as number | null,
       imageUrl: "",
       imageKey: "",
-      references: "",
+      references: [] as Array<{
+        title: string;
+        url?: string;
+        type: "book" | "article" | "website" | "other";
+      }>,
     },
     onSubmit: async ({ value }) => {
       if (!user?.id) {
@@ -161,7 +181,10 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
           tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
         };
 
-        if (questionType === "multiple_choice" || questionType === "true_false") {
+        if (
+          questionType === "multiple_choice" ||
+          questionType === "true_false"
+        ) {
           questionData.options = options;
         }
 
@@ -178,7 +201,10 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
           if (onSuccess) {
             onSuccess();
           } else {
-            navigate({ to: "/questions/$questionId", params: { questionId: questionId.toString() } });
+            navigate({
+              to: "/questions/$questionId",
+              params: { questionId: questionId.toString() },
+            });
           }
         } else {
           await createQuestion.mutateAsync(questionData);
@@ -205,21 +231,23 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
       form.setFieldValue("categoryId", existingQuestion.categoryId || null);
       form.setFieldValue("imageUrl", existingQuestion.imageUrl || "");
       form.setFieldValue("imageKey", (existingQuestion as any).imageKey || "");
-      form.setFieldValue("references", existingQuestion.references || "");
+      form.setFieldValue("references", existingQuestion.references || []);
 
       if (existingQuestion.options) {
         setOptions(existingQuestion.options as any);
       }
       if (existingQuestion.fillInBlanks) {
-        const normalizedBlanks = (existingQuestion.fillInBlanks as any).map((blank: any, index: number) => ({
-          sequence: blank.sequence ?? index + 1,
-          placeholder: blank.placeholder || "",
-          answer: blank.answer,
-          options: (blank.options ?? []).map((option: any) => ({
-            text: option.text,
-            isCorrect: option.isCorrect,
-          })),
-        }));
+        const normalizedBlanks = (existingQuestion.fillInBlanks as any).map(
+          (blank: any, index: number) => ({
+            sequence: blank.sequence ?? index + 1,
+            placeholder: blank.placeholder || "",
+            answer: blank.answer,
+            options: (blank.options ?? []).map((option: any) => ({
+              text: option.text,
+              isCorrect: option.isCorrect,
+            })),
+          }),
+        );
         setFillBlanks(normalizedBlanks as any);
       }
       if (existingQuestion.matchingPairs) {
@@ -231,6 +259,25 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
       }
     }
   }, [existingQuestion, isEditing]);
+
+  // Setup intersection observer for sticky header
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsHeaderStuck(!entry.isIntersecting);
+      },
+      { threshold: [1], rootMargin: "-1px 0px 0px 0px" }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   if (isEditing && isLoading) {
     return <QuestionFormSkeleton />;
@@ -262,13 +309,24 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
         </Alert>
       )}
 
-      <div className="flex items-center justify-between">
+      {/* Sentinel element to detect when header should stick */}
+      <div ref={sentinelRef} className="h-px -mb-px" aria-hidden="true" />
+
+      <div
+        ref={headerRef}
+        className={cn(
+          "flex items-center justify-between sticky top-0 z-10 transition-all duration-200",
+          isHeaderStuck && "p-4 backdrop-blur-md bg-background/50 border-b shadow-sm"
+        )}
+      >
         <div>
           <h1 className="text-2xl font-bold">
             {isEditing ? `Editar Questão #${questionId}` : "Nova Questão"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isEditing ? "Atualize as informações da questão" : "Preencha os campos abaixo para criar uma nova questão"}
+            {isEditing
+              ? "Atualize as informações da questão"
+              : "Preencha os campos abaixo para criar uma nova questão"}
           </p>
         </div>
         <form.Subscribe
@@ -276,11 +334,7 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
         >
           {([canSubmit, isSubmitting]) => (
             <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-              >
+              <Button type="button" variant="outline" onClick={handleCancel}>
                 Cancelar
               </Button>
               <Button
@@ -292,7 +346,11 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
                 }}
               >
                 <Save className="mr-2 h-4 w-4" />
-                {isSubmitting ? "Salvando..." : isEditing ? "Atualizar Questão" : "Salvar Questão"}
+                {isSubmitting
+                  ? "Salvando..."
+                  : isEditing
+                    ? "Atualizar Questão"
+                    : "Salvar Questão"}
               </Button>
             </div>
           )}
@@ -301,6 +359,24 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
 
       <div className="space-y-6 rounded-lg border bg-card p-6">
         <h2 className="text-lg font-semibold">Informações Básicas</h2>
+
+        <form.Field name="imageUrl">
+          {(field) => (
+            <ImageUpload
+              value={field.state.value || undefined}
+              onChange={(data) => {
+                if (data) {
+                  field.handleChange(data.url);
+                  form.setFieldValue("imageKey", data.key);
+                } else {
+                  field.handleChange("");
+                  form.setFieldValue("imageKey", "");
+                }
+              }}
+              disabled={form.state.isSubmitting}
+            />
+          )}
+        </form.Field>
 
         <form.Field name="prompt">
           {(field) => (
@@ -364,7 +440,13 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
                   <SelectContent>
                     {DIFFICULTY_LEVEL_OPTIONS.map((level) => (
                       <SelectItem key={level.value} value={level.value}>
-                        {level.label}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-flex h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: level.color }}
+                          />
+                          <span>{level.label}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -372,7 +454,9 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
               </div>
             )}
           </form.Field>
+        </div>
 
+        <div className="grid gap-4 md:grid-cols-2">
           <form.Field name="status">
             {(field) => (
               <div className="space-y-2">
@@ -387,7 +471,13 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
                   <SelectContent>
                     {STATUS_OPTIONS.map((status) => (
                       <SelectItem key={status.value} value={status.value}>
-                        {status.label}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-flex h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: status.color }}
+                          />
+                          <span>{status.label}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -395,19 +485,22 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
               </div>
             )}
           </form.Field>
-        </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
           <form.Field name="categoryId">
             {(field) => (
               <div className="space-y-2">
-                <Label>Categoria</Label>
+                <Label className="flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                  Categoria
+                </Label>
                 {categoriesLoading ? (
                   <Skeleton className="h-10 w-full" />
                 ) : (
                   <Select
                     value={field.state.value?.toString() || "none"}
-                    onValueChange={(v) => field.handleChange(v === "none" ? null : Number(v))}
+                    onValueChange={(v) =>
+                      field.handleChange(v === "none" ? null : Number(v))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma categoria" />
@@ -415,7 +508,10 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
                     <SelectContent>
                       <SelectItem value="none">Nenhuma</SelectItem>
                       {categories.map((category: any) => (
-                        <SelectItem key={category.id} value={category.id.toString()}>
+                        <SelectItem
+                          key={category.id}
+                          value={category.id.toString()}
+                        >
                           {category.name}
                         </SelectItem>
                       ))}
@@ -425,150 +521,145 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
               </div>
             )}
           </form.Field>
-
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Tag className="h-4 w-4 text-muted-foreground" />
-              Tags
-            </Label>
-            {tagsLoading ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
-              <Popover open={isTagsOpen} onOpenChange={setIsTagsOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={isTagsOpen}
-                    className="w-full justify-between font-normal"
-                  >
-                    {selectedTagIds.length > 0
-                      ? `${selectedTagIds.length} tag${selectedTagIds.length > 1 ? "s" : ""} selecionada${selectedTagIds.length > 1 ? "s" : ""}`
-                      : "Selecione tags"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <CommandInput
-                      placeholder="Buscar por nome, slug ou id..."
-                      value={tagSearch}
-                      onValueChange={setTagSearch}
-                      autoFocus
-                    />
-                    <CommandList>
-                      {isSearchingTags ? (
-                        <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" /> Buscando tags...
-                        </div>
-                      ) : (
-                        <>
-                          <CommandEmpty>Nenhuma tag encontrada.</CommandEmpty>
-                          <CommandGroup>
-                            {filteredTags.map((tag: any) => (
-                              <CommandItem
-                                key={tag.id}
-                                value={`${tag.name} ${tag.slug ?? ""} ${tag.id}`}
-                                keywords={[tag.slug, String(tag.id)].filter(Boolean)}
-                                onSelect={() => {
-                                  setSelectedTagIds((prev) =>
-                                    prev.includes(tag.id)
-                                      ? prev.filter((id) => id !== tag.id)
-                                      : [...prev, tag.id]
-                                  );
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedTagIds.includes(tag.id) ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <span className="flex items-center gap-2">
-                                  <span
-                                    aria-hidden
-                                    className="inline-flex h-3 w-3 rounded-full border border-border"
-                                    style={{ backgroundColor: tag.color || "#6b7280" }}
-                                  />
-                                  <span className="flex flex-col leading-tight">
-                                    <span>{tag.name}</span>
-                                    {tag.slug && (
-                                      <span className="text-[11px] text-muted-foreground">{tag.slug}</span>
-                                    )}
-                                  </span>
-                                </span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </>
-                      )}
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            )}
-            {selectedTagIds.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {selectedTagIds.map((tagId) => {
-                  const tag = allTags.find((t: any) => t.id === tagId) || filteredTags.find((t: any) => t.id === tagId);
-                  if (!tag) return null;
-                  return (
-                    <Badge
-                      key={tagId}
-                      variant="secondary"
-                      className="gap-1 px-2 py-1"
-                      style={
-                        tag.color
-                          ? {
-                              backgroundColor: hexToRgba(tag.color, 0.12),
-                              borderColor: hexToRgba(tag.color, 0.3),
-                              color: tag.color,
-                            }
-                          : undefined
-                      }
-                    >
-                      <span
-                        aria-hidden
-                        className="inline-flex h-2.5 w-2.5 rounded-full border border-border"
-                        style={{ backgroundColor: tag.color || "#6b7280" }}
-                      />
-                      {tag.name}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setSelectedTagIds((prev) => prev.filter((id) => id !== tagId));
-                        }}
-                        className="ml-1 hover:bg-secondary-foreground/10 rounded-sm"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  );
-                })}
-              </div>
-            )}
-          </div>
         </div>
 
-        <form.Field name="imageUrl">
-          {(field) => (
-            <ImageUpload
-              value={field.state.value || undefined}
-              onChange={(data) => {
-                if (data) {
-                  field.handleChange(data.url);
-                  form.setFieldValue("imageKey", data.key);
-                } else {
-                  field.handleChange("");
-                  form.setFieldValue("imageKey", "");
-                }
-              }}
-              disabled={form.state.isSubmitting}
-            />
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Tag className="h-4 w-4 text-muted-foreground" />
+            Tags
+          </Label>
+          {tagsLoading ? (
+            <Skeleton className="h-10 w-full" />
+          ) : (
+            <Popover open={isTagsOpen} onOpenChange={setIsTagsOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={isTagsOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  {selectedTagIds.length > 0
+                    ? `${selectedTagIds.length} tag${selectedTagIds.length > 1 ? "s" : ""} selecionada${selectedTagIds.length > 1 ? "s" : ""}`
+                    : "Selecione tags"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput
+                    placeholder="Buscar por nome, slug ou id..."
+                    value={tagSearch}
+                    onValueChange={setTagSearch}
+                    autoFocus
+                  />
+                  <CommandList>
+                    {isSearchingTags ? (
+                      <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Buscando
+                        tags...
+                      </div>
+                    ) : (
+                      <>
+                        <CommandEmpty>Nenhuma tag encontrada.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredTags.map((tag: any) => (
+                            <CommandItem
+                              key={tag.id}
+                              value={`${tag.name} ${tag.slug ?? ""} ${tag.id}`}
+                              keywords={[tag.slug, String(tag.id)].filter(
+                                Boolean,
+                              )}
+                              onSelect={() => {
+                                setSelectedTagIds((prev) =>
+                                  prev.includes(tag.id)
+                                    ? prev.filter((id) => id !== tag.id)
+                                    : [...prev, tag.id],
+                                );
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedTagIds.includes(tag.id)
+                                    ? "opacity-100"
+                                    : "opacity-0",
+                                )}
+                              />
+                              <span className="flex items-center gap-2">
+                                <span
+                                  aria-hidden
+                                  className="inline-flex h-3 w-3 rounded-full border border-border"
+                                  style={{
+                                    backgroundColor: tag.color || "#6b7280",
+                                  }}
+                                />
+                                <span className="flex flex-col leading-tight">
+                                  <span>{tag.name}</span>
+                                  {tag.slug && (
+                                    <span className="text-[11px] text-muted-foreground">
+                                      {tag.slug}
+                                    </span>
+                                  )}
+                                </span>
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           )}
-        </form.Field>
+          {selectedTagIds.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {selectedTagIds.map((tagId) => {
+                const tag =
+                  allTags.find((t: any) => t.id === tagId) ||
+                  filteredTags.find((t: any) => t.id === tagId);
+                if (!tag) return null;
+                return (
+                  <Badge
+                    key={tagId}
+                    variant="secondary"
+                    className="gap-1 px-2 py-1"
+                    style={
+                      tag.color
+                        ? {
+                            backgroundColor: hexToRgba(tag.color, 0.12),
+                            borderColor: hexToRgba(tag.color, 0.3),
+                            color: tag.color,
+                          }
+                        : undefined
+                    }
+                  >
+                    <span
+                      aria-hidden
+                      className="inline-flex h-2.5 w-2.5 rounded-full border border-border"
+                      style={{ backgroundColor: tag.color || "#6b7280" }}
+                    />
+                    {tag.name}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedTagIds((prev) =>
+                          prev.filter((id) => id !== tagId),
+                        );
+                      }}
+                      className="ml-1 hover:bg-secondary-foreground/10 rounded-sm"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         <form.Field name="explanation">
           {(field) => (
@@ -588,14 +679,114 @@ export function QuestionForm({ questionId, onSuccess, onCancel }: QuestionFormPr
 
         <form.Field name="references">
           {(field) => (
-            <div className="space-y-2">
-              <Label htmlFor="references">Referências</Label>
-              <Input
-                id="references"
-                placeholder="Links ou fontes de referência..."
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Referências</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const currentRefs = field.state.value || [];
+                    field.handleChange([
+                      ...currentRefs,
+                      { title: "", type: "other" as const },
+                    ]);
+                  }}
+                >
+                  <Plus className="mr-2 h-3 w-3" />
+                  Adicionar Referência
+                </Button>
+              </div>
+              {field.state.value && field.state.value.length > 0 ? (
+                <div className="space-y-3">
+                  {field.state.value.map((ref: any, index: number) => (
+                    <div
+                      key={index}
+                      className="flex gap-2 items-start p-3 rounded-lg border bg-muted/30"
+                    >
+                      <div className="flex-1 space-y-2">
+                        <div className="grid gap-2 md:grid-cols-2">
+                          <div>
+                            <Label className="text-xs">
+                              Título/Descrição *
+                            </Label>
+                            <Input
+                              placeholder="Ex: Harrison - Medicina Interna"
+                              value={ref.title}
+                              onChange={(e) => {
+                                const newRefs = [...field.state.value];
+                                newRefs[index] = {
+                                  ...newRefs[index],
+                                  title: e.target.value,
+                                };
+                                field.handleChange(newRefs);
+                              }}
+                              className="h-9"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Tipo</Label>
+                            <Select
+                              value={ref.type}
+                              onValueChange={(v) => {
+                                const newRefs = [...field.state.value];
+                                newRefs[index] = { ...newRefs[index], type: v };
+                                field.handleChange(newRefs);
+                              }}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="book">Livro</SelectItem>
+                                <SelectItem value="article">Artigo</SelectItem>
+                                <SelectItem value="website">Website</SelectItem>
+                                <SelectItem value="other">Outro</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs">URL (opcional)</Label>
+                          <Input
+                            placeholder="https://..."
+                            value={ref.url || ""}
+                            onChange={(e) => {
+                              const newRefs = [...field.state.value];
+                              newRefs[index] = {
+                                ...newRefs[index],
+                                url: e.target.value,
+                              };
+                              field.handleChange(newRefs);
+                            }}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 text-destructive hover:text-destructive"
+                        onClick={() => {
+                          const newRefs = field.state.value.filter(
+                            (_: any, i: number) => i !== index,
+                          );
+                          field.handleChange(newRefs);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground text-center py-6 border border-dashed rounded-lg">
+                  Nenhuma referência adicionada. Clique em "Adicionar
+                  Referência" para começar.
+                </div>
+              )}
             </div>
           )}
         </form.Field>

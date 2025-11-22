@@ -19,7 +19,7 @@ import {
   Redo,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface MinimalTiptapProps {
   content?: string;
@@ -36,6 +36,9 @@ function MinimalTiptap({
   editable = true,
   className,
 }: MinimalTiptapProps) {
+  const [editorState, setEditorState] = useState(0);
+  const isInitialMount = useRef(true);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -53,6 +56,10 @@ function MinimalTiptap({
     editable,
     onUpdate: ({ editor }) => {
       onChange?.(editor.getHTML());
+      setEditorState((prev) => prev + 1);
+    },
+    onTransaction: () => {
+      setEditorState((prev) => prev + 1);
     },
     editorProps: {
       attributes: {
@@ -64,12 +71,33 @@ function MinimalTiptap({
     },
   });
 
-  // Update editor content when content prop changes
+  // Update editor content only on initial load or when content changes externally
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
+    if (!editor) return;
+
+    // On initial mount, set the content
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      if (content) {
+        editor.commands.setContent(content, { emitUpdate: false });
+      }
+      return;
     }
-  }, [editor, content]);
+
+    // Only update if content changed externally (not from typing)
+    const currentContent = editor.getHTML();
+    if (content !== currentContent && content !== undefined) {
+      // Store cursor position
+      const { from, to } = editor.state.selection;
+      editor.commands.setContent(content, { emitUpdate: false });
+      // Try to restore cursor position
+      try {
+        editor.commands.setTextSelection({ from: Math.min(from, editor.state.doc.content.size), to: Math.min(to, editor.state.doc.content.size) });
+      } catch (e) {
+        // Ignore if cursor position is invalid
+      }
+    }
+  }, [content, editor]);
 
   if (!editor) {
     return null;
@@ -81,8 +109,10 @@ function MinimalTiptap({
         <Toggle
           size="sm"
           pressed={editor.isActive("bold")}
-          onPressedChange={() => editor.chain().focus().toggleBold().run()}
-          disabled={!editor.can().chain().focus().toggleBold().run()}
+          onPressedChange={() => {
+            editor.chain().focus().toggleBold().run();
+          }}
+          disabled={!editable}
         >
           <Bold className="h-4 w-4" />
         </Toggle>
@@ -90,8 +120,10 @@ function MinimalTiptap({
         <Toggle
           size="sm"
           pressed={editor.isActive("italic")}
-          onPressedChange={() => editor.chain().focus().toggleItalic().run()}
-          disabled={!editor.can().chain().focus().toggleItalic().run()}
+          onPressedChange={() => {
+            editor.chain().focus().toggleItalic().run();
+          }}
+          disabled={!editable}
         >
           <Italic className="h-4 w-4" />
         </Toggle>
@@ -99,8 +131,10 @@ function MinimalTiptap({
         <Toggle
           size="sm"
           pressed={editor.isActive("strike")}
-          onPressedChange={() => editor.chain().focus().toggleStrike().run()}
-          disabled={!editor.can().chain().focus().toggleStrike().run()}
+          onPressedChange={() => {
+            editor.chain().focus().toggleStrike().run();
+          }}
+          disabled={!editable}
         >
           <Strikethrough className="h-4 w-4" />
         </Toggle>
@@ -108,8 +142,10 @@ function MinimalTiptap({
         <Toggle
           size="sm"
           pressed={editor.isActive("code")}
-          onPressedChange={() => editor.chain().focus().toggleCode().run()}
-          disabled={!editor.can().chain().focus().toggleCode().run()}
+          onPressedChange={() => {
+            editor.chain().focus().toggleCode().run();
+          }}
+          disabled={!editable}
         >
           <Code className="h-4 w-4" />
         </Toggle>
@@ -119,9 +155,10 @@ function MinimalTiptap({
         <Toggle
           size="sm"
           pressed={editor.isActive("heading", { level: 1 })}
-          onPressedChange={() =>
-            editor.chain().focus().toggleHeading({ level: 1 }).run()
-          }
+          onPressedChange={() => {
+            editor.chain().focus().toggleHeading({ level: 1 }).run();
+          }}
+          disabled={!editable}
         >
           <Heading1 className="h-4 w-4" />
         </Toggle>
@@ -129,9 +166,10 @@ function MinimalTiptap({
         <Toggle
           size="sm"
           pressed={editor.isActive("heading", { level: 2 })}
-          onPressedChange={() =>
-            editor.chain().focus().toggleHeading({ level: 2 }).run()
-          }
+          onPressedChange={() => {
+            editor.chain().focus().toggleHeading({ level: 2 }).run();
+          }}
+          disabled={!editable}
         >
           <Heading2 className="h-4 w-4" />
         </Toggle>
@@ -139,9 +177,10 @@ function MinimalTiptap({
         <Toggle
           size="sm"
           pressed={editor.isActive("heading", { level: 3 })}
-          onPressedChange={() =>
-            editor.chain().focus().toggleHeading({ level: 3 }).run()
-          }
+          onPressedChange={() => {
+            editor.chain().focus().toggleHeading({ level: 3 }).run();
+          }}
+          disabled={!editable}
         >
           <Heading3 className="h-4 w-4" />
         </Toggle>
@@ -151,9 +190,10 @@ function MinimalTiptap({
         <Toggle
           size="sm"
           pressed={editor.isActive("bulletList")}
-          onPressedChange={() =>
-            editor.chain().focus().toggleBulletList().run()
-          }
+          onPressedChange={() => {
+            editor.chain().focus().toggleBulletList().run();
+          }}
+          disabled={!editable}
         >
           <List className="h-4 w-4" />
         </Toggle>
@@ -161,9 +201,10 @@ function MinimalTiptap({
         <Toggle
           size="sm"
           pressed={editor.isActive("orderedList")}
-          onPressedChange={() =>
-            editor.chain().focus().toggleOrderedList().run()
-          }
+          onPressedChange={() => {
+            editor.chain().focus().toggleOrderedList().run();
+          }}
+          disabled={!editable}
         >
           <ListOrdered className="h-4 w-4" />
         </Toggle>
@@ -171,9 +212,10 @@ function MinimalTiptap({
         <Toggle
           size="sm"
           pressed={editor.isActive("blockquote")}
-          onPressedChange={() =>
-            editor.chain().focus().toggleBlockquote().run()
-          }
+          onPressedChange={() => {
+            editor.chain().focus().toggleBlockquote().run();
+          }}
+          disabled={!editable}
         >
           <Quote className="h-4 w-4" />
         </Toggle>
@@ -184,6 +226,7 @@ function MinimalTiptap({
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          disabled={!editable}
         >
           <Minus className="h-4 w-4" />
         </Button>
@@ -194,7 +237,7 @@ function MinimalTiptap({
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().chain().focus().undo().run()}
+          disabled={!editor.can().chain().focus().undo().run() || !editable}
         >
           <Undo className="h-4 w-4" />
         </Button>
@@ -203,7 +246,7 @@ function MinimalTiptap({
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().chain().focus().redo().run()}
+          disabled={!editor.can().chain().focus().redo().run() || !editable}
         >
           <Redo className="h-4 w-4" />
         </Button>

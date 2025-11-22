@@ -75,7 +75,11 @@ export interface Question {
   categoryId?: number | null;
   imageUrl?: string | null;
   imageKey?: string | null;
-  references?: string | null;
+  references?: Array<{
+    title: string;
+    url?: string;
+    type: "book" | "article" | "website" | "other";
+  }> | null;
   createdAt: string;
   updatedAt: string;
 

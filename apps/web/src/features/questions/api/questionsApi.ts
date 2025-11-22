@@ -2,6 +2,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "@/lib/client";
 import type { QuestionListQueryParams } from "../types";
 
+type QuestionReference = {
+  title: string;
+  url?: string;
+  type: "book" | "article" | "website" | "other";
+};
+
 type QuestionCreateBody = {
   prompt: string;
   type: "multiple_choice" | "true_false" | "fill_in_the_blank" | "matching";
@@ -10,7 +16,8 @@ type QuestionCreateBody = {
   status?: "draft" | "active" | "inactive" | "archived";
   categoryId?: number | null;
   imageUrl?: string;
-  references?: string;
+  imageKey?: string | null;
+  references?: QuestionReference[];
   options?: Array<{
     label: string;
     content: string;
@@ -40,8 +47,9 @@ type QuestionUpdateBody = {
   explanation?: string;
   status?: "draft" | "active" | "inactive" | "archived";
   categoryId?: number | null;
-  imageUrl?: string;
-  references?: string;
+  imageUrl?: string | null;
+  imageKey?: string | null;
+  references?: QuestionReference[];
   options?: Array<{
     label: string;
     content: string;

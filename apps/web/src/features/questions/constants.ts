@@ -10,16 +10,28 @@ export const QUESTION_TYPE_OPTIONS = [
 ];
 
 export const DIFFICULTY_LEVEL_OPTIONS = [
-  { value: "basic" as const, label: "Básico" },
-  { value: "intermediate" as const, label: "Intermediário" },
-  { value: "advanced" as const, label: "Avançado" },
+  { value: "basic" as const, label: "Básico", color: "#10b981" }, // green
+  { value: "intermediate" as const, label: "Intermediário", color: "#f59e0b" }, // amber
+  { value: "advanced" as const, label: "Avançado", color: "#ef4444" }, // red
 ];
 
+export const DIFFICULTY_COLORS = {
+  basic: "#10b981",
+  intermediate: "#f59e0b",
+  advanced: "#ef4444",
+} as const;
+
 export const STATUS_OPTIONS = [
-  { value: "draft" as const, label: "Rascunho" },
-  { value: "active" as const, label: "Ativo" },
-  { value: "inactive" as const, label: "Inativo" },
+  { value: "draft" as const, label: "Rascunho", color: "#94a3b8" }, // gray
+  { value: "active" as const, label: "Ativo", color: "#10b981" }, // green
+  { value: "inactive" as const, label: "Inativo", color: "#64748b" }, // slate
 ];
+
+export const STATUS_COLORS = {
+  draft: "#94a3b8",
+  active: "#10b981",
+  inactive: "#64748b",
+} as const;
 
 export const DEFAULT_MULTIPLE_CHOICE_OPTIONS = [
   { label: "A", content: "", isCorrect: false },

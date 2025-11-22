@@ -27,7 +27,12 @@ export interface QuestionFormValues {
   status: "draft" | "active" | "inactive" | "archived";
   categoryId: number | null;
   imageUrl: string;
-  references: string;
+  imageKey?: string | null;
+  references: Array<{
+    title: string;
+    url?: string;
+    type: "book" | "article" | "website" | "other";
+  }>;
 }
 
 interface ValidationContext {

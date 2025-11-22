@@ -26,6 +26,7 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useColorScheme } from "@/lib/use-color-scheme";
+import { url } from "better-auth";
 
 export default function CertificatesScreen() {
   const router = useRouter();
@@ -99,7 +100,7 @@ export default function CertificatesScreen() {
 
       await Share.share({
         title: "Meu certificado MedWaster",
-        subject: "Meu certificado MedWaster",
+        url: pdfUrl,
         message: shareMessage,
       });
     } catch (error) {
@@ -320,19 +321,25 @@ export default function CertificatesScreen() {
             {/* Stats */}
             <View className="flex-row gap-4 mb-10 pb-8 border-b border-gray-100 dark:border-gray-800">
               <View className="flex-1">
-                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">Média</Text>
+                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Média
+                </Text>
                 <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
                   {certificate.averageScore.toFixed(0)}%
                 </Text>
               </View>
               <View className="flex-1">
-                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">Trilhas</Text>
+                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Trilhas
+                </Text>
                 <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
                   {certificate.totalTrailsCompleted}
                 </Text>
               </View>
               <View className="flex-1">
-                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">Tempo</Text>
+                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Tempo
+                </Text>
                 <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
                   {formatTime(certificate.totalTimeMinutes)}
                 </Text>
@@ -341,7 +348,9 @@ export default function CertificatesScreen() {
 
             {/* Date */}
             <View className="mb-8">
-              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">Concluído em</Text>
+              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Concluído em
+              </Text>
               <Text className="text-base text-gray-800 dark:text-gray-200">
                 {formatDate(certificate.allTrailsCompletedAt)}
               </Text>

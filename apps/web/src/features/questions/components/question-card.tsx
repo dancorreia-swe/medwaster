@@ -1,11 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +31,8 @@ import {
   Globe,
   CheckCircle2,
   Tag,
+  Image as ImageIcon,
+  BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -72,7 +69,10 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleCardClick = () => {
-    navigate({ to: "/questions/$questionId", params: { questionId: question.id.toString() } });
+    navigate({
+      to: "/questions/$questionId",
+      params: { questionId: question.id.toString() },
+    });
   };
 
   const handleDeleteClick = () => {
@@ -103,24 +103,28 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
     }
   };
 
-  console.log(question.tags);
+  const referenceCount = Array.isArray(question.references)
+    ? question.references.length
+    : 0;
 
   return (
     <Card
       className="group hover:shadow-lg hover:border-primary/20 transition-all duration-200 cursor-pointer flex flex-col h-full"
       onClick={handleCardClick}
     >
-      <CardHeader className="pb-3">
+      <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-sm line-clamp-2 flex-1 leading-relaxed font-medium group-hover:text-primary transition-colors">
             {stripHtml(question.prompt)}
           </CardTitle>
-          <Badge
-            variant="outline"
-            className={`shrink-0 capitalize text-xs font-medium ${statusClassName[question.status]}`}
-          >
-            {QUESTION_STATUS_LABELS[question.status]}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={`shrink-0 capitalize text-xs font-medium ${statusClassName[question.status]}`}
+            >
+              {QUESTION_STATUS_LABELS[question.status]}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 
@@ -137,7 +141,10 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
                 style={
                   question.category.color
                     ? {
-                        backgroundColor: hexToRgba(question.category.color, 0.08),
+                        backgroundColor: hexToRgba(
+                          question.category.color,
+                          0.08,
+                        ),
                         borderColor: hexToRgba(question.category.color, 0.25),
                         color: question.category.color,
                       }
@@ -157,7 +164,9 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
                 className={cn(
                   "transition-colors",
                   index <
-                    ({ basic: 1, intermediate: 2, advanced: 3 }[question.difficulty] || 0)
+                    ({ basic: 1, intermediate: 2, advanced: 3 }[
+                      question.difficulty
+                    ] || 0)
                     ? "fill-yellow-400 text-yellow-400"
                     : "text-muted-foreground/30",
                 )}
@@ -192,9 +201,9 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
               ))}
 
               {question.tags.length > 2 && (
-                <Badge 
-                  key="more-tags" 
-                  variant="outline" 
+                <Badge
+                  key="more-tags"
+                  variant="outline"
                   className="text-xs text-muted-foreground"
                 >
                   +{question.tags.length - 2}
@@ -220,13 +229,31 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
                 })}
               </span>
             )}
+
+            {question.imageUrl && (
+              <span
+                title="Possui imagem"
+                className="inline-flex items-center rounded-md py-1 text-xs gap-1"
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+              </span>
+            )}
+            {referenceCount > 0 && (
+              <span
+                title="Referências"
+                className="inline-flex items-center rounded-md py-1 text-xs gap-1"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                <span className="font-semibold text-xs">{referenceCount}</span>
+              </span>
+            )}
           </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -234,17 +261,30 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
               </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation();
-                navigate({ to: "/questions/$questionId", params: { questionId: question.id.toString() } });
-              }}>
+            <DropdownMenuContent
+              align="end"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate({
+                    to: "/questions/$questionId",
+                    params: { questionId: question.id.toString() },
+                  });
+                }}
+              >
                 Visualizar
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation();
-                navigate({ to: "/questions/$questionId/edit", params: { questionId: question.id.toString() } });
-              }}>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate({
+                    to: "/questions/$questionId/edit",
+                    params: { questionId: question.id.toString() },
+                  });
+                }}
+              >
                 Editar
               </DropdownMenuItem>
               <DropdownMenuSub>
@@ -266,7 +306,11 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
                         {question.status === status.value && (
                           <CheckCircle2 className="h-4 w-4" />
                         )}
-                        <span className={question.status === status.value ? "" : "ml-6"}>
+                        <span
+                          className={
+                            question.status === status.value ? "" : "ml-6"
+                          }
+                        >
                           {status.label}
                         </span>
                       </div>
@@ -301,14 +345,16 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
             <AlertDialogDescription asChild className="gap-2 pt-1">
               <div className="space-y-3">
                 <div className="text-sm text-muted-foreground">
-                  Esta ação <strong>não pode ser desfeita</strong>. A questão será
-                  permanentemente removida.
+                  Esta ação <strong>não pode ser desfeita</strong>. A questão
+                  será permanentemente removida.
                 </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>
+              Cancelar
+            </AlertDialogCancel>
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
