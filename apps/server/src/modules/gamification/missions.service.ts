@@ -418,9 +418,12 @@ export class MissionsService {
   }
 
   /**
-   * Utility: Format date to YYYY-MM-DD string
+   * Utility: Format date to YYYY-MM-DD string in UTC
    */
   private static formatDate(date: Date): string {
-    return date.toISOString().split("T")[0];
+    const year = date.getUTCFullYear();
+    const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getUTCDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
 }

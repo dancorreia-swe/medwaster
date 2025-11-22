@@ -16,9 +16,9 @@ interface StreakCalendarProps {
 }
 
 function formatDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getUTCDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -45,7 +45,23 @@ export function StreakCalendar({
   const calendar = useMemo(() => {
     const activityMap = new Map<string, ActivityHistoryEntry>();
     activities.forEach((activity) => {
-      activityMap.set(activity.activityDate, activity);
+      if (!activity.activityDate) {
+        console.warn("📅 [StreakCalendar] Activity missing activityDate:", activity);
+        return;
+      }
+
+      // Normalize the activity date to YYYY-MM-DD format (using UTC to avoid timezone issues)
+      let normalizedDate: string;
+      if (typeof activity.activityDate === 'string') {
+        normalizedDate = activity.activityDate.split("T")[0];
+      } else if (activity.activityDate instanceof Date) {
+        normalizedDate = formatDateKey(activity.activityDate);
+      } else {
+        // Handle case where it might be an ISO string or other format
+        normalizedDate = formatDateKey(new Date(activity.activityDate));
+      }
+
+      activityMap.set(normalizedDate, activity);
     });
 
     const startCurrentWeek = startOfWeek(today);

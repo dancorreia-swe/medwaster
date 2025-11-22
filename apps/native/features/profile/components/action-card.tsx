@@ -11,32 +11,33 @@ interface ActionCardProps {
   onPress: () => void;
 }
 
-export function ActionCard({ 
-  icon, 
-  iconColor, 
-  iconBgColor, 
-  title, 
-  description, 
-  onPress 
+export function ActionCard({
+  icon,
+  iconColor,
+  iconBgColor,
+  title,
+  description,
+  onPress
 }: ActionCardProps) {
   return (
-    <TouchableOpacity 
-      className="bg-white rounded-xl border border-gray-100 shadow-sm shadow-black/15 dark:bg-gray-900 dark:border-gray-800"
+    <TouchableOpacity
+      className="bg-white rounded-2xl border border-gray-200 dark:bg-gray-900 dark:border-gray-800"
       onPress={onPress}
+      activeOpacity={0.7}
     >
-      <View className="p-3.5 flex-row items-center gap-3.5">
-        <View className={`size-42 rounde-full ${iconBgColor} items-center justify-center`}>
-          <Icon icon={icon} size={21} className={iconColor} />
+      <View className="p-5 flex-row items-center gap-4">
+        <View className={`w-14 h-14 rounded-xl ${iconBgColor} items-center justify-center`}>
+          <Icon icon={icon} size={24} className={iconColor} />
         </View>
-        <View className="flex-1">
-          <Text className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-0.5">
+        <View className="flex-1 pr-2">
+          <Text className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-1">
             {title}
           </Text>
-          <Text className="text-sm text-gray-600 dark:text-gray-400">
+          <Text className="text-sm text-gray-600 dark:text-gray-400 leading-5">
             {description}
           </Text>
         </View>
-        <Icon icon={ChevronRight} size={17.5} className="text-gray-400 dark:text-gray-400" />
+        <Icon icon={ChevronRight} size={20} className="text-gray-400 dark:text-gray-500" />
       </View>
     </TouchableOpacity>
   );

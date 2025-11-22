@@ -1,5 +1,11 @@
 import { Container } from "@/components/container";
-import { ActivityIndicator, Animated, View, Text, TouchableOpacity } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  View,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMarkdown } from "react-native-marked";
@@ -20,6 +26,8 @@ import {
   useArticleAudio,
   useArticleScroll,
 } from "@/features/wiki/components/article-detail";
+import { useQueryClient } from "@tanstack/react-query";
+import { gamificationKeys } from "@/features/gamification/hooks";
 
 const FALLBACK_CATEGORY_COLOR = "#155DFC";
 
@@ -35,6 +43,7 @@ export default function WikiArticle() {
   const contentIdNum = contentId ? Number(contentId) : null;
 
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const readArticles = useArticleStore((state) => state.readArticles);
   const unreadArticles = useArticleStore((state) => state.unreadArticles);
@@ -53,22 +62,20 @@ export default function WikiArticle() {
   const toggleFavoriteMutation = useToggleFavorite();
   const markTrailArticleReadMutation = useMarkTrailArticleRead();
 
-  // Fetch trail data if in trail context (for celebration screen)
   const { data: trail } = useTrail(trailIdNum || 0);
 
   const article = data?.article;
   const articleProgress = data?.progress;
   const articleDifficulty = data?.difficulty;
   const articleIsRead = useMemo(() => {
-    // If explicitly marked as unread by user, respect that
     if (unreadArticles.has(articleId)) {
       return false;
     }
-    
-    // Otherwise check Zustand or server data
+
     const inStore = readArticles.has(articleId);
-    const fromServer = articleProgress?.isRead ?? (articleProgress?.readPercentage ?? 0) >= 100;
-    
+    const fromServer =
+      articleProgress?.isRead ?? (articleProgress?.readPercentage ?? 0) >= 100;
+
     return inStore || fromServer;
   }, [unreadArticles, readArticles, articleId, articleProgress]);
   const articleIsFavorite = favoriteArticles.has(articleId);
@@ -86,20 +93,34 @@ export default function WikiArticle() {
       setRead(articleId);
       await markArticleAsRead(articleId);
 
-      // If viewing from trail context, also mark trail content as complete
+      queryClient.invalidateQueries({
+        queryKey: gamificationKeys.todayActivity(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: gamificationKeys.weeklyStats(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: gamificationKeys.activityHistory(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: gamificationKeys.missions(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: gamificationKeys.streak(),
+      });
+
       if (trailIdNum && contentIdNum) {
         const result = await markTrailArticleReadMutation.mutateAsync({
           trailId: trailIdNum,
           contentId: contentIdNum,
         });
 
-        // Check if trail was just completed - navigate to celebration
         if (result?.trailJustCompleted && result?.progress && trail) {
           setTimeout(() => {
-            // Parse completedContentIds if it's a string
-            const completedIds = typeof result.progress.completedContentIds === 'string'
-              ? JSON.parse(result.progress.completedContentIds || '[]')
-              : (result.progress.completedContentIds || []);
+            const completedIds =
+              typeof result.progress.completedContentIds === "string"
+                ? JSON.parse(result.progress.completedContentIds || "[]")
+                : result.progress.completedContentIds || [];
 
             router.push({
               pathname: "/(app)/trails/celebration",
@@ -131,6 +152,7 @@ export default function WikiArticle() {
     markTrailArticleReadMutation,
     router,
     trail,
+    queryClient,
   ]);
 
   const {
@@ -141,7 +163,12 @@ export default function WikiArticle() {
     contentHeight,
     scrollViewHeight,
     handleScroll,
-  } = useArticleScroll(handleMarkAsReadCallback, canScroll, setHasReachedEnd, isReading);
+  } = useArticleScroll(
+    handleMarkAsReadCallback,
+    canScroll,
+    setHasReachedEnd,
+    isReading,
+  );
 
   useEffect(() => {
     if (!articleProgress) return;
@@ -174,7 +201,13 @@ export default function WikiArticle() {
         autoMarkAsReadTriggered.current = false;
       });
     }
-  }, [hasReachedEnd, articleIsRead, article, articleId, handleMarkAsReadCallback]);
+  }, [
+    hasReachedEnd,
+    articleIsRead,
+    article,
+    articleId,
+    handleMarkAsReadCallback,
+  ]);
 
   const contentText = useMemo(
     () => article?.contentText ?? "Conteúdo indisponível no momento.",
@@ -345,7 +378,6 @@ export default function WikiArticle() {
   const handleFavoriteToggle = useCallback(() => {
     if (!article) return;
 
-    // Optimistic update
     if (articleIsFavorite) {
       removeFavorite(articleId);
     } else {
@@ -359,7 +391,6 @@ export default function WikiArticle() {
       },
       {
         onError: () => {
-          // Revert on error
           if (articleIsFavorite) {
             addFavorite(articleId);
           } else {
@@ -468,7 +499,10 @@ export default function WikiArticle() {
           {markdownElements?.map((element, index) => (
             <View key={`markdown-${index}`}>{element}</View>
           ))}
-          <CompletionBadge isRead={articleIsRead} hasReachedEnd={hasReachedEnd} />
+          <CompletionBadge
+            isRead={articleIsRead}
+            hasReachedEnd={hasReachedEnd}
+          />
         </View>
       </Animated.ScrollView>
 

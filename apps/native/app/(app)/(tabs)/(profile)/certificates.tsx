@@ -123,14 +123,15 @@ export default function CertificatesScreen() {
     return (
       <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
         {/* Header with Back Button */}
-        <View className="px-5 pt-4 pb-4 bg-white flex-row items-center border-b border-gray-100 dark:bg-gray-900 dark:border-gray-800">
+        <View className="px-6 pt-5 pb-5 bg-white flex-row items-center border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center dark:border-gray-800 dark:bg-gray-900"
+            className="w-12 h-12 rounded-xl border border-gray-200 items-center justify-center dark:border-gray-800"
+            activeOpacity={0.7}
           >
             <ChevronLeft size={24} color={chevronColor} strokeWidth={2} />
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-gray-900 dark:text-gray-50 ml-3">
+          <Text className="text-xl font-bold text-gray-900 dark:text-gray-50 ml-4">
             Certificado
           </Text>
         </View>
@@ -138,16 +139,16 @@ export default function CertificatesScreen() {
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="px-6 py-8">
             {/* Empty State */}
-            <View className="bg-white rounded-3xl p-12 items-center dark:bg-gray-900">
-              <View className="w-24 h-24 bg-gray-100 rounded-full items-center justify-center mb-6 dark:bg-gray-800">
-                <Award size={48} color="#9CA3AF" strokeWidth={2} />
+            <View className="bg-white rounded-3xl p-14 items-center dark:bg-gray-900">
+              <View className="w-28 h-28 bg-gray-100 rounded-full items-center justify-center mb-8 dark:bg-gray-800">
+                <Award size={56} color="#9CA3AF" strokeWidth={2} />
               </View>
 
-              <Text className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-3 text-center">
+              <Text className="text-2xl font-semibold text-gray-900 dark:text-gray-50 mb-4 text-center">
                 Certificado Bloqueado
               </Text>
 
-              <Text className="text-base text-gray-600 dark:text-gray-400 text-center">
+              <Text className="text-base text-gray-600 dark:text-gray-400 text-center leading-6">
                 Complete todas as trilhas para desbloquear seu certificado
               </Text>
             </View>
@@ -207,23 +208,24 @@ export default function CertificatesScreen() {
   return (
     <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
       {/* Header with Back Button */}
-      <View className="px-5 pt-4 pb-4 bg-white flex-row items-center border-b border-gray-100 dark:bg-gray-900 dark:border-gray-800">
+      <View className="px-6 pt-5 pb-5 bg-white flex-row items-center border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center dark:border-gray-800 dark:bg-gray-900"
+          className="w-12 h-12 rounded-xl border border-gray-200 items-center justify-center dark:border-gray-800"
+          activeOpacity={0.7}
         >
           <ChevronLeft size={24} color={chevronColor} strokeWidth={2} />
         </TouchableOpacity>
-        <Text className="text-xl font-bold text-gray-900 dark:text-gray-50 ml-3">
+        <Text className="text-xl font-bold text-gray-900 dark:text-gray-50 ml-4">
           Certificado
         </Text>
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-6 py-8">
-          <View className="mb-4">
+          <View className="mb-5">
             <View
-              className={`self-start rounded-full px-4 py-1 border ${currentStatus.badgeBg}`}
+              className={`self-start rounded-full px-5 py-2 border ${currentStatus.badgeBg}`}
             >
               <Text
                 className={`text-xs font-semibold uppercase tracking-wider ${currentStatus.badgeText}`}
@@ -236,65 +238,61 @@ export default function CertificatesScreen() {
           <View
             className={`rounded-3xl overflow-hidden mb-6 ${currentStatus.heroBgClass}`}
           >
-            <View className="flex-row items-center px-5 py-6 gap-4">
+            <View className="flex-row items-center px-6 py-8 gap-5">
               <Image
                 source={require("@/assets/graduation.png")}
-                style={{ width: 88, height: 88 }}
+                style={{ width: 96, height: 96 }}
                 resizeMode="contain"
               />
               <View className="flex-1">
-                <Text className="text-white text-xl font-semibold mb-1">
+                <Text className="text-white text-xl font-semibold mb-2 leading-7">
                   {currentStatus.heroTitle}
                 </Text>
-                <Text className="text-white/90 text-sm leading-relaxed">
+                <Text className="text-white/90 text-sm leading-6">
                   {currentStatus.heroDescription}
                 </Text>
               </View>
             </View>
           </View>
 
-          <Text className="text-base text-gray-600 dark:text-gray-400 mb-8">
-            {currentStatus.description}
-          </Text>
-
           {/* Status Banner */}
           {isPending && (
-            <View className="bg-yellow-50 rounded-2xl p-5 mb-6 flex-row items-center gap-3 dark:bg-yellow-900/30">
-              <Clock size={22} color="#F59E0B" strokeWidth={2.5} />
-              <Text className="flex-1 text-base text-yellow-800 dark:text-yellow-100">
+            <View className="bg-yellow-50 rounded-2xl p-6 mb-6 flex-row items-center gap-4 dark:bg-yellow-900/30">
+              <Clock size={24} color="#F59E0B" strokeWidth={2.5} />
+              <Text className="flex-1 text-base text-yellow-800 dark:text-yellow-100 leading-6">
                 Em análise pela equipe
               </Text>
             </View>
           )}
 
           {isRejected && certificate.reviewNotes && (
-            <View className="bg-red-50 rounded-2xl p-5 mb-6 dark:bg-red-900/30">
-              <Text className="text-base font-semibold text-red-900 dark:text-red-100 mb-2">
+            <View className="bg-red-50 rounded-2xl p-6 mb-6 dark:bg-red-900/30">
+              <Text className="text-base font-semibold text-red-900 dark:text-red-100 mb-3">
                 Motivo da rejeição
               </Text>
-              <Text className="text-base text-red-700 dark:text-red-200">
+              <Text className="text-base text-red-700 dark:text-red-200 leading-6">
                 {certificate.reviewNotes}
               </Text>
             </View>
           )}
 
           {isApproved && (
-            <View className="bg-green-50 rounded-2xl p-5 mb-6 flex-row items-center gap-3 dark:bg-green-900/30">
-              <CheckCircle2 size={22} color="#10B981" strokeWidth={2.5} />
-              <Text className="flex-1 text-base text-green-800 dark:text-green-100">
+            <View className="bg-green-50 rounded-2xl p-6 mb-6 flex-row items-center gap-4 dark:bg-green-900/30">
+              <CheckCircle2 size={24} color="#10B981" strokeWidth={2.5} />
+              <Text className="flex-1 text-base text-green-800 dark:text-green-100 leading-6">
                 Aprovado em {formatDate(certificate.reviewedAt)}
               </Text>
             </View>
           )}
 
           {/* Certificate Card */}
-          <View className="bg-white rounded-3xl p-10 mb-6 dark:bg-gray-900">
+          <View className="bg-white rounded-3xl p-12 mb-6 dark:bg-gray-900">
             {/* Header */}
-            <View className="items-center mb-10 pb-8 border-b border-gray-100 dark:border-gray-800">
-              <View className="w-20 h-20 bg-blue-50 rounded-full items-center justify-center mb-4 dark:bg-blue-900/30">
-                <Award size={40} color="#155DFC" strokeWidth={2.5} />
+            <View className="items-center mb-12 pb-10 border-b border-gray-200 dark:border-gray-800">
+              <View className="w-24 h-24 bg-blue-50 rounded-full items-center justify-center mb-5 dark:bg-blue-900/30">
+                <Award size={48} color="#155DFC" strokeWidth={2.5} />
               </View>
-              <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50 text-center mb-2">
+              <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50 text-center mb-3">
                 Certificado de Conclusão
               </Text>
               <Text className="text-base text-gray-600 dark:text-gray-400 text-center">
@@ -303,8 +301,8 @@ export default function CertificatesScreen() {
             </View>
 
             {/* Student Name */}
-            <View className="mb-8">
-              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+            <View className="mb-10">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">
                 Certificamos que
               </Text>
               <Text className="text-3xl font-bold text-gray-900 dark:text-gray-50">
@@ -313,42 +311,42 @@ export default function CertificatesScreen() {
             </View>
 
             {/* Achievement */}
-            <Text className="text-base text-gray-700 dark:text-gray-300 mb-10 leading-relaxed">
+            <Text className="text-base text-gray-700 dark:text-gray-300 mb-12 leading-7">
               concluiu com sucesso todas as trilhas de aprendizado da
               plataforma.
             </Text>
 
             {/* Stats */}
-            <View className="flex-row gap-4 mb-10 pb-8 border-b border-gray-100 dark:border-gray-800">
+            <View className="flex-row gap-6 mb-12 pb-10 border-b border-gray-200 dark:border-gray-800">
               <View className="flex-1">
-                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                   Média
                 </Text>
-                <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+                <Text className="text-3xl font-bold text-gray-900 dark:text-gray-50">
                   {certificate.averageScore.toFixed(0)}%
                 </Text>
               </View>
               <View className="flex-1">
-                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                   Trilhas
                 </Text>
-                <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+                <Text className="text-3xl font-bold text-gray-900 dark:text-gray-50">
                   {certificate.totalTrailsCompleted}
                 </Text>
               </View>
               <View className="flex-1">
-                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                   Tempo
                 </Text>
-                <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+                <Text className="text-3xl font-bold text-gray-900 dark:text-gray-50">
                   {formatTime(certificate.totalTimeMinutes)}
                 </Text>
               </View>
             </View>
 
             {/* Date */}
-            <View className="mb-8">
-              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <View className="mb-10">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 Concluído em
               </Text>
               <Text className="text-base text-gray-800 dark:text-gray-200">
@@ -357,8 +355,8 @@ export default function CertificatesScreen() {
             </View>
 
             {/* Verification Code */}
-            <View className="bg-gray-50 rounded-2xl p-5 dark:bg-gray-800">
-              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <View className="bg-gray-50 rounded-2xl p-6 dark:bg-gray-800">
+              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 Código de Verificação
               </Text>
               <Text className="text-base font-mono font-semibold text-gray-900 dark:text-gray-50">
@@ -369,20 +367,20 @@ export default function CertificatesScreen() {
 
           {/* Action Buttons */}
           {isApproved && (
-            <View className="gap-3">
+            <View className="gap-4">
               {/* Download PDF Button */}
               {certificate.certificateUrl && (
                 <TouchableOpacity
                   onPress={handleDownloadPDF}
                   disabled={downloading}
-                  className="bg-blue-500 rounded-2xl py-5 flex-row items-center justify-center gap-2"
-                  activeOpacity={0.8}
+                  className="bg-blue-500 rounded-2xl py-6 flex-row items-center justify-center gap-3"
+                  activeOpacity={0.7}
                 >
                   {downloading ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <>
-                      <Download size={20} color="#FFFFFF" strokeWidth={2.5} />
+                      <Download size={22} color="#FFFFFF" strokeWidth={2.5} />
                       <Text className="text-white text-lg font-semibold">
                         Baixar PDF
                       </Text>
@@ -394,10 +392,10 @@ export default function CertificatesScreen() {
               {/* Share Button */}
               <TouchableOpacity
                 onPress={handleShare}
-                className="bg-white border-2 border-blue-500 rounded-2xl py-5 flex-row items-center justify-center gap-2 dark:bg-gray-900 dark:border-blue-400"
-                activeOpacity={0.8}
+                className="bg-white border-2 border-blue-500 rounded-2xl py-6 flex-row items-center justify-center gap-3 dark:bg-gray-900 dark:border-blue-400"
+                activeOpacity={0.7}
               >
-                <Share2 size={20} color="#155DFC" strokeWidth={2.5} />
+                <Share2 size={22} color="#155DFC" strokeWidth={2.5} />
                 <Text className="text-blue-500 dark:text-blue-200 text-lg font-semibold">
                   Compartilhar
                 </Text>

@@ -23,6 +23,7 @@ import {
   useToggleFavorite,
 } from "@/features/wiki/hooks";
 import type { StudentArticleListItem } from "@server/modules/wiki/types/article";
+import { useFocusEffect } from "expo-router";
 
 type TabType = "todos" | "favoritos" | "lidos" | "categorias";
 
@@ -33,7 +34,6 @@ const ARTICLES_QUERY = {
 export default function WikiScreen() {
   const [activeTab, setActiveTab] = useState<TabType>("todos");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -51,15 +51,17 @@ export default function WikiScreen() {
   const categoriesFromStore = useArticleStore((state) => state.selectedCategories);
   const clearSelectedCategories = useArticleStore((state) => state.clearSelectedCategories);
 
-  // Apply categories from store when screen loads
-  useEffect(() => {
-    if (categoriesFromStore.length > 0) {
-      setSelectedCategories(categoriesFromStore);
-      setActiveTab("categorias");
-      // Clear from store after applying
-      clearSelectedCategories();
-    }
-  }, [categoriesFromStore, clearSelectedCategories]);
+  // Apply categories from store when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (categoriesFromStore.length > 0) {
+        setSelectedCategories(categoriesFromStore);
+        setActiveTab("categorias");
+        // Clear from store after applying
+        clearSelectedCategories();
+      }
+    }, [categoriesFromStore, clearSelectedCategories])
+  );
 
   const {
     data: articlesResponse,
@@ -98,14 +100,6 @@ export default function WikiScreen() {
 
   const articles = articlesResponse?.articles ?? [];
   const categories = categoriesResponse ?? [];
-
-  const handleLevelToggle = useCallback((level: string) => {
-    setSelectedLevels((prev) =>
-      prev.includes(level)
-        ? prev.filter((item) => item !== level)
-        : [...prev, level],
-    );
-  }, []);
 
   const handleCategoryToggle = useCallback((categoryId: number) => {
     setSelectedCategories((prev) => {
@@ -183,10 +177,6 @@ export default function WikiScreen() {
           article.excerpt.toLowerCase().includes(normalizedQuery)
         : true;
 
-      const matchesLevel =
-        selectedLevels.length === 0 ||
-        selectedLevels.includes(article.difficulty.label);
-
       // Only apply category filter when on "categorias" tab
       const matchesCategory =
         activeTab !== "categorias" ||
@@ -194,7 +184,7 @@ export default function WikiScreen() {
         (!!article.category &&
           selectedCategories.includes(article.category.id));
 
-      if (!matchesSearch || !matchesLevel || !matchesCategory) {
+      if (!matchesSearch || !matchesCategory) {
         return false;
       }
 
@@ -222,7 +212,6 @@ export default function WikiScreen() {
   }, [
     articles,
     searchQuery,
-    selectedLevels,
     selectedCategories,
     activeTab,
     isFavorite,
@@ -278,8 +267,6 @@ export default function WikiScreen() {
         <CategoryFilterBottomSheet
           ref={bottomSheetRef}
           categories={categories}
-          selectedLevels={selectedLevels}
-          onLevelToggle={handleLevelToggle}
           selectedCategories={selectedCategories}
           onCategoryToggle={handleCategoryToggle}
         />

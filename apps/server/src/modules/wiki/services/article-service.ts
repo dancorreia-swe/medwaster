@@ -1332,6 +1332,17 @@ export class ArticleService {
         })
         .returning();
 
+      // Record activity in gamification system
+      try {
+        const { DailyActivitiesService } = await import("@/modules/gamification/daily-activities.service");
+        await DailyActivitiesService.recordActivity(userId, {
+          type: "article",
+          metadata: { articleId },
+        });
+      } catch (error) {
+        console.error("Failed to record article activity:", error);
+      }
+
       return progress;
     }
 
@@ -1351,6 +1362,19 @@ export class ArticleService {
         ),
       )
       .returning();
+
+    // Record activity in gamification system (only if not already read)
+    if (!existingRead.isRead) {
+      try {
+        const { DailyActivitiesService } = await import("@/modules/gamification/daily-activities.service");
+        await DailyActivitiesService.recordActivity(userId, {
+          type: "article",
+          metadata: { articleId },
+        });
+      } catch (error) {
+        console.error("Failed to record article activity:", error);
+      }
+    }
 
     return progress;
   }

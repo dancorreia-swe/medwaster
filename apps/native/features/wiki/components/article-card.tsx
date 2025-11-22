@@ -94,15 +94,15 @@ export function ArticleCard({
             {excerpt}
           </Text>
 
-          <View className="flex-row flex-wrap items-center gap-2 mt-1">
-            <View className="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
-              <Text className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+          <View className="flex-row flex-wrap items-center gap-2.5 mt-1">
+            <View className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800">
+              <Text className="text-sm font-semibold text-gray-600 dark:text-gray-300">
                 {readingTime}
               </Text>
             </View>
             {categoryName ? (
-              <View className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30">
-                <Text className="text-xs font-semibold text-blue-700 dark:text-blue-200">
+              <View className="px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/30">
+                <Text className="text-sm font-semibold text-blue-700 dark:text-blue-200">
                   {categoryName}
                 </Text>
               </View>

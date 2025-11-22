@@ -1,5 +1,5 @@
-import { View, Text, TouchableOpacity } from "react-native";
-import { X, ChevronRight } from "lucide-react-native";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { X, Check } from "lucide-react-native";
 import { Icon } from "@/components/icon";
 import BottomSheet, {
   BottomSheetView,
@@ -18,13 +18,9 @@ interface CategorySummary {
 
 interface CategoryFilterBottomSheetProps {
   categories: CategorySummary[];
-  selectedLevels: string[];
-  onLevelToggle: (level: string) => void;
   selectedCategories: number[];
   onCategoryToggle: (categoryId: number) => void;
 }
-
-const levels = ["Básico", "Intermediário", "Avançado"];
 
 function getCategoryInitial(name: string) {
   return name.charAt(0).toUpperCase();
@@ -33,17 +29,15 @@ function getCategoryInitial(name: string) {
 const CategoryFilterBottomSheetComponent = (
   {
     categories,
-    selectedLevels,
-    onLevelToggle,
     selectedCategories,
     onCategoryToggle,
   }: CategoryFilterBottomSheetProps,
   ref: Ref<BottomSheet>,
 ) => {
-  const snapPoints = useMemo(() => ["85%"], []);
+  const snapPoints = useMemo(() => ["75%"], []);
   const { isDarkColorScheme } = useColorScheme();
   const sheetBackground = isDarkColorScheme ? "#0f172a" : "#ffffff";
-  const indicatorColor = isDarkColorScheme ? "#1f2937" : "#e5e7eb";
+  const indicatorColor = isDarkColorScheme ? "#374151" : "#d1d5db";
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -57,6 +51,8 @@ const CategoryFilterBottomSheetComponent = (
     [],
   );
 
+  const selectedCount = selectedCategories.length;
+
   return (
     <BottomSheet
       ref={ref}
@@ -68,111 +64,104 @@ const CategoryFilterBottomSheetComponent = (
       handleIndicatorStyle={{ backgroundColor: indicatorColor }}
     >
       <BottomSheetView style={{ flex: 1, backgroundColor: sheetBackground }}>
-        <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <Text className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
-            Categorias
-          </Text>
+        {/* Header */}
+        <View className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <View className="flex-row justify-between items-center">
+            <View>
+              <Text className="text-xl font-bold text-gray-900 dark:text-gray-50">
+                Filtrar por Categoria
+              </Text>
+              {selectedCount > 0 && (
+                <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {selectedCount} {selectedCount === 1 ? "selecionada" : "selecionadas"}
+                </Text>
+              )}
+            </View>
 
-          <TouchableOpacity
-            onPress={() => {
-              if (ref && typeof ref !== "function" && ref.current) {
-                ref.current.close();
-              }
-            }}
-            className="w-8 h-8 rounded-full items-center justify-center"
-          >
-            <Icon icon={X} size={24} className="text-gray-900" />
-          </TouchableOpacity>
-        </View>
-
-        <View className="px-5 py-4 border-b border-gray-50">
-          <View className="flex-row items-center gap-1">
-            {levels.map((level) => {
-              const selected = selectedLevels.includes(level);
-              return (
-                <TouchableOpacity
-                  key={level}
-                  onPress={() => onLevelToggle(level)}
-                  className={`px-3.5 py-2 rounded-lg ${
-                    selected ? "bg-primary" : "bg-transparent"
-                  }`}
-                >
-                  <Text
-                    className={`text-sm font-medium ${
-                      selected ? "text-white" : "text-gray-500 dark:text-gray-300"
-                    }`}
-                  >
-                    {level}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+            <TouchableOpacity
+              onPress={() => {
+                if (ref && typeof ref !== "function" && ref.current) {
+                  ref.current.close();
+                }
+              }}
+              className="w-10 h-10 rounded-full items-center justify-center bg-gray-100 dark:bg-gray-800"
+            >
+              <Icon icon={X} size={20} className="text-gray-600 dark:text-gray-400" />
+            </TouchableOpacity>
           </View>
         </View>
 
-        <View className="px-5 flex-1">
+        {/* Categories List */}
+        <ScrollView
+          className="flex-1 px-6 pt-4"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        >
           {categories.map((category) => {
-            const selected = selectedCategories.includes(category.id);
+            const isSelected = selectedCategories.includes(category.id);
             const initial = getCategoryInitial(category.name);
             const color = category.color || "#155DFC";
+
             return (
               <TouchableOpacity
                 key={category.id}
                 onPress={() => onCategoryToggle(category.id)}
-                className="mb-3.5"
+                activeOpacity={0.7}
+                className="mb-3"
               >
                 <View
-                  className={`border rounded-xl px-3.5 py-3.5 ${
-                    selected
-                      ? "bg-primary/10 border-primary"
-                      : "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800"
+                  className={`rounded-2xl p-4 border-2 ${
+                    isSelected
+                      ? "bg-primary/5 border-primary dark:bg-primary/10"
+                      : "bg-gray-50 border-gray-100 dark:bg-gray-900 dark:border-gray-800"
                   }`}
                 >
-                  <View className="flex-row items-center gap-3.5">
+                  <View className="flex-row items-center gap-4">
+                    {/* Category Icon */}
                     <View
-                      className={`size-12 rounded-xl items-center justify-center ${
-                        selected ? "bg-primary/20" : "bg-gray-50 dark:bg-gray-800"
-                      }`}
+                      className="w-14 h-14 rounded-xl items-center justify-center"
+                      style={{
+                        backgroundColor: isSelected
+                          ? `${color}20`
+                          : isDarkColorScheme ? "#1f2937" : "#ffffff"
+                      }}
                     >
                       <Text
-                        className="text-lg font-semibold"
+                        className="text-xl font-bold"
                         style={{ color }}
                       >
                         {initial}
                       </Text>
                     </View>
 
-                    <View className="flex-1 gap-0.5">
+                    {/* Category Info */}
+                    <View className="flex-1">
                       <Text
-                        className={`text-sm font-semibold ${
-                          selected ? "text-primary" : "text-gray-900 dark:text-gray-50"
+                        className={`text-base font-semibold mb-1 ${
+                          isSelected
+                            ? "text-primary"
+                            : "text-gray-900 dark:text-gray-50"
                         }`}
                       >
                         {category.name}
                       </Text>
-                      <Text className="text-xs text-gray-500 dark:text-gray-400">
-                        {category.articleCount}{" "}
-                        {category.articleCount === 1 ? "artigo" : "artigos"}
+                      <Text className="text-sm text-gray-500 dark:text-gray-400">
+                        {category.articleCount} {category.articleCount === 1 ? "artigo" : "artigos"}
                       </Text>
                     </View>
 
-                    {selected ? (
-                      <View className="w-5 h-5 bg-primary rounded-full items-center justify-center">
-                        <Text className="text-white text-xs font-bold">✓</Text>
+                    {/* Checkmark */}
+                    {isSelected && (
+                      <View className="w-6 h-6 bg-primary rounded-full items-center justify-center">
+                        <Icon icon={Check} size={14} className="text-white" />
                       </View>
-                    ) : (
-                      <Icon
-                        icon={ChevronRight}
-                        size={17.5}
-                        className="text-gray-900 dark:text-gray-200"
-                      />
                     )}
                   </View>
                 </View>
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
       </BottomSheetView>
     </BottomSheet>
   );

@@ -13,10 +13,12 @@ function formatDateLabel(date?: string | null) {
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return "--";
 
-  return parsed.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "short",
-  });
+  // Use UTC methods to avoid timezone conversion issues
+  const day = parsed.getUTCDate();
+  const monthNames = ["jan.", "fev.", "mar.", "abr.", "mai.", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."];
+  const month = monthNames[parsed.getUTCMonth()];
+
+  return `${day.toString().padStart(2, "0")} de ${month}`;
 }
 
 export function StreakInfoCard({ streak }: StreakInfoCardProps) {

@@ -18,6 +18,7 @@ export default function TabLayout() {
       backBehavior="history"
       detachInactiveScreens
       screenOptions={{
+        animation: 'fade',
         freezeOnBlur: true,
         headerShown: false,
         tabBarActiveTintColor: isDarkColorScheme

@@ -46,11 +46,26 @@ export class StreaksService {
       normalizedCurrentStreak,
     );
 
+    // Normalize date fields to UTC strings
+    const lastActivityDate = streak.lastActivityDate
+      ? (typeof streak.lastActivityDate === 'string'
+          ? streak.lastActivityDate
+          : this.formatDate(new Date(streak.lastActivityDate)))
+      : null;
+
+    const currentStreakStartDate = streak.currentStreakStartDate
+      ? (typeof streak.currentStreakStartDate === 'string'
+          ? streak.currentStreakStartDate
+          : this.formatDate(new Date(streak.currentStreakStartDate)))
+      : null;
+
     const normalizedStreak = {
       ...streak,
       currentStreak: normalizedCurrentStreak,
       longestStreak: normalizedLongestStreak,
       totalActiveDays: normalizedTotalActiveDays,
+      lastActivityDate,
+      currentStreakStartDate,
     };
 
     const nextMilestone = await this.getNextMilestone(
@@ -88,7 +103,22 @@ export class StreaksService {
       streak = await this.getUserStreak(userId);
     }
 
-    const lastActivityDate = streak.lastActivityDate;
+    // Normalize lastActivityDate to string format for comparison
+    const lastActivityDate = streak.lastActivityDate
+      ? (typeof streak.lastActivityDate === 'string'
+          ? streak.lastActivityDate
+          : this.formatDate(new Date(streak.lastActivityDate)))
+      : null;
+
+    console.log('🔥 [Streak] Debug:', {
+      userId,
+      dateStr,
+      today,
+      yesterday,
+      lastActivityDate,
+      lastActivityDateType: typeof streak.lastActivityDate,
+      lastActivityDateRaw: streak.lastActivityDate,
+    });
 
     // Check if already counted today
     if (lastActivityDate === dateStr) {
@@ -339,10 +369,13 @@ export class StreaksService {
   }
 
   /**
-   * Utility: Format date to YYYY-MM-DD string
+   * Utility: Format date to YYYY-MM-DD string in UTC
    */
   private static formatDate(date: Date): string {
-    return date.toISOString().split("T")[0];
+    const year = date.getUTCFullYear();
+    const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getUTCDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
 
   /**

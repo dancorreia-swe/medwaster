@@ -18,7 +18,7 @@ export function ArticleHeader({
   const heartIdleColor = isDarkColorScheme ? "#9CA3AF" : "#6b7280";
 
   return (
-    <View className="px-6 pt-4 pb-3 bg-white dark:bg-gray-950 flex-row items-center justify-between border-b border-gray-100 dark:border-gray-800">
+    <View className="px-6 pt-4 pb-3 dark:bg-gray-950 flex-row items-center justify-between border-b border-gray-100 dark:border-gray-800">
       <TouchableOpacity
         onPress={() => router.back()}
         className="w-11 h-11 rounded-xl border border-gray-200 dark:border-gray-800 dark:bg-gray-900 items-center justify-center"
