@@ -52,7 +52,8 @@ export default function TrailContentScreen() {
   const [showQuestionResult, setShowQuestionResult] = useState(false);
   const [questionResult, setQuestionResult] =
     useState<QuestionResultType | null>(null);
-  const [currentQuestionAnswer, setCurrentQuestionAnswer] = useState<QuestionAnswer | null>(null);
+  const [currentQuestionAnswer, setCurrentQuestionAnswer] =
+    useState<QuestionAnswer | null>(null);
 
   // Quiz state
   const [quizAttemptId, setQuizAttemptId] = useState<number | null>(null);
@@ -94,7 +95,7 @@ export default function TrailContentScreen() {
    * Handle question answer change (store locally without submitting)
    */
   const handleQuestionAnswerChange = (answer: QuestionAnswer) => {
-    console.log('[ContentScreen] Answer changed:', answer);
+    console.log("[ContentScreen] Answer changed:", answer);
     setCurrentQuestionAnswer(answer);
   };
 
@@ -152,9 +153,10 @@ export default function TrailContentScreen() {
     // If trail was just completed, navigate to celebration
     if (completionData && trail) {
       // Parse completedContentIds if it's a string
-      const completedIds = typeof completionData.completedContentIds === 'string'
-        ? JSON.parse(completionData.completedContentIds || '[]')
-        : (completionData.completedContentIds || []);
+      const completedIds =
+        typeof completionData.completedContentIds === "string"
+          ? JSON.parse(completionData.completedContentIds || "[]")
+          : completionData.completedContentIds || [];
 
       router.push({
         pathname: "/(app)/trails/celebration",
@@ -249,9 +251,10 @@ export default function TrailContentScreen() {
     // If trail was just completed, navigate to celebration
     if (completionData && trail) {
       // Parse completedContentIds if it's a string
-      const completedIds = typeof completionData.completedContentIds === 'string'
-        ? JSON.parse(completionData.completedContentIds || '[]')
-        : (completionData.completedContentIds || []);
+      const completedIds =
+        typeof completionData.completedContentIds === "string"
+          ? JSON.parse(completionData.completedContentIds || "[]")
+          : completionData.completedContentIds || [];
 
       router.push({
         pathname: "/(app)/trails/celebration",
@@ -298,7 +301,13 @@ export default function TrailContentScreen() {
   // Auto-start quiz when component mounts if it's a quiz
   useEffect(() => {
     // Only run if we have a quiz and haven't started yet
-    if (!contentItem?.quizId || quizAttemptId || quizResults || quizStartedRef.current || isStartingQuiz) {
+    if (
+      !contentItem?.quizId ||
+      quizAttemptId ||
+      quizResults ||
+      quizStartedRef.current ||
+      isStartingQuiz
+    ) {
       return;
     }
 
@@ -336,7 +345,17 @@ export default function TrailContentScreen() {
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [contentItem?.quizId, contentItem?.quiz, quizAttemptId, quizResults, isStartingQuiz, startQuizMutation, trailId, contentItemId, router]);
+  }, [
+    contentItem?.quizId,
+    contentItem?.quiz,
+    quizAttemptId,
+    quizResults,
+    isStartingQuiz,
+    startQuizMutation,
+    trailId,
+    contentItemId,
+    router,
+  ]);
 
   // ============================================================================
   // Early returns
@@ -347,7 +366,9 @@ export default function TrailContentScreen() {
     return (
       <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
         <ActivityIndicator size="large" color="#615FFF" />
-        <Text className="text-gray-600 dark:text-gray-300 mt-3">Carregando...</Text>
+        <Text className="text-gray-600 dark:text-gray-300 mt-3">
+          Carregando...
+        </Text>
       </Container>
     );
   }
@@ -358,7 +379,9 @@ export default function TrailContentScreen() {
     return (
       <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
         <ActivityIndicator size="large" color="#615FFF" />
-        <Text className="text-gray-600 dark:text-gray-300 mt-3">Iniciando quiz...</Text>
+        <Text className="text-gray-600 dark:text-gray-300 mt-3">
+          Iniciando quiz...
+        </Text>
       </Container>
     );
   }
@@ -366,7 +389,9 @@ export default function TrailContentScreen() {
   if (!contentItem) {
     return (
       <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
-        <Text className="text-gray-600 dark:text-gray-300">Conteúdo não encontrado</Text>
+        <Text className="text-gray-600 dark:text-gray-300">
+          Conteúdo não encontrado
+        </Text>
         <TouchableOpacity
           onPress={() => router.back()}
           className="mt-4 bg-primary px-6 py-3 rounded-full"
@@ -488,21 +513,27 @@ export default function TrailContentScreen() {
           {/* Quiz Info */}
           <View className="bg-gray-50 rounded-lg p-4 gap-2 dark:bg-gray-800">
             <View className="flex-row items-center justify-between">
-              <Text className="text-sm text-gray-600 dark:text-gray-400">Questões</Text>
+              <Text className="text-sm text-gray-600 dark:text-gray-400">
+                Questões
+              </Text>
               <Text className="text-sm font-semibold text-gray-900 dark:text-gray-50">
                 {quiz.questions?.length || 0}
               </Text>
             </View>
             {quiz.timeLimit && (
               <View className="flex-row items-center justify-between">
-                <Text className="text-sm text-gray-600 dark:text-gray-400">Tempo Limite</Text>
+                <Text className="text-sm text-gray-600 dark:text-gray-400">
+                  Tempo Limite
+                </Text>
                 <Text className="text-sm font-semibold text-gray-900 dark:text-gray-50">
                   {quiz.timeLimit} minutos
                 </Text>
               </View>
             )}
             <View className="flex-row items-center justify-between">
-              <Text className="text-sm text-gray-600 dark:text-gray-400">Pontuação Mínima</Text>
+              <Text className="text-sm text-gray-600 dark:text-gray-400">
+                Pontuação Mínima
+              </Text>
               <Text className="text-sm font-semibold text-gray-900 dark:text-gray-50">
                 {quiz.passingScore}%
               </Text>
@@ -621,12 +652,17 @@ export default function TrailContentScreen() {
                 onPress={() => {
                   // Trigger question submission
                   const answer = getCurrentAnswer();
-                  console.log('[ContentScreen] Verificar clicked, answer:', answer);
+                  console.log(
+                    "[ContentScreen] Verificar clicked, answer:",
+                    answer,
+                  );
                   if (answer !== null) {
                     handleSubmitQuestion(answer);
                   }
                 }}
-                disabled={!hasCurrentAnswer() || submitQuestionMutation.isPending}
+                disabled={
+                  !hasCurrentAnswer() || submitQuestionMutation.isPending
+                }
                 className={`rounded-2xl py-5 ${
                   !hasCurrentAnswer() || submitQuestionMutation.isPending
                     ? "bg-gray-300 dark:bg-gray-700"

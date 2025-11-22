@@ -56,7 +56,8 @@ export default function Home() {
 
   const uniqueTrails = useMemo(() => {
     return trails.filter(
-      (trail, index, self) => index === self.findIndex((t) => t.id === trail.id),
+      (trail, index, self) =>
+        index === self.findIndex((t) => t.id === trail.id),
     );
   }, [trails]);
 
@@ -83,7 +84,7 @@ export default function Home() {
           {/* Content */}
           <View className="flex-1">
             <View className="flex-row items-center mb-1 gap-1">
-              <Image 
+              <Image
                 source={require("@/assets/medal.png")}
                 style={{ width: 16, height: 16 }}
                 resizeMode="contain"
@@ -108,7 +109,7 @@ export default function Home() {
       </View>,
       {
         duration: 4000,
-      }
+      },
     );
   };
 
@@ -119,7 +120,7 @@ export default function Home() {
         <View className="border-gray-100 dark:border-gray-800 px-5 py-3.5">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2.5">
-              <Image 
+              <Image
                 source={require("@/assets/mini-icon.png")}
                 style={{ width: 48, height: 48 }}
                 resizeMode="contain"
@@ -147,7 +148,7 @@ export default function Home() {
           {/* Categories */}
           <View className="mx-5 mb-5">
             <View className="flex-row items-center gap-2.5 mb-1">
-              <Image 
+              <Image
                 source={require("@/assets/book.png")}
                 style={{ width: 24, height: 24 }}
                 resizeMode="contain"
@@ -191,7 +192,7 @@ export default function Home() {
           <View className="mb-5">
             <View className="px-5 mb-3.5">
               <View className="flex-row items-center gap-2.5 mb-1">
-                <Image 
+                <Image
                   source={require("@/assets/compass.png")}
                   style={{ width: 24, height: 24 }}
                   resizeMode="contain"
@@ -214,7 +215,11 @@ export default function Home() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 className="pb-1"
-                contentContainerStyle={{ paddingLeft: 20, paddingRight: 20, gap: 14 }}
+                contentContainerStyle={{
+                  paddingLeft: 20,
+                  paddingRight: 20,
+                  gap: 14,
+                }}
               >
                 {uniqueTrails.map((trail, index) => (
                   <TrailCard
@@ -249,7 +254,7 @@ export default function Home() {
           {/* Continue Learning */}
           <View className="mx-5 mb-6">
             <View className="flex-row items-center gap-2.5 mb-1">
-              <Image 
+              <Image
                 source={require("@/assets/star.png")}
                 style={{ width: 24, height: 24 }}
                 resizeMode="contain"
@@ -276,17 +281,16 @@ export default function Home() {
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={{
-                    padding: 4
+                    padding: 4,
                   }}
                 >
                   <View className="flex-row items-center gap-3">
                     <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center">
                       <Image
-                        source={graduationHatIcon}
-                        style={{ width: 40, height: 40, borderRadius: 8 }}
+                        source={digitalCertificate}
+                        style={{ width: 32, height: 32, borderRadius: 8 }}
                         resizeMode="contain"
                       />
-                      <Text className="text-2xl">🏆</Text>
                     </View>
                     <View className="flex-1">
                       <Text className="text-white font-bold text-base">
