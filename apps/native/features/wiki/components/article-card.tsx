@@ -5,7 +5,7 @@ import { useColorScheme } from "@/lib/use-color-scheme";
 
 interface ArticleCardProps {
   title: string;
-  excerpt: string;
+  excerpt?: string | null;
   icon?: string | null;
   categoryName?: string | null;
   categoryColor?: string | null;
@@ -53,13 +53,14 @@ export function ArticleCard({
   const readingTime = formatReadingTime(readingTimeMinutes);
   const { isDarkColorScheme } = useColorScheme();
   const isExternal = sourceType === "external";
+  const excerptText = excerpt?.trim();
 
   return (
     <TouchableOpacity
       onPress={onPress}
       className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm shadow-black/10 dark:shadow-none border border-gray-100 dark:border-gray-800"
       accessibilityRole="button"
-      accessibilityLabel={`${title}. ${excerpt}. ${readingTime} de leitura.${isRead ? " Já lido." : ""}`}
+      accessibilityLabel={`${title}.${excerptText ? ` ${excerptText}.` : ""} ${readingTime} de leitura.${isRead ? " Já lido." : ""}`}
       accessibilityHint="Toque para ler o artigo"
     >
       <View className="flex-row gap-4 px-5 py-5">
@@ -97,9 +98,11 @@ export function ArticleCard({
           <Text className="text-base font-semibold text-gray-900 dark:text-gray-50 leading-snug">
             {title}
           </Text>
-          <Text className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-            {excerpt}
-          </Text>
+          {excerptText ? (
+            <Text className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              {excerptText}
+            </Text>
+          ) : null}
 
           <View className="flex-row flex-wrap items-center gap-2.5 mt-1">
             <View className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800">

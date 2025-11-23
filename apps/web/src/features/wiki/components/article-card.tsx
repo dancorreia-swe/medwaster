@@ -309,14 +309,17 @@ export function ArticleCard({ article }: ArticleCardProps) {
     : (categoriesData?.data ?? []);
 
   const handleEditDialogChange = (open: boolean) => {
+    // When closing the dialog, mark that we're interacting BEFORE state changes
+    // to prevent card clicks from backdrop clicks
     if (!open) {
-      // When closing the dialog, mark that we're interacting to prevent card clicks
       isInteractingRef.current = true;
+    }
+    setShowEditDialog(open);
+    if (!open) {
       setTimeout(() => {
         isInteractingRef.current = false;
       }, 100);
     }
-    setShowEditDialog(open);
   };
 
   return (
