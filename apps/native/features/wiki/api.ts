@@ -81,6 +81,22 @@ export async function fetchStudentArticleDetail(
   );
 }
 
+export async function fetchPdfText(url: string): Promise<{
+  content: string;
+  title: string | null;
+  numPages: number | null;
+  length: number;
+}> {
+  const response = await client.wiki.articles["pdf-text"].get({
+    query: { url },
+  });
+
+  return assertSuccess(
+    response,
+    "Não foi possível extrair o texto do PDF.",
+  );
+}
+
 export async function fetchStudentCategories(): Promise<
   StudentCategoriesResponse["data"]
 > {

@@ -457,6 +457,13 @@ class ContentScraperService {
       };
     }
   }
+
+  /**
+   * Public helper to extract PDF text (exposed for other services/controllers)
+   */
+  async extractPdfText(url: string) {
+    return this.extractPdfContent(url);
+  }
 }
 
 // Export singleton instance

@@ -1,6 +1,7 @@
 import { BadRequestError } from "@/lib/errors";
 import Elysia, { t } from "elysia";
 import { ArticleService } from "./services/article-service";
+import { contentScraperService } from "./services/content-scraper";
 import { ExportService } from "./services/export.service";
 import {
   createArticleSchema,
@@ -381,6 +382,33 @@ export const userArticles = new Elysia({
         summary: "Read article",
         description:
           "Retrieve a published article for reading. Automatically tracks view count and creates reading progress entry.",
+        tags: ["Student - Wiki Articles"],
+      },
+    },
+  )
+  .get(
+    "/pdf-text",
+    async ({ query }) => {
+      const url = query.url?.trim();
+      if (!url) {
+        throw new BadRequestError("Missing url");
+      }
+
+      const result = await contentScraperService.extractPdfText(url);
+      return success({
+        content: result.content,
+        title: result.title ?? null,
+        numPages: result.numPages ?? null,
+        length: result.content.length,
+      });
+    },
+    {
+      query: t.Object({
+        url: t.String({ description: "PDF URL to extract text from" }),
+      }),
+      detail: {
+        summary: "Extract PDF text",
+        description: "Extract plain text from a PDF URL for reading aloud.",
         tags: ["Student - Wiki Articles"],
       },
     },

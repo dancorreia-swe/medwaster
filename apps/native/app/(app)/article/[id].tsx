@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   Linking,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -19,7 +20,11 @@ import {
   useStudentArticleDetail,
   useToggleFavorite,
 } from "@/features/wiki/hooks";
-import { markArticleAsRead, markArticleAsUnread } from "@/features/wiki/api";
+import {
+  markArticleAsRead,
+  markArticleAsUnread,
+  fetchPdfText,
+} from "@/features/wiki/api";
 import { useMarkTrailArticleRead, useTrail } from "@/features/trails/hooks";
 import {
   ArticleHeader,
@@ -94,6 +99,8 @@ export default function WikiArticle() {
   const [webViewHasError, setWebViewHasError] = useState(false);
   const [pdfLoadingProgress, setPdfLoadingProgress] = useState(0);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfText, setPdfText] = useState<string | null>(null);
+  const [pdfTextLoading, setPdfTextLoading] = useState(false);
   const metadataSheetRef = useRef<BottomSheet>(null);
 
   const { isReading, isPaused, handleAudioReading, handlePauseResume } =
@@ -229,11 +236,40 @@ export default function WikiArticle() {
 
   const handleAudioPress = useCallback(async () => {
     if (!article) return;
+    if (isExternalArticle && isPdfExternal && externalUrl) {
+      try {
+        let text = pdfText;
+        if (!text) {
+          setPdfTextLoading(true);
+          const res = await fetchPdfText(externalUrl);
+          text = res.content;
+          setPdfText(res.content);
+        }
+        const textToRead = `${article.title}. ${text ?? ""}`;
+        await handleAudioReading(textToRead);
+      } catch (error) {
+        console.error("Erro ao ler PDF em voz alta:", error);
+        Alert.alert("Erro", "Não foi possível ler o PDF em voz alta.");
+      } finally {
+        setPdfTextLoading(false);
+      }
+      return;
+    }
+
     const textToRead = `${article.title}. ${contentText}`;
     await handleAudioReading(textToRead, () => {
       void handleMarkAsReadCallback().catch(console.error);
     });
-  }, [article, contentText, handleAudioReading, handleMarkAsReadCallback]);
+  }, [
+    article,
+    contentText,
+    handleAudioReading,
+    handleMarkAsReadCallback,
+    isExternalArticle,
+    isPdfExternal,
+    externalUrl,
+    pdfText,
+  ]);
 
   const handleMarkAsRead = useCallback(async () => {
     await handleMarkAsReadCallback();
