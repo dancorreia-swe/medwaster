@@ -1,16 +1,20 @@
 import { View, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
-import { ChevronLeft, Heart } from "lucide-react-native";
+import { ChevronLeft, Heart, Info } from "lucide-react-native";
 import { useColorScheme } from "@/lib/use-color-scheme";
 
 interface ArticleHeaderProps {
   articleIsFavorite: boolean;
   onToggleFavorite: () => void;
+  onOpenMetadata?: () => void;
+  showMetadataButton?: boolean;
 }
 
 export function ArticleHeader({
   articleIsFavorite,
   onToggleFavorite,
+  onOpenMetadata,
+  showMetadataButton,
 }: ArticleHeaderProps) {
   const router = useRouter();
   const { isDarkColorScheme } = useColorScheme();
@@ -26,21 +30,32 @@ export function ArticleHeader({
         <ChevronLeft size={24} color={arrowColor} strokeWidth={2} />
       </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={onToggleFavorite}
-        className={`w-11 h-11 rounded-xl items-center justify-center ${
-          articleIsFavorite
-            ? "bg-red-50 dark:bg-red-900/30"
-            : "bg-gray-100 dark:bg-gray-800"
-        }`}
-      >
-        <Heart
-          size={22}
-          color={articleIsFavorite ? "#ef4444" : heartIdleColor}
-          fill={articleIsFavorite ? "#ef4444" : "transparent"}
-          strokeWidth={2}
-        />
-      </TouchableOpacity>
+      <View className="flex-row items-center gap-3">
+        {showMetadataButton && onOpenMetadata ? (
+          <TouchableOpacity
+            onPress={onOpenMetadata}
+            className="w-11 h-11 rounded-xl items-center justify-center bg-gray-100 dark:bg-gray-800"
+          >
+            <Info size={20} color={arrowColor} strokeWidth={2} />
+          </TouchableOpacity>
+        ) : null}
+
+        <TouchableOpacity
+          onPress={onToggleFavorite}
+          className={`w-11 h-11 rounded-xl items-center justify-center ${
+            articleIsFavorite
+              ? "bg-red-50 dark:bg-red-900/30"
+              : "bg-gray-100 dark:bg-gray-800"
+          }`}
+        >
+          <Heart
+            size={22}
+            color={articleIsFavorite ? "#ef4444" : heartIdleColor}
+            fill={articleIsFavorite ? "#ef4444" : "transparent"}
+            strokeWidth={2}
+          />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

@@ -17,6 +17,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  EmojiPicker,
+  EmojiPickerContent,
+  EmojiPickerFooter,
+  EmojiPickerSearch,
+} from "@/components/ui/emoji-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -34,15 +41,20 @@ import {
   Tag,
   Folder,
   FileX,
+  ExternalLink,
+  Edit,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   useDeleteArticle,
   useArchiveArticle,
   usePublishArticle,
   useUnpublishArticle,
+  useUpdateArticle,
+  useCategories,
 } from "../api/wikiQueries";
+import { ExternalArticleFormDialog } from "./external-article-form-dialog";
 
 type ArticleStatus = "draft" | "published" | "archived";
 
@@ -51,6 +63,11 @@ export interface ArticleCardArticle {
   title?: string | null;
   icon?: string | null;
   status?: ArticleStatus | null;
+  sourceType?: "original" | "external" | null;
+  externalUrl?: string | null;
+  externalAuthors?: string[] | null;
+  publicationSource?: string | null;
+  publicationDate?: string | null;
   excerpt?: string | null;
   readingTimeMinutes?: number | null;
   updatedAt?: string | null;
@@ -110,11 +127,17 @@ export function ArticleCard({ article }: ArticleCardProps) {
   const archiveMutation = useArchiveArticle();
   const publishMutation = usePublishArticle();
   const unpublishMutation = useUnpublishArticle();
+  const updateMutation = useUpdateArticle();
+  const { data: categoriesData } = useCategories();
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showUnpublishDialog, setShowUnpublishDialog] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
+
+  const isInteractingRef = useRef(false);
 
   const displayTitle =
     article.title && article.title.trim().length > 0
@@ -155,11 +178,29 @@ export function ArticleCard({ article }: ArticleCardProps) {
   const canPublish = statusValue === "draft" || statusValue === "archived";
   const canUnpublish = statusValue === "published";
 
-  const handleCardClick = () => {
-    navigate({
-      to: "/wiki/$articleId",
-      params: { articleId: String(article.id) },
-    });
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if any dialog is open or if we're in the middle of an interaction
+    if (
+      showEditDialog ||
+      showDeleteDialog ||
+      showArchiveDialog ||
+      showUnpublishDialog ||
+      showEmojiPicker ||
+      isInteractingRef.current
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    if (article.sourceType === "external" && article.externalUrl) {
+      window.open(article.externalUrl, "_blank");
+    } else {
+      navigate({
+        to: "/wiki/$articleId",
+        params: { articleId: String(article.id) },
+      });
+    }
   };
 
   const handleDeleteClick = () => {
@@ -233,6 +274,51 @@ export function ArticleCard({ article }: ArticleCardProps) {
     }
   };
 
+  const handleIconChange = async (emoji: string) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: article.id,
+        data: { icon: emoji },
+      });
+      setShowEmojiPicker(false);
+      toast.success("Ícone atualizado");
+    } catch (error) {
+      console.error("Icon update error:", error);
+      toast.error("Erro ao atualizar ícone");
+    }
+  };
+
+  const handleEditSubmit = async (values: any) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: article.id,
+        data: values,
+      });
+      setShowEditDialog(false);
+      toast.success("Artigo atualizado com sucesso");
+    } catch (error) {
+      console.error("Update error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao atualizar artigo",
+      );
+    }
+  };
+
+  const categoriesList = Array.isArray(categoriesData)
+    ? categoriesData
+    : (categoriesData?.data ?? []);
+
+  const handleEditDialogChange = (open: boolean) => {
+    if (!open) {
+      // When closing the dialog, mark that we're interacting to prevent card clicks
+      isInteractingRef.current = true;
+      setTimeout(() => {
+        isInteractingRef.current = false;
+      }, 100);
+    }
+    setShowEditDialog(open);
+  };
+
   return (
     <Card
       className="group hover:shadow-md transition-shadow gap-4 cursor-pointer"
@@ -240,21 +326,57 @@ export function ArticleCard({ article }: ArticleCardProps) {
     >
       <CardHeader className="space-y-2">
         <div className="flex items-start gap-3 min-w-0">
-          {article.icon && (
-            <span className="text-xl shrink-0 mt-0.5">
-              {article.icon}
-            </span>
-          )}
+          <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+            <PopoverTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-0 h-auto hover:bg-muted rounded transition-colors shrink-0 mt-0.5"
+              >
+                {article.icon ? (
+                  <span className="text-xl">{article.icon}</span>
+                ) : (
+                  <FileText className="size-5 text-muted-foreground" />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-fit p-0"
+              align="start"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <EmojiPicker
+                locale="pt"
+                className="h-[342px]"
+                onEmojiSelect={({ emoji }) => handleIconChange(emoji)}
+              >
+                <EmojiPickerSearch placeholder="Pesquisar..." />
+                <EmojiPickerContent />
+                <EmojiPickerFooter />
+              </EmojiPicker>
+            </PopoverContent>
+          </Popover>
           <CardTitle className="text-base line-clamp-2 flex-1 leading-normal wrap-break-word">
             {displayTitle}
           </CardTitle>
         </div>
-        <Badge
-          variant="outline"
-          className={`w-fit capitalize text-xs ${statusMeta.badgeClass}`}
-        >
-          {statusMeta.label}
-        </Badge>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge
+            variant="outline"
+            className={`w-fit capitalize text-xs ${statusMeta.badgeClass}`}
+          >
+            {statusMeta.label}
+          </Badge>
+          {article.sourceType === "external" && (
+            <Badge
+              variant="outline"
+              className="w-fit text-xs bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200 dark:bg-purple-900/30 dark:text-purple-100 dark:border-purple-800 dark:hover:bg-purple-900/40"
+            >
+              <ExternalLink className="mr-1 h-3 w-3" />
+              Externo
+            </Badge>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-3 text-sm text-muted-foreground pt-0 pb-0">
@@ -338,15 +460,37 @@ export function ArticleCard({ article }: ArticleCardProps) {
               align="end"
               onClick={(e) => e.stopPropagation()}
             >
-              <DropdownMenuItem asChild>
-                <Link
-                  to={`/wiki/$articleId`}
-                  params={{ articleId: String(article.id) }}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Ver artigo
-                </Link>
+              <DropdownMenuItem
+                asChild={article.sourceType !== "external"}
+                disabled={article.sourceType === "external"}
+              >
+                {article.sourceType === "external" ? (
+                  <div className="flex items-center">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Ver artigo
+                  </div>
+                ) : (
+                  <Link
+                    to={`/wiki/$articleId`}
+                    params={{ articleId: String(article.id) }}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Ver artigo
+                  </Link>
+                )}
               </DropdownMenuItem>
+
+              {article.sourceType === "external" && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEditDialog(true);
+                  }}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Editar
+                </DropdownMenuItem>
+              )}
 
               {canArchive && (
                 <DropdownMenuItem
@@ -544,6 +688,30 @@ export function ArticleCard({ article }: ArticleCardProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ExternalArticleFormDialog
+        open={showEditDialog}
+        onOpenChange={handleEditDialogChange}
+        article={
+          article.sourceType === "external"
+            ? {
+                id: article.id,
+                title: article.title || "",
+                externalUrl: article.externalUrl || "",
+                externalAuthors: article.externalAuthors || [],
+                publicationSource: article.publicationSource,
+                publicationDate: article.publicationDate,
+                excerpt: article.excerpt,
+                categoryId: article.category?.id,
+                icon: article.icon,
+                tags: article.tags,
+              }
+            : null
+        }
+        categories={categoriesList}
+        onSubmit={handleEditSubmit}
+        isSubmitting={updateMutation.isPending}
+      />
     </Card>
   );
 }

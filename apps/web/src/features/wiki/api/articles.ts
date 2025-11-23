@@ -24,43 +24,6 @@ export const articleQueryOptions = (id: number) =>
     queryFn: () => client.wiki.articles({ id }).get(),
   });
 
-// Categories query options
-export const categoriesQueryOptions = () =>
-  queryOptions({
-    queryKey: ["wiki", "categories"],
-    queryFn: async () => {
-      // Mock data for now since we don't have categories endpoint yet
-      return {
-        data: [
-          { id: 1, name: "Biological Waste" },
-          { id: 2, name: "Chemical Waste" },
-          { id: 3, name: "Pharmaceutical Waste" },
-          { id: 4, name: "Pathological Waste" },
-          { id: 5, name: "Sharps" },
-        ],
-      };
-    },
-  });
-
-// Tags query options
-export const tagsQueryOptions = () =>
-  queryOptions({
-    queryKey: ["wiki", "tags"],
-    queryFn: async () => {
-      // Mock data for now since we don't have tags endpoint yet
-      return {
-        data: [
-          { id: 1, name: "biológico" },
-          { id: 2, name: "descarte" },
-          { id: 3, name: "segurança" },
-          { id: 4, name: "anvisa" },
-          { id: 5, name: "rdc222" },
-          { id: 6, name: "procedimento" },
-        ],
-      };
-    },
-  });
-
 // Export types for components
 export type ArticleListItem = {
   id: number;

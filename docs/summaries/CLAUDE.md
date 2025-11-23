@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 Medwaster is a full-stack educational platform built with TypeScript that includes:
+
 - **Web application** (React + TanStack Router + Vite)
 - **Mobile application** (React Native + Expo)
 - **API server** (Elysia + Bun)
@@ -15,6 +16,7 @@ This is a Turborepo monorepo with feature-rich modules for questions, achievemen
 ## Common Development Commands
 
 ### Root Level Commands
+
 ```bash
 # Install dependencies
 bun install
@@ -41,6 +43,7 @@ bun test:ui
 ```
 
 ### Database Commands
+
 ```bash
 # Database operations (all run on server)
 bun db:start       # Start PostgreSQL with Docker
@@ -55,6 +58,7 @@ bun db:down        # Stop and remove containers
 ```
 
 ### App-Specific Commands
+
 ```bash
 # Web app (apps/web)
 cd apps/web
@@ -63,7 +67,7 @@ bun build          # Production build
 bun check-types    # TypeScript check
 bun test           # Run Vitest tests
 
-# Server (apps/server)  
+# Server (apps/server)
 cd apps/server
 bun dev            # Development with hot reload
 bun dev:worker     # Background worker
@@ -75,6 +79,7 @@ bun test           # Run Vitest tests
 ## Architecture
 
 ### Backend (apps/server)
+
 - **Framework**: Elysia with Bun runtime
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: Better Auth with email/password
@@ -84,6 +89,7 @@ bun test           # Run Vitest tests
 - **Background Jobs**: BullMQ with Redis (see workers/)
 
 ### Frontend (apps/web)
+
 - **Framework**: React 19 with TanStack Router
 - **Build Tool**: Vite
 - **Styling**: TailwindCSS 4.0 with shadcn/ui components
@@ -92,12 +98,14 @@ bun test           # Run Vitest tests
 - **Form Handling**: TanStack Form with Zod validation
 
 ### Mobile (apps/native)
+
 - **Framework**: React Native with Expo
 - **Navigation**: Expo Router (file-based)
 - **Styling**: NativeWind (Tailwind for React Native)
 - **Authentication**: Better Auth with Expo integration
 
 ### Key Features & Modules
+
 - **Questions**: Multi-type question system (multiple choice, true/false, fill-in-blank, matching)
 - **Categories & Tags**: Content organization with hierarchical categories
 - **Wiki**: Article management with rich text editing (BlockNote/TipTap)
@@ -108,6 +116,7 @@ bun test           # Run Vitest tests
 ## Database Schema Notes
 
 The database uses PostgreSQL with Drizzle ORM. Key schemas:
+
 - `questions.ts`: Complex question types with related options and answers
 - `auth.ts`: User authentication and authorization (Better Auth)
 - `achievements.ts`: Gamification and user progress
@@ -132,6 +141,7 @@ The database uses PostgreSQL with Drizzle ORM. Key schemas:
 ## Type Safety
 
 This project emphasizes type safety with:
+
 - Strict TypeScript configuration across all apps
 - Drizzle for type-safe database operations
 - TanStack Router for type-safe routing
@@ -145,3 +155,4 @@ This project emphasizes type safety with:
 - Web routes: `apps/web/src/routes/`
 - Shared UI components: `apps/web/src/components/ui/`
 - Feature modules: `apps/web/src/features/`
+

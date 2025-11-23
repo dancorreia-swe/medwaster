@@ -73,8 +73,9 @@ export class ArticleService {
     const minutes = Math.max(1, readingTimeMinutes ?? 1);
 
     const descriptor =
-      this.difficultyDescriptors.find(({ maxMinutes }) => minutes <= maxMinutes) ??
-      this.difficultyDescriptors[this.difficultyDescriptors.length - 1];
+      this.difficultyDescriptors.find(
+        ({ maxMinutes }) => minutes <= maxMinutes,
+      ) ?? this.difficultyDescriptors[this.difficultyDescriptors.length - 1];
 
     return {
       value: descriptor.value,
@@ -189,10 +190,17 @@ export class ArticleService {
       id: article.id,
       title: article.title,
       slug: article.slug,
+      sourceType: article.sourceType,
       icon: article.icon ?? null,
       excerpt: article.excerpt,
       readingTimeMinutes: article.readingTimeMinutes,
       featuredImageUrl: article.featuredImageUrl ?? null,
+
+      // External reference fields
+      externalUrl: article.externalUrl ?? null,
+      externalAuthors: article.externalAuthors ?? null,
+      publicationSource: article.publicationSource ?? null,
+
       category: article.category,
       tags: article.tags,
       difficulty,
@@ -200,7 +208,6 @@ export class ArticleService {
       progress,
     };
   }
-
 
   /**
    * Create a new wiki article
@@ -237,16 +244,66 @@ export class ArticleService {
       }
     }
 
+    const sourceType = data.sourceType || "original";
+
+    // Validate based on source type
+    if (sourceType === "external") {
+      if (!data.externalUrl) {
+        throw new ValidationError(
+          "External articles must have an external URL",
+        );
+      }
+      if (!data.externalAuthors || data.externalAuthors.length === 0) {
+        throw new ValidationError(
+          "External articles must have at least one author",
+        );
+      }
+      // Only validate excerpt for published external articles
+      if (data.status === "published") {
+        if (!data.excerpt || data.excerpt.length < 50) {
+          throw new ValidationError(
+            "Published external articles must have an excerpt with at least 50 characters",
+          );
+        }
+      }
+    } else {
+      // Original article - content is required
+      if (!data.content || JSON.stringify(data.content) === "[{}]") {
+        // Allow empty content for draft creation
+        if (data.status === "published") {
+          throw new ValidationError("Published articles must have content");
+        }
+      }
+    }
+
     const articleData: NewWikiArticle = {
       title: data.title,
       slug,
-      content: [{}],
+      sourceType,
       status: data.status || "draft",
       categoryId: data.categoryId,
       authorId,
       featuredImageUrl: data.featuredImageUrl,
       publishedAt: data.status === "published" ? new Date() : null,
+      icon: data.icon,
     };
+
+    // Original content fields
+    if (sourceType === "original") {
+      articleData.content = data.content || [{}];
+    }
+
+    // External reference fields
+    if (sourceType === "external") {
+      articleData.externalUrl = data.externalUrl;
+      articleData.externalAuthors = data.externalAuthors;
+      articleData.publicationDate = data.publicationDate
+        ? new Date(data.publicationDate)
+        : null;
+      articleData.publicationSource = data.publicationSource;
+      articleData.excerpt = data.excerpt;
+      articleData.readingTimeMinutes = data.readingTimeMinutes || 5; // Default 5 min if not provided
+    }
 
     try {
       const [article] = await db
@@ -256,6 +313,19 @@ export class ArticleService {
 
       if (data.tagIds && data.tagIds.length > 0) {
         await this.updateArticleTags(article.id, data.tagIds, authorId);
+      }
+
+      // Queue embedding generation for external articles if published
+      if (
+        sourceType === "external" &&
+        data.status === "published" &&
+        data.externalUrl
+      ) {
+        await ragQueue.add("scrape-and-embed", {
+          type: "scrape-and-embed",
+          articleId: article.id,
+          url: data.externalUrl,
+        });
       }
 
       const createdArticle = await this.getArticleById(article.id);
@@ -308,14 +378,13 @@ export class ArticleService {
       updateData.slug = ensureUniqueSlug(baseSlug, existingSlugs);
     }
 
-    // Update content and recalculate metrics
-    if (data.content) {
+    const sourceType = existingArticle[0].sourceType;
+
+    // Update content and recalculate metrics (for original articles only)
+    if (data.content && sourceType === "original") {
       updateData.content = data.content;
 
-      const markdown = await this.editor.blocksToMarkdownLossy(
-        data.content,
-      );
-      // Decode HTML entities to ensure clean markdown output
+      const markdown = await this.editor.blocksToMarkdownLossy(data.content);
       updateData.contentText = ContentProcessor.decodeHTMLEntities(markdown);
 
       updateData.readingTimeMinutes = ContentProcessor.calculateReadingTime(
@@ -325,6 +394,21 @@ export class ArticleService {
       if (!data.excerpt) {
         updateData.excerpt = ContentProcessor.generateExcerpt(data.content);
       }
+    }
+
+    if (sourceType === "external") {
+      if (data.externalUrl !== undefined)
+        updateData.externalUrl = data.externalUrl;
+      if (data.externalAuthors !== undefined)
+        updateData.externalAuthors = data.externalAuthors;
+      if (data.publicationDate !== undefined)
+        updateData.publicationDate = data.publicationDate
+          ? new Date(data.publicationDate)
+          : null;
+      if (data.publicationSource !== undefined)
+        updateData.publicationSource = data.publicationSource;
+      if (data.readingTimeMinutes !== undefined)
+        updateData.readingTimeMinutes = data.readingTimeMinutes;
     }
 
     if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
@@ -339,7 +423,6 @@ export class ArticleService {
 
       if (newStatus === "published") {
         const categoryId = data.categoryId ?? existingArticle[0].categoryId;
-        const content = data.content ?? existingArticle[0].content;
 
         if (!categoryId) {
           throw new BusinessLogicError(
@@ -347,14 +430,42 @@ export class ArticleService {
           );
         }
 
-        const contentText = data.content
-          ? ContentProcessor.extractPlainText(content)
-          : existingArticle[0].contentText;
+        // Validate based on source type
+        if (sourceType === "original") {
+          const content = data.content ?? existingArticle[0].content;
+          const contentText = data.content
+            ? ContentProcessor.extractPlainText(content)
+            : existingArticle[0].contentText;
 
-        if (!contentText || contentText.length < 50) {
-          throw new BusinessLogicError(
-            "Published articles must have at least 50 characters of content",
-          );
+          if (!contentText || contentText.length < 50) {
+            throw new BusinessLogicError(
+              "Published articles must have at least 50 characters of content",
+            );
+          }
+        } else if (sourceType === "external") {
+          const externalUrl =
+            data.externalUrl ?? existingArticle[0].externalUrl;
+          const externalAuthors =
+            data.externalAuthors ?? existingArticle[0].externalAuthors;
+          const excerpt = data.excerpt ?? existingArticle[0].excerpt;
+
+          if (!externalUrl) {
+            throw new BusinessLogicError(
+              "Published external articles must have an external URL",
+            );
+          }
+
+          if (!externalAuthors || externalAuthors.length === 0) {
+            throw new BusinessLogicError(
+              "Published external articles must have at least one author",
+            );
+          }
+
+          if (excerpt?.length && excerpt.length < 50) {
+            throw new BusinessLogicError(
+              "Published external articles must have an excerpt with at least 50 characters",
+            );
+          }
         }
 
         if (oldStatus !== "published") {
@@ -400,13 +511,27 @@ export class ArticleService {
 
       const updatedArticle = await this.getArticleById(id);
 
-      if (data.content) {
+      // Queue embedding generation based on source type
+      if (sourceType === "original" && data.content) {
         await ragQueue.add("generate-embeddings", {
           type: "generate-embeddings",
           articleId: id,
           content:
             updateData.contentText || existingArticle[0].contentText || "",
         });
+      } else if (
+        sourceType === "external" &&
+        (data.externalUrl || data.status === "published")
+      ) {
+        // Re-scrape if URL changed or article was just published
+        const url = data.externalUrl || existingArticle[0].externalUrl;
+        if (url) {
+          await ragQueue.add("scrape-and-embed", {
+            type: "scrape-and-embed",
+            articleId: id,
+            url,
+          });
+        }
       }
 
       return updatedArticle;
@@ -472,11 +597,21 @@ export class ArticleService {
       id: article.id,
       title: article.title,
       slug: article.slug,
+      sourceType: article.sourceType,
       icon: article.icon || null,
       content: article.content as any[],
       contentText: article.contentText || "",
+
+      // External reference fields
+      externalUrl: article.externalUrl,
+      externalAuthors: article.externalAuthors,
+      publicationDate: article.publicationDate
+        ? article.publicationDate.toISOString()
+        : null,
+      publicationSource: article.publicationSource,
+
       excerpt: article.excerpt || "",
-      metaDescription: null,
+      metaDescription: article.metaDescription || null,
       featuredImageUrl: article.featuredImageUrl,
       status: article.status,
       readingTimeMinutes: article.readingTimeMinutes || 1,
@@ -676,6 +811,11 @@ export class ArticleService {
         icon: article.icon || null,
         excerpt: article.excerpt || "",
         status: article.status,
+        sourceType: article.sourceType,
+        externalUrl: article.externalUrl || null,
+        externalAuthors: article.externalAuthors || null,
+        publicationSource: article.publicationSource || null,
+        publicationDate: article.publicationDate?.toISOString() || null,
         readingTimeMinutes: article.readingTimeMinutes || 1,
         viewCount: article.viewCount,
         featuredImageUrl: article.featuredImageUrl ?? null,
@@ -800,9 +940,7 @@ export class ArticleService {
     await db
       .delete(userArticleBookmarks)
       .where(eq(userArticleBookmarks.articleId, id));
-    await db
-      .delete(userArticleReads)
-      .where(eq(userArticleReads.articleId, id));
+    await db.delete(userArticleReads).where(eq(userArticleReads.articleId, id));
 
     // Delete the article itself
     await db.delete(wikiArticles).where(eq(wikiArticles.id, id));
@@ -831,12 +969,14 @@ export class ArticleService {
       throw new BusinessLogicError("Article is already published");
     }
 
-    // Validate publication requirements
     if (!article[0].categoryId) {
       throw new BusinessLogicError("Published articles must have a category");
     }
 
-    if (!article[0].contentText || article[0].contentText.length < 50) {
+    if (
+      article[0].sourceType === "original" &&
+      (!article[0].contentText || article[0].contentText.length < 50)
+    ) {
       throw new BusinessLogicError(
         "Published articles must have at least 50 characters of content",
       );
@@ -853,7 +993,6 @@ export class ArticleService {
 
     const publishedArticle = await this.getArticleById(id);
 
-    // Dispatch RAG worker to generate embeddings for published article
     await ragQueue.add("generate-embeddings", {
       type: "generate-embeddings",
       articleId: id,
@@ -1140,19 +1279,23 @@ export class ArticleService {
 
     const summaries = new Map<
       number,
-      { id: number; name: string; slug: string; color: string; articleCount: number }
+      {
+        id: number;
+        name: string;
+        slug: string;
+        color: string;
+        articleCount: number;
+      }
     >();
 
     for (const row of rows) {
-      const existing =
-        summaries.get(row.id) ??
-        {
-          id: row.id,
-          name: row.name,
-          slug: row.slug,
-          color: row.color || "#3b82f6",
-          articleCount: 0,
-        };
+      const existing = summaries.get(row.id) ?? {
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        color: row.color || "#3b82f6",
+        articleCount: 0,
+      };
 
       if (row.articleId) {
         existing.articleCount += 1;
@@ -1334,7 +1477,9 @@ export class ArticleService {
 
       // Record activity in gamification system
       try {
-        const { DailyActivitiesService } = await import("@/modules/gamification/daily-activities.service");
+        const { DailyActivitiesService } = await import(
+          "@/modules/gamification/daily-activities.service"
+        );
         await DailyActivitiesService.recordActivity(userId, {
           type: "article",
           metadata: { articleId },
@@ -1366,7 +1511,9 @@ export class ArticleService {
     // Record activity in gamification system (only if not already read)
     if (!existingRead.isRead) {
       try {
-        const { DailyActivitiesService } = await import("@/modules/gamification/daily-activities.service");
+        const { DailyActivitiesService } = await import(
+          "@/modules/gamification/daily-activities.service"
+        );
         await DailyActivitiesService.recordActivity(userId, {
           type: "article",
           metadata: { articleId },
@@ -1469,10 +1616,7 @@ export class ArticleService {
         progress: userArticleReads,
       })
       .from(userArticleReads)
-      .leftJoin(
-        wikiArticles,
-        eq(userArticleReads.articleId, wikiArticles.id),
-      )
+      .leftJoin(wikiArticles, eq(userArticleReads.articleId, wikiArticles.id))
       .leftJoin(
         contentCategories,
         eq(wikiArticles.categoryId, contentCategories.id),

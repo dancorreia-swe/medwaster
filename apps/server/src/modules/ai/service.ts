@@ -1,4 +1,4 @@
-import { MarkdownTextSplitter } from "langchain/text_splitter";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { Document } from "@langchain/core/documents";
 import { embed, embedMany } from "ai";
 import { cosineDistance, desc, gt, sql } from "drizzle-orm";
@@ -14,7 +14,11 @@ export abstract class AIService {
   ): Promise<{ content: string; embedding: number[] }[]> {
     const embeddingModel = this.embeddingModel;
 
-    const splitter = new MarkdownTextSplitter();
+    // Use RecursiveCharacterTextSplitter for better handling of both HTML and PDF content
+    const splitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1000,
+      chunkOverlap: 200,
+    });
 
     const docOutputs = await splitter.splitDocuments([
       new Document({ pageContent: content }),

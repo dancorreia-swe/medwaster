@@ -31,6 +31,7 @@ import {
   ArticleGridSkeleton,
   EmptyState,
   NewArticleButton,
+  ImportExternalArticleDialog,
 } from "@/features/wiki/components";
 import { wrapRouteWithOutletIfNested } from "@/utils/router";
 import {
@@ -235,7 +236,19 @@ function RouteComponent() {
             conhecimento para o aluno
           </p>
         </header>
-        <NewArticleButton />
+        <div className="flex gap-2">
+          <ImportExternalArticleDialog
+            categories={
+              categoriesQuery.data
+                ? categoriesQuery.data.map((c: any) => ({
+                    id: c.id,
+                    name: c.name,
+                  }))
+                : []
+            }
+          />
+          <NewArticleButton />
+        </div>
       </div>
 
       {/* Filters + Search */}

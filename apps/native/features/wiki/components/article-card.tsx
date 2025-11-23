@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity } from "react-native";
-import { ChevronRight, Heart } from "lucide-react-native";
+import { ChevronRight, Heart, ExternalLink } from "lucide-react-native";
 import { Icon } from "@/components/icon";
 import { useColorScheme } from "@/lib/use-color-scheme";
 
@@ -12,6 +12,9 @@ interface ArticleCardProps {
   readingTimeMinutes: number;
   isFavorite?: boolean;
   isRead?: boolean;
+  sourceType?: "original" | "external";
+  externalAuthors?: string[] | null;
+  publicationSource?: string | null;
   onFavoriteToggle?: () => void;
   onPress?: () => void;
 }
@@ -35,6 +38,9 @@ export function ArticleCard({
   readingTimeMinutes,
   isFavorite = false,
   isRead = false,
+  sourceType = "original",
+  externalAuthors,
+  publicationSource,
   onFavoriteToggle,
   onPress,
 }: ArticleCardProps) {
@@ -46,6 +52,7 @@ export function ArticleCard({
   const categoryInitial = getCategoryInitial(categoryName);
   const readingTime = formatReadingTime(readingTimeMinutes);
   const { isDarkColorScheme } = useColorScheme();
+  const isExternal = sourceType === "external";
 
   return (
     <TouchableOpacity
@@ -107,6 +114,21 @@ export function ArticleCard({
                 </Text>
               </View>
             ) : null}
+            {isExternal && (
+              <View className="flex-row items-center gap-1 px-3 py-1.5 rounded-full bg-purple-50 dark:bg-purple-900/30">
+                <ExternalLink size={14} color={isDarkColorScheme ? "#c4b5fd" : "#7c3aed"} />
+                <Text className="text-sm font-semibold text-purple-700 dark:text-purple-200">
+                  Externo
+                </Text>
+              </View>
+            )}
+            {isExternal && publicationSource && (
+              <View className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800">
+                <Text className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                  {publicationSource}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 

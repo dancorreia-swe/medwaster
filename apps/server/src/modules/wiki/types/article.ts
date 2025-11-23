@@ -2,9 +2,25 @@ import { t } from "elysia";
 
 export const createArticleSchema = t.Object({
   title: t.String({ minLength: 5, maxLength: 200 }),
+
+  // Source type
+  sourceType: t.Optional(
+    t.Union([t.Literal("original"), t.Literal("external")]),
+  ),
+
+  // Original content fields
   content: t.Optional(t.Any()),
   contentText: t.Optional(t.String()),
+
+  // External reference fields
+  externalUrl: t.Optional(t.String()),
+  externalAuthors: t.Optional(t.Array(t.String())),
+  publicationDate: t.Optional(t.String()), // ISO date string
+  publicationSource: t.Optional(t.String()),
+
+  // Common fields
   excerpt: t.Optional(t.String({ maxLength: 500 })),
+  readingTimeMinutes: t.Optional(t.Number()), // Manual for external articles
   featuredImageUrl: t.Optional(t.String()),
   categoryId: t.Optional(t.Number()),
   tagIds: t.Optional(t.Array(t.Number())),
@@ -20,9 +36,23 @@ export const createArticleSchema = t.Object({
 
 export const updateArticleSchema = t.Object({
   title: t.Optional(t.String({ minLength: 5, maxLength: 200 })),
+
+  // Source type cannot be changed after creation
+  // sourceType is intentionally omitted from update schema
+
+  // Original content fields
   content: t.Optional(t.Any()), // BlockNote content structure
   contentText: t.Optional(t.String()),
+
+  // External reference fields
+  externalUrl: t.Optional(t.Union([t.String(), t.Null()])),
+  externalAuthors: t.Optional(t.Union([t.Array(t.String()), t.Null()])),
+  publicationDate: t.Optional(t.Union([t.String(), t.Null()])), // ISO date string
+  publicationSource: t.Optional(t.Union([t.String(), t.Null()])),
+
+  // Common fields
   excerpt: t.Optional(t.String({ maxLength: 500 })),
+  readingTimeMinutes: t.Optional(t.Union([t.Number(), t.Null()])),
   metaDescription: t.Optional(t.Union([t.String({ maxLength: 160 }), t.Null()])),
   featuredImageUrl: t.Optional(t.Union([t.String(), t.Null()])),
   categoryId: t.Optional(t.Union([t.Number(), t.Null()])),
@@ -87,12 +117,20 @@ export const articleListItemSchema = t.Object({
   id: t.Number(),
   title: t.String(),
   slug: t.String(),
+  sourceType: t.Union([t.Literal("original"), t.Literal("external")]),
   excerpt: t.String(),
   status: t.String(),
   readingTimeMinutes: t.Number(),
   viewCount: t.Number(),
   featuredImageUrl: t.Union([t.String(), t.Null()]),
   icon: t.Union([t.String(), t.Null()]),
+
+  // External reference fields
+  externalUrl: t.Union([t.String(), t.Null()]),
+  externalAuthors: t.Union([t.Array(t.String()), t.Null()]),
+  publicationDate: t.Union([t.String(), t.Null()]),
+  publicationSource: t.Union([t.String(), t.Null()]),
+
   category: t.Union([
     t.Object({
       id: t.Number(),
@@ -122,8 +160,19 @@ export const articleDetailSchema = t.Object({
   id: t.Number(),
   title: t.String(),
   slug: t.String(),
-  content: t.Array(t.Object({})),
-  contentText: t.String(),
+  sourceType: t.Union([t.Literal("original"), t.Literal("external")]),
+
+  // Original content fields (nullable for external)
+  content: t.Union([t.Array(t.Object({})), t.Null()]),
+  contentText: t.Union([t.String(), t.Null()]),
+
+  // External reference fields
+  externalUrl: t.Union([t.String(), t.Null()]),
+  externalAuthors: t.Union([t.Array(t.String()), t.Null()]),
+  publicationDate: t.Union([t.String(), t.Null()]),
+  publicationSource: t.Union([t.String(), t.Null()]),
+
+  // Common fields
   excerpt: t.String(),
   metaDescription: t.Union([t.String(), t.Null()]),
   featuredImageUrl: t.Union([t.String(), t.Null()]),
@@ -206,10 +255,17 @@ export const studentArticleListItemSchema = t.Object({
   id: t.Number(),
   title: t.String(),
   slug: t.String(),
+  sourceType: t.Union([t.Literal("original"), t.Literal("external")]),
   icon: t.Union([t.String(), t.Null()]),
   excerpt: t.String(),
   readingTimeMinutes: t.Number(),
   featuredImageUrl: t.Union([t.String(), t.Null()]),
+
+  // External reference fields
+  externalUrl: t.Union([t.String(), t.Null()]),
+  externalAuthors: t.Union([t.Array(t.String()), t.Null()]),
+  publicationSource: t.Union([t.String(), t.Null()]),
+
   category: t.Union([
     t.Object({
       id: t.Number(),

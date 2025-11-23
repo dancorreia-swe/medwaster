@@ -27,6 +27,13 @@ export const wikiArticleStatusEnum = pgEnum(
   wikiArticleStatusValues,
 );
 
+export const wikiArticleSourceTypeValues = ["original", "external"] as const;
+
+export const wikiArticleSourceTypeEnum = pgEnum(
+  "wiki_article_source_type",
+  wikiArticleSourceTypeValues,
+);
+
 export const wikiRelationshipTypeValues = [
   "related",
   "prerequisite",
@@ -46,18 +53,34 @@ export const wikiArticles = pgTable(
     title: text("title").notNull(),
     slug: text("slug").notNull().unique(),
     icon: text("icon"), // Emoji or icon identifier
-    content: jsonb("content").notNull(), // BlockNote JSON content
-    contentText: text("content_text"), // Plain text for search indexing
+
+    // Source type: original (full content) or external (reference link)
+    sourceType: wikiArticleSourceTypeEnum("source_type")
+      .notNull()
+      .default("original"),
+
+    // Original content fields (used when sourceType = 'original')
+    content: jsonb("content"), // BlockNote JSON content (nullable for external)
+    contentText: text("content_text"), // Plain text for search indexing (nullable for external)
+
+    // External reference fields (used when sourceType = 'external')
+    externalUrl: text("external_url"), // Reference link to external article
+    externalAuthors: jsonb("external_authors"), // Array of author names for external sources
+    publicationDate: timestamp("publication_date", { withTimezone: true }), // Original publication date
+    publicationSource: text("publication_source"), // Source name (e.g., "Nature", "NEJM")
+
+    // Common fields for both types
     excerpt: text("excerpt"), // Manual or auto-generated summary
-    readingTimeMinutes: integer("reading_time_minutes"), // Calculated reading time
+    readingTimeMinutes: integer("reading_time_minutes"), // Calculated or manual reading time
     status: wikiArticleStatusEnum("status").notNull().default("draft"),
     categoryId: integer("category_id").references(() => contentCategories.id, {
       onDelete: "set null",
     }),
     authorId: text("author_id")
       .notNull()
-      .references(() => user.id, { onDelete: "restrict" }),
+      .references(() => user.id, { onDelete: "restrict" }), // User who added the article
     featuredImageUrl: text("featured_image_url"), // Optional header image
+
     viewCount: integer("view_count").notNull().default(0), // Student view tracking
     lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }), // Latest student view
     publishedAt: timestamp("published_at", { withTimezone: true }), // Publication timestamp
@@ -75,6 +98,7 @@ export const wikiArticles = pgTable(
     index("idx_wiki_articles_published_at").on(table.publishedAt),
     index("idx_wiki_articles_updated_at").on(table.updatedAt),
     index("idx_wiki_articles_slug").on(table.slug),
+    index("idx_wiki_articles_source_type").on(table.sourceType),
 
     index("idx_wiki_articles_status_category").on(
       table.status,
@@ -86,6 +110,10 @@ export const wikiArticles = pgTable(
       table.updatedAt,
     ),
     index("idx_wiki_articles_views").on(table.viewCount, table.lastViewedAt),
+    index("idx_wiki_articles_source_type_status").on(
+      table.sourceType,
+      table.status,
+    ),
   ],
 );
 
@@ -371,6 +399,8 @@ export const wikiArticlesRelationsUpdated = relations(
 export type WikiArticle = typeof wikiArticles.$inferSelect;
 export type NewWikiArticle = typeof wikiArticles.$inferInsert;
 export type WikiArticleStatus = (typeof wikiArticleStatusValues)[number];
+export type WikiArticleSourceType =
+  (typeof wikiArticleSourceTypeValues)[number];
 export type WikiRelationshipType = (typeof wikiRelationshipTypeValues)[number];
 
 export type WikiArticleTag = typeof wikiArticleTags.$inferSelect;

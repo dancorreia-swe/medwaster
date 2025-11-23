@@ -14,16 +14,19 @@ import {
   useArchiveArticle,
   useDeleteArticle,
   useUnpublishArticle,
+  useUpdateArticle,
 } from "@/features/wiki/api/wikiQueries";
 import {
   ArticleEditorToolbar,
   ArticleTitleInput,
   ArticleMetadata,
   ArticleContentEditor,
+  ExternalArticleMetadataEditor,
 } from "@/features/wiki/components";
 import { useArticleEditor } from "@/features/wiki/hooks/use-article-editor";
 import { toast } from "sonner";
 import { buildPageHead } from "@/lib/page-title";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_auth/wiki/$articleId/")({
   head: ({ params }) => buildPageHead(`Editar Artigo ${params.articleId}`),
@@ -109,12 +112,15 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
   const archiveMutation = useArchiveArticle();
   const unpublishMutation = useUnpublishArticle();
   const deleteMutation = useDeleteArticle();
+  const updateMutation = useUpdateArticle();
   const navigate = useNavigate();
   const router = useRouter();
   const canGoBack = useCanGoBack();
   const categoriesList = Array.isArray(categoriesData)
     ? categoriesData
     : (categoriesData?.data ?? []);
+
+  const isExternalArticle = article?.data?.sourceType === "external";
 
   const {
     title,
@@ -141,6 +147,54 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
     article: article.data,
     onPublish,
   });
+
+  // External article state
+  const [externalUrl, setExternalUrl] = useState(
+    article?.data?.externalUrl || ""
+  );
+  const [externalAuthors, setExternalAuthors] = useState<string[]>(
+    article?.data?.externalAuthors || [""]
+  );
+  const [publicationSource, setPublicationSource] = useState(
+    article?.data?.publicationSource || ""
+  );
+  const [publicationDate, setPublicationDate] = useState(
+    article?.data?.publicationDate
+      ? new Date(article.data.publicationDate).toISOString().split("T")[0]
+      : ""
+  );
+  const [excerpt, setExcerpt] = useState(article?.data?.excerpt || "");
+
+  // Custom save handler for external articles
+  const handleExternalArticleSave = async (publish = false) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: articleId,
+        data: {
+          title,
+          externalUrl,
+          externalAuthors: externalAuthors.filter((a) => a.trim()),
+          publicationSource: publicationSource || undefined,
+          publicationDate: publicationDate || undefined,
+          excerpt: excerpt || undefined,
+          categoryId,
+          tagIds: selectedTags.length > 0 ? selectedTags : undefined,
+          icon,
+          status: publish ? "published" : status,
+        },
+      });
+
+      if (publish && onPublish) {
+        onPublish();
+      }
+
+      toast.success(publish ? "Artigo publicado!" : "Alterações salvas!");
+    } catch (error) {
+      console.error("Error saving external article:", error);
+      toast.error("Erro ao salvar artigo");
+    }
+  };
+
   const handleArchiveArticle = async () => {
     try {
       await archiveMutation.mutateAsync(articleId);
@@ -179,13 +233,13 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
     <div className="flex h-full flex-col">
       <ArticleEditorToolbar
         status={status}
-        isSaving={isUpdating}
+        isSaving={isExternalArticle ? updateMutation.isPending : isUpdating}
         autoSaving={autoSaving}
         lastSavedAt={lastSavedAt}
         hasPendingChanges={hasPendingChanges}
         canPublish={canPublish}
         articleTitle={title}
-        onPublish={() => handleSave(true)}
+        onPublish={() => isExternalArticle ? handleExternalArticleSave(true) : handleSave(true)}
         onUnpublish={handleUnpublishArticle}
         onArchive={handleArchiveArticle}
         onDelete={handleDeleteArticle}
@@ -215,13 +269,28 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
           />
         </div>
 
-        <ArticleContentEditor
-          articleId={articleId}
-          initialContent={article?.data?.content}
-          onEditorReady={setEditor}
-          onChange={handleEditorChange}
-          onUploadFile={handleUploadFile}
-        />
+        {isExternalArticle ? (
+          <ExternalArticleMetadataEditor
+            externalUrl={externalUrl}
+            externalAuthors={externalAuthors}
+            publicationSource={publicationSource}
+            publicationDate={publicationDate}
+            excerpt={excerpt}
+            onExternalUrlChange={setExternalUrl}
+            onExternalAuthorsChange={setExternalAuthors}
+            onPublicationSourceChange={setPublicationSource}
+            onPublicationDateChange={setPublicationDate}
+            onExcerptChange={setExcerpt}
+          />
+        ) : (
+          <ArticleContentEditor
+            articleId={articleId}
+            initialContent={article?.data?.content}
+            onEditorReady={setEditor}
+            onChange={handleEditorChange}
+            onUploadFile={handleUploadFile}
+          />
+        )}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import { useRef, useCallback } from "react";
 import { Animated, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 
 export function useArticleScroll(
-  onReachEnd: () => void,
+  onReachEnd: (() => void) | undefined,
   canScroll: boolean,
   setHasReachedEnd: (value: boolean) => void,
   isReading: boolean = false
@@ -28,7 +28,7 @@ export function useArticleScroll(
       const isCloseToBottom =
         layoutHeight + currentScrollY >= contentSizeHeight - 50;
 
-      if (isCloseToBottom && canScroll) {
+      if (isCloseToBottom && canScroll && onReachEnd) {
         setHasReachedEnd(true);
         onReachEnd();
       }

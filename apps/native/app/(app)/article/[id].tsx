@@ -5,10 +5,14 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Linking,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMarkdown } from "react-native-marked";
+import { WebView } from "react-native-webview";
+import Pdf from "react-native-pdf";
+import { ExternalLink } from "lucide-react-native";
 import { useArticleStore } from "@/lib/stores/article-store";
 import { useColorScheme } from "@/lib/use-color-scheme";
 import {
@@ -26,6 +30,10 @@ import {
   useArticleAudio,
   useArticleScroll,
 } from "@/features/wiki/components/article-detail";
+import BottomSheet, {
+  BottomSheetBackdrop,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
 import { useQueryClient } from "@tanstack/react-query";
 import { gamificationKeys } from "@/features/gamification/hooks";
 
@@ -83,6 +91,10 @@ export default function WikiArticle() {
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
   const [canScroll, setCanScroll] = useState(true);
   const autoMarkAsReadTriggered = useRef(false);
+  const [webViewHasError, setWebViewHasError] = useState(false);
+  const [pdfLoadingProgress, setPdfLoadingProgress] = useState(0);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const metadataSheetRef = useRef<BottomSheet>(null);
 
   const { isReading, isPaused, handleAudioReading, handlePauseResume } =
     useArticleAudio();
@@ -164,7 +176,8 @@ export default function WikiArticle() {
     scrollViewHeight,
     handleScroll,
   } = useArticleScroll(
-    handleMarkAsReadCallback,
+    // Disable auto-read for external articles
+    isExternalArticle ? undefined : handleMarkAsReadCallback,
     canScroll,
     setHasReachedEnd,
     isReading,
@@ -436,6 +449,118 @@ export default function WikiArticle() {
     ? Math.max(1, Math.round(article.readingTimeMinutes))
     : null;
 
+  const isExternalArticle =
+    article?.sourceType === "external" ||
+    (!!article?.externalUrl && !article?.content);
+  const externalUrl = article?.externalUrl;
+  const isPdfExternal = useMemo(() => {
+    if (!externalUrl) return false;
+    const urlLower = externalUrl.toLowerCase();
+    return (
+      urlLower.endsWith(".pdf") ||
+      urlLower.includes(".pdf?") ||
+      urlLower.includes("/pdf")
+    );
+  }, [externalUrl]);
+
+  const webViewUrl = useMemo(() => {
+    if (!externalUrl || isPdfExternal) return null;
+    return externalUrl;
+  }, [externalUrl, isPdfExternal]);
+
+  const pdfSource = useMemo(() => {
+    if (!externalUrl || !isPdfExternal) return null;
+    return {
+      uri: externalUrl,
+      cache: true,
+    } as const;
+  }, [externalUrl, isPdfExternal]);
+
+  const hasMetadata = useMemo(() => {
+    const hasAuthors =
+      Array.isArray(article?.externalAuthors) &&
+      article.externalAuthors.length > 0;
+    return (
+      hasAuthors ||
+      !!article?.publicationSource ||
+      !!article?.publicationDate ||
+      !!article?.externalUrl
+    );
+  }, [article]);
+
+  const formatPublishedDate = (dateString?: string | null) => {
+    if (!dateString) return null;
+    const d = new Date(dateString);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+  const publishedDate = formatPublishedDate(article?.publicationDate);
+
+  const snapPoints = useMemo(() => ["35%", "50%"], []);
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.5}
+      />
+    ),
+    [],
+  );
+
+  useEffect(() => {
+    setWebViewHasError(false);
+    setPdfError(null);
+    setPdfLoadingProgress(0);
+  }, [webViewUrl, pdfSource]);
+
+  useEffect(() => {
+    if (article) {
+      console.log("[ArticleDetail] data", {
+        id: article.id,
+        sourceType: article.sourceType,
+        hasContent: !!article.content,
+        externalUrl,
+        isExternalArticle,
+        isPdfExternal,
+        webViewUrl,
+      });
+    }
+  }, [article, externalUrl, isExternalArticle, isPdfExternal, webViewUrl]);
+
+  const logWebView = (label: string, payload?: any) => {
+    try {
+      // Keep logs concise to avoid flooding console
+      console.log("[ExternalWebView]", label, {
+        uri: payload?.url || payload?.uri || webViewUrl || externalUrl,
+        isPdfExternal,
+        error: payload?.description || payload?.title || undefined,
+        statusCode: payload?.statusCode,
+        loading: payload?.loading,
+        canGoBack: payload?.canGoBack,
+        canGoForward: payload?.canGoForward,
+      });
+    } catch {}
+  };
+
+  const handleOpenExternalUrl = useCallback(async () => {
+    if (!externalUrl) return;
+    try {
+      await Linking.openURL(externalUrl);
+    } catch (error) {
+      console.error("Failed to open URL:", error);
+    }
+  }, [externalUrl]);
+
+  const handleOpenInBrowser = useCallback(async () => {
+    await handleOpenExternalUrl();
+  }, [handleOpenExternalUrl]);
+
   if (!Number.isFinite(articleId)) {
     return (
       <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
@@ -475,6 +600,8 @@ export default function WikiArticle() {
       <ArticleHeader
         articleIsFavorite={articleIsFavorite}
         onToggleFavorite={handleFavoriteToggle}
+        showMetadataButton={isExternalArticle && hasMetadata}
+        onOpenMetadata={() => metadataSheetRef.current?.expand()}
       />
 
       <Animated.ScrollView
@@ -495,15 +622,119 @@ export default function WikiArticle() {
           isRead={articleIsRead}
         />
 
-        <View className="px-6 pt-6">
-          {markdownElements?.map((element, index) => (
-            <View key={`markdown-${index}`}>{element}</View>
-          ))}
-          <CompletionBadge
-            isRead={articleIsRead}
-            hasReachedEnd={hasReachedEnd}
-          />
-        </View>
+        {isExternalArticle && externalUrl ? (
+          <View className="px-0 pt-0 flex-1">
+            {/* Viewer */}
+            {isPdfExternal && pdfSource ? (
+              <View
+                className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm"
+                style={{ height: 720 }}
+              >
+                <Pdf
+                  trustAllCerts
+                  source={pdfSource}
+                  style={{ flex: 1, width: "100%" }}
+                  renderActivityIndicator={() => (
+                    <View className="flex-1 items-center justify-center bg-gray-50 dark:bg-gray-900">
+                      <ActivityIndicator size="large" color={categoryColor} />
+                    </View>
+                  )}
+                  onLoadProgress={(percent) => {
+                    setPdfLoadingProgress(percent ?? 0);
+                    setPdfError(null);
+                  }}
+                  onLoadComplete={() => {
+                    setPdfError(null);
+                  }}
+                  onError={(error) => {
+                    console.error("PDF error:", error);
+                    setPdfError(error?.message || "Erro ao carregar o PDF");
+                  }}
+                />
+
+                {pdfError ? (
+                  <View className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+                    <Text className="text-sm text-center text-red-600 dark:text-red-300">
+                      {pdfError}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : (
+              <View
+                className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm"
+                style={{ height: 720 }}
+              >
+                <WebView
+                  key={webViewUrl || externalUrl}
+                  source={{ uri: webViewUrl || externalUrl }}
+                  startInLoadingState
+                  renderLoading={() => (
+                    <View className="flex-1 items-center justify-center bg-gray-50 dark:bg-gray-900">
+                      <ActivityIndicator size="large" color={categoryColor} />
+                    </View>
+                  )}
+                  originWhitelist={["*"]}
+                  onLoadStart={(event) => {
+                    setWebViewHasError(false);
+                    logWebView("load-start", event.nativeEvent);
+                  }}
+                  onLoad={(event) => {
+                    logWebView("load", event.nativeEvent);
+                  }}
+                  onLoadEnd={(event) => {
+                    logWebView("load-end", event.nativeEvent);
+                  }}
+                  onNavigationStateChange={(navState) => {
+                    logWebView("nav", navState);
+                  }}
+                  onHttpError={(event) => {
+                    logWebView("http-error", event.nativeEvent);
+                  }}
+                  onError={(syntheticEvent) => {
+                    const { nativeEvent } = syntheticEvent;
+                    console.error("WebView error:", nativeEvent);
+                    logWebView("error", nativeEvent);
+                    setWebViewHasError(true);
+                  }}
+                  renderError={() => (
+                    <View className="flex-1 items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+                      <Text className="text-center text-gray-700 dark:text-gray-200 font-semibold mb-2">
+                        Não foi possível carregar o conteúdo.
+                      </Text>
+                      <Text className="text-center text-gray-600 dark:text-gray-400 text-sm">
+                        Verifique sua conexão e tente novamente.
+                      </Text>
+                    </View>
+                  )}
+                />
+
+                {webViewHasError && (
+                  <View className="p-4 border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
+                    <Text className="text-sm text-gray-700 dark:text-gray-200 text-center">
+                      Problema ao carregar. Abra pelo menu de detalhes.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            <CompletionBadge
+              isRead={articleIsRead}
+              hasReachedEnd={hasReachedEnd}
+            />
+          </View>
+        ) : (
+          <View className="px-6 pt-6">
+            {markdownElements?.map((element, index) => (
+              <View key={`markdown-${index}`}>{element}</View>
+            ))}
+            <CompletionBadge
+              isRead={articleIsRead}
+              hasReachedEnd={hasReachedEnd}
+            />
+          </View>
+        )}
       </Animated.ScrollView>
 
       <AudioControlFab
@@ -521,6 +752,74 @@ export default function WikiArticle() {
         pauseButtonScale={pauseButtonScale}
         onPress={handlePauseResume}
       />
+
+      <BottomSheet
+        ref={metadataSheetRef}
+        index={-1}
+        snapPoints={snapPoints}
+        backdropComponent={renderBackdrop}
+        enablePanDownToClose
+      >
+        <BottomSheetView className="px-6 py-4 bg-white dark:bg-gray-900">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+              Detalhes do artigo
+            </Text>
+            <TouchableOpacity
+              onPress={() => metadataSheetRef.current?.close()}
+              className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800"
+            >
+              <Text className="text-sm text-gray-700 dark:text-gray-200">
+                Fechar
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {article?.externalAuthors && article.externalAuthors.length > 0 && (
+            <View className="mb-3">
+              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Autores
+              </Text>
+              <Text className="text-base text-gray-800 dark:text-gray-100 leading-6">
+                {article.externalAuthors.join(", ")}
+              </Text>
+            </View>
+          )}
+
+          {article?.publicationSource && (
+            <View className="mb-3">
+              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Fonte
+              </Text>
+              <Text className="text-base text-gray-800 dark:text-gray-100 leading-6">
+                {article.publicationSource}
+              </Text>
+            </View>
+          )}
+
+          {publishedDate && (
+            <View className="mb-3">
+              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Publicado em
+              </Text>
+              <Text className="text-base text-gray-800 dark:text-gray-100 leading-6">
+                {publishedDate}
+              </Text>
+            </View>
+          )}
+
+          {externalUrl && (
+            <TouchableOpacity
+              onPress={handleOpenExternalUrl}
+              className="flex-row items-center gap-2 px-4 py-3 bg-primary rounded-xl mt-2"
+              activeOpacity={0.85}
+            >
+              <ExternalLink size={18} color="white" />
+              <Text className="text-white font-semibold">Abrir no navegador</Text>
+            </TouchableOpacity>
+          )}
+        </BottomSheetView>
+      </BottomSheet>
     </Container>
   );
 }

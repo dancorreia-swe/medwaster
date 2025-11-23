@@ -44,6 +44,9 @@ export function WikiArticlesList({
               readingTimeMinutes={article.readingTimeMinutes}
               isFavorite={favoriteArticles.has(article.id)}
               isRead={false}
+              sourceType={article.sourceType}
+              externalAuthors={article.externalAuthors}
+              publicationSource={article.publicationSource}
               onFavoriteToggle={() => onFavoriteToggle(article)}
               onPress={() => router.push(`/article/${article.id}`)}
             />
@@ -66,6 +69,9 @@ export function WikiArticlesList({
             readingTimeMinutes={article.readingTimeMinutes}
             isFavorite={favoriteArticles.has(article.id)}
             isRead={isArticleRead}
+            sourceType={article.sourceType}
+            externalAuthors={article.externalAuthors}
+            publicationSource={article.publicationSource}
             onFavoriteToggle={() => onFavoriteToggle(article)}
             onPress={() => router.push(`/article/${article.id}`)}
           />
