@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  ViewStyle,
 } from "react-native";
 import { Route, useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -33,6 +34,90 @@ import * as Speech from "expo-speech";
 
 import graduationHatIcon from "@/assets/graduation.png";
 
+const formatDuration = (ms: number) => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+};
+
+const RECORDING_BARS = 9;
+const MIN_BAR_HEIGHT = 6;
+const MAX_BAR_HEIGHT = 24;
+const BAR_FACTORS = [0.6, 0.9, 1, 1.2, 1.35, 1.2, 1.05, 0.9, 0.6];
+
+function RecordingWaveform({
+  isActive,
+  level,
+  containerStyle,
+  barColorActive = "#155DFC",
+  barColorIdle = "#CBD5E1",
+}: {
+  isActive: boolean;
+  level: number;
+  containerStyle?: ViewStyle;
+  barColorActive?: string;
+  barColorIdle?: string;
+}) {
+  const barValues = useRef(
+    Array.from({ length: RECORDING_BARS }, () =>
+      new Animated.Value(MIN_BAR_HEIGHT),
+    ),
+  );
+
+  // Map dB (approx -60..0) into 0..1
+  const normalizedLevel = Math.max(0, Math.min(1, (level + 60) / 60));
+
+  useEffect(() => {
+    const animations =
+      barValues.current?.map((value, index) =>
+        Animated.timing(value, {
+          toValue:
+            MIN_BAR_HEIGHT +
+            (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT) *
+              Math.max(
+                0.2,
+                Math.min(1, normalizedLevel * (BAR_FACTORS[index] ?? 1)),
+              ),
+          duration: isActive ? 110 : 90,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+      ) ?? [];
+
+    animations.forEach((anim) => anim.start());
+
+    return () => animations.forEach((anim) => anim.stop());
+  }, [isActive, normalizedLevel]);
+
+  return (
+    <View
+      className="flex-row items-center"
+      style={{
+        height: MAX_BAR_HEIGHT,
+        flex: 1,
+        justifyContent: "space-between",
+        alignItems: "center",
+        ...containerStyle,
+      }}
+    >
+      {barValues.current.map((value, idx) => (
+        <Animated.View
+          key={idx}
+          style={{
+            width: 3,
+            borderRadius: 6,
+            height: value,
+            backgroundColor: isActive ? barColorActive : barColorIdle,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function TutorScreen() {
   const router = useRouter();
   const { returnTo } = useLocalSearchParams<{ returnTo?: Route }>();
@@ -47,6 +132,11 @@ export default function TutorScreen() {
   );
   const [isAudioPaused, setIsAudioPaused] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(
+    null,
+  );
+  const [recordingDurationMs, setRecordingDurationMs] = useState(0);
+  const [recordingLevel, setRecordingLevel] = useState(-60);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
@@ -224,6 +314,9 @@ export default function TutorScreen() {
 
     try {
       setIsRecording(false);
+      setRecordingStartedAt(null);
+      setRecordingDurationMs(0);
+      setRecordingLevel(-60);
       await recordingRef.current.stopAndUnloadAsync();
     } catch (error) {
       console.error(error);
@@ -253,11 +346,16 @@ export default function TutorScreen() {
 
       const recording = new Audio.Recording();
       await recording.prepareToRecordAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        {
+          ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+          isMeteringEnabled: true,
+        },
       );
       await recording.startAsync();
       recordingRef.current = recording;
       setIsRecording(true);
+      setRecordingStartedAt(Date.now());
+      setRecordingLevel(-60);
     } catch (error) {
       console.error(error);
       Alert.alert(
@@ -265,6 +363,9 @@ export default function TutorScreen() {
         "Não conseguimos iniciar a gravação. Tente novamente.",
       );
       setIsRecording(false);
+      setRecordingStartedAt(null);
+      setRecordingDurationMs(0);
+      setRecordingLevel(-60);
       recordingRef.current = null;
     }
   }, [isTranscribing, status]);
@@ -360,6 +461,36 @@ export default function TutorScreen() {
       cancelRecording();
     };
   }, [stopSpeech, cancelRecording]);
+
+  useEffect(() => {
+    if (!isRecording || !recordingStartedAt) {
+      setRecordingDurationMs(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setRecordingDurationMs(Date.now() - recordingStartedAt);
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [isRecording, recordingStartedAt]);
+
+  useEffect(() => {
+    if (!isRecording || !recordingRef.current) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const status = await recordingRef.current?.getStatusAsync();
+        if (status?.isRecording && typeof status.metering === "number") {
+          setRecordingLevel(status.metering);
+        }
+      } catch (error) {
+        console.error("Failed to read recording level", error);
+      }
+    }, 150);
+
+    return () => clearInterval(interval);
+  }, [isRecording]);
 
   return (
     <Container
@@ -499,23 +630,50 @@ export default function TutorScreen() {
       >
         <View className="px-3.5 pb-2 pt-3">
           <View className="flex-row items-end justify-end gap-2">
-            <View className="flex-1 bg-gray-50 dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 px-4 py-2">
+            <View
+              className={`flex-1 rounded-3xl border px-4 py-2 ${
+                isRecording
+                  ? "bg-blue-50 dark:bg-blue-900/40 border-blue-200 dark:border-blue-800"
+                  : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800"
+              }`}
+            >
               {/* <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center mb-1"> */}
               {/*   <Paperclip size={18} className="text-gray-500" /> */}
               {/* </TouchableOpacity> */}
 
-              <TextInput
-                placeholder="Pergunte algo..."
-                className="text-lg leading-tight text-neutral-900 dark:text-gray-50 px-2.5 py-2 placeholder:text-muted-foreground/80 dark:placeholder:text-muted-foreground/60"
-                value={inputText}
-                onChangeText={setInputText}
-                onSubmitEditing={handleSend}
-                multiline
-                maxLength={500}
-                style={{ maxHeight: 120 }}
-                textAlignVertical="top"
-                editable={!isRecording && !isTranscribing}
-              />
+              <View
+                className="flex-row items-center gap-3"
+                style={{ alignItems: "center" }}
+              >
+                {isRecording && (
+                  <RecordingWaveform
+                    isActive
+                    level={recordingLevel}
+                    containerStyle={{ flex: 0, width: 110 }}
+                    barColorActive="rgba(21,93,252,0.8)"
+                    barColorIdle="rgba(21,93,252,0.4)"
+                  />
+                )}
+                <TextInput
+                  placeholder={isRecording ? undefined : "Pergunte algo..."}
+                  className="flex-1 text-lg leading-tight text-neutral-900 dark:text-gray-50 px-2.5 py-2 placeholder:text-muted-foreground/80 dark:placeholder:text-muted-foreground/60"
+                  value={inputText}
+                  onChangeText={setInputText}
+                  onSubmitEditing={handleSend}
+                  multiline
+                  maxLength={500}
+                  style={{ maxHeight: 120 }}
+                  textAlignVertical="top"
+                  editable={!isRecording && !isTranscribing}
+                />
+                {isRecording && (
+                  <View className="px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-800">
+                    <Text className="text-xs font-medium text-blue-700 dark:text-blue-100">
+                      {formatDuration(recordingDurationMs)}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
 
             {status === "submitted" || status === "streaming" ? (
