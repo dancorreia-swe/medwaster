@@ -40,7 +40,10 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.medwaster.app"
+      "bundleIdentifier": "com.medwaster.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Precisamos do microfone para você enviar perguntas por áudio ao tutor."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -48,7 +51,8 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.medwaster.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": ["RECORD_AUDIO"]
     },
     "extra": {
       "router": {},

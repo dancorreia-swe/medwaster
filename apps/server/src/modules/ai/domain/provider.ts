@@ -52,3 +52,12 @@ export const getEmbeddingModel = (modelId: string = defaultEmbeddingModel) => {
 };
 
 export const getCurrentProvider = (): ProviderName => defaultProvider;
+
+const defaultTranscriptionModel =
+  process.env.AI_TRANSCRIPTION_MODEL || "whisper-1";
+
+export const getTranscriptionModel = (
+  modelId: string = defaultTranscriptionModel,
+) => {
+  return registry.transcriptionModel(qualifyModel(modelId));
+};

@@ -1,11 +1,18 @@
 import { MessageBubble } from "./message-bubble";
-import { View, Animated, Text } from "react-native";
+import { View, Animated, Text, TouchableOpacity } from "react-native";
 import { useEffect, useRef } from "react";
+import { Icon } from "@/components/icon";
+import { Pause, Play, Square, Volume2 } from "lucide-react-native";
 
 interface AiMessageProps {
   message: string | null;
   isStreaming?: boolean;
   isCancelled?: boolean;
+  canPlayAudio?: boolean;
+  isAudioActive?: boolean;
+  isAudioPaused?: boolean;
+  onAudioPress?: () => void;
+  onAudioPauseResume?: () => void;
 }
 
 function LoadingDots() {
@@ -83,6 +90,11 @@ export function AiMessage({
   message,
   isStreaming,
   isCancelled,
+  canPlayAudio,
+  isAudioActive,
+  isAudioPaused,
+  onAudioPress,
+  onAudioPauseResume,
 }: AiMessageProps) {
   if (message === null || (message.trim() === "" && isStreaming)) {
     return (
@@ -97,6 +109,38 @@ export function AiMessage({
   return (
     <View>
       <MessageBubble message={message} isUser={false} />
+      {canPlayAudio && onAudioPress && (
+        <View className="px-4 mt-2 flex-row items-center gap-2">
+          <TouchableOpacity
+            onPress={onAudioPress}
+            className="flex-row items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-2"
+            activeOpacity={0.9}
+          >
+            <Icon
+              icon={isAudioActive ? Square : Volume2}
+              size={16}
+              className="text-gray-700 dark:text-gray-100"
+            />
+            <Text className="text-sm text-gray-700 dark:text-gray-100">
+              {isAudioActive ? "Parar áudio" : "Ouvir"}
+            </Text>
+          </TouchableOpacity>
+
+          {isAudioActive && onAudioPauseResume && (
+            <TouchableOpacity
+              onPress={onAudioPauseResume}
+              className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 items-center justify-center"
+              activeOpacity={0.9}
+            >
+              <Icon
+                icon={isAudioPaused ? Play : Pause}
+                size={16}
+                className="text-gray-700 dark:text-gray-100"
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
       {isCancelled && (
         <View className="px-4 mt-1">
           <Text className="text-xs text-gray-400 italic">
