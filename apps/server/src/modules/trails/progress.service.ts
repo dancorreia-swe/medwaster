@@ -9,7 +9,7 @@ import {
 } from "@/db/schema/trails";
 import { questions, questionOptions } from "@/db/schema/questions";
 import { quizzes, quizAttempts } from "@/db/schema/quizzes";
-import { articles, userArticleReads } from "@/db/schema/wiki";
+import { wikiArticles, userArticleReads } from "@/db/schema/wiki";
 import type { SubmitQuestionAnswerBody } from "./model";
 import { eq, and, sql, inArray, isNull, desc, asc } from "drizzle-orm";
 import {

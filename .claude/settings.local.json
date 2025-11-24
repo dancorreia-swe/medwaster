@@ -20,7 +20,9 @@
       "Bash(pkill:*)",
       "mcp__context7__resolve-library-id",
       "Bash(npx react-native:*)",
-      "Bash(npx react-native log-ios)"
+      "Bash(npx react-native log-ios)",
+      "Bash(docker logs:*)",
+      "Bash(docker compose:*)"
     ],
     "deny": []
   }

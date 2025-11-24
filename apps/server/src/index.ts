@@ -134,6 +134,11 @@ export const app = new Elysia({ name: "medwaster-api" })
     
     return file;
   })
+  .get("/health", () => ({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  }))
   .get("/", () => "OK")
   .listen(process.env.PORT ? Number(process.env.PORT) : 3000);
 
