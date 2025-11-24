@@ -168,6 +168,7 @@ export abstract class ProgressService {
         .set({
           isEnrolled: true,
           enrolledAt: new Date(),
+          currentAttemptStartedAt: new Date(),
         })
         .where(eq(userTrailProgress.id, existingProgress.id));
 
@@ -185,6 +186,7 @@ export abstract class ProgressService {
         isUnlocked: true,
         isEnrolled: true,
         enrolledAt: new Date(),
+        currentAttemptStartedAt: new Date(),
         lastAccessedAt: new Date(),
         completedContentIds: "[]",
         attempts: 0,
@@ -557,6 +559,9 @@ export abstract class ProgressService {
       progress = await this.enrollInTrail(userId, trailId);
     }
 
+    // Check time limit before allowing submission
+    await this.checkTimeLimit(userId, trailId);
+
     // Get question
     const question = await db.query.questions.findFirst({
       where: eq(questions.id, questionId),
@@ -786,6 +791,9 @@ export abstract class ProgressService {
       progress = await this.enrollInTrail(userId, trailId);
     }
 
+    // Check time limit before allowing submission
+    await this.checkTimeLimit(userId, trailId);
+
     // Find the content item and verify it's a quiz
     const content = await db.query.trailContent.findFirst({
       where: and(
@@ -957,6 +965,9 @@ export abstract class ProgressService {
     if (!progress?.isEnrolled) {
       progress = await this.enrollInTrail(userId, trailId);
     }
+
+    // Check time limit before allowing submission
+    await this.checkTimeLimit(userId, trailId);
 
     // Find the content item and verify it's an article
     const content = await db.query.trailContent.findFirst({
@@ -1162,6 +1173,58 @@ export abstract class ProgressService {
     };
   }
 
+  /**
+   * Check if trail time limit has expired
+   * @throws BadRequestError if time limit expired
+   */
+  private static async checkTimeLimit(
+    userId: string,
+    trailId: number,
+  ): Promise<void> {
+    const [trail, progress] = await Promise.all([
+      db.query.trails.findFirst({
+        where: eq(trails.id, trailId),
+        columns: {
+          id: true,
+          name: true,
+          timeLimitMinutes: true,
+        },
+      }),
+      db.query.userTrailProgress.findFirst({
+        where: and(
+          eq(userTrailProgress.userId, userId),
+          eq(userTrailProgress.trailId, trailId),
+        ),
+        columns: {
+          id: true,
+          currentAttemptStartedAt: true,
+          isCompleted: true,
+        },
+      }),
+    ]);
+
+    if (!trail || !progress) {
+      return; // No trail or progress, skip check
+    }
+
+    // Skip check if trail is already completed or no time limit set
+    if (progress.isCompleted || !trail.timeLimitMinutes || !progress.currentAttemptStartedAt) {
+      return;
+    }
+
+    // Calculate time elapsed
+    const startTime = new Date(progress.currentAttemptStartedAt);
+    const now = new Date();
+    const elapsedMinutes = (now.getTime() - startTime.getTime()) / (1000 * 60);
+
+    // Check if time limit exceeded
+    if (elapsedMinutes > trail.timeLimitMinutes) {
+      throw new BadRequestError(
+        `O tempo limite de ${trail.timeLimitMinutes} minutos expirou para esta trilha. Por favor, reinicie a trilha.`,
+      );
+    }
+  }
+
   private static async checkTrailEligibility(
     userId: string,
     trailId: number,
@@ -1283,6 +1346,7 @@ export abstract class ProgressService {
         currentScore: score,
         bestScore: Math.max(progress.bestScore || 0, score),
         completedAt: new Date(),
+        currentAttemptStartedAt: null, // Clear attempt start time on completion
       })
       .where(eq(userTrailProgress.id, progress.id));
 

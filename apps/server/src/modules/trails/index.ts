@@ -3,6 +3,7 @@ import { betterAuthMacro, ROLES } from "@/lib/auth";
 import { success } from "@/lib/responses";
 import { TrailsService } from "./trails.service";
 import { ProgressService } from "./progress.service";
+import { trailImages } from "./images";
 import {
   createTrailBody,
   updateTrailBody,
@@ -293,7 +294,8 @@ export const adminTrails = new Elysia({ prefix: "/admin/trails" })
           },
         },
       ),
-  );
+  )
+  .use(trailImages);
 
 // ===================================
 // Student Routes

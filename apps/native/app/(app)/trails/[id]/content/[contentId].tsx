@@ -26,6 +26,7 @@ import {
   QuizAttempt as QuizAttemptComponent,
   QuizResults as QuizResultsComponent,
 } from "@/features/quizzes/components";
+import { TrailTimer } from "@/features/trails/components";
 import type {
   QuestionAnswer,
   QuestionResult as QuestionResultType,
@@ -431,6 +432,7 @@ export default function TrailContentScreen() {
           <QuestionResultComponent
             result={questionResult}
             question={normalizedQuestion}
+            showFeedback={trail?.showImmediateExplanations ?? true}
           />
         ) : null}
       </View>
@@ -611,7 +613,7 @@ export default function TrailContentScreen() {
             )}
 
             {/* Content Type Badge */}
-            <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center gap-2 flex-wrap">
               <View className="bg-blue-50 px-3 py-1.5 rounded-lg dark:bg-blue-900/30">
                 <Text className="text-blue-700 dark:text-blue-200 text-xs font-semibold">
                   {contentItem.contentType === "question" && "Questão"}
@@ -632,6 +634,16 @@ export default function TrailContentScreen() {
                     ✓ Concluído
                   </Text>
                 </View>
+              )}
+              {trail?.timeLimitMinutes && trailProgress?.currentAttemptStartedAt && (
+                <TrailTimer
+                  timeLimitMinutes={trail.timeLimitMinutes}
+                  startedAt={trailProgress.currentAttemptStartedAt}
+                  onExpired={() => {
+                    // Timer expired - user will get error on next submission
+                    console.log("Trail timer expired");
+                  }}
+                />
               )}
             </View>
           </View>

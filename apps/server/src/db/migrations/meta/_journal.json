@@ -127,6 +127,20 @@
       "when": 1763957745968,
       "tag": "0017_daily_whirlwind",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1763986543312,
+      "tag": "0018_amusing_blue_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1763987419339,
+      "tag": "0019_tricky_tarot",
+      "breakpoints": true
     }
   ]
 }

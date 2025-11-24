@@ -33,6 +33,7 @@ export const createTrailBody = t.Object({
   showImmediateExplanations: t.Optional(t.Boolean()),
   randomizeContentOrder: t.Optional(t.Boolean()),
   coverImageUrl: t.Optional(t.Nullable(t.String())),
+  coverImageKey: t.Optional(t.Nullable(t.String())),
   themeColor: t.Optional(t.Nullable(t.String())),
   availableFrom: t.Optional(t.Nullable(t.String())), // ISO date string
   availableUntil: t.Optional(t.Nullable(t.String())), // ISO date string
@@ -70,6 +71,7 @@ export const updateTrailBody = t.Object({
   showImmediateExplanations: t.Optional(t.Boolean()),
   randomizeContentOrder: t.Optional(t.Boolean()),
   coverImageUrl: t.Optional(t.Nullable(t.String())),
+  coverImageKey: t.Optional(t.Nullable(t.String())),
   themeColor: t.Optional(t.Nullable(t.String())),
   availableFrom: t.Optional(t.Nullable(t.String())),
   availableUntil: t.Optional(t.Nullable(t.String())),

@@ -37,7 +37,7 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
           {selectedIds.map((id: number) => (
             <View
               key={id}
-              className="bg-blue-50 border border-blue-200 rounded-xl p-3"
+              className="bg-blue-50 border border-blue-200 rounded-xl p-4"
             >
               <Text className="text-blue-800 text-base">
                 {getOptionText(question, id)}
@@ -54,7 +54,7 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
           ? answer.textAnswer
           : JSON.stringify(answer.textAnswer);
       return (
-        <View className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+        <View className="bg-blue-50 border border-blue-200 rounded-xl p-4">
           <Text className="text-blue-800 text-base">{textAnswer}</Text>
         </View>
       );
@@ -101,7 +101,7 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
           {correctIds.map((id: number) => (
             <View
               key={id}
-              className="bg-green-50 border border-green-200 rounded-xl p-3"
+              className="bg-green-50 border border-green-200 rounded-xl p-4"
             >
               <Text className="text-green-800 text-base">
                 {getOptionText(question, id)}
@@ -114,7 +114,7 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
 
     if (questionType === "fill_in_the_blank") {
       return (
-        <View className="bg-green-50 border border-green-200 rounded-xl p-3">
+        <View className="bg-green-50 border border-green-200 rounded-xl p-4">
           <Text className="text-green-800 text-base">
             {typeof correctAnswerData === "string"
               ? correctAnswerData
@@ -178,6 +178,48 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
         const question = answer.question;
         if (!question) return null;
 
+          // Minimal card for correct answers
+          if (answer.isCorrect) {
+            return (
+              <Animated.View
+                key={answer.id}
+                entering={FadeIn.duration(400).delay(index * 100)}
+                className="mb-4"
+              >
+                <View className="bg-white rounded-3xl p-6 shadow-sm border border-green-100">
+                  <View className="flex-row items-center gap-3">
+                    <View className="w-10 h-10 rounded-full items-center justify-center bg-green-100">
+                      <CheckCircle2
+                        size={24}
+                        color="#10B981"
+                        strokeWidth={2.5}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-bold text-gray-900 mb-1">
+                        Questão {index + 1}
+                      </Text>
+                      <Text className="text-base text-gray-700 leading-relaxed">
+                        {question.prompt || question.questionText}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center gap-2 bg-green-50 rounded-full px-3 py-1.5">
+                      <Image
+                        source={require("@/assets/ribbon.png")}
+                        style={{ width: 18, height: 18 }}
+                        resizeMode="contain"
+                      />
+                      <Text className="text-sm font-semibold text-green-800">
+                        {answer.earnedPoints} pts
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </Animated.View>
+            );
+          }
+
+          // Full feedback card for incorrect answers
           return (
             <Animated.View
               key={answer.id}
@@ -188,33 +230,15 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
                 {/* Question Header */}
                 <View className="flex-row items-center justify-between mb-4">
                   <View className="flex-row items-center gap-3">
-                    <View
-                      className={`w-10 h-10 rounded-full items-center justify-center ${
-                        answer.isCorrect
-                          ? "bg-green-100"
-                          : "bg-red-100"
-                      }`}
-                    >
-                      {answer.isCorrect ? (
-                        <CheckCircle2
-                          size={24}
-                          color="#10B981"
-                          strokeWidth={2.5}
-                        />
-                      ) : (
-                        <XCircle size={24} color="#EF4444" strokeWidth={2.5} />
-                      )}
+                    <View className="w-10 h-10 rounded-full items-center justify-center bg-red-100">
+                      <XCircle size={24} color="#EF4444" strokeWidth={2.5} />
                     </View>
                     <View>
                       <Text className="text-sm font-bold text-gray-900">
                         Questão {index + 1}
                       </Text>
-                      <Text
-                        className={`text-xs font-semibold ${
-                          answer.isCorrect ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {answer.isCorrect ? "Correta" : "Incorreta"}
+                      <Text className="text-xs font-semibold text-red-600">
+                        Incorreta
                       </Text>
                     </View>
                   </View>
@@ -239,29 +263,29 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
 
                 {/* User's Answer */}
                 <View className="mb-4">
-                  <Text className="text-sm font-bold text-gray-700 mb-2">
+                  <Text className="text-base font-bold text-gray-700 mb-3">
                     Sua Resposta
                   </Text>
                   {renderUserAnswer(answer, question)}
                 </View>
 
-                {/* Correct Answer (if wrong and showCorrectAnswers is true) */}
-                {!answer.isCorrect && showCorrectAnswers && (
-                  <View>
-                    <Text className="text-sm font-bold text-gray-700 mb-2">
+                {/* Correct Answer (if showCorrectAnswers is true) */}
+                {showCorrectAnswers && (
+                  <View className="mt-4">
+                    <Text className="text-base font-bold text-gray-700 mb-3">
                       Resposta Correta
                     </Text>
                     {renderCorrectAnswer(answer, question)}
                   </View>
                 )}
 
-                {/* Explanation (if available) */}
-                {question.explanation && (
+                {/* Explanation (if available and showCorrectAnswers is true) */}
+                {question.explanation && showCorrectAnswers && (
                   <View className="mt-4 bg-blue-50 rounded-xl p-4 border border-blue-200">
-                    <Text className="text-xs font-bold text-blue-700 mb-1 uppercase tracking-wide">
+                    <Text className="text-sm font-bold text-blue-700 mb-1 uppercase tracking-wide">
                       Explicação
                     </Text>
-                    <Text className="text-sm text-blue-900 leading-relaxed">
+                    <Text className="text-lg text-blue-900 leading-relaxed">
                       {question.explanation}
                     </Text>
                   </View>

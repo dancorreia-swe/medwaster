@@ -69,6 +69,7 @@ export const trails = pgTable(
       .notNull()
       .default(false),
     coverImageUrl: text("cover_image_url"),
+    coverImageKey: text("cover_image_key"),
     themeColor: text("theme_color"),
 
     availableFrom: timestamp("available_from", { withTimezone: true }),
@@ -248,6 +249,9 @@ export const userTrailProgress = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true }),
 
     timeSpentMinutes: integer("time_spent_minutes").notNull().default(0),
+    currentAttemptStartedAt: timestamp("current_attempt_started_at", {
+      withTimezone: true,
+    }),
 
     enrolledAt: timestamp("enrolled_at", { withTimezone: true }),
     lastAccessedAt: timestamp("last_accessed_at", { withTimezone: true }),

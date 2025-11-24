@@ -1,0 +1,1 @@
+ALTER TABLE "user_trail_progress" ADD COLUMN "current_attempt_started_at" timestamp with time zone;

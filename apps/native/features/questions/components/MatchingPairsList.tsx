@@ -52,13 +52,13 @@ export function MatchingPairsList({
       {pairs.map((pair) => (
         <View
           key={pair.id}
-          className={`flex-row items-center gap-3 rounded-2xl px-4 py-3 border ${toneClass.container}`}
+          className={`flex-row items-center gap-3 rounded-2xl px-5 py-4 border ${toneClass.container}`}
         >
-          <Text className={`flex-1 text-sm font-semibold ${toneClass.text}`}>
+          <Text className={`flex-1 text-base font-semibold ${toneClass.text}`}>
             {pair.left}
           </Text>
           <Text className={`text-lg font-extrabold ${toneClass.arrow}`}>→</Text>
-          <Text className={`flex-1 text-sm ${toneClass.text}`}>{pair.right}</Text>
+          <Text className={`flex-1 text-base ${toneClass.text}`}>{pair.right}</Text>
         </View>
       ))}
     </View>

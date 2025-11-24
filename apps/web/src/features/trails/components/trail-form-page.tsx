@@ -17,6 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { ImageUpload } from "@/features/questions/components/image-upload";
 import { categoriesListQueryOptions } from "@/features/questions/api/categoriesAndTagsQueries";
 import { trailQueryOptions } from "../api/trailsQueries";
 import type { CreateTrailBody } from "../types";
@@ -81,6 +82,7 @@ export const TrailFormPage = forwardRef<TrailFormHandle, TrailFormPageProps>(
         showImmediateExplanations: trail?.showImmediateExplanations ?? true,
         randomizeContentOrder: trail?.randomizeContentOrder ?? false,
         coverImageUrl: trail?.coverImageUrl || null,
+        coverImageKey: (trail as any)?.coverImageKey || null,
         themeColor: trail?.themeColor || null,
         estimatedTimeMinutes: trail?.estimatedTimeMinutes || null,
       },
@@ -197,6 +199,27 @@ export const TrailFormPage = forwardRef<TrailFormHandle, TrailFormPageProps>(
                   </div>
                 )}
               />
+
+              <form.Field name="coverImageUrl">
+                {(field) => (
+                  <ImageUpload
+                    value={field.state.value || undefined}
+                    onChange={(data) => {
+                      if (data) {
+                        field.handleChange(data.url);
+                        form.setFieldValue("coverImageKey", data.key);
+                      } else {
+                        field.handleChange(null);
+                        form.setFieldValue("coverImageKey", null);
+                      }
+                    }}
+                    label="Imagem de Capa da Trilha"
+                    uploadPath="/admin/trails/images/upload"
+                    keyValue={form.getFieldValue("coverImageKey") || undefined}
+                    deletePath="/admin/trails/images"
+                  />
+                )}
+              </form.Field>
 
               <form.Field
                 name="categoryId"

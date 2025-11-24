@@ -539,6 +539,15 @@ export default function JourneyDetail() {
   return (
     <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        {/* Cover Image */}
+        {trail.coverImageUrl && (
+          <Image
+            source={{ uri: trail.coverImageUrl }}
+            className="w-full h-48"
+            resizeMode="cover"
+          />
+        )}
+
         {/* Header */}
         <View className="px-6 pt-4 pb-8">
           {/* Back Button */}
@@ -574,7 +583,7 @@ export default function JourneyDetail() {
           )}
 
           {/* Metadata */}
-          <View className="flex-row items-center gap-4 mb-4">
+          <View className="flex-row items-center gap-4 mb-4 flex-wrap">
             {trail.estimatedTimeMinutes && (
               <View className="flex-row items-center gap-1">
                 <Text className="text-gray-600 dark:text-gray-300 text-sm">
@@ -589,6 +598,11 @@ export default function JourneyDetail() {
                 </Text>
               </View>
             )}
+            <View className="flex-row items-center gap-1">
+              <Text className="text-gray-600 dark:text-gray-300 text-sm">
+                ✓ Requer {trail.passPercentage}% para passar
+              </Text>
+            </View>
           </View>
 
           {/* Info Badge - Not enrolled */}

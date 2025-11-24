@@ -322,6 +322,9 @@ export abstract class TrailsService {
     if (newTrail.coverImageUrl !== undefined) {
       insertValues.coverImageUrl = newTrail.coverImageUrl;
     }
+    if (newTrail.coverImageKey !== undefined) {
+      insertValues.coverImageKey = newTrail.coverImageKey;
+    }
     if (newTrail.themeColor !== undefined) {
       insertValues.themeColor = newTrail.themeColor;
     }
@@ -420,6 +423,9 @@ export abstract class TrailsService {
     if (updateData.coverImageUrl !== undefined)
       dbUpdate.coverImageUrl =
         updateData.coverImageUrl === null ? null : updateData.coverImageUrl;
+    if (updateData.coverImageKey !== undefined)
+      dbUpdate.coverImageKey =
+        updateData.coverImageKey === null ? null : updateData.coverImageKey;
     if (updateData.themeColor !== undefined)
       dbUpdate.themeColor =
         updateData.themeColor === null ? null : updateData.themeColor;

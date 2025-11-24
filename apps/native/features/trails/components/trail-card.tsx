@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity } from "react-native";
+import { Text, View, TouchableOpacity, Image } from "react-native";
 import { ChevronRight, Lock, CheckCircle2 } from "lucide-react-native";
 
 interface TrailCardProps {
@@ -49,10 +49,21 @@ export function TrailCard({ trail, onPress }: TrailCardProps) {
     <TouchableOpacity
       onPress={onPress}
       disabled={trail.isLocked}
-      className={`bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-3 ${trail.isLocked ? "opacity-50" : ""}`}
+      className={`bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden mb-3 ${trail.isLocked ? "opacity-50" : ""}`}
     >
-      {/* Header */}
-      <View className="flex-row items-start justify-between mb-2">
+      {/* Cover Image */}
+      {trail.coverImageUrl && (
+        <Image
+          source={{ uri: trail.coverImageUrl }}
+          className="w-full h-32"
+          resizeMode="cover"
+        />
+      )}
+
+      {/* Content Container */}
+      <View className="p-4">
+        {/* Header */}
+        <View className="flex-row items-start justify-between mb-2">
         <View className="flex-1">
           <View className="flex-row items-center gap-2 mb-1">
             <Text className="text-base font-bold text-gray-900 dark:text-gray-50">
@@ -118,6 +129,7 @@ export function TrailCard({ trail, onPress }: TrailCardProps) {
           </Text>
         </View>
       )}
+      </View>
     </TouchableOpacity>
   );
 }

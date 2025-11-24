@@ -20,6 +20,7 @@ export type Trail = {
   showImmediateExplanations: boolean;
   randomizeContentOrder: boolean;
   coverImageUrl: string | null;
+  coverImageKey: string | null;
   themeColor: string | null;
   availableFrom: string | null;
   availableUntil: string | null;
@@ -125,6 +126,7 @@ export type CreateTrailBody = {
   showImmediateExplanations?: boolean;
   randomizeContentOrder?: boolean;
   coverImageUrl?: string | null;
+  coverImageKey?: string | null;
   themeColor?: string | null;
   availableFrom?: string | null;
   availableUntil?: string | null;

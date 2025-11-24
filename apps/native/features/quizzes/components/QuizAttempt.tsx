@@ -104,11 +104,11 @@ export function QuizAttempt({
           const userAnswer = userAnswers[blank.id.toString()]
             ?.toLowerCase()
             .trim();
-          
+
           // Find the correct option
           const correctOption = blank.options?.find((opt) => opt.isCorrect);
           if (!correctOption) return false;
-          
+
           return userAnswer === correctOption.text.toLowerCase().trim();
         }) || false
       );
@@ -128,6 +128,28 @@ export function QuizAttempt({
     }
 
     return false;
+  };
+
+  const formatInlineCorrect = (answer: any, question: any): string => {
+    if (typeof answer === "string") {
+      return answer;
+    }
+
+    if (typeof answer === "number") {
+      const option = question.options?.find((opt: any) => opt.id === answer);
+      return option?.content || option?.optionText || `Opção ${answer}`;
+    }
+
+    if (Array.isArray(answer)) {
+      return answer
+        .map((id: number) => {
+          const option = question.options?.find((opt: any) => opt.id === id);
+          return option?.content || option?.optionText || `Opção ${id}`;
+        })
+        .join(", ");
+    }
+
+    return "Resposta não disponível";
   };
 
   const handleContinue = () => {
@@ -325,47 +347,57 @@ export function QuizAttempt({
       </ScrollView>
 
       {/* Feedback Section - Fixed at bottom above button */}
-      {feedback !== "none" && (
-        <View className="px-5 pb-3">
+      {feedback !== "none" && quiz.showResults && (
+        <View className="px-4 pb-3">
           <Animated.View entering={FadeIn.duration(300)}>
-            <View className="rounded-2xl p-5 bg-white border border-gray-200 shadow-sm">
-              <View className="flex-row items-center gap-3 mb-3">
-                {feedback === "correct" ? (
-                  <CheckCircle2 size={24} color="#16A34A" strokeWidth={2.5} />
-                ) : (
-                  <XCircle size={24} color="#EF4444" strokeWidth={2.5} />
-                )}
-                <Text
-                  className={`text-lg font-bold ${
-                    feedback === "correct" ? "text-green-700" : "text-red-700"
-                  }`}
-                >
-                  {feedback === "correct" ? "Correto!" : "Incorreto"}
-                </Text>
-              </View>
-
-              {currentQuestion.question.explanation && (
-                <Text className="text-base leading-relaxed text-gray-900">
-                  {currentQuestion.question.explanation}
-                </Text>
-              )}
-
-              {currentQuestion.question.correctAnswer &&
-                currentQuestion.question.correctAnswer !== undefined &&
-                quiz.showCorrectAnswers && (
-                  <View className="mt-3">
-                    <Text className="text-xs font-semibold text-gray-600 tracking-wide mb-1">
-                      Resposta correta
+            {feedback === "correct" ? (
+              // Minimal positive feedback for correct answers
+              <View className="rounded-2xl p-5 bg-green-50 border-2 border-green-500 shadow-sm">
+                <View className="flex-row items-center gap-3">
+                  <CheckCircle2 size={28} color="#16A34A" strokeWidth={2.5} />
+                  <View className="flex-1">
+                    <Text className="text-xl font-bold text-green-700 mb-1">
+                      Correto!
                     </Text>
-                    <Text className="text-sm text-gray-900 leading-relaxed">
-                      {formatInlineCorrect(
-                        currentQuestion.question.correctAnswer,
-                        currentQuestion.question,
-                      )}
+                    <Text className="text-base text-green-600">
+                      Ótimo trabalho! Continue assim.
                     </Text>
                   </View>
+                </View>
+              </View>
+            ) : (
+              // Full feedback for incorrect answers
+              <View className="rounded-2xl p-5 bg-white border border-gray-200 shadow-sm">
+                <View className="flex-row items-center gap-3 mb-3">
+                  <XCircle size={28} color="#EF4444" strokeWidth={2.5} />
+                  <Text className="text-xl font-bold text-red-700">
+                    Incorreto
+                  </Text>
+                </View>
+
+                {currentQuestion.question.explanation && quiz.showCorrectAnswers && (
+                  <Text className="text-lg leading-relaxed text-gray-900">
+                    {currentQuestion.question.explanation}
+                  </Text>
                 )}
-            </View>
+
+                {currentQuestion.question.correctAnswer &&
+                  currentQuestion.question.correctAnswer !== undefined &&
+                  quiz.showCorrectAnswers && (
+                    <View className="mt-3">
+                      <Text className="text-sm font-semibold text-gray-600 tracking-wide mb-1">
+                        Resposta correta
+                      </Text>
+                      <Text className="text-base text-gray-900 leading-relaxed">
+                        {formatInlineCorrect(
+                          currentQuestion.question.correctAnswer,
+                          currentQuestion.question,
+                        )}
+                      </Text>
+                    </View>
+                  )}
+              </View>
+            )}
           </Animated.View>
         </View>
       )}
