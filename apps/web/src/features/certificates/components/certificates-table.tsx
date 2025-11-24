@@ -39,6 +39,7 @@ export interface CertificateTableItem {
 		email: string;
 		image?: string | null;
 	};
+  unlockRequirement?: "trails" | "articles" | "trails_and_articles";
 }
 
 interface CertificatesTableProps {
@@ -46,9 +47,16 @@ interface CertificatesTableProps {
 	onApprove?: (certificate: CertificateTableItem) => void;
 	onReject?: (certificate: CertificateTableItem) => void;
 	onView?: (certificate: CertificateTableItem) => void;
+	progressLabel?: string;
 }
 
-export function CertificatesTable({ data, onApprove, onReject, onView }: CertificatesTableProps) {
+export function CertificatesTable({
+	data,
+	onApprove,
+	onReject,
+	onView,
+	progressLabel = "Trilhas",
+}: CertificatesTableProps) {
 	return (
 		<div className="rounded-md border border-border bg-card">
 			<Table>
@@ -56,7 +64,7 @@ export function CertificatesTable({ data, onApprove, onReject, onView }: Certifi
 					<TableRow>
 						<TableHead>Aluno</TableHead>
 						<TableHead>Média</TableHead>
-						<TableHead>Trilhas</TableHead>
+						<TableHead>{progressLabel}</TableHead>
 						<TableHead>Status</TableHead>
 						<TableHead>Concluído em</TableHead>
 						<TableHead className="w-20">Ações</TableHead>

@@ -12,6 +12,8 @@ interface CertificateData {
   completionDate: Date;
   verificationCode: string;
   userImageUrl?: string | null;
+  title: string;
+  unlockRequirement: "trails" | "articles" | "trails_and_articles";
 }
 
 const VERIFY_BASE_URL =
@@ -214,6 +216,8 @@ const CertificateDocument = ({
   verificationUrl,
   userImage,
   qrCode,
+  title,
+  unlockRequirement,
 }: {
   userName: string;
   averageScore: number;
@@ -224,69 +228,84 @@ const CertificateDocument = ({
   verificationUrl: string;
   userImage: string;
   qrCode: string;
-}) => (
-  <Document>
-    <Page size="A4" orientation="landscape" style={styles.page}>
-      <View style={styles.card}>
-        <View>
-          <View style={styles.header}>
-            <Text style={styles.badge}>CERTIFICADO</Text>
-            <Text style={styles.title}>Conclusão de Trilhas</Text>
-            <Text style={styles.subtitle}>Medwaster Plataforma Educacional</Text>
+  title: string;
+  unlockRequirement: "trails" | "articles" | "trails_and_articles";
+}) => {
+  const completedLabel =
+    unlockRequirement === "articles"
+      ? "Artigos Concluídos"
+      : unlockRequirement === "trails_and_articles"
+        ? "Trilhas e Artigos Concluídos"
+        : "Trilhas Concluídas";
+
+  return (
+    <Document>
+      <Page size="A4" orientation="landscape" style={styles.page}>
+        <View style={styles.card}>
+          <View>
+            <View style={styles.header}>
+              <Text style={styles.badge}>CERTIFICADO</Text>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.subtitle}>Medwaster Plataforma Educacional</Text>
+            </View>
+
+            <View style={styles.profileRow}>
+              <Image src={userImage} style={styles.avatar} />
+              <View style={styles.nameBlock}>
+                <Text style={styles.name}>{userName}</Text>
+                <Text style={styles.achievement}>
+                  {unlockRequirement === "articles"
+                    ? "Concluiu todos os artigos de aprendizado com excelência"
+                    : unlockRequirement === "trails_and_articles"
+                      ? "Concluiu todas as trilhas e artigos de aprendizado com excelência"
+                      : "Concluiu todas as trilhas de aprendizado com excelência"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>Média Geral</Text>
+                <Text style={styles.statValue}>{Math.round(averageScore)}%</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>{completedLabel}</Text>
+                <Text style={styles.statValue}>{totalTrailsCompleted}</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>Tempo de Estudo</Text>
+                <Text style={styles.statValue}>{formatMinutes(totalTimeMinutes)}</Text>
+              </View>
+            </View>
+
+            <View style={styles.infoRow}>
+              <View style={styles.infoBlock}>
+                <Text style={styles.infoLabel}>Data de Conclusão</Text>
+                <Text style={styles.infoValue}>{formatDate(completionDate)}</Text>
+              </View>
+              <View style={styles.infoBlock}>
+                <Text style={styles.infoLabel}>Código de Verificação</Text>
+                <Text style={styles.infoValue}>{verificationCode}</Text>
+              </View>
+            </View>
+
+            <View style={styles.qrBlock}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.infoLabel}>Verifique a autenticidade</Text>
+                <Text style={styles.verificationUrl}>{verificationUrl}</Text>
+              </View>
+              <Image src={qrCode} style={styles.qrImage} />
+            </View>
           </View>
 
-          <View style={styles.profileRow}>
-            <Image src={userImage} style={styles.avatar} />
-            <View style={styles.nameBlock}>
-              <Text style={styles.name}>{userName}</Text>
-              <Text style={styles.achievement}>
-                Concluiu todas as trilhas de aprendizado com excelência
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Text style={styles.statLabel}>Média Geral</Text>
-              <Text style={styles.statValue}>{Math.round(averageScore)}%</Text>
-            </View>
-            <View style={styles.stat}>
-              <Text style={styles.statLabel}>Trilhas Concluídas</Text>
-              <Text style={styles.statValue}>{totalTrailsCompleted}</Text>
-            </View>
-            <View style={styles.stat}>
-              <Text style={styles.statLabel}>Tempo de Estudo</Text>
-              <Text style={styles.statValue}>{formatMinutes(totalTimeMinutes)}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>Data de Conclusão</Text>
-              <Text style={styles.infoValue}>{formatDate(completionDate)}</Text>
-            </View>
-            <View style={styles.infoBlock}>
-              <Text style={styles.infoLabel}>Código de Verificação</Text>
-              <Text style={styles.infoValue}>{verificationCode}</Text>
-            </View>
-          </View>
-
-          <View style={styles.qrBlock}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.infoLabel}>Verifique a autenticidade</Text>
-              <Text style={styles.verificationUrl}>{verificationUrl}</Text>
-            </View>
-            <Image src={qrCode} style={styles.qrImage} />
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>MEDWASTER • EDUCAÇÃO PARA PROFISSIONAIS DE SAÚDE</Text>
           </View>
         </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>MEDWASTER • EDUCAÇÃO PARA PROFISSIONAIS DE SAÚDE</Text>
-        </View>
-      </View>
-    </Page>
-  </Document>
-);
+      </Page>
+    </Document>
+  );
+};
 
 export async function generateCertificatePDF(
   data: CertificateData,
@@ -311,6 +330,8 @@ export async function generateCertificatePDF(
         verificationUrl={verificationUrl}
         userImage={userImage}
         qrCode={qrCode}
+        title={data.title}
+        unlockRequirement={data.unlockRequirement}
       />,
     );
 

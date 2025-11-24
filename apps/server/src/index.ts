@@ -18,6 +18,7 @@ import { adminQuizzes, studentQuizzes } from "./modules/quizzes";
 import { adminTrails, studentTrails } from "./modules/trails";
 import { dashboard } from "./modules/dashboard";
 import { adminUsers, userProfile } from "./modules/users";
+import { profileModule } from "./modules/profile";
 import { gamification } from "./modules/gamification";
 import { adminCertificates, studentCertificates } from "./modules/certificates";
 import { adminConfig } from "./modules/config";
@@ -112,6 +113,7 @@ export const app = new Elysia({ name: "medwaster-api" })
   .use(dashboard)
   .use(adminUsers)
   .use(userProfile)
+  .use(profileModule)
   .use(gamification)
   .use(adminConfig)
   .use(adminCertificates)

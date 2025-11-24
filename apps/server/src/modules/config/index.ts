@@ -38,6 +38,28 @@ export const adminConfig = new Elysia({ prefix: "/admin/config" })
         {
           body: t.Object({
             autoApproveCertificates: t.Optional(t.Boolean()),
+            certificateTitle: t.Optional(
+              t.String({ minLength: 3, maxLength: 150 }),
+            ),
+            certificateUnlockRequirement: t.Optional(
+              t.Union([
+                t.Literal("trails"),
+                t.Literal("articles"),
+                t.Literal("trails_and_articles"),
+              ]),
+            ),
+            certificateMinStudyHours: t.Optional(
+              t.Number({
+                minimum: 0,
+                maximum: 10_000,
+              }),
+            ),
+            certificateMaxStudyHours: t.Optional(
+              t.Number({
+                minimum: 0,
+                maximum: 10_000,
+              }),
+            ),
           }),
           detail: {
             tags: ["Admin", "Config"],

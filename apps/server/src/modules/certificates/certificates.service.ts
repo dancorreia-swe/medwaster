@@ -1,7 +1,15 @@
 import { db } from "@/db";
 import { certificates } from "@/db/schema/certificates";
 import { trails, userTrailProgress } from "@/db/schema/trails";
-import { eq, and, count, avg, sum, desc } from "drizzle-orm";
+import {
+  eq,
+  and,
+  count,
+  avg,
+  sum,
+  desc,
+  sql,
+} from "drizzle-orm";
 import {
   NotFoundError,
   BusinessLogicError,
@@ -10,7 +18,8 @@ import {
 import crypto from "crypto";
 import { trackCertificateEarned } from "../achievements/trackers";
 import { generateCertificatePDF } from "./pdf-generator";
-import { ConfigService } from "../config/config.service";
+import { ConfigService, type AppConfig } from "../config/config.service";
+import { userArticleReads, wikiArticles } from "@/db/schema/wiki";
 
 export abstract class CertificateService {
   /**
@@ -64,6 +73,46 @@ export abstract class CertificateService {
   }
 
   /**
+   * Check if user has completed ALL published articles
+   */
+  static async hasCompletedAllArticles(userId: string): Promise<boolean> {
+    const totalArticlesResult = await db
+      .select({ count: count() })
+      .from(wikiArticles)
+      .where(eq(wikiArticles.status, "published"));
+
+    const totalArticles = totalArticlesResult[0]?.count || 0;
+
+    console.log(`    📊 Total published articles: ${totalArticles}`);
+
+    if (totalArticles === 0) {
+      console.log(`    ⚠️  No published articles found`);
+      return false;
+    }
+
+    const completedArticlesResult = await db
+      .select({ count: count() })
+      .from(userArticleReads)
+      .innerJoin(wikiArticles, eq(userArticleReads.articleId, wikiArticles.id))
+      .where(
+        and(
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.isRead, true),
+          eq(wikiArticles.status, "published"),
+        ),
+      );
+
+    const completedArticles = completedArticlesResult[0]?.count || 0;
+
+    console.log(`    📊 User read articles: ${completedArticles}`);
+    console.log(
+      `    ${completedArticles >= totalArticles ? "✅" : "❌"} Result: ${completedArticles} >= ${totalArticles} = ${completedArticles >= totalArticles}`,
+    );
+
+    return completedArticles >= totalArticles;
+  }
+
+  /**
    * Get certificate statistics for a user
    */
   private static async getUserTrailsStats(userId: string) {
@@ -71,7 +120,7 @@ export abstract class CertificateService {
       .select({
         totalCompleted: count(),
         averageScore: avg(userTrailProgress.bestScore),
-        totalTime: sum(userTrailProgress.timeSpentMinutes),
+        totalTimeMinutes: sum(userTrailProgress.timeSpentMinutes),
       })
       .from(userTrailProgress)
       .innerJoin(trails, eq(userTrailProgress.trailId, trails.id))
@@ -87,7 +136,163 @@ export abstract class CertificateService {
     return {
       totalCompleted: stats[0]?.totalCompleted || 0,
       averageScore: stats[0]?.averageScore || 0,
-      totalTime: stats[0]?.totalTime || 0,
+      totalTimeMinutes: stats[0]?.totalTimeMinutes || 0,
+    };
+  }
+
+  /**
+   * Get article statistics for a user
+   */
+  private static async getUserArticlesStats(userId: string) {
+    const stats = await db
+      .select({
+        totalCompleted: sql<number>`COUNT(DISTINCT ${userArticleReads.articleId})`,
+        averageCompletion: avg(userArticleReads.readPercentage),
+        totalTimeSeconds: sum(userArticleReads.timeSpentSeconds),
+      })
+      .from(userArticleReads)
+      .innerJoin(wikiArticles, eq(userArticleReads.articleId, wikiArticles.id))
+      .where(
+        and(
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.isRead, true),
+          eq(wikiArticles.status, "published"),
+        ),
+      );
+
+    return {
+      totalCompleted: stats[0]?.totalCompleted || 0,
+      averageCompletion: stats[0]?.averageCompletion || 0,
+      totalTimeMinutes: Math.round(
+        Number(stats[0]?.totalTimeSeconds || 0) / 60,
+      ),
+    };
+  }
+
+  private static async getLastTrailCompletionDate(userId: string) {
+    const lastCompletedTrail = await db
+      .select({ completedAt: userTrailProgress.completedAt })
+      .from(userTrailProgress)
+      .innerJoin(trails, eq(userTrailProgress.trailId, trails.id))
+      .where(
+        and(
+          eq(userTrailProgress.userId, userId),
+          eq(userTrailProgress.isCompleted, true),
+          eq(trails.status, "published"),
+        ),
+      )
+      .orderBy(desc(userTrailProgress.completedAt))
+      .limit(1);
+
+    return lastCompletedTrail[0]?.completedAt || new Date();
+  }
+
+  private static async getLastArticleCompletionDate(userId: string) {
+    const lastCompletedArticle = await db
+      .select({
+        markedReadAt: userArticleReads.markedReadAt,
+        lastReadAt: userArticleReads.lastReadAt,
+      })
+      .from(userArticleReads)
+      .innerJoin(wikiArticles, eq(userArticleReads.articleId, wikiArticles.id))
+      .where(
+        and(
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.isRead, true),
+          eq(wikiArticles.status, "published"),
+        ),
+      )
+      .orderBy(
+        desc(userArticleReads.markedReadAt),
+        desc(userArticleReads.lastReadAt),
+      )
+      .limit(1);
+
+    const record = lastCompletedArticle[0];
+
+    return record?.markedReadAt || record?.lastReadAt || new Date();
+  }
+
+  private static async getCertificateProgress(
+    userId: string,
+    config: AppConfig,
+  ) {
+    if (config.certificateUnlockRequirement === "articles") {
+      const hasCompletedAll = await this.hasCompletedAllArticles(userId);
+
+      if (!hasCompletedAll) {
+        throw new BusinessLogicError(
+          "Cannot generate certificate: not all articles completed",
+        );
+      }
+
+      const stats = await this.getUserArticlesStats(userId);
+      const completionDate = await this.getLastArticleCompletionDate(userId);
+
+      return {
+        unlockRequirement: "articles" as const,
+        averageScore: stats.averageCompletion || 100,
+        totalCompleted: stats.totalCompleted,
+        totalTimeMinutes: stats.totalTimeMinutes,
+        completionDate,
+      };
+    }
+
+    if (config.certificateUnlockRequirement === "trails_and_articles") {
+      const [trailsDone, articlesDone] = await Promise.all([
+        this.hasCompletedAllTrails(userId),
+        this.hasCompletedAllArticles(userId),
+      ]);
+
+      if (!trailsDone || !articlesDone) {
+        throw new BusinessLogicError(
+          "Cannot generate certificate: complete all trails and all articles",
+        );
+      }
+
+      const [trailStats, articleStats] = await Promise.all([
+        this.getUserTrailsStats(userId),
+        this.getUserArticlesStats(userId),
+      ]);
+      const [lastTrailCompletion, lastArticleCompletion] = await Promise.all([
+        this.getLastTrailCompletionDate(userId),
+        this.getLastArticleCompletionDate(userId),
+      ]);
+
+      const totalCompleted =
+        Number(trailStats.totalCompleted) + Number(articleStats.totalCompleted);
+
+      return {
+        unlockRequirement: "trails_and_articles" as const,
+        averageScore: Number(trailStats.averageScore) || 0,
+        totalCompleted,
+        totalTimeMinutes:
+          Number(trailStats.totalTimeMinutes) +
+          Number(articleStats.totalTimeMinutes),
+        completionDate:
+          lastTrailCompletion > lastArticleCompletion
+            ? lastTrailCompletion
+            : lastArticleCompletion,
+      };
+    }
+
+    const hasCompletedAll = await this.hasCompletedAllTrails(userId);
+
+    if (!hasCompletedAll) {
+      throw new BusinessLogicError(
+        "Cannot generate certificate: not all trails completed",
+      );
+    }
+
+    const stats = await this.getUserTrailsStats(userId);
+    const completionDate = await this.getLastTrailCompletionDate(userId);
+
+    return {
+      unlockRequirement: "trails" as const,
+      averageScore: Number(stats.averageScore) || 0,
+      totalCompleted: Number(stats.totalCompleted),
+      totalTimeMinutes: Number(stats.totalTimeMinutes),
+      completionDate,
     };
   }
 
@@ -98,13 +303,30 @@ export abstract class CertificateService {
   static async generateCertificate(userId: string) {
     console.log(`  🎓 [generateCertificate] Starting certificate generation for user ${userId}`);
     
-    // Check if all trails are completed
-    const hasCompletedAll = await this.hasCompletedAllTrails(userId);
+    const config = await ConfigService.getConfig();
+    const progress = await this.getCertificateProgress(userId, config);
 
-    if (!hasCompletedAll) {
-      console.log(`  ❌ User has not completed all trails`);
+    if (
+      config.certificateMinStudyHours > 0 &&
+      progress.totalTimeMinutes < config.certificateMinStudyHours * 60
+    ) {
+      console.log(
+        `  ❌ User has not reached required study hours (${progress.totalTimeMinutes}m < ${config.certificateMinStudyHours}h)`,
+      );
       throw new BusinessLogicError(
-        "Cannot generate certificate: not all trails completed",
+        `Cannot generate certificate: requires at least ${config.certificateMinStudyHours} hours of study`,
+      );
+    }
+
+    if (
+      config.certificateMaxStudyHours > 0 &&
+      progress.totalTimeMinutes > config.certificateMaxStudyHours * 60
+    ) {
+      console.log(
+        `  ❌ User exceeded max study hours (${progress.totalTimeMinutes}m > ${config.certificateMaxStudyHours}h)`,
+      );
+      throw new BusinessLogicError(
+        `Cannot generate certificate: maximum of ${config.certificateMaxStudyHours} hours exceeded`,
       );
     }
 
@@ -121,31 +343,7 @@ export abstract class CertificateService {
       return existing[0];
     }
 
-    // Get user's trail statistics
-    console.log(`  📊 Calculating trail statistics...`);
-    const stats = await this.getUserTrailsStats(userId);
-    console.log(`    Stats:`, stats);
-
-    // Get the completion date of the last published trail
-    const lastCompletedTrail = await db
-      .select({ completedAt: userTrailProgress.completedAt })
-      .from(userTrailProgress)
-      .innerJoin(trails, eq(userTrailProgress.trailId, trails.id))
-      .where(
-        and(
-          eq(userTrailProgress.userId, userId),
-          eq(userTrailProgress.isCompleted, true),
-          eq(trails.status, "published"),
-        ),
-      )
-      .orderBy(desc(userTrailProgress.completedAt))
-      .limit(1);
-
-    const allTrailsCompletedAt =
-      lastCompletedTrail[0]?.completedAt || new Date();
-
-    console.log(`    Completion date: ${allTrailsCompletedAt}`);
-
+    console.log(`  📊 Certificate progress snapshot:`, progress);
     // Generate verification code
     const verificationCode = this.generateVerificationCode();
     console.log(`  🔑 Generated verification code: ${verificationCode}`);
@@ -157,10 +355,10 @@ export abstract class CertificateService {
       .values({
         userId,
         status: "pending",
-        averageScore: Number(stats.averageScore),
-        totalTrailsCompleted: Number(stats.totalCompleted),
-        totalTimeMinutes: Number(stats.totalTime),
-        allTrailsCompletedAt,
+        averageScore: Number(progress.averageScore),
+        totalTrailsCompleted: Number(progress.totalCompleted),
+        totalTimeMinutes: Number(progress.totalTimeMinutes),
+        allTrailsCompletedAt: progress.completionDate,
         verificationCode,
       })
       .returning();
@@ -172,7 +370,7 @@ export abstract class CertificateService {
       await trackCertificateEarned(
         userId,
         certificate.id,
-        Number(stats.averageScore) || 0,
+        Number(progress.averageScore) || 0,
       );
       console.log(`  🏆 Tracked certificate achievement for user ${userId}`);
     } catch (error) {
@@ -181,10 +379,9 @@ export abstract class CertificateService {
 
     // Auto-approve if global setting is enabled
     try {
-      const config = await ConfigService.getConfig();
       if (config.autoApproveCertificates) {
         console.log("  🤖 Auto-approving certificate (config enabled)...");
-        await this.autoApproveCertificate(certificate.id);
+        await this.autoApproveCertificate(certificate.id, config);
       }
     } catch (error) {
       console.error("  ✗ Failed to auto-approve certificate:", error);
@@ -265,6 +462,8 @@ export abstract class CertificateService {
       );
     }
 
+    const config = await ConfigService.getConfig();
+
     // Generate PDF certificate
     const certificateUrl = await generateCertificatePDF({
       id: certificate.id,
@@ -275,6 +474,8 @@ export abstract class CertificateService {
       completionDate: certificate.allTrailsCompletedAt,
       verificationCode: certificate.verificationCode,
       userImageUrl: certificate.user.image,
+      title: config.certificateTitle,
+      unlockRequirement: config.certificateUnlockRequirement,
     });
 
     // Update certificate status
@@ -306,7 +507,10 @@ export abstract class CertificateService {
   /**
    * Auto-approve certificate without human reviewer (system action)
    */
-  private static async autoApproveCertificate(certificateId: number) {
+  private static async autoApproveCertificate(
+    certificateId: number,
+    config?: AppConfig,
+  ) {
     const certificate = await db.query.certificates.findFirst({
       where: eq(certificates.id, certificateId),
       with: {
@@ -322,6 +526,8 @@ export abstract class CertificateService {
       return certificate;
     }
 
+    const currentConfig = config ?? (await ConfigService.getConfig());
+
     const certificateUrl = await generateCertificatePDF({
       id: certificate.id,
       userName: certificate.user.name,
@@ -331,6 +537,8 @@ export abstract class CertificateService {
       completionDate: certificate.allTrailsCompletedAt,
       verificationCode: certificate.verificationCode,
       userImageUrl: certificate.user.image,
+      title: currentConfig.certificateTitle,
+      unlockRequirement: currentConfig.certificateUnlockRequirement,
     });
 
     const [updated] = await db

@@ -1,0 +1,1 @@
+ALTER TABLE "system_config" ADD COLUMN "certificate_max_study_hours" integer DEFAULT 0 NOT NULL;

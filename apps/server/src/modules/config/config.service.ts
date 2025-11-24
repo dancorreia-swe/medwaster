@@ -1,13 +1,27 @@
 import { db } from "@/db";
-import { systemConfig } from "@/db/schema/system-config";
+import {
+  certificateUnlockRequirementValues,
+  systemConfig,
+} from "@/db/schema/system-config";
 import { eq } from "drizzle-orm";
+
+type CertificateUnlockRequirement =
+  (typeof certificateUnlockRequirementValues)[number];
 
 export interface AppConfig {
   autoApproveCertificates: boolean;
+  certificateTitle: string;
+  certificateUnlockRequirement: CertificateUnlockRequirement;
+  certificateMinStudyHours: number;
+  certificateMaxStudyHours: number;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
   autoApproveCertificates: false,
+  certificateTitle: "Conclusão de Trilhas",
+  certificateUnlockRequirement: "trails",
+  certificateMinStudyHours: 0,
+  certificateMaxStudyHours: 0,
 };
 
 export abstract class ConfigService {
@@ -25,11 +39,19 @@ export abstract class ConfigService {
 
       return {
         autoApproveCertificates: created.autoApproveCertificates,
+        certificateTitle: created.certificateTitle,
+        certificateUnlockRequirement: created.certificateUnlockRequirement,
+        certificateMinStudyHours: created.certificateMinStudyHours,
+        certificateMaxStudyHours: created.certificateMaxStudyHours,
       };
     }
 
     return {
       autoApproveCertificates: existing.autoApproveCertificates,
+      certificateTitle: existing.certificateTitle,
+      certificateUnlockRequirement: existing.certificateUnlockRequirement,
+      certificateMinStudyHours: existing.certificateMinStudyHours,
+      certificateMaxStudyHours: existing.certificateMaxStudyHours,
     };
   }
 
@@ -43,6 +65,17 @@ export abstract class ConfigService {
       ...data,
     };
 
+    newValues.certificateTitle =
+      newValues.certificateTitle.trim() || DEFAULT_CONFIG.certificateTitle;
+    newValues.certificateMinStudyHours = Math.max(
+      0,
+      Math.round(newValues.certificateMinStudyHours),
+    );
+    newValues.certificateMaxStudyHours = Math.max(
+      0,
+      Math.round(newValues.certificateMaxStudyHours),
+    );
+
     const existing = await db.query.systemConfig.findFirst();
 
     if (existing) {
@@ -50,12 +83,20 @@ export abstract class ConfigService {
         .update(systemConfig)
         .set({
           autoApproveCertificates: newValues.autoApproveCertificates,
+          certificateTitle: newValues.certificateTitle,
+          certificateUnlockRequirement: newValues.certificateUnlockRequirement,
+          certificateMinStudyHours: newValues.certificateMinStudyHours,
+          certificateMaxStudyHours: newValues.certificateMaxStudyHours,
           updatedAt: new Date(),
         })
         .where(eq(systemConfig.id, existing.id));
     } else {
       await db.insert(systemConfig).values({
         autoApproveCertificates: newValues.autoApproveCertificates,
+        certificateTitle: newValues.certificateTitle,
+        certificateUnlockRequirement: newValues.certificateUnlockRequirement,
+        certificateMinStudyHours: newValues.certificateMinStudyHours,
+        certificateMaxStudyHours: newValues.certificateMaxStudyHours,
       });
     }
 

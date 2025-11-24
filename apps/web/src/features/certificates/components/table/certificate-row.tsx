@@ -24,15 +24,16 @@ interface CertificateRowProps {
 		id: number;
 		status: "pending" | "approved" | "rejected" | "revoked";
 		averageScore: number;
-		totalTrailsCompleted: number;
-		allTrailsCompletedAt: Date | string;
-		reviewNotes?: string | null;
-		createdAt: Date | string;
-		user: {
-			id: string;
-			name: string;
-			email: string;
-		};
+	totalTrailsCompleted: number;
+	allTrailsCompletedAt: Date | string;
+	reviewNotes?: string | null;
+	createdAt: Date | string;
+	unlockRequirement?: "trails" | "articles" | "trails_and_articles";
+	user: {
+		id: string;
+		name: string;
+		email: string;
+	};
 	};
 	onApprove?: (certificate: any) => void;
 	onReject?: (certificate: any) => void;

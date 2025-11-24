@@ -32,6 +32,14 @@ export type CertificateVerificationResult =
       message?: string;
     };
 
+export type CertificateSettings = {
+	autoApproveCertificates: boolean;
+	certificateTitle: string;
+	certificateUnlockRequirement: "trails" | "articles" | "trails_and_articles";
+	certificateMinStudyHours: number;
+	certificateMaxStudyHours: number;
+};
+
 export const certificatesApi = {
 	getPending: async () => {
 		const response = await certificatesClient.pending.get();
@@ -92,14 +100,14 @@ export const certificatesApi = {
 		if (response.error) {
 			throwEdenError(response.error as EdenError, "Failed to load certificate settings");
 		}
-		return response.data as { autoApproveCertificates: boolean };
+		return response.data as CertificateSettings;
 	},
 
-	updateSettings: async (payload: { autoApproveCertificates: boolean }) => {
+	updateSettings: async (payload: Partial<CertificateSettings>) => {
 		const response = await configClient.patch(payload);
 		if (response.error) {
 			throwEdenError(response.error as EdenError, "Failed to update settings");
 		}
-		return response.data as { autoApproveCertificates: boolean };
+		return response.data as CertificateSettings;
 	},
 };

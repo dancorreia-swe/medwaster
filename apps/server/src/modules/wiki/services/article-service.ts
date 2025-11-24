@@ -38,6 +38,8 @@ import type {
 } from "../types/article";
 import { ragQueue } from "@/lib/queue";
 import { NoCategoryError } from "../exceptions/no-category-error";
+import { ConfigService } from "@/modules/config/config.service";
+import { CertificateService } from "@/modules/certificates/certificates.service";
 
 export class ArticleService {
   private static editor: ServerBlockNoteEditor = ServerBlockNoteEditor.create();
@@ -1488,6 +1490,7 @@ export class ArticleService {
         console.error("Failed to record article activity:", error);
       }
 
+      await this.maybeGenerateCertificateFromArticles(userId);
       return progress;
     }
 
@@ -1523,6 +1526,7 @@ export class ArticleService {
       }
     }
 
+    await this.maybeGenerateCertificateFromArticles(userId);
     return progress;
   }
 
@@ -1547,6 +1551,40 @@ export class ArticleService {
       .returning();
 
     return progress;
+  }
+
+  private static async maybeGenerateCertificateFromArticles(userId: string) {
+    try {
+      const config = await ConfigService.getConfig();
+
+      if (
+        config.certificateUnlockRequirement !== "articles" &&
+        config.certificateUnlockRequirement !== "trails_and_articles"
+      ) {
+        return;
+      }
+
+      const hasCompletedAll =
+        await CertificateService.hasCompletedAllArticles(userId);
+
+      if (!hasCompletedAll) {
+        return;
+      }
+
+      if (
+        config.certificateUnlockRequirement === "trails_and_articles" &&
+        !(await CertificateService.hasCompletedAllTrails(userId))
+      ) {
+        return;
+      }
+
+      await CertificateService.generateCertificate(userId);
+    } catch (error) {
+      console.error(
+        "Failed to generate certificate after article completion:",
+        error,
+      );
+    }
   }
 
   /**

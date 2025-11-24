@@ -117,4 +117,3 @@ export const ROLE_ERRORS = {
   USER_ROLE_WEB_BLOCKED:
     "Usuários com função 'user' devem usar o aplicativo móvel. Para acessar o painel web, entre em contato com um administrador.",
 } as const;
-

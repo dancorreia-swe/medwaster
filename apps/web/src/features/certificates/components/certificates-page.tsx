@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Loader from "@/components/loader";
@@ -15,6 +15,7 @@ import {
   certificatesQueryKeys,
   certificateSettingsQueryOptions,
 } from "../api";
+import type { CertificateSettings } from "../api";
 import type { CertificateTableItem } from "./certificates-table";
 import {
   Item,
@@ -24,13 +25,28 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import { CheckCheck } from "lucide-react";
+import { CheckCheck, ChevronsUpDown, BadgeCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 export function CertificatesPage() {
   const queryClient = useQueryClient();
   const [selectedCertificate, setSelectedCertificate] =
     useState<CertificateTableItem | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(true);
   const { canAccessSuperAdmin } = usePermissions();
 
   const certificatesQuery = useQuery(pendingCertificatesQueryOptions());
@@ -39,6 +55,16 @@ export function CertificatesPage() {
     ...certificateSettingsQueryOptions(),
     enabled: canAccessSuperAdmin,
   });
+
+  const [settingsForm, setSettingsForm] = useState<CertificateSettings | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (settingsQuery.data) {
+      setSettingsForm(settingsQuery.data);
+    }
+  }, [settingsQuery.data]);
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: number; notes?: string }) => {
@@ -65,15 +91,19 @@ export function CertificatesPage() {
   });
 
   const updateSettingsMutation = useMutation({
-    mutationFn: async (autoApproveCertificates: boolean) => {
-      return certificatesApi.updateSettings({ autoApproveCertificates });
+    mutationFn: async (payload: Partial<CertificateSettings>) => {
+      return certificatesApi.updateSettings(payload);
     },
-    onSuccess: (data) => {
-      toast.success(
-        data.autoApproveCertificates
+    onSuccess: (data, variables) => {
+      setSettingsForm(data);
+      const autoApproveChanged =
+        typeof variables?.autoApproveCertificates === "boolean";
+      const message = autoApproveChanged
+        ? data.autoApproveCertificates
           ? "Aprovação automática ativada"
-          : "Aprovação automática desativada",
-      );
+          : "Aprovação automática desativada"
+        : "Configurações do certificado atualizadas";
+      toast.success(message);
       queryClient.invalidateQueries({
         queryKey: certificatesQueryKeys.settings(),
       });
@@ -134,9 +164,40 @@ export function CertificatesPage() {
     rejectMutation.mutate({ id, reason });
   };
 
+  const handleSettingsUpdate = (payload: Partial<CertificateSettings>) => {
+    if (!settingsForm) return;
+    setSettingsForm({
+      ...settingsForm,
+      ...payload,
+    });
+    updateSettingsMutation.mutate(payload);
+  };
+
   const data = certificatesQuery.data;
   const certificates = data?.certificates ?? [];
   const stats = statsQuery.data ?? undefined;
+  const autoApproveEnabled =
+    settingsForm?.autoApproveCertificates ??
+    settingsQuery.data?.autoApproveCertificates ??
+    false;
+  const certificateTitle =
+    settingsForm?.certificateTitle ??
+    settingsQuery.data?.certificateTitle ??
+    "";
+  const unlockRequirement =
+    settingsForm?.certificateUnlockRequirement ??
+    settingsQuery.data?.certificateUnlockRequirement ??
+    "trails";
+  const minStudyHours =
+    settingsForm?.certificateMinStudyHours ??
+    settingsQuery.data?.certificateMinStudyHours ??
+    0;
+  const maxStudyHours =
+    settingsForm?.certificateMaxStudyHours ??
+    settingsQuery.data?.certificateMaxStudyHours ??
+    0;
+  const settingsLoading =
+    settingsQuery.isLoading || (!settingsForm && !settingsQuery.data);
 
   const errorMessage =
     certificatesQuery.error instanceof Error
@@ -151,10 +212,12 @@ export function CertificatesPage() {
   }));
 
   const isPending = approveMutation.isPending || rejectMutation.isPending;
-  const autoApproveEnabled = useMemo(
-    () => settingsQuery.data?.autoApproveCertificates ?? false,
-    [settingsQuery.data?.autoApproveCertificates],
-  );
+  const progressLabel =
+    unlockRequirement === "articles"
+      ? "Artigos"
+      : unlockRequirement === "trails_and_articles"
+        ? "Trilhas e Artigos"
+        : "Trilhas";
 
   return (
     <div className="flex flex-col gap-6">
@@ -170,30 +233,213 @@ export function CertificatesPage() {
 
       {canAccessSuperAdmin && (
         <>
-          <Item variant="outline">
-            <ItemMedia variant="icon">
-              <CheckCheck />
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle>Aprovação automática</ItemTitle>
-              <ItemDescription>
-                Quando ativado, novos certificados são aprovados imediatamente
-                após todas as trilhas serem concluídas.
-              </ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <Switch
-                checked={autoApproveEnabled}
-                onCheckedChange={(checked) =>
-                  updateSettingsMutation.mutate(checked)
-                }
-                disabled={
-                  settingsQuery.isLoading || updateSettingsMutation.isPending
-                }
-                aria-label="Ativar aprovação automática"
-              />
-            </ItemActions>
-          </Item>
+          <Collapsible
+            open={settingsOpen}
+            onOpenChange={setSettingsOpen}
+            className="space-y-3"
+          >
+            <Item variant="outline">
+              <ItemMedia variant="icon">
+                <CheckCheck />
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle>Configurações do certificado</ItemTitle>
+                <ItemDescription>
+                  Ajuste aprovação, título, critério e limites de estudo.
+                </ItemDescription>
+              </ItemContent>
+              <ItemActions>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    {settingsOpen ? "Esconder" : "Mostrar"}{" "}
+                    <ChevronsUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+              </ItemActions>
+            </Item>
+
+            <CollapsibleContent className="space-y-3">
+              <Item variant="outline">
+                <ItemMedia variant="icon">
+                  <BadgeCheck />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>Aprovação automática</ItemTitle>
+                  <ItemDescription>
+                    Quando ativado, novos certificados são aprovados
+                    imediatamente após todas as trilhas serem concluídas.
+                  </ItemDescription>
+                </ItemContent>
+                <ItemActions>
+                  <Switch
+                    checked={autoApproveEnabled}
+                    onCheckedChange={(checked) =>
+                      handleSettingsUpdate({
+                        autoApproveCertificates: checked,
+                      })
+                    }
+                    disabled={
+                      settingsLoading || updateSettingsMutation.isPending
+                    }
+                    aria-label="Ativar aprovação automática"
+                  />
+                </ItemActions>
+              </Item>
+
+              <Item variant="outline">
+                <ItemContent className="gap-3">
+                  <ItemTitle>Nome e critério</ItemTitle>
+                  <ItemDescription>
+                    Ajuste o título exibido no PDF e escolha o gatilho de
+                    liberação do certificado.
+                  </ItemDescription>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Input
+                        value={certificateTitle}
+                        onChange={(event) =>
+                          setSettingsForm((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  certificateTitle: event.target.value,
+                                }
+                              : prev,
+                          )
+                        }
+                        placeholder="Ex: Certificado de Conclusão"
+                        disabled={
+                          settingsLoading || updateSettingsMutation.isPending
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Select
+                        value={unlockRequirement}
+                        onValueChange={(value) =>
+                          handleSettingsUpdate({
+                            certificateUnlockRequirement:
+                              value as CertificateSettings["certificateUnlockRequirement"],
+                          })
+                        }
+                        disabled={
+                          settingsLoading || updateSettingsMutation.isPending
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o critério" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="trails">
+                            Concluir todas as trilhas
+                          </SelectItem>
+                          <SelectItem value="articles">
+                            Ler todos os artigos publicados
+                          </SelectItem>
+                          <SelectItem value="trails_and_articles">
+                            Concluir trilhas e artigos publicados
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() =>
+                        handleSettingsUpdate({
+                          certificateTitle: certificateTitle,
+                          certificateUnlockRequirement: unlockRequirement,
+                        })
+                      }
+                      disabled={
+                        settingsLoading ||
+                        updateSettingsMutation.isPending ||
+                        !certificateTitle.trim()
+                      }
+                    >
+                      Salvar título e critério
+                    </Button>
+                  </div>
+                </ItemContent>
+              </Item>
+
+              <Item variant="outline">
+                <ItemContent className="gap-3">
+                  <ItemTitle>Limites de horas de estudo</ItemTitle>
+                  <ItemDescription>
+                    Defina mínimos e máximos para emissão. Use 0 para desabilitar.
+                  </ItemDescription>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        value={minStudyHours.toString()}
+                        onChange={(event) => {
+                          const value = Number(event.target.value);
+                          setSettingsForm((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  certificateMinStudyHours: Number.isNaN(value)
+                                    ? 0
+                                    : Math.max(0, value),
+                                }
+                              : prev,
+                          );
+                        }}
+                        disabled={
+                          settingsLoading || updateSettingsMutation.isPending
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        value={maxStudyHours.toString()}
+                        onChange={(event) => {
+                          const value = Number(event.target.value);
+                          setSettingsForm((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  certificateMaxStudyHours: Number.isNaN(value)
+                                    ? 0
+                                    : Math.max(0, value),
+                                }
+                              : prev,
+                          );
+                        }}
+                        disabled={
+                          settingsLoading || updateSettingsMutation.isPending
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() =>
+                        handleSettingsUpdate({
+                          certificateMinStudyHours: minStudyHours,
+                          certificateMaxStudyHours: maxStudyHours,
+                        })
+                      }
+                      disabled={
+                        settingsLoading || updateSettingsMutation.isPending
+                      }
+                    >
+                      Salvar limites
+                    </Button>
+                  </div>
+                </ItemContent>
+              </Item>
+            </CollapsibleContent>
+          </Collapsible>
         </>
       )}
 
@@ -213,6 +459,7 @@ export function CertificatesPage() {
       ) : (
         <CertificatesTable
           data={tableData}
+          progressLabel={progressLabel}
           onApprove={handleApprove}
           onReject={handleReject}
           onView={handleView}

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."certificate_unlock_requirement" ADD VALUE 'trails_and_articles';

@@ -21,6 +21,7 @@ import { QuizzesService } from "../quizzes/quizzes.service";
 import type { StartQuizAttemptBody, SubmitQuizAttemptBody } from "../quizzes/model";
 import { DailyActivitiesService } from "../gamification/daily-activities.service";
 import { CertificateService } from "../certificates/certificates.service";
+import { ConfigService } from "../config/config.service";
 import { trackTrailCompleted, trackArticleRead, trackQuestionAnswered } from "../achievements/trackers";
 
 export abstract class ProgressService {
@@ -1322,19 +1323,38 @@ export abstract class ProgressService {
       await this.unlockDependentTrails(userId, trailId);
 
       // Check if user completed ALL trails and generate certificate
-      console.log("📜 [Certificate] Checking if user has completed all trails...");
-      try {
-        const hasCompletedAll = await CertificateService.hasCompletedAllTrails(userId);
-        console.log(`  ${hasCompletedAll ? '✅' : '❌'} Has completed all trails: ${hasCompletedAll}`);
-        
-        if (hasCompletedAll) {
-          console.log("  🎓 Generating certificate...");
-          await CertificateService.generateCertificate(userId);
-          console.log("  ✓ Certificate generated successfully");
+      const config = await ConfigService.getConfig();
+
+      if (
+        config.certificateUnlockRequirement === "trails" ||
+        config.certificateUnlockRequirement === "trails_and_articles"
+      ) {
+        console.log("📜 [Certificate] Checking if user has completed all trails...");
+        try {
+          const hasCompletedAllTrails =
+            await CertificateService.hasCompletedAllTrails(userId);
+          const hasCompletedAllArticles =
+            config.certificateUnlockRequirement === "trails_and_articles"
+              ? await CertificateService.hasCompletedAllArticles(userId)
+              : true;
+
+          console.log(
+            `  Trails ${hasCompletedAllTrails ? "✅" : "❌"} | Articles ${hasCompletedAllArticles ? "✅" : "❌"}`,
+          );
+
+          if (hasCompletedAllTrails && hasCompletedAllArticles) {
+            console.log("  🎓 Generating certificate...");
+            await CertificateService.generateCertificate(userId);
+            console.log("  ✓ Certificate generated successfully");
+          }
+        } catch (error) {
+          console.error("  ✗ Failed to generate certificate:", error);
+          // Don't fail the trail completion if certificate generation fails
         }
-      } catch (error) {
-        console.error("  ✗ Failed to generate certificate:", error);
-        // Don't fail the trail completion if certificate generation fails
+      } else {
+        console.log(
+          "📜 [Certificate] Skipping trail completion check (unlock requirement set to articles)",
+        );
       }
     } else {
       console.log("⚠️  Trail not passed (score < passing percentage), skipping rewards");
