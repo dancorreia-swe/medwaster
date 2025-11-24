@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,14 +9,23 @@ import Loader from "@/components/loader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { UserForm } from "./user-form";
-import { userOverviewQueryOptions } from "../api/usersQueries";
+import { userOverviewQueryOptions, usersQueryKeys } from "../api/usersQueries";
+import { usersApi } from "../api/usersApi";
 import type { UserOverview } from "../types";
 import { formatDate } from "@/lib/utils";
-import { MailCheck, MailX, Award, Link as LinkIcon } from "lucide-react";
+import {
+  MailCheck,
+  MailX,
+  Award,
+  Link as LinkIcon,
+  RefreshCw,
+  Loader2,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { UserAchievementsTab } from "./user-achievements-tab";
 import { UserTrailsTab } from "./user-trails-tab";
 import { UserQuizzesTab } from "./user-quizzes-tab";
+import { toast } from "sonner";
 
 interface UserDetailPageProps {
   userId: string;
@@ -30,6 +39,7 @@ const roleLabels: Record<string, string> = {
 export function UserDetailPage({ userId }: UserDetailPageProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const overviewQuery = useQuery(userOverviewQueryOptions(userId));
 
@@ -93,6 +103,23 @@ export function UserDetailPage({ userId }: UserDetailPageProps) {
       ? certificate.certificateUrl
       : `${import.meta.env.VITE_SERVER_URL}${certificate.certificateUrl}`
     : null;
+
+  const regenerateCertificate = useMutation({
+    mutationFn: () => usersApi.regenerateCertificate(userId),
+    onSuccess: () => {
+      toast.success("Certificado regenerado com sucesso!");
+      queryClient.invalidateQueries({
+        queryKey: usersQueryKeys.overview(userId),
+      });
+    },
+    onError: (error: any) => {
+      const message =
+        error?.message ||
+        error?.response?.data?.message ||
+        "Falha ao regenerar certificado";
+      toast.error(message);
+    },
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -221,6 +248,24 @@ export function UserDetailPage({ userId }: UserDetailPageProps) {
                       </Link>
                     </Button>
                   )}
+                  <Button
+                    variant="secondary"
+                    className="gap-2"
+                    onClick={() => regenerateCertificate.mutate()}
+                    disabled={regenerateCertificate.isPending}
+                  >
+                    {regenerateCertificate.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Regenerando...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4" />
+                        {certificate ? "Regerar certificado" : "Gerar certificado"}
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             </CardContent>

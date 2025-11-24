@@ -418,6 +418,68 @@ export abstract class CertificateService {
   }
 
   /**
+   * Regenerate an already approved certificate for a user
+   */
+  static async regenerateCertificateForUser(
+    userId: string,
+    reviewerId: string,
+  ) {
+    const certificate = await db.query.certificates.findFirst({
+      where: eq(certificates.userId, userId),
+      orderBy: desc(certificates.createdAt),
+      with: {
+        user: {
+          columns: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
+    });
+
+    // If no certificate exists yet, fall back to the standard generation flow
+    if (!certificate) {
+      return this.generateCertificate(userId);
+    }
+
+    if (certificate.status !== "approved") {
+      throw new BusinessLogicError(
+        "Only approved certificates can be regenerated",
+      );
+    }
+
+    const config = await ConfigService.getConfig();
+
+    const certificateUrl = await generateCertificatePDF({
+      id: certificate.id,
+      userName: certificate.user.name,
+      averageScore: certificate.averageScore,
+      totalTrailsCompleted: certificate.totalTrailsCompleted,
+      totalTimeMinutes: certificate.totalTimeMinutes,
+      completionDate: certificate.allTrailsCompletedAt,
+      verificationCode: certificate.verificationCode,
+      userImageUrl: certificate.user.image,
+      title: config.certificateTitle,
+      unlockRequirement: config.certificateUnlockRequirement,
+    });
+
+    const [updated] = await db
+      .update(certificates)
+      .set({
+        certificateUrl,
+        issuedAt: new Date(),
+        reviewedBy: certificate.reviewedBy ?? reviewerId,
+        reviewedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(certificates.id, certificate.id))
+      .returning();
+
+    return updated;
+  }
+
+  /**
    * Get pending certificates (for admin approval)
    */
   static async getPendingCertificates() {

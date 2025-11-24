@@ -73,14 +73,22 @@ export const useCreateArticle = () => {
 
   return useMutation({
     mutationFn: wikiApi.createArticle,
-    onSuccess: (response) => {
+    onSuccess: (response, variables) => {
       const created = response?.data?.data;
+      const isExternal =
+        created?.sourceType === "external" ||
+        (variables as CreateArticleInput)?.sourceType === "external";
 
       if (created?.id) {
         queryClient.setQueryData(wikiQueryKeys.article(created.id), response);
       }
 
-      // Don't invalidate articles list here - let the editor page do it if needed
+      if (isExternal) {
+        // External articles stay on the list view after creation, so refresh it
+        queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
+      }
+
+      // Don't invalidate articles list here for internal articles - let the editor page do it if needed
       // This prevents the list from updating before navigation
     },
   });

@@ -14,6 +14,7 @@ import {
 	type UserParams,
 } from "./model";
 import { UsersService } from "./service";
+import { CertificateService } from "../certificates/certificates.service";
 
 export const adminUsers = new Elysia({
 	prefix: "/admin/users",
@@ -163,6 +164,32 @@ export const adminUsers = new Elysia({
 							summary: "Update a user",
 							description:
 								"Update user information including name, email, role, ban status, etc.",
+							tags: ["Admin - Users"],
+						},
+					},
+				)
+				.post(
+					"/:id/certificate/regenerate",
+					async ({ status, params: { id }, user }) => {
+						const certificate = await CertificateService.regenerateCertificateForUser(
+							id,
+							user.id,
+						);
+
+						return status(
+							200,
+							success({
+								message: "Certificate regenerated successfully",
+								certificate,
+							}),
+						);
+					},
+					{
+						params: userParams,
+						detail: {
+							summary: "Regenerate user certificate",
+							description:
+								"Regenera o certificado aprovado do usuário e atualiza o PDF usando o template atual.",
 							tags: ["Admin - Users"],
 						},
 					},

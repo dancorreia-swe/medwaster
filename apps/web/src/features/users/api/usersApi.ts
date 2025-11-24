@@ -121,4 +121,15 @@ export const usersApi = {
 		}
 		return response.data;
 	},
+
+	regenerateCertificate: async (id: string) => {
+		const response = await usersClient({ id }).certificate.regenerate.post();
+		if (response.error) {
+			throwEdenError(
+				response.error as EdenError,
+				"Failed to regenerate certificate",
+			);
+		}
+		return response.data;
+	},
 };
