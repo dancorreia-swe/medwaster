@@ -141,52 +141,64 @@ export default function Home() {
         </View>
 
         {/* Main Content */}
-        <View className="pt-2 bg-gray-50 dark:bg-gray-950 flex gap-3">
+        <View className="pt-2 bg-gray-50 dark:bg-gray-950 flex gap-4">
           {/* Stats Card */}
           <StatsCard />
 
-          {/* Categories */}
-          <View className="mx-5 mb-5">
-            <View className="flex-row items-center gap-2.5 mb-1">
-              <Image
-                source={require("@/assets/book.png")}
-                style={{ width: 24, height: 24 }}
-                resizeMode="contain"
-              />
-              <Text className="text-lg font-bold text-gray-900 dark:text-gray-50">
-                Categorias de Interesse
-              </Text>
+          {/* Certificate highlight */}
+          {hasCompletedAllTrails && certificateData?.certificate && (
+            <View className="mx-5">
+              <View className="flex-row items-center gap-2.5 mb-2">
+                <Image
+                  source={digitalCertificate}
+                  style={{ width: 20, height: 20 }}
+                  resizeMode="contain"
+                />
+                <Text className="text-lg font-bold text-gray-900 dark:text-gray-50">
+                  Seu certificado está pronto
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push("/(app)/(tabs)/(profile)/certificates")
+                }
+                activeOpacity={0.85}
+                className="rounded-2xl overflow-hidden shadow-lg"
+              >
+                <LinearGradient
+                  colors={["#155DFC", "#0B4FDB"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    padding: 16,
+                  }}
+                >
+                  <View className="flex-row items-center gap-3">
+                    <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center">
+                      <Image
+                        source={digitalCertificate}
+                        style={{ width: 32, height: 32, borderRadius: 8 }}
+                        resizeMode="contain"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-white font-bold text-base">
+                        Certificado Disponível
+                      </Text>
+                      <Text className="text-white/80 text-sm">
+                        {certificateData.certificate.status === "approved"
+                          ? "Toque para visualizar"
+                          : "Aguardando aprovação"}
+                      </Text>
+                    </View>
+                    <View className="w-10 h-10 bg-white/10 rounded-full items-center justify-center">
+                      <Text className="text-white text-xl">→</Text>
+                    </View>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
-            <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3.5 ml-[34px]">
-              Temas sugeridos com base nos conteúdos que você mais explora
-            </Text>
-            {isLoadingCategories ? (
-              <View className="h-32 items-center justify-center">
-                <ActivityIndicator size="small" color="#155DFC" />
-              </View>
-            ) : categories.length > 0 ? (
-              <View className="gap-3">
-                {categories.slice(0, 3).map((category, index) => {
-                  const colors =
-                    CATEGORY_COLORS[index % CATEGORY_COLORS.length];
-                  return (
-                    <CategoryCard
-                      key={category.id}
-                      title={category.name}
-                      bgColor={colors.bg}
-                      iconColor={colors.icon}
-                      onPress={() => handleCategoryPress(category.id)}
-                    />
-                  );
-                })}
-              </View>
-            ) : (
-              <Text className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
-                Continue explorando conteúdos para receber recomendações
-                personalizadas!
-              </Text>
-            )}
-          </View>
+          )}
 
           {/* Recommended Trails */}
           <View className="mb-5">
@@ -251,100 +263,47 @@ export default function Home() {
             )}
           </View>
 
-          {/* Continue Learning */}
+          {/* Categories */}
           <View className="mx-5 mb-6">
             <View className="flex-row items-center gap-2.5 mb-1">
               <Image
-                source={require("@/assets/star.png")}
+                source={require("@/assets/book.png")}
                 style={{ width: 24, height: 24 }}
                 resizeMode="contain"
               />
               <Text className="text-lg font-bold text-gray-900 dark:text-gray-50">
-                Continue aprendendo
+                Categorias de Interesse
               </Text>
             </View>
             <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3.5 ml-[34px]">
-              Acompanhe seu progresso e conquistas
+              Temas sugeridos com base nos conteúdos que você mais explora
             </Text>
-
-            {/* Certificate Banner if completed all trails */}
-            {hasCompletedAllTrails && certificateData?.certificate && (
-              <TouchableOpacity
-                onPress={() =>
-                  router.push("/(app)/(tabs)/(profile)/certificates")
-                }
-                activeOpacity={0.8}
-                className="rounded-full mb-3 overflow-hidden shadow-lg"
-              >
-                <LinearGradient
-                  colors={["#155DFC", "#0B4FDB"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    padding: 4,
-                  }}
-                >
-                  <View className="flex-row items-center gap-3">
-                    <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center">
-                      <Image
-                        source={digitalCertificate}
-                        style={{ width: 32, height: 32, borderRadius: 8 }}
-                        resizeMode="contain"
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-white font-bold text-base">
-                        Certificado Disponível
-                      </Text>
-                      <Text className="text-white/80 text-sm">
-                        {certificateData.certificate.status === "approved"
-                          ? "Toque para visualizar"
-                          : "Aguardando aprovação"}
-                      </Text>
-                    </View>
-                    <View className="w-8 h-8 bg-white/10 rounded-full items-center justify-center mr-4">
-                      <Text className="text-white text-xl">→</Text>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-
-            {/* Learning Stats */}
-            <View className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-100 dark:border-gray-800">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-1">
-                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    Trilhas Concluídas
-                  </Text>
-                  <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
-                    {certificateData?.certificate?.totalTrailsCompleted ?? 0}
-                  </Text>
-                </View>
-                <View className="w-px h-10 bg-gray-200" />
-                <View className="flex-1 items-center">
-                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    Média Geral
-                  </Text>
-                  <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
-                    {certificateData?.certificate?.averageScore
-                      ? `${certificateData.certificate.averageScore.toFixed(0)}%`
-                      : "-"}
-                  </Text>
-                </View>
-                <View className="w-px h-10 bg-gray-200" />
-                <View className="flex-1 items-end">
-                  <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    Tempo Total
-                  </Text>
-                  <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50">
-                    {certificateData?.certificate?.totalTimeMinutes
-                      ? `${Math.floor(certificateData.certificate.totalTimeMinutes / 60)}h`
-                      : "-"}
-                  </Text>
-                </View>
+            {isLoadingCategories ? (
+              <View className="h-32 items-center justify-center">
+                <ActivityIndicator size="small" color="#155DFC" />
               </View>
-            </View>
+            ) : categories.length > 0 ? (
+              <View className="gap-3">
+                {categories.slice(0, 3).map((category, index) => {
+                  const colors =
+                    CATEGORY_COLORS[index % CATEGORY_COLORS.length];
+                  return (
+                    <CategoryCard
+                      key={category.id}
+                      title={category.name}
+                      bgColor={colors.bg}
+                      iconColor={colors.icon}
+                      onPress={() => handleCategoryPress(category.id)}
+                    />
+                  );
+                })}
+              </View>
+            ) : (
+              <Text className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                Continue explorando conteúdos para receber recomendações
+                personalizadas!
+              </Text>
+            )}
           </View>
         </View>
       </ScrollView>

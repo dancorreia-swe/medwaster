@@ -56,22 +56,20 @@ export function StatsCard() {
     <View className="mx-5 mb-5 bg-white dark:bg-gray-900 rounded-[14px] border border-gray-200 dark:border-gray-800 overflow-hidden">
       <View className="px-5 pt-5 pb-4 gap-4">
         <TouchableOpacity
-          className="flex-row items-center gap-4 bg-orange-50 dark:bg-orange-900/30 rounded-2xl px-4 py-3"
+          className="flex-row items-center gap-4 rounded-2xl border border-orange-100 px-4 py-3 dark:border-orange-500/30"
           activeOpacity={0.85}
           onPress={() => router.push("/streak")}
         >
-          <View className="w-16 h-16 bg-white dark:bg-gray-800 rounded-2xl items-center justify-center">
-            <Image
-              source={streakIllustration}
-              contentFit="contain"
-              style={{ width: 52, height: 52 }}
-            />
-          </View>
+          <Image
+            source={streakIllustration}
+            contentFit="contain"
+            style={{ width: 36, height: 36 }}
+          />
           <View className="flex-1">
             <Text className="text-xs font-semibold text-orange-900 dark:text-orange-200 uppercase">
               Sequência
             </Text>
-            <View className="flex-row items-baseline gap-2 mt-1">
+            <View className="flex-row items-center gap-2 mt-1">
               <Text className="text-3xl font-bold text-gray-900 dark:text-gray-50">
                 {streak?.currentStreak ?? 0}
               </Text>
