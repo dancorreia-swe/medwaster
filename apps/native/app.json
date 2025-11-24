@@ -42,7 +42,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.medwaster.app",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Precisamos do microfone para você enviar perguntas por áudio ao tutor."
+        "NSMicrophoneUsageDescription": "Precisamos do microfone para você enviar perguntas por áudio ao tutor.",
+        "NSPhotoLibraryUsageDescription": "Precisamos acessar sua galeria para você escolher ou alterar sua foto de perfil.",
+        "NSPhotoLibraryAddUsageDescription": "Precisamos salvar a foto escolhida no seu dispositivo ao atualizar seu perfil."
       }
     },
     "android": {
