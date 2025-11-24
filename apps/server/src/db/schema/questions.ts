@@ -16,7 +16,7 @@ import { createInsertSchema } from "drizzle-typebox";
 import { user } from "./auth";
 import { contentCategories } from "./categories";
 import { wikiArticleTags } from "./wiki";
-import type { quizTags } from "./quizzes";
+import { quizTags } from "./quizzes";
 
 export const questionTypeValues = [
   "multiple_choice",
@@ -261,7 +261,7 @@ export const tagsInsertSchema = createInsertSchema(tags);
 export const tagsRelations = relations(tags, ({ many }) => ({
   questionTags: many(questionTags),
   wikiArticleTags: many(wikiArticleTags),
-  quizTags: many("quizTags" as any),
+  quizTags: many(quizTags),
 }));
 
 export const questionTags = pgTable(

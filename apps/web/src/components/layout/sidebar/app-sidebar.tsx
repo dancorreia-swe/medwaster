@@ -134,11 +134,6 @@ const superAdminItems = [
     to: "/admin/team",
     icon: Shield,
   },
-  {
-    title: "Configurações do Sistema",
-    to: "/admin/settings",
-    icon: Settings,
-  },
 ] as const satisfies readonly SidebarSingleItem[];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
