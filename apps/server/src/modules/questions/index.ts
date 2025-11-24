@@ -85,8 +85,12 @@ export const adminQuestions = new Elysia({ prefix: "/admin/questions" })
       )
       .patch(
         "/:id",
-        async ({ params: { id }, body, status }) => {
-          const question = await QuestionsService.updateQuestion(id, body);
+        async ({ params: { id }, body, user, status }) => {
+          const question = await QuestionsService.updateQuestion(
+            id,
+            body,
+            user!.id,
+          );
 
           return status(200, question);
         },

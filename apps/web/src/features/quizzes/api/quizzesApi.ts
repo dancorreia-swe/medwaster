@@ -17,6 +17,7 @@ type QuizCreateBody = {
   randomizeOptions?: boolean;
   passingScore?: number;
   imageUrl?: string;
+  tagIds?: number[];
   questions?: Array<{
     questionId: number;
     order: number;
@@ -40,6 +41,7 @@ type QuizUpdateBody = {
   randomizeOptions?: boolean;
   passingScore?: number;
   imageUrl?: string;
+  tagIds?: number[];
   questions?: Array<{
     questionId: number;
     order: number;
@@ -185,7 +187,7 @@ export function useUpdateQuiz(id: number) {
       queryClient.setQueryData(["quizzes", "detail", id], (old: any) => {
         if (!old) return old;
 
-        const { questions: updatedQuestions, ...quizUpdates } = updatedQuiz;
+        const { questions: updatedQuestions, tagIds, ...quizUpdates } = updatedQuiz;
 
         let questions = old.questions;
         if (updatedQuestions) {
@@ -204,15 +206,29 @@ export function useUpdateQuiz(id: number) {
             .filter(Boolean);
         }
 
+        // Handle tags update - if tagIds provided, map to tag objects format
+        let tags = old.tags;
+        if (tagIds !== undefined) {
+          // For optimistic update, we can't easily get full tag data
+          // So we'll let the refetch handle it properly
+          tags = old.tags;
+        }
+
         return {
           ...old,
           ...quizUpdates,
           questions,
+          tags,
           updatedAt: new Date().toISOString(),
         };
       });
 
-      return { previousQueries, previousDetail, questionsUpdated: !!updatedQuiz.questions };
+      return {
+        previousQueries,
+        previousDetail,
+        questionsUpdated: !!updatedQuiz.questions,
+        tagsUpdated: updatedQuiz.tagIds !== undefined,
+      };
     },
 
     onError: (_err, _vars, ctx) => {
@@ -231,10 +247,10 @@ export function useUpdateQuiz(id: number) {
     onSuccess: (data, variables, context) => {
       // Guard against null data
       if (!data) return;
-      
-      // If questions were updated, invalidate to fetch fresh data with new questions
-      if (context?.questionsUpdated) {
-        queryClient.invalidateQueries({ 
+
+      // If questions or tags were updated, invalidate to fetch fresh data
+      if (context?.questionsUpdated || context?.tagsUpdated) {
+        queryClient.invalidateQueries({
           queryKey: ["quizzes", "detail", id],
           refetchType: "active"
         });
@@ -242,7 +258,7 @@ export function useUpdateQuiz(id: number) {
         // Only metadata was updated - merge with existing data to preserve questions
         queryClient.setQueryData(["quizzes", "detail", id], (old: any) => {
           if (!old) return data;
-          
+
           // Merge update response with existing detail data
           // Keep questions and other nested data from old cache
           return {
@@ -252,6 +268,7 @@ export function useUpdateQuiz(id: number) {
             questions: old.questions,
             author: old.author,
             category: old.category,
+            tags: old.tags,
           };
         });
       }

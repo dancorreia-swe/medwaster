@@ -24,6 +24,7 @@ export const createQuizBody = t.Object({
   passingScore: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
   imageUrl: t.Optional(t.String()),
   questions: t.Optional(t.Array(quizQuestionBody)),
+  tagIds: t.Optional(t.Array(t.Number())),
 });
 
 export const updateQuizBody = t.Object({
@@ -42,6 +43,7 @@ export const updateQuizBody = t.Object({
   passingScore: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
   imageUrl: t.Optional(t.String()),
   questions: t.Optional(t.Array(quizQuestionBody)),
+  tagIds: t.Optional(t.Array(t.Number())),
 });
 
 export const startQuizAttemptBody = t.Object({

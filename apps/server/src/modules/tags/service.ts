@@ -71,6 +71,21 @@ export abstract class TagsService {
           },
           limit: 5,
         },
+        quizTags: {
+          with: {
+            quiz: {
+              columns: {
+                id: true,
+                title: true,
+                description: true,
+                difficulty: true,
+                status: true,
+                updatedAt: true,
+              },
+            },
+          },
+          limit: 5,
+        },
       },
     });
 
@@ -83,6 +98,9 @@ export abstract class TagsService {
       wikiArticles: tag.wikiArticleTags
         .map((wat) => wat.article)
         .filter((a) => a && a.status !== "archived"),
+      quizzes: tag.quizTags
+        .map((qzt) => qzt.quiz)
+        .filter((q) => q && q.status !== "archived"),
     }));
   }
 

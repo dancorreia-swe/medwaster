@@ -91,15 +91,14 @@ export function QuestionForm({
   const { data: categories = [], isLoading: categoriesLoading } = useQuery(
     categoriesListQueryOptions(),
   );
-  const { data: tagsResponse, isLoading: tagsLoading } = useQuery(
+  const { data: allTags = [], isLoading: tagsLoading } = useQuery(
     tagsListQueryOptions(),
   );
-  const allTags = tagsResponse?.data || [];
 
   const [tagSearch, setTagSearch] = useState("");
   const debouncedTagSearch = useDebounce(tagSearch, 300);
 
-  const { data: searchedTagsResponse, isFetching: isSearchingTags } = useQuery({
+  const { data: searchedTags = [], isFetching: isSearchingTags } = useQuery({
     ...tagsListQueryOptions(
       debouncedTagSearch.trim()
         ? { search: debouncedTagSearch.trim(), keys: ["name", "slug"] }
@@ -109,9 +108,7 @@ export function QuestionForm({
   });
 
   const filteredTags =
-    debouncedTagSearch.trim().length > 0
-      ? searchedTagsResponse?.data || []
-      : allTags;
+    debouncedTagSearch.trim().length > 0 ? (searchedTags || []) : (allTags || []);
 
   // Selected tags state
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
@@ -545,8 +542,8 @@ export function QuestionForm({
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-full p-0" align="start">
-                <Command>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <Command shouldFilter={false}>
                   <CommandInput
                     placeholder="Buscar por nome, slug ou id..."
                     value={tagSearch}
@@ -559,54 +556,53 @@ export function QuestionForm({
                         <Loader2 className="h-4 w-4 animate-spin" /> Buscando
                         tags...
                       </div>
+                    ) : !filteredTags || filteredTags.length === 0 ? (
+                      <CommandEmpty>Nenhuma tag encontrada.</CommandEmpty>
                     ) : (
-                      <>
-                        <CommandEmpty>Nenhuma tag encontrada.</CommandEmpty>
-                        <CommandGroup>
-                          {filteredTags.map((tag: any) => (
-                            <CommandItem
-                              key={tag.id}
-                              value={`${tag.name} ${tag.slug ?? ""} ${tag.id}`}
-                              keywords={[tag.slug, String(tag.id)].filter(
-                                Boolean,
+                      <CommandGroup>
+                        {(filteredTags || []).map((tag: any) => (
+                          <CommandItem
+                            key={tag.id}
+                            value={`${tag.name} ${tag.slug ?? ""} ${tag.id}`}
+                            keywords={[tag.slug, String(tag.id)].filter(
+                              Boolean,
+                            )}
+                            onSelect={() => {
+                              setSelectedTagIds((prev) =>
+                                prev.includes(tag.id)
+                                  ? prev.filter((id) => id !== tag.id)
+                                  : [...prev, tag.id],
+                              );
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedTagIds.includes(tag.id)
+                                  ? "opacity-100"
+                                  : "opacity-0",
                               )}
-                              onSelect={() => {
-                                setSelectedTagIds((prev) =>
-                                  prev.includes(tag.id)
-                                    ? prev.filter((id) => id !== tag.id)
-                                    : [...prev, tag.id],
-                                );
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedTagIds.includes(tag.id)
-                                    ? "opacity-100"
-                                    : "opacity-0",
-                                )}
+                            />
+                            <span className="flex items-center gap-2">
+                              <span
+                                aria-hidden
+                                className="inline-flex h-3 w-3 rounded-full border border-border"
+                                style={{
+                                  backgroundColor: tag.color || "#6b7280",
+                                }}
                               />
-                              <span className="flex items-center gap-2">
-                                <span
-                                  aria-hidden
-                                  className="inline-flex h-3 w-3 rounded-full border border-border"
-                                  style={{
-                                    backgroundColor: tag.color || "#6b7280",
-                                  }}
-                                />
-                                <span className="flex flex-col leading-tight">
-                                  <span>{tag.name}</span>
-                                  {tag.slug && (
-                                    <span className="text-[11px] text-muted-foreground">
-                                      {tag.slug}
-                                    </span>
-                                  )}
-                                </span>
+                              <span className="flex flex-col leading-tight">
+                                <span>{tag.name}</span>
+                                {tag.slug && (
+                                  <span className="text-[11px] text-muted-foreground">
+                                    {tag.slug}
+                                  </span>
+                                )}
                               </span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </>
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
                     )}
                   </CommandList>
                 </Command>
@@ -617,8 +613,8 @@ export function QuestionForm({
             <div className="flex flex-wrap gap-1 mt-2">
               {selectedTagIds.map((tagId) => {
                 const tag =
-                  allTags.find((t: any) => t.id === tagId) ||
-                  filteredTags.find((t: any) => t.id === tagId);
+                  (allTags || []).find((t: any) => t.id === tagId) ||
+                  (filteredTags || []).find((t: any) => t.id === tagId);
                 if (!tag) return null;
                 return (
                   <Badge

@@ -97,8 +97,8 @@ export const adminQuizzes = new Elysia({ prefix: "/admin/quizzes" })
       )
       .patch(
         "/:id",
-        async ({ params: { id }, body, status }) => {
-          const quiz = await QuizzesService.updateQuiz(id, body);
+        async ({ params: { id }, body, user, status }) => {
+          const quiz = await QuizzesService.updateQuiz(id, body, user!.id);
           return status(200, quiz);
         },
         {

@@ -13,7 +13,7 @@ export const categoriesQueryKeys = {
 export const tagsQueryKeys = {
   all: ["tags"] as const,
   lists: () => [...tagsQueryKeys.all, "list"] as const,
-  list: (query?: { search?: string }) => [...tagsQueryKeys.lists(), query] as const,
+  list: (query?: { search?: string; keys?: string[] }) => [...tagsQueryKeys.lists(), query] as const,
 };
 
 export const categoriesListQueryOptions = () =>
@@ -23,7 +23,7 @@ export const categoriesListQueryOptions = () =>
     staleTime: 10 * 60_000, // 10 minutes - categories don't change often
   });
 
-export const tagsListQueryOptions = (query?: { search?: string }) =>
+export const tagsListQueryOptions = (query?: { search?: string; keys?: string[] }) =>
   queryOptions({
     queryKey: tagsQueryKeys.list(query),
     queryFn: () => tagsApi.listTags(query),

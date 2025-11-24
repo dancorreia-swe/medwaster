@@ -14,7 +14,7 @@ import { createInsertSchema } from "drizzle-typebox";
 
 import { user } from "./auth";
 import { contentCategories } from "./categories";
-import { questions } from "./questions";
+import { questions, tags } from "./questions";
 import { trailContent } from "./trails";
 
 export const quizStatusValues = [
@@ -85,6 +85,7 @@ export const quizzesRelations = relations(quizzes, ({ many, one }) => ({
   }),
   questions: many(quizQuestions),
   attempts: many(quizAttempts),
+  tags: many(quizTags),
 }));
 
 export const quizQuestions = pgTable(
@@ -222,6 +223,47 @@ export const quizAnswersRelations = relations(quizAnswers, ({ one }) => ({
   quizQuestion: one(quizQuestions, {
     fields: [quizAnswers.quizQuestionId],
     references: [quizQuestions.id],
+  }),
+}));
+
+export const quizTags = pgTable(
+  "quiz_tags",
+  {
+    quizId: integer("quiz_id")
+      .notNull()
+      .references(() => quizzes.id, { onDelete: "cascade" }),
+    tagId: integer("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+    assignedBy: text("assigned_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.quizId, table.tagId],
+      name: "quiz_tags_pk",
+    }),
+    index("quiz_tags_quiz_idx").on(table.quizId),
+    index("quiz_tags_tag_idx").on(table.tagId),
+  ],
+);
+
+export const quizTagsRelations = relations(quizTags, ({ one }) => ({
+  quiz: one(quizzes, {
+    fields: [quizTags.quizId],
+    references: [quizzes.id],
+  }),
+  tag: one(tags, {
+    fields: [quizTags.tagId],
+    references: [tags.id],
+  }),
+  assignedByUser: one(user, {
+    fields: [quizTags.assignedBy],
+    references: [user.id],
   }),
 }));
 

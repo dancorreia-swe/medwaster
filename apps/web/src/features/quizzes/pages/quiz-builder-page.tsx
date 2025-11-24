@@ -57,6 +57,7 @@ const initialFormData: QuizFormData = {
   randomizeOptions: false,
   passingScore: 70,
   imageKey: undefined,
+  tagIds: [],
 };
 
 export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
@@ -103,6 +104,7 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
         passingScore: existingQuiz.passingScore || 70,
         imageUrl: existingQuiz.imageUrl || undefined,
         imageKey: (existingQuiz as any).imageKey || undefined,
+        tagIds: (existingQuiz as any).tags?.map((t: any) => t.tag.id) || [],
       });
 
       // Map quiz questions to builder format

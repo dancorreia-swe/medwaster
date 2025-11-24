@@ -166,7 +166,11 @@ export abstract class QuestionsService {
     });
   }
 
-  static async updateQuestion(questionId: number, data: UpdateQuestionBody) {
+  static async updateQuestion(
+    questionId: number,
+    data: UpdateQuestionBody,
+    userId?: string,
+  ) {
     const [existing] = await db
       .select()
       .from(questions)
@@ -277,6 +281,7 @@ export abstract class QuestionsService {
             tagIds.map((tagId) => ({
               questionId,
               tagId,
+              assignedBy: userId,
             })),
           );
         }

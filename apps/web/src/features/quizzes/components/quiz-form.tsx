@@ -20,7 +20,23 @@ import {
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
-import { categoriesListQueryOptions } from "@/features/questions/api/categoriesAndTagsQueries";
+import {
+  categoriesListQueryOptions,
+  tagsListQueryOptions,
+} from "@/features/questions/api/categoriesAndTagsQueries";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Clock,
   Target,
@@ -29,8 +45,15 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  Tag,
+  Check,
+  ChevronsUpDown,
+  Loader2,
+  X,
 } from "lucide-react";
 import { ImageUpload } from "@/features/questions/components/image-upload";
+import { useDebounce } from "@/hooks/use-debounce";
+import { cn } from "@/lib/utils";
 
 interface QuizFormData {
   title: string;
@@ -47,6 +70,14 @@ interface QuizFormData {
   passingScore: number;
   imageUrl?: string;
   imageKey?: string;
+  tagIds?: number[];
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 interface QuizFormProps {
@@ -81,8 +112,34 @@ export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
   const { data: categories = [] } = useQuery(categoriesListQueryOptions());
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
+  const { data: allTags = [], isLoading: tagsLoading } = useQuery(
+    tagsListQueryOptions(),
+  );
+
+  const [tagSearch, setTagSearch] = useState("");
+  const debouncedTagSearch = useDebounce(tagSearch, 300);
+
+  const { data: searchedTags = [], isFetching: isSearchingTags } = useQuery({
+    ...tagsListQueryOptions(
+      debouncedTagSearch.trim()
+        ? { search: debouncedTagSearch.trim(), keys: ["name", "slug"] }
+        : undefined,
+    ),
+    enabled: debouncedTagSearch.trim().length > 0,
+  });
+
+  const filteredTags =
+    debouncedTagSearch.trim().length > 0 ? (searchedTags || []) : (allTags || []);
+
+  const [isTagsOpen, setIsTagsOpen] = useState(false);
+  const selectedTagIds = formData.tagIds || [];
+
   const handleInputChange = (field: keyof QuizFormData, value: any) => {
     onChange({ [field]: value });
+  };
+
+  const handleTagsChange = (tagIds: number[]) => {
+    handleInputChange("tagIds", tagIds);
   };
 
   const selectedDifficulty = difficultyOptions.find(
@@ -234,6 +291,142 @@ export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              Tags
+            </Label>
+            {tagsLoading ? (
+              <div className="h-10 w-full animate-pulse bg-muted rounded" />
+            ) : (
+              <Popover open={isTagsOpen} onOpenChange={setIsTagsOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={isTagsOpen}
+                    className="w-full justify-between font-normal mt-1"
+                  >
+                    {selectedTagIds.length > 0
+                      ? `${selectedTagIds.length} tag${selectedTagIds.length > 1 ? "s" : ""} selecionada${selectedTagIds.length > 1 ? "s" : ""}`
+                      : "Selecione tags"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Buscar por nome, slug ou id..."
+                      value={tagSearch}
+                      onValueChange={setTagSearch}
+                      autoFocus
+                    />
+                    <CommandList>
+                      {isSearchingTags ? (
+                        <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Buscando
+                          tags...
+                        </div>
+                      ) : !filteredTags || filteredTags.length === 0 ? (
+                        <CommandEmpty>Nenhuma tag encontrada.</CommandEmpty>
+                      ) : (
+                        <CommandGroup>
+                          {(filteredTags || []).map((tag: any) => (
+                            <CommandItem
+                              key={tag.id}
+                              value={`${tag.name} ${tag.slug ?? ""} ${tag.id}`}
+                              keywords={[tag.slug, String(tag.id)].filter(
+                                Boolean,
+                              )}
+                              onSelect={() => {
+                                const newTagIds = selectedTagIds.includes(tag.id)
+                                  ? selectedTagIds.filter((id) => id !== tag.id)
+                                  : [...selectedTagIds, tag.id];
+                                handleTagsChange(newTagIds);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedTagIds.includes(tag.id)
+                                    ? "opacity-100"
+                                    : "opacity-0",
+                                )}
+                              />
+                              <span className="flex items-center gap-2">
+                                <span
+                                  aria-hidden
+                                  className="inline-flex h-3 w-3 rounded-full border border-border"
+                                  style={{
+                                    backgroundColor: tag.color || "#6b7280",
+                                  }}
+                                />
+                                <span className="flex flex-col leading-tight">
+                                  <span>{tag.name}</span>
+                                  {tag.slug && (
+                                    <span className="text-[11px] text-muted-foreground">
+                                      {tag.slug}
+                                    </span>
+                                  )}
+                                </span>
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            )}
+            {selectedTagIds && selectedTagIds.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {selectedTagIds.map((tagId) => {
+                  const tag =
+                    (allTags || []).find((t: any) => t.id === tagId) ||
+                    (filteredTags || []).find((t: any) => t.id === tagId);
+                  if (!tag) return null;
+                  return (
+                    <Badge
+                      key={tagId}
+                      variant="secondary"
+                      className="gap-1 px-2 py-1"
+                      style={
+                        tag.color
+                          ? {
+                              backgroundColor: hexToRgba(tag.color, 0.12),
+                              borderColor: hexToRgba(tag.color, 0.3),
+                              color: tag.color,
+                            }
+                          : undefined
+                      }
+                    >
+                      <span
+                        aria-hidden
+                        className="inline-flex h-2.5 w-2.5 rounded-full border border-border"
+                        style={{ backgroundColor: tag.color || "#6b7280" }}
+                      />
+                      {tag.name}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleTagsChange(
+                            selectedTagIds.filter((id) => id !== tagId),
+                          );
+                        }}
+                        className="ml-1 hover:bg-secondary-foreground/10 rounded-sm"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

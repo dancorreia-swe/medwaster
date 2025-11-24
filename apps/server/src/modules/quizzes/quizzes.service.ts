@@ -10,6 +10,7 @@ import {
   quizQuestions,
   quizAttempts,
   quizAnswers,
+  quizTags,
   type QuizStatus,
   type QuizDifficulty,
 } from "@/db/schema/quizzes";
@@ -34,6 +35,11 @@ export abstract class QuizzesService {
           },
         },
         category: true,
+        tags: {
+          with: {
+            tag: true,
+          },
+        },
         questions: includeQuestions ? {
           orderBy: (quizQuestions) => [asc(quizQuestions.order)],
           with: {
@@ -71,7 +77,7 @@ export abstract class QuizzesService {
   }
 
   static async createQuiz(newQuiz: CreateQuizBody, authorId: string) {
-    const { questions: quizQuestionsList, ...quizData } = newQuiz;
+    const { questions: quizQuestionsList, tagIds, ...quizData } = newQuiz;
 
     return await db.transaction(async (tx) => {
       const [quiz] = await tx
@@ -91,11 +97,21 @@ export abstract class QuizzesService {
         );
       }
 
+      if (tagIds && tagIds.length > 0) {
+        await tx.insert(quizTags).values(
+          tagIds.map((tagId) => ({
+            quizId: quiz.id,
+            tagId,
+            assignedBy: authorId,
+          })),
+        );
+      }
+
       return quiz;
     });
   }
 
-  static async updateQuiz(quizId: number, data: UpdateQuizBody) {
+  static async updateQuiz(quizId: number, data: UpdateQuizBody, userId?: string) {
     const [existing] = await db
       .select()
       .from(quizzes)
@@ -106,7 +122,7 @@ export abstract class QuizzesService {
       throw new NotFoundError("Quiz");
     }
 
-    const { questions: quizQuestionsList, ...quizData } = data;
+    const { questions: quizQuestionsList, tagIds, ...quizData } = data;
 
     return await db.transaction(async (tx) => {
       const [quiz] = await tx
@@ -128,6 +144,22 @@ export abstract class QuizzesService {
             quizQuestionsList.map((q) => ({
               quizId,
               ...q,
+            })),
+          );
+        }
+      }
+
+      if (tagIds !== undefined) {
+        await tx
+          .delete(quizTags)
+          .where(eq(quizTags.quizId, quizId));
+
+        if (tagIds.length > 0) {
+          await tx.insert(quizTags).values(
+            tagIds.map((tagId) => ({
+              quizId,
+              tagId,
+              assignedBy: userId,
             })),
           );
         }
@@ -211,6 +243,11 @@ export abstract class QuizzesService {
             },
           },
           category: true,
+          tags: {
+            with: {
+              tag: true,
+            },
+          },
           questions: {
             columns: {
               id: true,
