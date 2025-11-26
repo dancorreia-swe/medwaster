@@ -9,6 +9,35 @@ import {
 import { wikiApi } from "./wikiApi";
 import { client } from "@/lib/client";
 
+const ERROR_MESSAGES: Record<string, string> = {
+  NEED_CATEGORY:
+    "É necessário selecionar uma categoria para publicar o artigo.",
+  VALIDATION_ERROR: "Erro de validação. Verifique os dados e tente novamente.",
+  BUSINESS_LOGIC_ERROR: "Erro de regra de negócio.",
+  UNAUTHORIZED: "Você não tem permissão para realizar esta ação.",
+  FORBIDDEN: "Acesso negado.",
+  NOT_FOUND: "Recurso não encontrado.",
+};
+
+const getErrorMessage = (responseError: any, defaultMessage: string) => {
+  const errorValue = responseError?.value;
+  const errorData = errorValue?.error || (typeof errorValue === 'object' ? errorValue : undefined);
+  const code = errorData?.code || (responseError as any)?.code;
+
+  if (code && ERROR_MESSAGES[code]) {
+    return ERROR_MESSAGES[code];
+  }
+
+  return typeof responseError === "string"
+    ? responseError
+    : typeof errorValue === "string"
+      ? errorValue
+      : (errorData?.message ??
+         errorValue?.message ??
+         (responseError as any)?.message ??
+         defaultMessage);
+};
+
 export const wikiQueryKeys = {
   all: ["wiki"] as const,
   stats: () => [...wikiQueryKeys.all, "stats"] as const,
@@ -112,17 +141,10 @@ export const useUpdateArticle = () => {
         "error" in response &&
         response.error
       ) {
-        const errorDetail = (response as any).error;
-        const errorValue = (errorDetail as any)?.value;
-        const message =
-          typeof errorDetail === "string"
-            ? errorDetail
-            : typeof errorValue === "string"
-              ? errorValue
-              : (errorValue?.error?.message ??
-                 errorValue?.message ??
-                 (errorDetail as any)?.message ??
-                 "Erro ao atualizar artigo.");
+        const message = getErrorMessage(
+          response.error,
+          "Erro ao atualizar artigo.",
+        );
         throw new Error(String(message));
       }
       return response;
@@ -171,17 +193,10 @@ export const useDeleteArticle = () => {
     mutationFn: async (id: number) => {
       const response = await wikiApi.deleteArticle(id);
       if (response.error) {
-        const errorDetail = response.error;
-        const errorValue = (errorDetail as any)?.value;
-        const message =
-          typeof errorDetail === "string"
-            ? errorDetail
-            : typeof errorValue === "string"
-              ? errorValue
-              : (errorValue?.error?.message ??
-                 errorValue?.message ??
-                 (errorDetail as any)?.message ??
-                 "Erro ao excluir artigo.");
+        const message = getErrorMessage(
+          response.error,
+          "Erro ao excluir artigo.",
+        );
         throw new Error(String(message));
       }
       return response;
@@ -205,17 +220,10 @@ export const useArchiveArticle = () => {
     mutationFn: async (id: number) => {
       const response = await wikiApi.archiveArticle(id);
       if (response.error) {
-        const errorDetail = response.error;
-        const errorValue = (errorDetail as any)?.value;
-        const message =
-          typeof errorDetail === "string"
-            ? errorDetail
-            : typeof errorValue === "string"
-              ? errorValue
-              : (errorValue?.error?.message ??
-                 errorValue?.message ??
-                 (errorDetail as any)?.message ??
-                 "Erro ao arquivar artigo.");
+        const message = getErrorMessage(
+          response.error,
+          "Erro ao arquivar artigo.",
+        );
         throw new Error(String(message));
       }
       return response;
@@ -234,17 +242,10 @@ export const usePublishArticle = () => {
     mutationFn: async (id: number) => {
       const response = await wikiApi.publishArticle(id);
       if (response.error) {
-        const errorDetail = response.error;
-        const errorValue = (errorDetail as any)?.value;
-        const message =
-          typeof errorDetail === "string"
-            ? errorDetail
-            : typeof errorValue === "string"
-              ? errorValue
-              : (errorValue?.error?.message ??
-                 errorValue?.message ??
-                 (errorDetail as any)?.message ??
-                 "Erro ao publicar artigo.");
+        const message = getErrorMessage(
+          response.error,
+          "Erro ao publicar artigo.",
+        );
         throw new Error(String(message));
       }
       return response;
@@ -263,17 +264,10 @@ export const useUnpublishArticle = () => {
     mutationFn: async (id: number) => {
       const response = await wikiApi.unpublishArticle(id);
       if (response.error) {
-        const errorDetail = response.error;
-        const errorValue = (errorDetail as any)?.value;
-        const message =
-          typeof errorDetail === "string"
-            ? errorDetail
-            : typeof errorValue === "string"
-              ? errorValue
-              : (errorValue?.error?.message ??
-                 errorValue?.message ??
-                 (errorDetail as any)?.message ??
-                 "Erro ao despublicar artigo.");
+        const message = getErrorMessage(
+          response.error,
+          "Erro ao despublicar artigo.",
+        );
         throw new Error(String(message));
       }
       return response;
@@ -334,17 +328,10 @@ export const useBulkArticleOperations = () => {
       );
       const errors = responses.filter((r: any) => r.error);
       if (errors.length > 0) {
-        const errorDetail = errors[0].error;
-        const errorValue = (errorDetail as any)?.value;
-        const message =
-          typeof errorDetail === "string"
-            ? errorDetail
-            : typeof errorValue === "string"
-              ? errorValue
-              : (errorValue?.error?.message ??
-                 errorValue?.message ??
-                 (errorDetail as any)?.message ??
-                 "Erro ao publicar alguns artigos.");
+        const message = getErrorMessage(
+          errors[0].error,
+          "Erro ao publicar alguns artigos.",
+        );
         throw new Error(String(message));
       }
       return responses;
@@ -359,17 +346,10 @@ export const useBulkArticleOperations = () => {
       );
       const errors = responses.filter((r: any) => r.error);
       if (errors.length > 0) {
-        const errorDetail = errors[0].error;
-        const errorValue = (errorDetail as any)?.value;
-        const message =
-          typeof errorDetail === "string"
-            ? errorDetail
-            : typeof errorValue === "string"
-              ? errorValue
-              : (errorValue?.error?.message ??
-                 errorValue?.message ??
-                 (errorDetail as any)?.message ??
-                 "Erro ao despublicar alguns artigos.");
+        const message = getErrorMessage(
+          errors[0].error,
+          "Erro ao despublicar alguns artigos.",
+        );
         throw new Error(String(message));
       }
       return responses;
@@ -384,17 +364,10 @@ export const useBulkArticleOperations = () => {
       );
       const errors = responses.filter((r: any) => r.error);
       if (errors.length > 0) {
-        const errorDetail = errors[0].error;
-        const errorValue = (errorDetail as any)?.value;
-        const message =
-          typeof errorDetail === "string"
-            ? errorDetail
-            : typeof errorValue === "string"
-              ? errorValue
-              : (errorValue?.error?.message ??
-                 errorValue?.message ??
-                 (errorDetail as any)?.message ??
-                 "Erro ao excluir alguns artigos.");
+        const message = getErrorMessage(
+          errors[0].error,
+          "Erro ao excluir alguns artigos.",
+        );
         throw new Error(String(message));
       }
       return responses;
