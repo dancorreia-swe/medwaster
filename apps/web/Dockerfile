@@ -28,10 +28,6 @@ RUN bun install --no-optional
 # Copy pruned source code (includes server types and tsconfig for @server/* imports)
 COPY --from=pruner /app/out/full/ .
 
-# Build argument for server URL
-ARG VITE_SERVER_URL
-ENV VITE_SERVER_URL=${VITE_SERVER_URL}
-
 # Build web application
 RUN cd apps/web && bun run build
 
@@ -40,6 +36,17 @@ FROM nginx:alpine
 
 # Copy built assets from builder
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+
+# Add runtime env script
+COPY <<EOF /docker-entrypoint.d/40-env-config.sh
+#!/bin/sh
+echo "Generating env-config.js..."
+echo "window.__ENV__ = {" > /usr/share/nginx/html/env-config.js
+echo "  VITE_SERVER_URL: \"\${VITE_SERVER_URL:-http://localhost:4000}\"" >> /usr/share/nginx/html/env-config.js
+echo "};" >> /usr/share/nginx/html/env-config.js
+EOF
+
+RUN chmod +x /docker-entrypoint.d/40-env-config.sh
 
 # Copy nginx configuration
 COPY <<'EOF' /etc/nginx/conf.d/default.conf

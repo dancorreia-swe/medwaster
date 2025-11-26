@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getApiUrl } from "@/lib/env";
 
 interface BadgeDesignerProps {
   badgeIcon: string;
@@ -111,7 +112,7 @@ export function BadgeDesigner({
       formData.append("image", file);
 
       const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL}/admin/achievements/images/upload`,
+        `${getApiUrl()}/admin/achievements/images/upload`,
         {
           method: "POST",
           body: formData,

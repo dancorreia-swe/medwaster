@@ -1,7 +1,8 @@
 import { treaty } from "@elysiajs/eden";
 import type { App } from "@server/index";
+import { getApiUrl } from "./env";
 
-export const client = treaty<App>(import.meta.env.VITE_SERVER_URL!, {
+export const client = treaty<App>(getApiUrl(), {
   fetch: {
     credentials: "include",
   },

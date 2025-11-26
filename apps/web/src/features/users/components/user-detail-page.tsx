@@ -26,6 +26,7 @@ import { UserAchievementsTab } from "./user-achievements-tab";
 import { UserTrailsTab } from "./user-trails-tab";
 import { UserQuizzesTab } from "./user-quizzes-tab";
 import { toast } from "sonner";
+import { getApiUrl } from "@/lib/env";
 
 interface UserDetailPageProps {
   userId: string;
@@ -101,7 +102,7 @@ export function UserDetailPage({ userId }: UserDetailPageProps) {
   const certificateUrl = certificate?.certificateUrl
     ? certificate.certificateUrl.startsWith("http")
       ? certificate.certificateUrl
-      : `${import.meta.env.VITE_SERVER_URL}${certificate.certificateUrl}`
+      : `${getApiUrl()}${certificate.certificateUrl}`
     : null;
 
   const regenerateCertificate = useMutation({
