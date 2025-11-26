@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1
 
 # Prune stage - extract only what's needed for server
-FROM oven/bun:1.3-debian AS pruner
+FROM oven/bun:1.3-alpine AS pruner
 WORKDIR /app
 COPY . .
 RUN bun install -g turbo@2.6.1
 RUN turbo prune server --docker
 
 # Base stage (shared steps)
-FROM oven/bun:1.3-debian AS base
+FROM oven/bun:1.3-alpine AS base
 WORKDIR /app
 COPY --from=pruner /app/out/json/ .
 # Remove the pruned lockfile (it may be corrupted) and regenerate
@@ -23,15 +23,17 @@ WORKDIR /app/apps/server
 RUN bun run build
 
 # Production stage
-FROM oven/bun:1.3-debian AS production
+FROM oven/bun:1.3-alpine AS production
 
 # Install Chromium (for Puppeteer) and curl (for healthcheck)
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache \
     chromium \
-    fonts-liberation \
+    nss \
+    freetype \
+    harfbuzz \
     ca-certificates \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+    ttf-freefont \
+    curl
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
@@ -47,8 +49,8 @@ COPY --from=builder /app/apps/server ./apps/server
 WORKDIR /app/apps/server
 
 # Create non-root user
-RUN groupadd -g 1001 nodejs && \
-    useradd -r -u 1001 -g nodejs nodejs && \
+RUN addgroup -g 1001 nodejs && \
+    adduser -u 1001 -G nodejs -s /bin/sh -D nodejs && \
     chown -R nodejs:nodejs /app
 
 # Create uploads directory and set permissions
