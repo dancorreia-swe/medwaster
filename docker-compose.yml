@@ -6,13 +6,12 @@ services:
   # ============================================
 
   postgres:
-    image: pgvector/pgvector:pg18-trixie
+    image: pgvector/pgvector:pg17-trixie
     container_name: medwaster-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-medwaster}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
