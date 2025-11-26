@@ -83,6 +83,22 @@ MedWaster can be self-hosted using Docker Compose in two modes: **Direct Port Mo
 
 ### Quick Start
 
+#### Option 1: Automated Script (Recommended)
+
+Download and run the automated setup script:
+
+```bash
+# Install directly via curl
+curl -fsSL https://raw.githubusercontent.com/dancorreia-swe/medwaster/main/install.sh | bash
+
+# Or if you've cloned the repository
+./install.sh
+```
+
+This script will download the latest `docker-compose.yml` and prepare the environment.
+
+#### Option 2: Manual Setup
+
 1. **Clone and configure environment**
 
 ```bash

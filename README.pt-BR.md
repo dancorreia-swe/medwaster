@@ -26,20 +26,36 @@ Antes de começar, você precisa ter instalado:
 
 ## Início Rápido
 
-### 1. Clone o Repositório
+### Opção 1: Script Automatizado (Recomendado)
+
+Baixe e execute o script de configuração automática:
+
+```bash
+# Instalar diretamente via curl
+curl -fsSL https://raw.githubusercontent.com/dancorreia-swe/medwaster/main/install.sh | bash
+
+# Ou se você já clonou o repositório
+./install.sh
+```
+
+Este script baixará o `docker-compose.yml` mais recente e preparará o ambiente.
+
+### Opção 2: Instalação Manual
+
+#### 1. Clone o Repositório
 
 ```bash
 git clone <url-do-repositorio>
 cd medwaster
 ```
 
-### 2. Configure as Variáveis de Ambiente
+#### 2. Configure as Variáveis de Ambiente
 
 ```bash
 cp .env.example .env
 ```
 
-### 3. Edite o Arquivo `.env`
+#### 3. Edite o Arquivo `.env`
 
 Você **deve** alterar os seguintes valores:
 
