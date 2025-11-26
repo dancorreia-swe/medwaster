@@ -1034,7 +1034,7 @@ export class ArticleService {
       .where(
         and(
           eq(trailContent.articleId, id),
-          or(eq(trails.status, "published"), eq(trails.status, "active")),
+          eq(trails.status, "published"),
         ),
       );
 
