@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 
 # Prune stage - extract only what's needed for web
-FROM node:20-alpine AS pruner
-RUN npm install -g turbo@2.6.1
+FROM oven/bun:1.3-alpine AS pruner
 WORKDIR /app
 COPY . .
+RUN bun install -g turbo@2.6.1
 RUN turbo prune web --docker
 
 # Ensure server tsconfig is included (needed for web's TypeScript references)
@@ -29,7 +29,8 @@ RUN bun install --no-optional
 COPY --from=pruner /app/out/full/ .
 
 # Build web application
-RUN cd apps/web && bun run build
+WORKDIR /app/apps/web
+RUN bun run build
 
 # Production stage
 FROM nginx:alpine

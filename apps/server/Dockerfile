@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 
 # Prune stage - extract only what's needed for server
-FROM node:20-alpine AS pruner
-RUN npm install -g turbo@2.6.1
+FROM oven/bun:1.3-debian AS pruner
 WORKDIR /app
 COPY . .
+RUN bun install -g turbo@2.6.1
 RUN turbo prune server --docker
 
 # Build stage - use Debian for Bun
@@ -24,11 +24,14 @@ RUN bun install --no-optional || true
 # Verify critical packages are installed by checking node_modules
 RUN test -d node_modules || (echo "ERROR: node_modules not created" && exit 1)
 
-# Copy pruned source code and build
+# Copy pruned source code
 COPY --from=pruner /app/out/full/ .
 
+# Change WORKDIR to the specific app before building
+WORKDIR /app/apps/server
+
 # Build will fail if any required package is missing
-RUN cd apps/server && bun run build
+RUN bun run build
 
 # Production stage
 FROM oven/bun:1.3-debian AS production
