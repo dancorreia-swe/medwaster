@@ -143,6 +143,17 @@ export class NeedCategoryError extends BusinessLogicError {
   }
 }
 
+export class DependencyError extends ConflictError {
+  constructor(
+    message: string = "Resource has dependencies",
+    public dependencies?: string[],
+  ) {
+    super(message, { dependencies });
+    this.code = "DEPENDENCY_ERROR";
+    this.name = "DependencyError";
+  }
+}
+
 export class DatabaseError extends InternalServerError {
   constructor(message: string = "Database operation failed") {
     super(message);

@@ -10,6 +10,7 @@ import {
   type NewWikiArticle,
   type WikiArticleStatus,
 } from "@/db/schema/wiki";
+import { trails, trailContent } from "@/db/schema/trails";
 import { contentCategories } from "@/db/schema/categories";
 import { tags } from "@/db/schema/questions";
 import { user } from "@/db/schema/auth";
@@ -24,6 +25,7 @@ import {
   ConflictError,
   BusinessLogicError,
   NeedCategoryError,
+  DependencyError,
 } from "@/lib/errors";
 import type {
   CreateArticleData,
@@ -1020,6 +1022,28 @@ export class ArticleService {
 
     if (article[0].status !== "published") {
       throw new BusinessLogicError("Article is not published");
+    }
+
+    // Check for active trail dependencies
+    const activeTrails = await db
+      .select({
+        name: trails.name,
+      })
+      .from(trailContent)
+      .innerJoin(trails, eq(trailContent.trailId, trails.id))
+      .where(
+        and(
+          eq(trailContent.articleId, id),
+          or(eq(trails.status, "published"), eq(trails.status, "active")),
+        ),
+      );
+
+    if (activeTrails.length > 0) {
+      const trailNames = activeTrails.map((t) => t.name);
+      throw new DependencyError(
+        `Cannot unpublish article because it is used in active trails: ${trailNames.join(", ")}`,
+        trailNames,
+      );
     }
 
     await db
