@@ -237,8 +237,10 @@ export function ArticleCard({ article }: ArticleCardProps) {
       await archiveMutation.mutateAsync(article.id);
       toast.success("Artigo arquivado com sucesso");
     } catch (error) {
-      toast.error("Erro ao arquivar artigo");
-      console.error(error);
+      console.error("Archive error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao arquivar artigo",
+      );
     } finally {
       setShowArchiveDialog(false);
     }
@@ -251,8 +253,10 @@ export function ArticleCard({ article }: ArticleCardProps) {
       await publishMutation.mutateAsync(article.id);
       toast.success("Artigo publicado com sucesso");
     } catch (error) {
-      toast.error("Erro ao publicar artigo");
-      console.error(error);
+      console.error("Publish error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao publicar artigo",
+      );
     }
   };
 
@@ -267,8 +271,10 @@ export function ArticleCard({ article }: ArticleCardProps) {
       await unpublishMutation.mutateAsync(article.id);
       toast.success("Artigo despublicado com sucesso");
     } catch (error) {
-      toast.error("Erro ao despublicar artigo");
-      console.error(error);
+      console.error("Unpublish error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao despublicar artigo",
+      );
     } finally {
       setShowUnpublishDialog(false);
     }
