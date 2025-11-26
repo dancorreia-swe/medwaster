@@ -1,0 +1,15 @@
+name: mistral-7b-instruct-v0.2.Q4_K_M
+backend: llama
+model: mistral-7b-instruct-v0.2.Q4_K_M.gguf
+context_size: 8192
+parameters:
+  temperature: 0.7
+  top_p: 0.95
+  repeat_penalty: 1.1
+template:
+  chat_message: |-
+    {{#each messages}}
+    {{#if (eq this.role "system")}}[INST] {{this.content}} [/INST]{{/if}}
+    {{#if (eq this.role "user")}}[INST] {{this.content}} [/INST]{{/if}}
+    {{#if (eq this.role "assistant")}}{{this.content}}{{/if}}
+    {{/each}}

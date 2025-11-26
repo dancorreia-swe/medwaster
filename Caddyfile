@@ -48,12 +48,6 @@
         }
     }
 
-    # LocalAI (optional, exposed via /localai/*)
-    handle /localai/* {
-        uri strip_prefix /localai
-        reverse_proxy localai:8080
-    }
-
     # Web app - proxy to nginx serving static files
     handle {
         reverse_proxy web:3000 {
@@ -91,4 +85,10 @@
     handle_errors {
         respond "{err.status_code} {err.status_text}"
     }
+}
+
+# LocalAI UI/API on its own host (avoids broken absolute links under subpaths)
+{$LOCALAI_HOST:ai.localhost} {
+    tls internal
+    reverse_proxy localai:8080
 }

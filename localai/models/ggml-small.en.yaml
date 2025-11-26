@@ -1,0 +1,5 @@
+name: ggml-small.en
+backend: whisper
+model: ggml-small.en.bin
+parameters:
+  language: pt-br
