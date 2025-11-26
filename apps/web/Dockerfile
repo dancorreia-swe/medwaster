@@ -43,7 +43,8 @@ COPY <<EOF /docker-entrypoint.d/40-env-config.sh
 #!/bin/sh
 echo "Generating env-config.js..."
 echo "window.__ENV__ = {" > /usr/share/nginx/html/env-config.js
-echo "  VITE_SERVER_URL: \"\${VITE_SERVER_URL:-http://localhost:4000}\"" >> /usr/share/nginx/html/env-config.js
+VITE_SERVER_URL_QUOTED=$(printf %q "${VITE_SERVER_URL:-http://localhost:4000}")
+echo "  VITE_SERVER_URL: ${VITE_SERVER_URL_QUOTED}" >> /usr/share/nginx/html/env-config.js
 echo "};" >> /usr/share/nginx/html/env-config.js
 EOF
 
