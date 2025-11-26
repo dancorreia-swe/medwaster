@@ -94,7 +94,10 @@ services:
       - sh
       - -c
       - |
-        echo '📦 LocalAI Model Loader - Checking for required models...'
+        echo '════════════════════════════════════════════════════════'
+        echo '📦 LocalAI Model Loader'
+        echo '════════════════════════════════════════════════════════'
+        echo ''
 
         set -euo pipefail
 
@@ -105,42 +108,150 @@ services:
         # Ensure target directory exists
         mkdir -p /models
 
+        # Ensure model config YAMLs exist (overwrite to keep in sync)
+        echo '📝 Syncing model configuration files...'
+        cat > /models/mistral-7b-instruct-v0.2.Q4_K_M.yaml <<'EOF'
+name: mistral-7b-instruct-v0.2.Q4_K_M
+backend: llama
+model: mistral-7b-instruct-v0.2.Q4_K_M.gguf
+context_size: 8192
+parameters:
+  temperature: 0.7
+  top_p: 0.95
+  repeat_penalty: 1.1
+template:
+  chat_message: |-
+    {{#each messages}}
+    {{#if (eq this.role "system")}}[INST] {{this.content}} [/INST]{{/if}}
+    {{#if (eq this.role "user")}}[INST] {{this.content}} [/INST]{{/if}}
+    {{#if (eq this.role "assistant")}}{{this.content}}{{/if}}
+    {{/each}}
+EOF
+
+        cat > /models/nomic-embed-text-v1.5.Q4_K_M.yaml <<'EOF'
+name: nomic-embed-text-v1.5.Q4_K_M
+backend: llama
+model: nomic-embed-text-v1.5.Q4_K_M.gguf
+parameters:
+  embedding: true
+EOF
+
+        cat > /models/ggml-small.en.yaml <<'EOF'
+name: ggml-small.en
+backend: whisper
+model: ggml-small.en.bin
+parameters:
+  language: pt-br
+EOF
+        echo '   ✅ Chat model config (mistral-7b-instruct-v0.2.Q4_K_M.yaml)'
+        echo '   ✅ Embedding model config (nomic-embed-text-v1.5.Q4_K_M.yaml)'
+        echo '   ✅ Whisper model config (ggml-small.en.yaml)'
+        echo ''
+
         # Check if models already exist
-        if [ -f "$${CHAT_MODEL_PATH}" ] && [ -f "$${EMBED_MODEL_PATH}" ] && [ -f "$${WHISPER_MODEL_PATH}" ]; then
-          echo '✅ All models already downloaded. Skipping.'
+        echo '🔍 Checking for existing models...'
+        ALL_EXIST=true
+
+        if [ -f "$${CHAT_MODEL_PATH}" ]; then
+          SIZE=$$(du -h "$${CHAT_MODEL_PATH}" | cut -f1)
+          echo "   ✅ Chat model found ($${SIZE})"
+        else
+          echo "   ⏳ Chat model missing"
+          ALL_EXIST=false
+        fi
+
+        if [ -f "$${EMBED_MODEL_PATH}" ]; then
+          SIZE=$$(du -h "$${EMBED_MODEL_PATH}" | cut -f1)
+          echo "   ✅ Embedding model found ($${SIZE})"
+        else
+          echo "   ⏳ Embedding model missing"
+          ALL_EXIST=false
+        fi
+
+        if [ -f "$${WHISPER_MODEL_PATH}" ]; then
+          SIZE=$$(du -h "$${WHISPER_MODEL_PATH}" | cut -f1)
+          echo "   ✅ Whisper model found ($${SIZE})"
+        else
+          echo "   ⏳ Whisper model missing"
+          ALL_EXIST=false
+        fi
+        echo ''
+
+        if [ "$${ALL_EXIST}" = "true" ]; then
+          echo '════════════════════════════════════════════════════════'
+          echo '✅ All models already present - ready to use!'
+          echo '════════════════════════════════════════════════════════'
           exit 0
         fi
 
         # Install curl (follow redirects reliably)
+        echo '📦 Installing download tools...'
         apk add --no-cache curl
+        echo ''
 
-        echo '📥 Downloading base models...'
+        echo '════════════════════════════════════════════════════════'
+        echo '📥 Downloading Models'
+        echo '════════════════════════════════════════════════════════'
+        echo ''
 
         # Download chat model (Mistral 7B Instruct, ~4.1GB Q4_K_M)
         if [ ! -f "$${CHAT_MODEL_PATH}" ]; then
-          echo '  → Downloading Mistral 7B Instruct (Q4_K_M)...'
-          curl -L --fail --show-error --progress-bar -o "$${CHAT_MODEL_PATH}" https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf || exit 1
-          echo '  ✅ Chat model downloaded'
+          echo '┌─────────────────────────────────────────────────────┐'
+          echo '│ [1/3] Chat Model: Mistral 7B Instruct (Q4_K_M)     │'
+          echo '│       Expected size: ~4.1 GB                        │'
+          echo '└─────────────────────────────────────────────────────┘'
+          curl -L --fail --show-error --progress-bar -o "$${CHAT_MODEL_PATH}" \
+            https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf \
+            || { echo '❌ Chat model download failed'; exit 1; }
+          SIZE=$$(du -h "$${CHAT_MODEL_PATH}" | cut -f1)
+          echo "✅ Downloaded successfully ($${SIZE})"
+          echo ''
         fi
 
         # Download embedding model (~190MB Q4_K_M)
         if [ ! -f "$${EMBED_MODEL_PATH}" ]; then
-          echo '  → Downloading nomic-embed-text-v1.5 (Q4_K_M)...'
-          curl -L --fail --show-error --progress-bar -o "$${EMBED_MODEL_PATH}" https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/resolve/main/nomic-embed-text-v1.5.Q4_K_M.gguf || exit 1
-          echo '  ✅ Embedding model downloaded'
+          echo '┌─────────────────────────────────────────────────────┐'
+          echo '│ [2/3] Embedding Model: nomic-embed-text (Q4_K_M)   │'
+          echo '│       Expected size: ~190 MB                        │'
+          echo '└─────────────────────────────────────────────────────┘'
+          curl -L --fail --show-error --progress-bar -o "$${EMBED_MODEL_PATH}" \
+            https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/resolve/main/nomic-embed-text-v1.5.Q4_K_M.gguf \
+            || { echo '❌ Embedding model download failed'; exit 1; }
+          SIZE=$$(du -h "$${EMBED_MODEL_PATH}" | cut -f1)
+          echo "✅ Downloaded successfully ($${SIZE})"
+          echo ''
         fi
 
         # Download whisper model (~244MB)
         if [ ! -f "$${WHISPER_MODEL_PATH}" ]; then
-          echo '  → Downloading Whisper small.en model...'
-          curl -L --fail --show-error --progress-bar -o "$${WHISPER_MODEL_PATH}" https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin || exit 1
-          echo '  ✅ Whisper model downloaded'
+          echo '┌─────────────────────────────────────────────────────┐'
+          echo '│ [3/3] Whisper Model: ggml-small.en                 │'
+          echo '│       Expected size: ~244 MB                        │'
+          echo '└─────────────────────────────────────────────────────┘'
+          curl -L --fail --show-error --progress-bar -o "$${WHISPER_MODEL_PATH}" \
+            https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin \
+            || { echo '❌ Whisper model download failed'; exit 1; }
+          SIZE=$$(du -h "$${WHISPER_MODEL_PATH}" | cut -f1)
+          echo "✅ Downloaded successfully ($${SIZE})"
+          echo ''
         fi
 
-        echo '📂 Models present:'
-        ls -lh /models || true
-
-        echo '🎉 All base models downloaded successfully!'
+        echo '════════════════════════════════════════════════════════'
+        echo '✅ Download Complete - Verifying Models'
+        echo '════════════════════════════════════════════════════════'
+        echo ''
+        echo 'Model files in /models:'
+        ls -lh /models/*.{gguf,bin} 2>/dev/null || echo '  (no model files found)'
+        echo ''
+        echo 'Config files in /models:'
+        ls -lh /models/*.yaml 2>/dev/null || echo '  (no config files found)'
+        echo ''
+        echo '════════════════════════════════════════════════════════'
+        echo '🎉 LocalAI is ready! Models loaded:'
+        echo '   • mistral-7b-instruct-v0.2.Q4_K_M (chat)'
+        echo '   • nomic-embed-text-v1.5.Q4_K_M (embeddings)'
+        echo '   • ggml-small.en (whisper/transcription)'
+        echo '════════════════════════════════════════════════════════'
     volumes:
       - ./localai/models:/models
     networks:
