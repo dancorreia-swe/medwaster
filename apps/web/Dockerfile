@@ -39,13 +39,15 @@ FROM nginx:alpine
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
 # Add runtime env script
-COPY <<EOF /docker-entrypoint.d/40-env-config.sh
+COPY <<'EOF' /docker-entrypoint.d/40-env-config.sh
 #!/bin/sh
 echo "Generating env-config.js..."
-echo "window.__ENV__ = {" > /usr/share/nginx/html/env-config.js
-VITE_SERVER_URL_QUOTED=$(printf %q "${VITE_SERVER_URL:-http://localhost:4000}")
-echo "  VITE_SERVER_URL: ${VITE_SERVER_URL_QUOTED}" >> /usr/share/nginx/html/env-config.js
-echo "};" >> /usr/share/nginx/html/env-config.js
+cat > /usr/share/nginx/html/env-config.js << ENVJS
+window.__ENV__ = {
+  VITE_SERVER_URL: "${VITE_SERVER_URL:-http://localhost:4000}"
+};
+ENVJS
+echo "env-config.js generated with VITE_SERVER_URL=${VITE_SERVER_URL:-http://localhost:4000}"
 EOF
 
 RUN chmod +x /docker-entrypoint.d/40-env-config.sh

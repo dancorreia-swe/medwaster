@@ -25,7 +25,9 @@
       "Bash(docker compose:*)",
       "WebFetch(domain:docs.expo.dev)",
       "WebSearch",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }
