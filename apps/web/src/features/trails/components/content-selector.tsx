@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Plus, BookOpen, HelpCircle, FileText, Check, Loader2, Tag as TagIcon, ChevronsUpDown, X, CheckCircle, Circle, Target, XCircle, FileQuestion } from "lucide-react";
+import { Search, Plus, BookOpen, HelpCircle, FileText, Check, Loader2, Tag as TagIcon, ChevronsUpDown, X, CheckCircle, Circle, Target, XCircle, FileQuestion, ExternalLink } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { stripHtml, cn } from "@/lib/utils";
 
@@ -59,7 +59,8 @@ type ContentItem = {
   type: ContentType;
   difficulty?: string;
   description?: string;
-  questionType?: string; // Add questionType for specific icon rendering
+  questionType?: string;
+  sourceType?: "original" | "external";
 };
 
 export function ContentSelector({
@@ -178,6 +179,7 @@ export function ContentSelector({
         title: stripHtml(a.title),
         type: "article" as ContentType,
         description: a.excerpt ? stripHtml(a.excerpt) : undefined,
+        sourceType: a.sourceType,
       }));
     }
 
@@ -554,6 +556,15 @@ export function ContentSelector({
                               </p>
                             )}
                             <div className="flex items-center gap-2 mt-2">
+                              {item.type === "article" && item.sourceType === "external" && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-100 dark:border-purple-800"
+                                >
+                                  <ExternalLink className="mr-1 h-3 w-3" />
+                                  Externo
+                                </Badge>
+                              )}
                               {item.difficulty && (
                                 <Badge
                                   variant={getDifficultyColor(item.difficulty)}
@@ -697,6 +708,15 @@ export function ContentSelector({
                               </p>
                             )}
                             <div className="flex items-center gap-2 mt-2">
+                              {item.type === "article" && item.sourceType === "external" && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-100 dark:border-purple-800"
+                                >
+                                  <ExternalLink className="mr-1 h-3 w-3" />
+                                  Externo
+                                </Badge>
+                              )}
                               {item.difficulty && (
                                 <Badge
                                   variant={getDifficultyColor(item.difficulty)}
@@ -918,6 +938,15 @@ export function ContentSelector({
                               </p>
                             )}
                             <div className="flex items-center gap-2 mt-2">
+                              {item.type === "article" && item.sourceType === "external" && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-100 dark:border-purple-800"
+                                >
+                                  <ExternalLink className="mr-1 h-3 w-3" />
+                                  Externo
+                                </Badge>
+                              )}
                               {item.difficulty && (
                                 <Badge
                                   variant={getDifficultyColor(item.difficulty)}
