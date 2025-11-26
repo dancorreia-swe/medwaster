@@ -10,23 +10,66 @@ import { wikiApi } from "./wikiApi";
 import { client } from "@/lib/client";
 
 const ERROR_MESSAGES: Record<string, string> = {
+
   NEED_CATEGORY:
+
     "É necessário selecionar uma categoria para publicar o artigo.",
+
   VALIDATION_ERROR: "Erro de validação. Verifique os dados e tente novamente.",
+
   BUSINESS_LOGIC_ERROR: "Erro de regra de negócio.",
+
   UNAUTHORIZED: "Você não tem permissão para realizar esta ação.",
+
   FORBIDDEN: "Acesso negado.",
+
   NOT_FOUND: "Recurso não encontrado.",
+
+  DEPENDENCY_ERROR:
+
+    "Este recurso não pode ser modificado pois está em uso por outros recursos.",
+
 };
 
+
+
 const getErrorMessage = (responseError: any, defaultMessage: string) => {
+
   const errorValue = responseError?.value;
-  const errorData = errorValue?.error || (typeof errorValue === 'object' ? errorValue : undefined);
+
+  // Try to find the inner error object which might contain the code
+
+  const errorData =
+
+    errorValue?.error ||
+
+    (typeof errorValue === "object" ? errorValue : undefined);
+
   const code = errorData?.code || (responseError as any)?.code;
 
-  if (code && ERROR_MESSAGES[code]) {
-    return ERROR_MESSAGES[code];
+
+
+  if (code === "DEPENDENCY_ERROR") {
+
+    const dependencies = errorData?.details?.dependencies;
+
+    if (Array.isArray(dependencies) && dependencies.length > 0) {
+
+      return `Não é possível realizar esta ação pois o artigo está em uso nas seguintes trilhas: ${dependencies.join(", ")}.`;
+
+    }
+
   }
+
+
+
+  if (code && ERROR_MESSAGES[code]) {
+
+    return ERROR_MESSAGES[code];
+
+  }
+
+
 
   return typeof responseError === "string"
     ? responseError
@@ -113,12 +156,8 @@ export const useCreateArticle = () => {
       }
 
       if (isExternal) {
-        // External articles stay on the list view after creation, so refresh it
         queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
       }
-
-      // Don't invalidate articles list here for internal articles - let the editor page do it if needed
-      // This prevents the list from updating before navigation
     },
   });
 };
