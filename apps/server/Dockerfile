@@ -41,6 +41,7 @@ RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
     ca-certificates \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set puppeteer to use system chromium
