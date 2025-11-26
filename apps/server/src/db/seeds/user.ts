@@ -6,9 +6,9 @@ import { eq } from "drizzle-orm";
 export function userSeed() {}
 
 export async function adminSeed() {
-  const email = process.env.ADMIN_EMAIL || "daniel@admin.com";
+  const email = process.env.ADMIN_EMAIL || "system@admin.com";
   const password = process.env.ADMIN_PASSWORD || "password";
-  const name = process.env.ADMIN_NAME || "Daniel Correia";
+  const name = process.env.ADMIN_NAME || "System Admin";
 
   // In production, ensure we have strong credentials or skip/warn
   if (process.env.NODE_ENV === "production") {
