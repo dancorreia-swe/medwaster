@@ -148,8 +148,8 @@ export async function submitTrailQuestion(
     timeSpentSeconds?: number;
   },
 ) {
-  console.log('[API] Submitting question:', { trailId, questionId, data });
-  
+  console.log("[API] Submitting question:", { trailId, questionId, data });
+
   const response = await client
     .trails({ id: trailId })
     .questions({ questionId })
@@ -225,8 +225,5 @@ export async function markTrailArticleRead(
     .content({ contentId })
     .article["mark-read"].post({ timeSpentMinutes });
 
-  return assertSuccess(
-    response,
-    "Não foi possível marcar o artigo como lido.",
-  );
+  return assertSuccess(response, "Não foi possível marcar o artigo como lido.");
 }
