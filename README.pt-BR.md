@@ -275,7 +275,7 @@ O aplicativo mobile (`apps/native`) é implantado separadamente usando o Expo:
 cd apps/native
 
 # Configurar URL do backend
-echo "EXPO_PUBLIC_API_URL=https://seudominio.com/api" > .env
+echo "EXPO_PUBLIC_SERVER_URL=https://seudominio.com/api" > .env
 
 # Build e submissão para lojas de aplicativos
 npx eas build --platform all

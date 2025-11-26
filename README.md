@@ -246,7 +246,7 @@ The mobile app (`apps/native`) is deployed separately using Expo:
 cd apps/native
 
 # Configure your backend URL
-echo "EXPO_PUBLIC_API_URL=https://yourdomain.com/api" > .env
+echo "EXPO_PUBLIC_SERVER_URL=https://yourdomain.com/api" > .env
 
 # Build and submit to app stores
 npx eas build --platform all
