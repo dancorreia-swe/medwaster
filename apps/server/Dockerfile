@@ -1,64 +1,66 @@
 # syntax=docker/dockerfile:1
 
 # Prune stage - extract only what's needed for server
-FROM oven/bun:1.3-debian AS pruner
+FROM oven/bun:1.3-alpine AS pruner
 WORKDIR /app
 COPY . .
 RUN bun install -g turbo@2.6.1
 RUN turbo prune server --docker
 
-# Build stage - use Debian for Bun
-FROM oven/bun:1.3-debian AS builder
+# Base stage (shared steps)
+FROM oven/bun:1.3-alpine AS base
 WORKDIR /app
-
-# Copy pruned package.json files (for layer caching)
 COPY --from=pruner /app/out/json/ .
-
 # Remove the pruned lockfile (it may be corrupted) and regenerate
 RUN rm -f bun.lock
 
-# Install dependencies (only server's dependencies, no web deps)
-# Some packages may fail but we continue if most succeed
-RUN bun install --no-optional || true
-
-# Verify critical packages are installed by checking node_modules
-RUN test -d node_modules || (echo "ERROR: node_modules not created" && exit 1)
-
-# Copy pruned source code
+# Builder stage (Dev deps + Build)
+FROM base AS builder
+# Install ALL dependencies (including devDeps for building)
+RUN bun install --no-optional
 COPY --from=pruner /app/out/full/ .
-
-# Change WORKDIR to the specific app before building
 WORKDIR /app/apps/server
-
-# Build will fail if any required package is missing
 RUN bun run build
 
+# Production Deps stage (Prod deps only)
+FROM base AS production-deps
+# Install ONLY production dependencies
+RUN bun install --production --no-optional
+
 # Production stage
-FROM oven/bun:1.3-debian AS production
+FROM oven/bun:1.3-alpine AS production
 
-# Install only Chromium for Puppeteer (for PDF generation and web scraping)
-RUN apt-get update && apt-get install -y \
+# Install Chromium (for Puppeteer) and curl (for healthcheck)
+RUN apk add --no-cache \
     chromium \
-    fonts-liberation \
+    nss \
+    freetype \
+    harfbuzz \
     ca-certificates \
+    ttf-freefont \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    dumb-init
 
-# Set puppeteer to use system chromium
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 WORKDIR /app
 
-# Copy workspace dependencies and server app from builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/server ./apps/server
+# Copy prod node_modules
+COPY --from=production-deps /app/node_modules ./node_modules
+
+# Copy built artifacts and necessary config files
+COPY --from=builder /app/apps/server/package.json ./apps/server/package.json
+COPY --from=builder /app/apps/server/dist ./apps/server/dist
+COPY --from=builder /app/apps/server/drizzle.config.ts ./apps/server/drizzle.config.ts
+# Copy migrations if they exist (using wildcards to avoid error if dir doesn't exist, though it should)
+COPY --from=builder /app/apps/server/src/db/migrations ./apps/server/src/db/migrations
 
 WORKDIR /app/apps/server
 
 # Create non-root user
-RUN groupadd -g 1001 nodejs && \
-    useradd -r -u 1001 -g nodejs nodejs && \
+RUN addgroup -g 1001 nodejs && \
+    adduser -u 1001 -G nodejs -s /bin/sh -D nodejs && \
     chown -R nodejs:nodejs /app
 
 # Create uploads directory and set permissions
@@ -70,9 +72,12 @@ USER nodejs
 # Expose port
 EXPOSE 4000
 
-# Health check (curl is available in debian base image)
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:4000/health || exit 1
 
+# Use dumb-init to handle signals correctly
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
 # Start application
-CMD ["bun", "run", "start"]
+CMD ["bun", "run", "dist/index.js"]
