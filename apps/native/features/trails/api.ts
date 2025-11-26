@@ -218,11 +218,12 @@ export async function submitTrailQuiz(
 export async function markTrailArticleRead(
   trailId: number,
   contentId: number,
+  timeSpentMinutes: number = 0,
 ) {
   const response = await client
     .trails({ id: trailId })
     .content({ contentId })
-    .article["mark-read"].post();
+    .article["mark-read"].post({ timeSpentMinutes });
 
   return assertSuccess(
     response,

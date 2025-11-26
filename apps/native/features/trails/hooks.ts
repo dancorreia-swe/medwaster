@@ -163,6 +163,10 @@ export function useSubmitTrailQuestion() {
       queryClient.invalidateQueries({ queryKey: trailKeys.lists() });
       queryClient.invalidateQueries({ queryKey: certificateKeys.user });
 
+      // Invalidate recommendations (trail completion affects next trail suggestions)
+      queryClient.invalidateQueries({ queryKey: trailKeys.recommended() });
+      queryClient.invalidateQueries({ queryKey: trailKeys.recommendedCategories() });
+
       // Invalidate gamification data
       queryClient.invalidateQueries({ queryKey: gamificationKeys.missions() });
       queryClient.invalidateQueries({ queryKey: gamificationKeys.streak() });
@@ -228,6 +232,10 @@ export function useSubmitTrailQuiz() {
       queryClient.invalidateQueries({ queryKey: trailKeys.lists() });
       queryClient.invalidateQueries({ queryKey: certificateKeys.user });
 
+      // Invalidate recommendations (trail completion affects next trail suggestions)
+      queryClient.invalidateQueries({ queryKey: trailKeys.recommended() });
+      queryClient.invalidateQueries({ queryKey: trailKeys.recommendedCategories() });
+
       // Invalidate gamification data
       queryClient.invalidateQueries({ queryKey: gamificationKeys.missions() });
       queryClient.invalidateQueries({ queryKey: gamificationKeys.streak() });
@@ -251,10 +259,12 @@ export function useMarkTrailArticleRead() {
     mutationFn: ({
       trailId,
       contentId,
+      timeSpentMinutes = 0,
     }: {
       trailId: number;
       contentId: number;
-    }) => markTrailArticleRead(trailId, contentId),
+      timeSpentMinutes?: number;
+    }) => markTrailArticleRead(trailId, contentId, timeSpentMinutes),
     onSuccess: (data, { trailId }) => {
       // Invalidate trail progress, content, and detail
       queryClient.invalidateQueries({ queryKey: trailKeys.progress(trailId) });
@@ -262,6 +272,10 @@ export function useMarkTrailArticleRead() {
       queryClient.invalidateQueries({ queryKey: trailKeys.detail(trailId) });
       queryClient.invalidateQueries({ queryKey: trailKeys.lists() });
       queryClient.invalidateQueries({ queryKey: certificateKeys.user });
+
+      // Invalidate recommendations (trail completion affects next trail suggestions)
+      queryClient.invalidateQueries({ queryKey: trailKeys.recommended() });
+      queryClient.invalidateQueries({ queryKey: trailKeys.recommendedCategories() });
 
       // Invalidate gamification data
       queryClient.invalidateQueries({ queryKey: gamificationKeys.missions() });

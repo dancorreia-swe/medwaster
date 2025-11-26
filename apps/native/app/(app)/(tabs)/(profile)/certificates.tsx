@@ -50,6 +50,9 @@ export default function CertificatesScreen() {
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
+    if (hours > 0 && mins > 0) {
+      return `${hours}h ${mins}min`;
+    }
     if (hours > 0) {
       return `${hours}h`;
     }
@@ -62,9 +65,11 @@ export default function CertificatesScreen() {
     try {
       setDownloading(true);
 
-      // Open PDF in browser (will trigger download)
-      const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
-      const pdfUrl = `${serverUrl}${certificate.certificateUrl}`;
+      // Build full URL - check if certificateUrl is already absolute
+      const rawUrl = certificate.certificateUrl;
+      const pdfUrl = rawUrl.startsWith('http')
+        ? rawUrl
+        : `${process.env.EXPO_PUBLIC_SERVER_URL}${rawUrl}`;
 
       const canOpen = await Linking.canOpenURL(pdfUrl);
       if (canOpen) {
@@ -332,14 +337,6 @@ export default function CertificatesScreen() {
                 </Text>
                 <Text className="text-3xl font-bold text-gray-900 dark:text-gray-50">
                   {certificate.totalTrailsCompleted}
-                </Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  Tempo
-                </Text>
-                <Text className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-                  {formatTime(certificate.totalTimeMinutes)}
                 </Text>
               </View>
             </View>

@@ -589,11 +589,12 @@ export const studentTrails = new Elysia({ prefix: "/trails" })
       // Mark article as read in trail
       .post(
         "/:id/content/:contentId/article/mark-read",
-        async ({ params: { id, contentId }, user, status }) => {
+        async ({ params: { id, contentId }, body, user, status }) => {
           const result = await ProgressService.markArticleReadInTrail(
             user!.id,
             id,
             contentId,
+            body.timeSpentMinutes || 0,
           );
           return status(200, success(result));
         },
@@ -601,6 +602,9 @@ export const studentTrails = new Elysia({ prefix: "/trails" })
           params: t.Object({
             id: t.Number(),
             contentId: t.Number(),
+          }),
+          body: t.Object({
+            timeSpentMinutes: t.Optional(t.Number()),
           }),
           detail: {
             summary: "Mark article as read in trail",

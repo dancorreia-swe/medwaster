@@ -17,6 +17,7 @@ import { authClient } from "@/lib/auth-client";
  */
 export function useAchievementNotifications() {
   const isCheckingRef = useRef(false);
+  const processedAchievementsRef = useRef<Set<number>>(new Set());
   const router = useRouter();
   const { data: session } = authClient.useSession();
 
@@ -37,15 +38,31 @@ export function useAchievementNotifications() {
       const response = await client.achievements.unnotified.get();
 
       if (!response.data || response.data.success !== true) {
+        isCheckingRef.current = false;
         return;
       }
 
       const unnotified = response.data.data;
 
-      console.log(`📬 Found ${unnotified.length} unnotified achievements`);
+      // Filter out already processed achievements in this session
+      const newUnnotified = unnotified.filter(
+        (ua) => !processedAchievementsRef.current.has(ua.achievementId)
+      );
+
+      if (newUnnotified.length === 0) {
+        isCheckingRef.current = false;
+        return;
+      }
+
+      console.log(`📬 Found ${newUnnotified.length} unnotified achievements`);
+
+      // Mark as processing immediately to prevent duplicates
+      newUnnotified.forEach((ua) => {
+        processedAchievementsRef.current.add(ua.achievementId);
+      });
 
       // Show notifications for unnotified achievements (one at a time with delay)
-      unnotified.forEach((ua, index) => {
+      newUnnotified.forEach((ua, index) => {
         setTimeout(async () => {
           const IconComponent = getLucideIcon(ua.achievement.badgeIcon || "trophy");
           const badgeColor = ua.achievement.badgeColor || "#fbbf24";
@@ -64,7 +81,7 @@ export function useAchievementNotifications() {
                   {/* Content */}
                   <View className="flex-1">
                     <View className="flex-row items-center mb-1 gap-1">
-                      <Image 
+                      <Image
                         source={require("@/assets/medal.png")}
                         style={{ width: 16, height: 16 }}
                         resizeMode="contain"
@@ -107,7 +124,10 @@ export function useAchievementNotifications() {
     } catch (error) {
       console.error("Error checking unnotified achievements:", error);
     } finally {
-      isCheckingRef.current = false;
+      // Release lock after a short delay to prevent rapid re-checks
+      setTimeout(() => {
+        isCheckingRef.current = false;
+      }, 1000);
     }
   };
 

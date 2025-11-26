@@ -67,6 +67,14 @@ export default function TrailContentScreen() {
   // Track if quiz has been started to prevent multiple calls
   const quizStartedRef = useRef(false);
 
+  // Track time spent on content
+  const contentStartTime = useRef<Date>(new Date());
+
+  // Reset timer when content changes
+  useEffect(() => {
+    contentStartTime.current = new Date();
+  }, [contentItemId]);
+
   // Find the specific content item
   const contentItem = content?.find((item: any) => item.id === contentItemId);
 
@@ -117,12 +125,17 @@ export default function TrailContentScreen() {
         );
       }
 
+      // Calculate time spent in seconds
+      const timeSpentSeconds = Math.floor(
+        (Date.now() - contentStartTime.current.getTime()) / 1000
+      );
+
       const response = await submitQuestionMutation.mutateAsync({
         trailId,
         questionId: contentItem.question.id,
         data: {
           answer: formattedAnswer as any,
-          timeSpentSeconds: 0, // TODO: Track actual time
+          timeSpentSeconds,
         },
       });
 
@@ -288,9 +301,15 @@ export default function TrailContentScreen() {
    */
   const handleMarkArticleRead = async () => {
     try {
+      // Calculate time spent in minutes
+      const timeSpentMinutes = Math.floor(
+        (Date.now() - contentStartTime.current.getTime()) / 1000 / 60
+      );
+
       await markArticleReadMutation.mutateAsync({
         trailId,
         contentId: contentItemId,
+        timeSpentMinutes,
       });
 
       router.back();

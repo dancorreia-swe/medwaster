@@ -170,7 +170,7 @@ export default function JourneyDetail() {
 
   const modules =
     content
-      ?.filter((item: any) => item && item.id) // Filter out null/undefined items
+      ?.filter((item: any) => item && item.id)
       ?.map((item: any, index: number) => {
         const isCompleted = item.progress?.isCompleted || false;
         const isEnrolled = progress?.isEnrolled || false;
@@ -211,8 +211,8 @@ export default function JourneyDetail() {
           id: String(item.id),
           contentId: item.id,
           trailId: trailId,
-          emoji: emoji || "📄", // Ensure we always have a valid emoji
-          title: title || "Conteúdo", // Ensure we always have a valid title
+          emoji: emoji || "📄", 
+          title: title || "Conteúdo", 
           instructor: "",
           status,
           type: contentType,
@@ -220,10 +220,10 @@ export default function JourneyDetail() {
           isRequired: item.isRequired,
           points: item.points,
           progress: item.progress,
-          articleId: item.articleId, // Store articleId for navigation
-          questionId: item.questionId, // Store questionId for reference
-          quizId: item.quizId, // Store quizId for reference
-          questionType: item.question?.type, // Store question type for icon
+          articleId: item.articleId, 
+          questionId: item.questionId,
+          quizId: item.quizId, 
+          questionType: item.question?.type, 
         };
       }) || [];
 

@@ -1,9 +1,9 @@
-name: medwaster
+name: medwaster-server
 
 services:
   postgres:
     image: pgvector/pgvector:pg18-trixie
-    container_name: medwaster-postgres
+    container_name: medwaster-postgres-dev
     environment:
       POSTGRES_DB: medwaster
       POSTGRES_USER: postgres
@@ -36,7 +36,7 @@ services:
 
   redis:
     image: redis:latest
-    container_name: medwaster-redis
+    container_name: medwaster-redis-dev
     networks:
       - medwaster-network
     ports:

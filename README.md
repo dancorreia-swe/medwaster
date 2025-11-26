@@ -98,6 +98,9 @@ Required values to configure:
 - `OPENAI_API_KEY` - Your OpenAI API key (or configure LocalAI)
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` - Your SMTP credentials
 - `AUDIT_CHECKSUM_SECRET` - Generate with: `openssl rand -base64 32`
+- `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_ACCESS_KEY` - MinIO/S3 connection (defaults map to bundled MinIO)
+- Bucket names per service: `S3_BUCKET_QUESTIONS`, `S3_BUCKET_WIKI`, `S3_BUCKET_AVATARS`, `S3_BUCKET_ACHIEVEMENTS`, `S3_BUCKET_CERTIFICATES`
+- Optional self-hosted AI: `AI_PROVIDER=localai`, `LOCALAI_BASE_URL=http://localai:8080/v1`, `LOCALAI_API_KEY` (if set)
 
 3. **Choose your deployment mode**
 
@@ -108,6 +111,9 @@ Best for: Local development, testing, or simple self-hosting
 ```bash
 # Start all services
 docker compose up -d
+
+# Optional: start LocalAI (self-hosted OpenAI-compatible API)
+docker compose --profile ai up -d localai
 
 # Check status
 docker compose ps
@@ -162,6 +168,7 @@ The Docker Compose setup includes:
 - PostgreSQL 18 with pgvector extension (vector database for AI)
 - Redis (caching and job queue)
 - MinIO (S3-compatible object storage)
+- LocalAI (optional, self-hosted OpenAI-compatible API on profile `ai`)
 
 **Applications:**
 - Server API (Elysia backend on port 4000)
@@ -170,6 +177,38 @@ The Docker Compose setup includes:
 
 **Optional (with `--profile proxy`):**
 - Caddy (reverse proxy with automatic HTTPS)
+- LocalAI (OpenAI-compatible API; enable with `--profile ai`)
+
+### Using LocalAI (self-hosted AI)
+
+1) Download or place GGUF models into `./localai/models` (mounted into the LocalAI container).  
+2) Set in `.env`:  
+   - `AI_PROVIDER=localai`  
+   - `LOCALAI_BASE_URL=http://localai:8080/v1` (default matches docker-compose)  
+   - `LOCALAI_API_KEY=` (only if you configure one in LocalAI)  
+3) Start the LocalAI container: `docker compose --profile ai up -d localai`  
+4) Keep `OPENAI_API_KEY` unset/empty when using LocalAI to avoid sending traffic to OpenAI.
+
+**Add models on the fly:** pick a GGUF URL from the LocalAI model docs and run:
+```bash
+docker compose --profile ai exec localai sh -c "cd /models && curl -L <model-url> -o <model-name>.gguf"
+```
+Restart LocalAI if you add new files after the container is already running.
+
+**Preloaded gallery models:** the `localai` service now preloads a chat model (`phi-2`), an embedding model (`bert-embeddings`), and Whisper (`whisper-1`) from the LocalAI gallery on startup. Override by setting `PRELOAD_MODELS` in your `.env` with a JSON array matching the LocalAI docs if you want different defaults.
+
+See the LocalAI model guide for URLs and options: https://localai.io/models/ .
+
+Example downloads (replace with the model you want):
+```bash
+# Small chat model (Phi-2 chat 2.7B Q4_0)
+docker compose --profile ai exec localai sh -c \
+  "cd /models && curl -L https://huggingface.co/TheBloke/phi-2-GGUF/resolve/main/phi-2.Q4_0.gguf -o phi-2.Q4_0.gguf"
+
+# Instruction-tuned LLaMA 2 7B (Q4_K_M)
+docker compose --profile ai exec localai sh -c \
+  "cd /models && curl -L https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf -o llama-2-7b-chat.Q4_K_M.gguf"
+```
 
 ### Database Migrations
 
@@ -270,4 +309,3 @@ docker compose exec minio mc mirror ./minio-backup /data
 - Check server logs: `docker compose logs server`
 
 For more help, open an issue on GitHub.
-

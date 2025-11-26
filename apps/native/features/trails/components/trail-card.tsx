@@ -56,7 +56,7 @@ export function TrailCard({ trail, onPress }: TrailCardProps) {
         <Image
           source={{ uri: trail.coverImageUrl }}
           className="w-full h-32"
-          resizeMode="cover"
+          resizeMode="contain"
         />
       )}
 

@@ -25,7 +25,11 @@ import {
   markArticleAsUnread,
   fetchPdfText,
 } from "@/features/wiki/api";
-import { useMarkTrailArticleRead, useTrail } from "@/features/trails/hooks";
+import {
+  useMarkTrailArticleRead,
+  useTrail,
+  trailKeys,
+} from "@/features/trails/hooks";
 import {
   ArticleHeader,
   ArticleTitleSection,
@@ -127,6 +131,9 @@ export default function WikiArticle() {
       queryClient.invalidateQueries({
         queryKey: gamificationKeys.streak(),
       });
+
+      // Ensure trail data reflects the newly read article (even when coming from wiki)
+      queryClient.invalidateQueries({ queryKey: trailKeys.all, exact: false });
 
       if (trailIdNum && contentIdNum) {
         const result = await markTrailArticleReadMutation.mutateAsync({

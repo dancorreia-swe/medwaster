@@ -1,6 +1,7 @@
 import { authClient } from "@/lib/auth-client";
 import { useRouter, useSegments } from "expo-router";
 import React, { useEffect, type PropsWithChildren } from "react";
+import { View } from "react-native";
 
 function useProtectedRoute() {
   const segments = useSegments();
@@ -31,15 +32,17 @@ function useProtectedRoute() {
       !(!session && inAppGroup) &&
       // Don't render auth screens while redirecting into the app
       !(session && inAuthGroup),
+    isPending,
   };
 }
 
 export function SessionProvider({ children }: PropsWithChildren) {
-  const { shouldRenderChildren } = useProtectedRoute();
+  const { shouldRenderChildren, isPending } = useProtectedRoute();
 
-  if (!shouldRenderChildren) {
-    // Avoid mounting screens while session status is unresolved or redirecting
-    return null;
+  // Keep UI mounted during isPending (auth state checks) to prevent flashing
+  // Only unmount when we're actually redirecting (shouldRenderChildren false AND not pending)
+  if (!shouldRenderChildren && !isPending) {
+    return <View className="flex-1 bg-background" />;
   }
 
   return <>{children}</>;
