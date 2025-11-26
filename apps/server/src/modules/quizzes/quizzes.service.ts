@@ -13,9 +13,9 @@ import {
   quizTags,
   type QuizStatus,
   type QuizDifficulty,
+  type Quiz,
 } from "@/db/schema/quizzes";
-import { questions, questionOptions } from "@/db/schema/questions";
-import { asc, desc, eq, ne, and, sql, ilike, or, count, inArray } from "drizzle-orm";
+import { asc, desc, eq, ne, and, sql, ilike, or, inArray } from "drizzle-orm";
 import { NotFoundError } from "@/lib/errors";
 import { trackQuizCompleted } from "../achievements/trackers";
 
@@ -65,7 +65,7 @@ export abstract class QuizzesService {
               },
             },
           },
-        } : false,
+        } : undefined,
       },
     });
 
@@ -76,17 +76,19 @@ export abstract class QuizzesService {
     return quiz;
   }
 
-  static async createQuiz(newQuiz: CreateQuizBody, authorId: string) {
+  static async createQuiz(newQuiz: CreateQuizBody, authorId: string): Promise<Quiz> {
     const { questions: quizQuestionsList, tagIds, ...quizData } = newQuiz;
 
-    return await db.transaction(async (tx) => {
-      const [quiz] = await tx
+    const result = await db.transaction(async (tx: any) => {
+      const rows = await tx
         .insert(quizzes)
         .values({
           ...quizData,
           authorId,
         })
         .returning();
+      
+      const quiz = rows[0];
 
       if (quizQuestionsList && quizQuestionsList.length > 0) {
         await tx.insert(quizQuestions).values(
@@ -109,6 +111,8 @@ export abstract class QuizzesService {
 
       return quiz;
     });
+
+    return result as Quiz;
   }
 
   static async updateQuiz(quizId: number, data: UpdateQuizBody, userId?: string) {

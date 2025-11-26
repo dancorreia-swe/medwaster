@@ -112,7 +112,7 @@ export function BadgeDesigner({
       formData.append("image", file);
 
       const response = await fetch(
-        `${getApiUrl()}/admin/achievements/images/upload`,
+        `${getApiUrl()}/api/admin/achievements/images/upload`,
         {
           method: "POST",
           body: formData,

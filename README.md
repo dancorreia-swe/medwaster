@@ -43,9 +43,9 @@ Then, run the development server:
 bun dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
+Open [http://localhost:3000](http://localhost:3000) in your browser to see the web application.
 Use the Expo Go app to run the mobile application.
-The API is running at [http://localhost:3000](http://localhost:3000).
+The API is running at [http://localhost:4000](http://localhost:4000).
 
 
 
@@ -111,9 +111,12 @@ cp .env.example .env
 
 Required values to configure:
 - `BETTER_AUTH_SECRET` - Generate with: `openssl rand -base64 32`
+- `AUDIT_CHECKSUM_SECRET` - Generate with: `openssl rand -base64 32`
+- `ADMIN_EMAIL` - Email for the admin account (created automatically on first start)
+- `ADMIN_PASSWORD` - Password for the admin account
+- `ADMIN_NAME` - Name for the admin account
 - `OPENAI_API_KEY` - Your OpenAI API key (or configure LocalAI)
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` - Your SMTP credentials
-- `AUDIT_CHECKSUM_SECRET` - Generate with: `openssl rand -base64 32`
 - `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_ACCESS_KEY` - MinIO/S3 connection (defaults map to bundled MinIO)
 - Bucket names per service: `S3_BUCKET_QUESTIONS`, `S3_BUCKET_WIKI`, `S3_BUCKET_AVATARS`, `S3_BUCKET_ACHIEVEMENTS`, `S3_BUCKET_CERTIFICATES`
 - Optional self-hosted AI: `AI_PROVIDER=localai`, `LOCALAI_BASE_URL=http://localai:8080/v1`, `LOCALAI_API_KEY` (if set)
@@ -150,6 +153,8 @@ DOMAIN=localhost
 BETTER_AUTH_URL=http://localhost:4000
 CORS_ORIGIN=http://localhost:3000
 VITE_SERVER_URL=http://localhost:4000
+# Note: VITE_SERVER_URL is the base URL only (no /api suffix)
+# The frontend automatically adds /api when making requests
 ```
 
 ### Mode 2: Reverse Proxy with Caddy (Production)
@@ -171,7 +176,9 @@ DOMAIN=yourdomain.com
 LETSENCRYPT_EMAIL=admin@yourdomain.com
 BETTER_AUTH_URL=https://yourdomain.com
 CORS_ORIGIN=https://yourdomain.com
-VITE_SERVER_URL=https://yourdomain.com/api
+VITE_SERVER_URL=https://yourdomain.com
+# Note: VITE_SERVER_URL is the base URL only (no /api suffix)
+# Caddy routes /api/* requests to the server automatically
 ```
 
 **Note:** Make sure your domain's DNS A record points to your server's IP address before starting. Caddy will automatically obtain and renew Let's Encrypt SSL certificates.
@@ -228,13 +235,24 @@ docker compose --profile ai exec localai sh -c \
 
 ### Database Migrations
 
-Run database migrations after first start. This is required to set up the database schema and create the initial admin user.
+Database migrations and seeding run automatically on first startup via the `migrator` service. This sets up the database schema and creates the initial admin user.
 
+**Important:** Make sure to set the following environment variables in `.env` before starting:
+- `ADMIN_EMAIL` - Email for the admin account
+- `ADMIN_PASSWORD` - Password for the admin account
+- `ADMIN_NAME` - Name for the admin account
+
+The migrator service will automatically:
+1. Run all pending database migrations
+2. Seed the database with initial data
+3. Create the admin user with your specified credentials
+
+If you need to manually run migrations or seeding again:
 ```bash
-# Run migrations
+# Run migrations manually
 docker compose exec server bun run db:migrate
 
-# [REQUIRED] Seed database (Creates Admin User & System Configs)
+# Seed database manually
 docker compose exec server bun run db:seed
 ```
 

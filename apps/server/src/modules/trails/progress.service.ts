@@ -952,6 +952,7 @@ export abstract class ProgressService {
     userId: string,
     trailId: number,
     contentId: number,
+    timeSpentMinutes: number = 0,
   ) {
     // Check enrollment and auto-enroll if not enrolled
     let progress = await db.query.userTrailProgress.findFirst({
@@ -1005,6 +1006,7 @@ export abstract class ProgressService {
           isCompleted: true,
           completedAt: new Date(),
           updatedAt: new Date(),
+          timeSpentMinutes: sql`${userContentProgress.timeSpentMinutes} + ${timeSpentMinutes}`,
         })
         .where(eq(userContentProgress.id, existingProgress.id));
     } else {
@@ -1013,7 +1015,7 @@ export abstract class ProgressService {
         trailContentId: contentId,
         score: 100,
         attempts: 1,
-        timeSpentMinutes: 0, // Time tracking is separate
+        timeSpentMinutes,
         isCompleted: true,
         completedAt: new Date(),
       });
@@ -1044,10 +1046,56 @@ export abstract class ProgressService {
       console.error("Failed to track article read achievement:", error);
     }
 
-    // Mark content as complete in trail
+    // Mark article as read in wiki to sync with other trails
+    if (content.articleId) {
+      const existingRead = await db.query.userArticleReads.findFirst({
+        where: and(
+          eq(userArticleReads.userId, userId),
+          eq(userArticleReads.articleId, content.articleId),
+        ),
+      });
+
+      if (existingRead) {
+        await db
+          .update(userArticleReads)
+          .set({
+            isRead: true,
+            markedReadAt: existingRead.markedReadAt ?? new Date(),
+            lastReadAt: new Date(),
+            readPercentage: 100,
+            updatedAt: new Date(),
+          })
+          .where(eq(userArticleReads.id, existingRead.id));
+      } else {
+        await db.insert(userArticleReads).values({
+          userId,
+          articleId: content.articleId,
+          isRead: true,
+          readPercentage: 100,
+          markedReadAt: new Date(),
+          lastReadAt: new Date(),
+          timeSpentSeconds: 0,
+        });
+      }
+    }
+
+    if (timeSpentMinutes > 0) {
+      await db
+        .update(userTrailProgress)
+        .set({
+          timeSpentMinutes: sql`${userTrailProgress.timeSpentMinutes} + ${timeSpentMinutes}`,
+          lastAccessedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(userTrailProgress.userId, userId),
+            eq(userTrailProgress.trailId, trailId),
+          ),
+        );
+    }
+
     await this.markContentComplete(userId, trailId, contentId);
 
-    // Check if trail was just completed
     const updatedProgress = await db.query.userTrailProgress.findFirst({
       where: and(
         eq(userTrailProgress.userId, userId),
@@ -1073,12 +1121,17 @@ export abstract class ProgressService {
    * steps as completed if the article was already read in the wiki.
    * This prevents users from having to uncheck/recheck to advance.
    */
-  private static async syncArticleCompletionsFromReads(
+  static async syncArticleCompletionsFromReads(
     userId: string,
     trailId: number,
     progress: (typeof userTrailProgress.$inferSelect) | null,
   ) {
-    if (!progress) return progress;
+    console.log(`🔄 [syncArticleCompletionsFromReads] Starting sync for userId=${userId}, trailId=${trailId}`);
+
+    if (!progress) {
+      console.log(`⚠️ [syncArticleCompletionsFromReads] No progress found, skipping`);
+      return progress;
+    }
 
     const completedIdsRaw =
       typeof progress.completedContentIds === "string"
@@ -1087,6 +1140,8 @@ export abstract class ProgressService {
     const completedIds: number[] = Array.isArray(completedIdsRaw)
       ? completedIdsRaw.map((id) => Number(id)).filter((id) => !Number.isNaN(id))
       : [];
+
+    console.log(`📋 [syncArticleCompletionsFromReads] Current completedIds: ${JSON.stringify(completedIds)}`);
 
     const alreadyReadArticles = await db
       .select({
@@ -1104,11 +1159,18 @@ export abstract class ProgressService {
       )
       .where(eq(trailContent.trailId, trailId));
 
+    console.log(`📚 [syncArticleCompletionsFromReads] Found ${alreadyReadArticles.length} already-read articles:`,
+      JSON.stringify(alreadyReadArticles, null, 2));
+
     const newCompletions = alreadyReadArticles.filter(
       (item) => item.contentId && !completedIds.includes(item.contentId),
     );
 
+    console.log(`✨ [syncArticleCompletionsFromReads] Found ${newCompletions.length} new completions to add:`,
+      JSON.stringify(newCompletions, null, 2));
+
     if (newCompletions.length === 0) {
+      console.log(`✅ [syncArticleCompletionsFromReads] No new completions, returning`);
       return progress;
     }
 
@@ -1155,6 +1217,8 @@ export abstract class ProgressService {
       ]),
     );
 
+    console.log(`💾 [syncArticleCompletionsFromReads] Updating completedContentIds from ${JSON.stringify(completedIds)} to ${JSON.stringify(updatedCompletedIds)}`);
+
     await db
       .update(userTrailProgress)
       .set({
@@ -1164,13 +1228,51 @@ export abstract class ProgressService {
       })
       .where(eq(userTrailProgress.id, progress.id));
 
+    console.log(`✅ [syncArticleCompletionsFromReads] Updated trail progress, checking for trail completion`);
+
     // Ensure trail-wide completion status reflects the auto-completed items
     await this.checkAndCompleteTrail(userId, trailId);
 
-    return {
-      ...progress,
-      completedContentIds: updatedCompletedIds,
-    };
+    // Re-fetch the progress to get the latest state from DB
+    const updatedProgress = await db.query.userTrailProgress.findFirst({
+      where: and(
+        eq(userTrailProgress.userId, userId),
+        eq(userTrailProgress.trailId, trailId),
+      ),
+    });
+
+    console.log(`🎉 [syncArticleCompletionsFromReads] Sync complete, final completedContentIds: ${updatedProgress?.completedContentIds}`);
+
+    return updatedProgress || progress;
+  }
+
+  /**
+   * When an article is marked read from the wiki, propagate completion to any
+   * trails where that article appears (for already-enrolled users).
+   */
+  static async syncArticleCompletionForUser(userId: string, articleId: number) {
+    const contents = await db.query.trailContent.findMany({
+      where: eq(trailContent.articleId, articleId),
+      columns: {
+        id: true,
+        trailId: true,
+      },
+    });
+
+    if (contents.length === 0) return;
+
+    for (const content of contents) {
+      const progress = await db.query.userTrailProgress.findFirst({
+        where: and(
+          eq(userTrailProgress.userId, userId),
+          eq(userTrailProgress.trailId, content.trailId),
+        ),
+      });
+
+      if (!progress) continue; // user not enrolled/unlocked for this trail
+
+      await this.syncArticleCompletionsFromReads(userId, content.trailId, progress);
+    }
   }
 
   /**

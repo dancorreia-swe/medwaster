@@ -50,7 +50,7 @@ const superAdminRole = ac.newRole({
 });
 
 export const auth = betterAuth({
-  basePath: "/api/auth",
+  basePath: "/auth",
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: schema,

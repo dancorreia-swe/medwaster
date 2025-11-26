@@ -1,6 +1,9 @@
 {
     # Global options
-    email {$LETSENCRYPT_EMAIL}
+    # For Let's Encrypt with public domains, uncomment and set LETSENCRYPT_EMAIL in .env:
+    # email your-email@example.com
+
+    # For local domains (.local, .lan), no email needed - Caddy uses internal CA
 
     # Enable admin API (useful for debugging)
     admin :2019
@@ -8,9 +11,13 @@
 
 # Main site configuration
 {$DOMAIN:localhost} {
-    # Enable automatic HTTPS
-    # For localhost, Caddy will use self-signed certs
-    # For real domains, it will use Let's Encrypt
+    # Force internal CA for local domains (.local, .lan, localhost)
+    # This prevents Caddy from trying to use Let's Encrypt for non-public domains
+    tls internal
+
+    # For local domains, trust Caddy's root CA certificate:
+    # docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt caddy-root.crt
+    # Then install caddy-root.crt in your browser/system trust store
 
     # API routes - proxy to server
     handle /api/* {

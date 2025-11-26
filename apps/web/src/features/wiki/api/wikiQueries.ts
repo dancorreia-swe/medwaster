@@ -10,75 +10,48 @@ import { wikiApi } from "./wikiApi";
 import { client } from "@/lib/client";
 
 const ERROR_MESSAGES: Record<string, string> = {
-
   NEED_CATEGORY:
-
     "É necessário selecionar uma categoria para publicar o artigo.",
-
   VALIDATION_ERROR: "Erro de validação. Verifique os dados e tente novamente.",
-
   BUSINESS_LOGIC_ERROR: "Erro de regra de negócio.",
-
   UNAUTHORIZED: "Você não tem permissão para realizar esta ação.",
-
   FORBIDDEN: "Acesso negado.",
-
   NOT_FOUND: "Recurso não encontrado.",
-
   DEPENDENCY_ERROR:
-
     "Este recurso não pode ser modificado pois está em uso por outros recursos.",
-
 };
 
-
-
 const getErrorMessage = (responseError: any, defaultMessage: string) => {
-
   const errorValue = responseError?.value;
 
   // Try to find the inner error object which might contain the code
 
   const errorData =
-
     errorValue?.error ||
-
     (typeof errorValue === "object" ? errorValue : undefined);
 
   const code = errorData?.code || (responseError as any)?.code;
 
-
-
   if (code === "DEPENDENCY_ERROR") {
-
     const dependencies = errorData?.details?.dependencies;
 
     if (Array.isArray(dependencies) && dependencies.length > 0) {
-
       return `Não é possível realizar esta ação pois o artigo está em uso nas seguintes trilhas: ${dependencies.join(", ")}.`;
-
     }
-
   }
-
-
 
   if (code && ERROR_MESSAGES[code]) {
-
     return ERROR_MESSAGES[code];
-
   }
-
-
 
   return typeof responseError === "string"
     ? responseError
     : typeof errorValue === "string"
       ? errorValue
       : (errorData?.message ??
-         errorValue?.message ??
-         (responseError as any)?.message ??
-         defaultMessage);
+        errorValue?.message ??
+        (responseError as any)?.message ??
+        defaultMessage);
 };
 
 export const wikiQueryKeys = {

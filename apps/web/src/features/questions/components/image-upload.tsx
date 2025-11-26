@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { client } from "@/lib/client";
+import { getApiUrl } from "@/lib/env";
 
 interface ImageData {
   url: string;
@@ -28,7 +29,7 @@ export function ImageUpload({
   disabled,
   className,
   label = "Imagem da Questão",
-  uploadPath = "/admin/questions/images/upload",
+  uploadPath = "/api/admin/questions/images/upload",
   keyValue,
   deletePath,
 }: ImageUploadProps) {
@@ -69,7 +70,7 @@ export function ImageUpload({
       formData.append("image", file);
 
       // Upload using fetch directly since Elysia client might not support FormData well
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${uploadPath}`, {
+      const response = await fetch(`${getApiUrl()}${uploadPath}`, {
         method: "POST",
         body: formData,
         credentials: "include",

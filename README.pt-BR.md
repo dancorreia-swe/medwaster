@@ -69,6 +69,11 @@ BETTER_AUTH_SECRET=cole_o_secret_gerado_aqui
 AUDIT_CHECKSUM_SECRET=cole_o_secret_gerado_aqui
 OPENAI_API_KEY=sua_chave_openai_aqui
 
+# Credenciais do usuário admin (necessário para o seed automático)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=sua_senha_segura
+ADMIN_NAME=Administrador
+
 # Armazenamento MinIO/S3 (usa os defaults do MinIO do Docker)
 S3_ENDPOINT=http://minio:9000
 S3_ACCESS_KEY=${MINIO_ROOT_USER}
@@ -103,13 +108,9 @@ docker compose --profile ai up -d localai
 docker compose --profile ai exec localai sh -c "cd /models && curl -L <url-do-modelo> -o <nome-modelo>.gguf"
 ```
 
-### 5. Execute as Migrações do Banco de Dados
+### 5. Acesse a Aplicação
 
-```bash
-docker compose exec server bun run db:migrate
-```
-
-### 6. Acesse a Aplicação
+As migrações do banco de dados e o seed são executados automaticamente na primeira inicialização.
 
 - **Aplicação Web**: http://localhost:3000
 - **API**: http://localhost:4000
@@ -255,13 +256,24 @@ AI_PROVIDER=localai       # Alterar para usar LocalAI
 
 ### Migrações do Banco de Dados
 
-Execute as migrações após a primeira inicialização. Isso é necessário para configurar o esquema do banco e criar o usuário admin inicial.
+As migrações e o seed do banco de dados são executados automaticamente na primeira inicialização através do serviço `migrator`. Isso configura o esquema do banco e cria o usuário admin inicial.
 
+**Importante:** Certifique-se de definir as seguintes variáveis de ambiente no `.env` antes de iniciar:
+- `ADMIN_EMAIL` - Email da conta admin
+- `ADMIN_PASSWORD` - Senha da conta admin
+- `ADMIN_NAME` - Nome da conta admin
+
+O serviço migrator executará automaticamente:
+1. Todas as migrações pendentes do banco de dados
+2. Seed do banco com dados iniciais
+3. Criação do usuário admin com suas credenciais especificadas
+
+Se precisar executar migrações ou seed manualmente:
 ```bash
-# Executar migrações
+# Executar migrações manualmente
 docker compose exec server bun run db:migrate
 
-# [OBRIGATÓRIO] Popular banco (Cria usuário Admin e Configurações)
+# Popular banco manualmente
 docker compose exec server bun run db:seed
 ```
 

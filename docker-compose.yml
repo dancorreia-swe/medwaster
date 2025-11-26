@@ -107,6 +107,10 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:password@postgres:5432/medwaster}
       NODE_ENV: ${NODE_ENV:-production}
+      # Admin Setup (needed for seeding)
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_NAME: ${ADMIN_NAME}
     networks:
       - medwaster-network
     depends_on:
@@ -152,12 +156,15 @@ services:
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
-      SMTP_FROM: ${SMTP_FROM:-noreply@medwaster.com}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-noreply@medwaster.com}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-MedWaster Learning}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
 
       # AI
       AI_PROVIDER: ${AI_PROVIDER:-openai}
       AI_CHAT_MODEL: ${AI_CHAT_MODEL:-gpt-4o}
       AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-text-embedding-3-small}
+      AI_TRANSCRIPTION_MODEL: ${AI_TRANSCRIPTION_MODEL:-whisper-1}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       LOCALAI_BASE_URL: ${LOCALAI_BASE_URL:-http://localai:8080/v1}
     ports:
@@ -204,6 +211,7 @@ services:
       AI_PROVIDER: ${AI_PROVIDER:-openai}
       AI_CHAT_MODEL: ${AI_CHAT_MODEL:-gpt-4o}
       AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-text-embedding-3-small}
+      AI_TRANSCRIPTION_MODEL: ${AI_TRANSCRIPTION_MODEL:-whisper-1}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       LOCALAI_BASE_URL: ${LOCALAI_BASE_URL:-http://localai:8080/v1}
     networks:

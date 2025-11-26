@@ -35,7 +35,7 @@ const corsOrigin = envCorsOrigins.includes("*")
   ? true
   : [...envCorsOrigins, /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 
-export const app = new Elysia({ name: "medwaster-api" })
+export const app = new Elysia({ name: "medwaster-api", prefix: "/api" })
   .use(
     logixlysia({
       config: {
