@@ -253,15 +253,15 @@ AI_PROVIDER=localai       # Alterar para usar LocalAI
 
 ---
 
-## Migrações do Banco de Dados
+### Migrações do Banco de Dados
 
-Execute as migrações após a primeira inicialização:
+Execute as migrações após a primeira inicialização. Isso é necessário para configurar o esquema do banco e criar o usuário admin inicial.
 
 ```bash
 # Executar migrações
 docker compose exec server bun run db:migrate
 
-# Opcional: Popular banco com dados de exemplo
+# [OBRIGATÓRIO] Popular banco (Cria usuário Admin e Configurações)
 docker compose exec server bun run db:seed
 ```
 

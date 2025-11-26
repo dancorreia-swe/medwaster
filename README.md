@@ -228,13 +228,13 @@ docker compose --profile ai exec localai sh -c \
 
 ### Database Migrations
 
-Run database migrations after first start:
+Run database migrations after first start. This is required to set up the database schema and create the initial admin user.
 
 ```bash
 # Run migrations
 docker compose exec server bun run db:migrate
 
-# Optional: Seed database with sample data
+# [REQUIRED] Seed database (Creates Admin User & System Configs)
 docker compose exec server bun run db:seed
 ```
 
