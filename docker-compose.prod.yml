@@ -103,7 +103,7 @@ services:
         WHISPER_MODEL_PATH=/models/ggml-small.en.bin
 
         # Check if models already exist
-        if [ -f "$CHAT_MODEL_PATH" ] && [ -f "$EMBED_MODEL_PATH" ] && [ -f "$WHISPER_MODEL_PATH" ]; then
+        if [ -f "$${CHAT_MODEL_PATH}" ] && [ -f "$${EMBED_MODEL_PATH}" ] && [ -f "$${WHISPER_MODEL_PATH}" ]; then
           echo '✅ All models already downloaded. Skipping.'
           exit 0
         fi
@@ -114,23 +114,23 @@ services:
         echo '📥 Downloading base models...'
 
         # Download chat model (Mistral 7B Instruct, ~4.1GB Q4_K_M)
-        if [ ! -f "$CHAT_MODEL_PATH" ]; then
+        if [ ! -f "$${CHAT_MODEL_PATH}" ]; then
           echo '  → Downloading Mistral 7B Instruct (Q4_K_M)...'
-          wget -q -O "$CHAT_MODEL_PATH" https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf || exit 1
+          wget -q -O "$${CHAT_MODEL_PATH}" https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf || exit 1
           echo '  ✅ Chat model downloaded'
         fi
 
         # Download embedding model (~190MB Q4_K_M)
-        if [ ! -f "$EMBED_MODEL_PATH" ]; then
+        if [ ! -f "$${EMBED_MODEL_PATH}" ]; then
           echo '  → Downloading nomic-embed-text-v1.5 (Q4_K_M)...'
-          wget -q -O "$EMBED_MODEL_PATH" https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/resolve/main/nomic-embed-text-v1.5.Q4_K_M.gguf || exit 1
+          wget -q -O "$${EMBED_MODEL_PATH}" https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/resolve/main/nomic-embed-text-v1.5.Q4_K_M.gguf || exit 1
           echo '  ✅ Embedding model downloaded'
         fi
 
         # Download whisper model (~244MB)
-        if [ ! -f "$WHISPER_MODEL_PATH" ]; then
+        if [ ! -f "$${WHISPER_MODEL_PATH}" ]; then
           echo '  → Downloading Whisper small.en model...'
-          wget -q -O "$WHISPER_MODEL_PATH" https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin || exit 1
+          wget -q -O "$${WHISPER_MODEL_PATH}" https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin || exit 1
           echo '  ✅ Whisper model downloaded'
         fi
 
