@@ -12,7 +12,7 @@ RUN mkdir -p /app/out/full/apps/server && \
     test -f apps/server/tsconfig.json && \
     cp apps/server/tsconfig.json /app/out/full/apps/server/ || true
 
-# Build stage
+# Builder stage (Install all deps & Build)
 FROM oven/bun:1.3-alpine AS builder
 WORKDIR /app
 
@@ -22,7 +22,7 @@ COPY --from=pruner /app/out/json/ .
 # Remove the pruned lockfile (it may be corrupted) and regenerate
 RUN rm -f bun.lock
 
-# Install dependencies (only web's dependencies)
+# Install dependencies (only web's dependencies, including devDeps for build)
 RUN bun install --no-optional
 
 # Copy pruned source code (includes server types and tsconfig for @server/* imports)
@@ -35,7 +35,7 @@ RUN bun run build
 # Production stage
 FROM nginx:alpine
 
-# Copy built assets from builder
+# Copy built assets from builder (web application's static files)
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
 # Add runtime env script
