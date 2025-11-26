@@ -22,11 +22,6 @@ COPY --from=pruner /app/out/full/ .
 WORKDIR /app/apps/server
 RUN bun run build
 
-# Production Deps stage (Prod deps only)
-FROM base AS production-deps
-# Install ONLY production dependencies
-RUN bun install --production --no-optional
-
 # Production stage
 FROM oven/bun:1.3-alpine AS production
 
@@ -47,7 +42,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 WORKDIR /app
 
 # Copy prod node_modules
-COPY --from=production-deps /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy built artifacts and necessary config files
 COPY --from=builder /app/apps/server/package.json ./apps/server/package.json
