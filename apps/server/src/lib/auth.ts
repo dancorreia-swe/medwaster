@@ -50,7 +50,7 @@ const superAdminRole = ac.newRole({
 });
 
 export const auth = betterAuth({
-  basePath: "/auth",
+  basePath: "/api/auth",
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: schema,
@@ -156,14 +156,15 @@ export const auth = betterAuth({
     after: createAuthMiddleware(async (ctx) => {
       // Detect first login on sign-in paths (email, OAuth)
       // Path examples: /sign-in/email, /sign-in/social, /callback/google
-      const isSignIn = ctx.path.startsWith("/sign-in") || ctx.path.startsWith("/callback");
+      const isSignIn =
+        ctx.path.startsWith("/sign-in") || ctx.path.startsWith("/callback");
       const isSignUp = ctx.path.startsWith("/sign-up");
-      
+
       if (isSignIn && !isSignUp) {
         const newSession = ctx.context.newSession;
         if (newSession) {
           const user = newSession.user;
-          
+
           // Check if this is the first login (firstLoginAt is null)
           if (!user.firstLoginAt) {
             // Update user with firstLoginAt timestamp
@@ -171,10 +172,10 @@ export const auth = betterAuth({
               .update(schema.user)
               .set({ firstLoginAt: new Date() })
               .where(eq(schema.user.id, user.id));
-            
+
             // Track first login achievement
             await trackFirstLogin(user.id);
-            
+
             console.log(`🎯 First login tracked for user ${user.id}`);
           }
         }
