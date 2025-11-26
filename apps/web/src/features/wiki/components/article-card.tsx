@@ -17,6 +17,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   EmojiPicker,
@@ -328,6 +333,25 @@ export function ArticleCard({ article }: ArticleCardProps) {
     }
   };
 
+  // Publishing validation logic
+  const getPublishError = () => {
+    if (!article.category) {
+      return "É necessário selecionar uma categoria para publicar.";
+    }
+    if (article.sourceType === "external") {
+      if (!article.externalUrl) {
+        return "Artigos externos precisam de uma URL.";
+      }
+      if (!article.externalAuthors || article.externalAuthors.length === 0) {
+        return "Artigos externos precisam de pelo menos um autor.";
+      }
+    }
+    return null;
+  };
+
+  const publishError = getPublishError();
+  const isPublishDisabled = isPublishing || !!publishError;
+
   return (
     <Card
       className="group hover:shadow-md transition-shadow gap-4 cursor-pointer"
@@ -519,20 +543,35 @@ export function ArticleCard({ article }: ArticleCardProps) {
               )}
 
               {canPublish && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePublish();
-                  }}
-                  disabled={isPublishing}
-                >
-                  {isPublishing ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="mr-2 h-4 w-4" />
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    {/* Wrapper div to ensure tooltip works even if disabled */}
+                    <div tabIndex={-1} className="outline-none">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isPublishDisabled) {
+                            handlePublish();
+                          }
+                        }}
+                        disabled={isPublishDisabled}
+                        className={isPublishDisabled ? "pointer-events-auto opacity-50" : ""}
+                      >
+                        {isPublishing ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Upload className="mr-2 h-4 w-4" />
+                        )}
+                        Publicar
+                      </DropdownMenuItem>
+                    </div>
+                  </TooltipTrigger>
+                  {publishError && (
+                    <TooltipContent side="left" className="max-w-[200px]">
+                      <p>{publishError}</p>
+                    </TooltipContent>
                   )}
-                  Publicar
-                </DropdownMenuItem>
+                </Tooltip>
               )}
 
               {canUnpublish && (
