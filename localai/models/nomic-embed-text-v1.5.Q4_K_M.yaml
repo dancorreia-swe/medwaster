@@ -1,5 +1,5 @@
 name: nomic-embed-text-v1.5.Q4_K_M
 backend: llama
-model: nomic-embed-text-v1.5.Q4_K_M.gguf
+embeddings: true
 parameters:
-  embedding: true
+  model: nomic-embed-text-v1.5.Q4_K_M.gguf

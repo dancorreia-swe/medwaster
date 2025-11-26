@@ -14,7 +14,6 @@ export abstract class AIService {
   ): Promise<{ content: string; embedding: number[] }[]> {
     const embeddingModel = this.embeddingModel;
 
-    // Use RecursiveCharacterTextSplitter for better handling of both HTML and PDF content
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
       chunkOverlap: 200,

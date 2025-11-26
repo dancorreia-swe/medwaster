@@ -38,6 +38,7 @@ The `model-loader` service will automatically:
 ### Whisper Model
 - **File**: `ggml-small.en.bin` (~244 MB)
 - **Config**: `ggml-small.en.yaml`
+- **Model Name**: `whisper-1` (for API calls)
 - **Backend**: whisper
 - **Purpose**: Audio transcription (pt-br language)
 
@@ -45,12 +46,25 @@ The `model-loader` service will automatically:
 
 The YAML configuration files are automatically synced by the `model-loader` service. LocalAI auto-discovers these configs when it starts.
 
+### YAML Format
+
+**Important**: The model file path MUST be specified inside the `parameters` section:
+
+```yaml
+name: model-name
+backend: llama
+parameters:
+  model: model-file.gguf  # Must be inside parameters!
+  temperature: 0.7
+```
+
 Each config file specifies:
-- Model name (used in API calls)
-- Backend engine (llama, whisper, etc.)
-- Model file reference
-- Parameters (temperature, context size, etc.)
-- Templates (for chat models)
+- **name**: Model identifier for API calls
+- **backend**: Engine type (llama, whisper, etc.)
+- **parameters.model**: Path to model file (relative to /models)
+- **embeddings**: Set to `true` for embedding models
+- **context_size**: Maximum context window
+- Other parameters (temperature, top_p, etc.)
 
 ## File Structure
 

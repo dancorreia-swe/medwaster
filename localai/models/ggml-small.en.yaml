@@ -1,5 +1,5 @@
-name: ggml-small.en
+name: whisper-1
 backend: whisper
-model: ggml-small.en.bin
 parameters:
+  model: ggml-small.en.bin
   language: pt-br

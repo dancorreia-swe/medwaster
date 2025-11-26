@@ -28,6 +28,9 @@ jobs:
           - context: .
             dockerfile: apps/web/Dockerfile
             image_suffix: web
+          - context: localai
+            dockerfile: localai/Dockerfile
+            image_suffix: model-loader
 
     steps:
       - name: Checkout repository
