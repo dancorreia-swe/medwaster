@@ -1,4 +1,3 @@
-import "dotenv/config";
 import logixlysia from "logixlysia";
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
