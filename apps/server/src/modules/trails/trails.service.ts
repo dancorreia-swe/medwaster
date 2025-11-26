@@ -290,13 +290,13 @@ export abstract class TrailsService {
       }
     }
 
-    // Build the insert values object, only including defined fields
-    const insertValues: any = {
+    // Build the insert values object
+    const insertValues = {
+      ...newTrail,
       trailId,
-      name: newTrail.name,
-      difficulty: newTrail.difficulty,
       authorId,
-      status: newTrail.status || "draft",
+      unlockOrder,
+      status: newTrail.status ?? "draft",
       passPercentage: newTrail.passPercentage ?? 70,
       attemptsAllowed: newTrail.attemptsAllowed ?? null,
       allowSkipQuestions: newTrail.allowSkipQuestions ?? false,
@@ -306,41 +306,13 @@ export abstract class TrailsService {
       enrolledCount: 0,
       completionRate: 0,
       averageCompletionMinutes: null,
-      unlockOrder, // Always set unlockOrder
-    };
-
-    // Add optional fields only if they are defined
-    if (newTrail.description !== undefined) {
-      insertValues.description = newTrail.description;
-    }
-    if (newTrail.categoryId !== undefined) {
-      insertValues.categoryId = newTrail.categoryId;
-    }
-    if (newTrail.timeLimitMinutes !== undefined) {
-      insertValues.timeLimitMinutes = newTrail.timeLimitMinutes;
-    }
-    if (newTrail.coverImageUrl !== undefined) {
-      insertValues.coverImageUrl = newTrail.coverImageUrl;
-    }
-    if (newTrail.coverImageKey !== undefined) {
-      insertValues.coverImageKey = newTrail.coverImageKey;
-    }
-    if (newTrail.themeColor !== undefined) {
-      insertValues.themeColor = newTrail.themeColor;
-    }
-    if (newTrail.estimatedTimeMinutes !== undefined) {
-      insertValues.estimatedTimeMinutes = newTrail.estimatedTimeMinutes;
-    }
-    if (newTrail.availableFrom !== undefined) {
-      insertValues.availableFrom = newTrail.availableFrom
+      availableFrom: newTrail.availableFrom
         ? new Date(newTrail.availableFrom)
-        : null;
-    }
-    if (newTrail.availableUntil !== undefined) {
-      insertValues.availableUntil = newTrail.availableUntil
+        : null,
+      availableUntil: newTrail.availableUntil
         ? new Date(newTrail.availableUntil)
-        : null;
-    }
+        : null,
+    };
 
     const [trail] = await db.insert(trails).values(insertValues).returning();
 
@@ -348,7 +320,6 @@ export abstract class TrailsService {
   }
 
   static async updateTrail(trailId: number, updates: UpdateTrailBody) {
-    // Check if trail exists
     const existing = await db.query.trails.findFirst({
       where: eq(trails.id, trailId),
     });
@@ -357,7 +328,6 @@ export abstract class TrailsService {
       throw new NotFoundError("Trail");
     }
 
-    // Check if unlockOrder is already taken by another trail
     if (updates.unlockOrder !== undefined && updates.unlockOrder !== null) {
       const duplicate = await db.query.trails.findFirst({
         where: and(
@@ -373,73 +343,21 @@ export abstract class TrailsService {
       }
     }
 
-    const updateData: any = {};
+    const { availableFrom, availableUntil, ...rest } = updates;
 
-    for (const [key, value] of Object.entries(updates)) {
-      updateData[key] = value;
+    const dbUpdate: any = {
+      ...rest,
+      updatedAt: new Date(),
+    };
+
+    if (availableFrom !== undefined) {
+      dbUpdate.availableFrom = availableFrom ? new Date(availableFrom) : null;
     }
-
-    if (updates.availableFrom !== undefined) {
-      updateData.availableFrom = updates.availableFrom
-        ? new Date(updates.availableFrom)
+    if (availableUntil !== undefined) {
+      dbUpdate.availableUntil = availableUntil
+        ? new Date(availableUntil)
         : null;
     }
-    if (updates.availableUntil !== undefined) {
-      updateData.availableUntil = updates.availableUntil
-        ? new Date(updates.availableUntil)
-        : null;
-    }
-
-    const dbUpdate: any = { updatedAt: new Date() };
-
-    if (updateData.name !== undefined) dbUpdate.name = updateData.name;
-    if (updateData.description !== undefined)
-      dbUpdate.description = updateData.description;
-    if (updateData.categoryId !== undefined)
-      dbUpdate.categoryId =
-        updateData.categoryId === null ? null : updateData.categoryId;
-    if (updateData.difficulty !== undefined)
-      dbUpdate.difficulty = updateData.difficulty;
-    if (updateData.status !== undefined) dbUpdate.status = updateData.status;
-    if (updateData.unlockOrder !== undefined)
-      dbUpdate.unlockOrder =
-        updateData.unlockOrder === null ? null : updateData.unlockOrder;
-    if (updateData.passPercentage !== undefined)
-      dbUpdate.passPercentage = updateData.passPercentage;
-    if (updateData.attemptsAllowed !== undefined)
-      dbUpdate.attemptsAllowed =
-        updateData.attemptsAllowed === null ? null : updateData.attemptsAllowed;
-    if (updateData.timeLimitMinutes !== undefined)
-      dbUpdate.timeLimitMinutes =
-        updateData.timeLimitMinutes === null
-          ? null
-          : updateData.timeLimitMinutes;
-    if (updateData.allowSkipQuestions !== undefined)
-      dbUpdate.allowSkipQuestions = updateData.allowSkipQuestions;
-    if (updateData.showImmediateExplanations !== undefined)
-      dbUpdate.showImmediateExplanations = updateData.showImmediateExplanations;
-    if (updateData.randomizeContentOrder !== undefined)
-      dbUpdate.randomizeContentOrder = updateData.randomizeContentOrder;
-    if (updateData.coverImageUrl !== undefined)
-      dbUpdate.coverImageUrl =
-        updateData.coverImageUrl === null ? null : updateData.coverImageUrl;
-    if (updateData.coverImageKey !== undefined)
-      dbUpdate.coverImageKey =
-        updateData.coverImageKey === null ? null : updateData.coverImageKey;
-    if (updateData.themeColor !== undefined)
-      dbUpdate.themeColor =
-        updateData.themeColor === null ? null : updateData.themeColor;
-    if (updateData.availableFrom !== undefined)
-      dbUpdate.availableFrom = updateData.availableFrom;
-    if (updateData.availableUntil !== undefined)
-      dbUpdate.availableUntil = updateData.availableUntil;
-    if (updateData.estimatedTimeMinutes !== undefined)
-      dbUpdate.estimatedTimeMinutes =
-        updateData.estimatedTimeMinutes === null
-          ? null
-          : updateData.estimatedTimeMinutes;
-    if (updateData.customCertificate !== undefined)
-      dbUpdate.customCertificate = updateData.customCertificate;
 
     const [updatedTrail] = await db
       .update(trails)

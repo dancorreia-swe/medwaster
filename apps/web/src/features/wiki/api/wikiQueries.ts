@@ -162,7 +162,20 @@ export const useDeleteArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => wikiApi.deleteArticle(id),
+    mutationFn: async (id: number) => {
+      const response = await wikiApi.deleteArticle(id);
+      if (response.error) {
+        const errorDetail = response.error;
+        const message =
+          typeof errorDetail === "string"
+            ? errorDetail
+            : (errorDetail?.value ??
+              (errorDetail as any)?.message ??
+              "Erro ao excluir artigo.");
+        throw new Error(String(message));
+      }
+      return response;
+    },
     onSuccess: (_, id) => {
       // Remove the specific article query first
       queryClient.removeQueries({ queryKey: wikiQueryKeys.article(id) });
@@ -179,7 +192,20 @@ export const useArchiveArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => wikiApi.archiveArticle(id),
+    mutationFn: async (id: number) => {
+      const response = await wikiApi.archiveArticle(id);
+      if (response.error) {
+        const errorDetail = response.error;
+        const message =
+          typeof errorDetail === "string"
+            ? errorDetail
+            : (errorDetail?.value ??
+              (errorDetail as any)?.message ??
+              "Erro ao arquivar artigo.");
+        throw new Error(String(message));
+      }
+      return response;
+    },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.article(id) });
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
@@ -191,7 +217,20 @@ export const usePublishArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => wikiApi.publishArticle(id),
+    mutationFn: async (id: number) => {
+      const response = await wikiApi.publishArticle(id);
+      if (response.error) {
+        const errorDetail = response.error;
+        const message =
+          typeof errorDetail === "string"
+            ? errorDetail
+            : (errorDetail?.value ??
+              (errorDetail as any)?.message ??
+              "Erro ao publicar artigo.");
+        throw new Error(String(message));
+      }
+      return response;
+    },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.article(id) });
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
@@ -203,7 +242,20 @@ export const useUnpublishArticle = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => wikiApi.unpublishArticle(id),
+    mutationFn: async (id: number) => {
+      const response = await wikiApi.unpublishArticle(id);
+      if (response.error) {
+        const errorDetail = response.error;
+        const message =
+          typeof errorDetail === "string"
+            ? errorDetail
+            : (errorDetail?.value ??
+              (errorDetail as any)?.message ??
+              "Erro ao despublicar artigo.");
+        throw new Error(String(message));
+      }
+      return response;
+    },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.article(id) });
       queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
@@ -254,20 +306,65 @@ export const useBulkArticleOperations = () => {
   };
 
   const publishMultiple = useMutation({
-    mutationFn: (articleIds: number[]) =>
-      Promise.all(articleIds.map((id) => wikiApi.publishArticle(id))),
+    mutationFn: async (articleIds: number[]) => {
+      const responses = await Promise.all(
+        articleIds.map((id) => wikiApi.publishArticle(id)),
+      );
+      const errors = responses.filter((r: any) => r.error);
+      if (errors.length > 0) {
+        const firstError = errors[0].error;
+        const message =
+          typeof firstError === "string"
+            ? firstError
+            : (firstError?.value ??
+              (firstError as any)?.message ??
+              "Erro ao publicar alguns artigos.");
+        throw new Error(String(message));
+      }
+      return responses;
+    },
     onSuccess: invalidateArticles,
   });
 
   const unpublishMultiple = useMutation({
-    mutationFn: (articleIds: number[]) =>
-      Promise.all(articleIds.map((id) => wikiApi.unpublishArticle(id))),
+    mutationFn: async (articleIds: number[]) => {
+      const responses = await Promise.all(
+        articleIds.map((id) => wikiApi.unpublishArticle(id)),
+      );
+      const errors = responses.filter((r: any) => r.error);
+      if (errors.length > 0) {
+        const firstError = errors[0].error;
+        const message =
+          typeof firstError === "string"
+            ? firstError
+            : (firstError?.value ??
+              (firstError as any)?.message ??
+              "Erro ao despublicar alguns artigos.");
+        throw new Error(String(message));
+      }
+      return responses;
+    },
     onSuccess: invalidateArticles,
   });
 
   const deleteMultiple = useMutation({
-    mutationFn: (articleIds: number[]) =>
-      Promise.all(articleIds.map((id) => wikiApi.deleteArticle(id))),
+    mutationFn: async (articleIds: number[]) => {
+      const responses = await Promise.all(
+        articleIds.map((id) => wikiApi.deleteArticle(id)),
+      );
+      const errors = responses.filter((r: any) => r.error);
+      if (errors.length > 0) {
+        const firstError = errors[0].error;
+        const message =
+          typeof firstError === "string"
+            ? firstError
+            : (firstError?.value ??
+              (firstError as any)?.message ??
+              "Erro ao excluir alguns artigos.");
+        throw new Error(String(message));
+      }
+      return responses;
+    },
     onSuccess: invalidateArticles,
   });
 
