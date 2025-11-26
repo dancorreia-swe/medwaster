@@ -26,6 +26,11 @@ import {
   X,
   Lock,
   LockOpen,
+  CheckCircle, // For multiple_choice questions
+  Circle,      // For true_false questions
+  Target,      // For fill_in_the_blank questions
+  XCircle,     // For matching questions
+  FileQuestion, // Default question icon
 } from "lucide-react";
 import { useState } from "react";
 
@@ -50,6 +55,21 @@ interface TrailContentItemProps {
   isDragOverlay?: boolean;
 }
 
+const getQuestionTypeIcon = (type: string) => {
+  switch (type) {
+    case "multiple_choice":
+      return <CheckCircle className="h-4 w-4" />;
+    case "true_false":
+      return <Circle className="h-4 w-4" />;
+    case "fill_in_the_blank":
+      return <Target className="h-4 w-4" />;
+    case "matching":
+      return <XCircle className="h-4 w-4" />;
+    default:
+      return <FileQuestion className="h-4 w-4" />;
+  }
+};
+
 function TrailContentItem({
   content,
   onRemove,
@@ -71,7 +91,7 @@ function TrailContentItem({
   const getContentDetails = () => {
     if (content.question) {
       return {
-        icon: <HelpCircle className="h-4 w-4" />,
+        icon: getQuestionTypeIcon(content.question.type),
         title: stripHtml(content.question.prompt),
         type: "Questão",
         difficulty: content.question.difficulty,
@@ -79,7 +99,7 @@ function TrailContentItem({
     }
     if (content.quiz) {
       return {
-        icon: <BookOpen className="h-4 w-4" />,
+        icon: <BookOpen className="h-4 w-4" />, // Assuming BookOpen is fine for quizzes
         title: stripHtml(content.quiz.title),
         type: "Quiz",
         difficulty: content.quiz.difficulty,
@@ -87,7 +107,7 @@ function TrailContentItem({
     }
     if (content.article) {
       return {
-        icon: <FileText className="h-4 w-4" />,
+        icon: <FileText className="h-4 w-4" />, // Assuming FileText is fine for articles
         title: stripHtml(content.article.title),
         type: "Artigo",
         difficulty: undefined,
