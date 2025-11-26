@@ -5,13 +5,26 @@ import { gamificationSeed } from "./gamification";
 import { achievementsSeed } from "./achievements";
 
 async function main() {
-  console.log("🌱 Starting database seeding...\n");
+  const isProduction = process.env.NODE_ENV === "production";
+  console.log(
+    `🌱 Starting database seeding (${isProduction ? "PRODUCTION" : "DEVELOPMENT"})...\n`,
+  );
 
+  // 1. System User & Configs (Core)
   await adminSeed();
-  // await questionsSeed();
-  await trailsSeed();
+
+  // 2. Gamification System (Core)
   await gamificationSeed();
   await achievementsSeed();
+
+  // 3. Sample Content (Dev only)
+  if (!isProduction) {
+    console.log("\n📦 Seeding sample content (Dev only)...");
+    await trailsSeed();
+    // await questionsSeed(); // Optional extra questions
+  } else {
+    console.log("\n⏩ Skipping sample content (Production mode)");
+  }
 
   console.log("\n🌿 Seeding completed successfully!");
   return process.exit(0);

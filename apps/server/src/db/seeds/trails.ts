@@ -24,8 +24,9 @@ export async function trailsSeed() {
     }
 
     // Get or create admin user
+    const adminEmail = process.env.ADMIN_EMAIL || "daniel@admin.com";
     let adminUser = await db.query.user.findFirst({
-      where: eq(user.email, "daniel@admin.com"),
+      where: eq(user.email, adminEmail),
     });
 
     if (!adminUser) {
