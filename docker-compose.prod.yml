@@ -131,6 +131,11 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:4000}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
 
+      # Admin Setup
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_NAME: ${ADMIN_NAME}
+
       # OAuth (optional)
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
@@ -201,6 +206,9 @@ services:
       LOCALAI_BASE_URL: ${LOCALAI_BASE_URL:-http://localai:8080/v1}
       LOCALAI_API_KEY: ${LOCALAI_API_KEY}
       AUDIT_CHECKSUM_SECRET: ${AUDIT_CHECKSUM_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_NAME: ${ADMIN_NAME}
     networks:
       - medwaster-network
     depends_on:

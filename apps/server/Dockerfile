@@ -57,6 +57,10 @@ RUN groupadd -g 1001 nodejs && \
     useradd -r -u 1001 -g nodejs nodejs && \
     chown -R nodejs:nodejs /app
 
+# Create uploads directory and set permissions
+RUN mkdir -p /app/apps/server/uploads && \
+    chown -R nodejs:nodejs /app/apps/server/uploads
+
 USER nodejs
 
 # Expose port
