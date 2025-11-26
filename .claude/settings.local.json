@@ -22,7 +22,10 @@
       "Bash(npx react-native:*)",
       "Bash(npx react-native log-ios)",
       "Bash(docker logs:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "WebFetch(domain:docs.expo.dev)",
+      "WebSearch",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }

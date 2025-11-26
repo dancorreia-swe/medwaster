@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Plus, BookOpen, HelpCircle, FileText, Check, Loader2, Tag as TagIcon, ChevronsUpDown, X } from "lucide-react";
+import { Search, Plus, BookOpen, HelpCircle, FileText, Check, Loader2, Tag as TagIcon, ChevronsUpDown, X, CheckCircle, Circle, Target, XCircle, FileQuestion } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { stripHtml, cn } from "@/lib/utils";
 
@@ -59,6 +59,7 @@ type ContentItem = {
   type: ContentType;
   difficulty?: string;
   description?: string;
+  questionType?: string; // Add questionType for specific icon rendering
 };
 
 export function ContentSelector({
@@ -157,6 +158,7 @@ export function ContentSelector({
         type: "question" as ContentType,
         difficulty: q.difficulty,
         description: q.explanation ? stripHtml(q.explanation) : undefined,
+        questionType: q.type, // Include question type
       }));
     }
 
@@ -248,10 +250,25 @@ export function ContentSelector({
     setIsOpen(false);
   };
 
-  const getIcon = (type: ContentType) => {
+  const getQuestionTypeIcon = (type: string) => {
     switch (type) {
+      case "multiple_choice":
+        return <CheckCircle className="h-4 w-4" />;
+      case "true_false":
+        return <Circle className="h-4 w-4" />;
+      case "fill_in_the_blank":
+        return <Target className="h-4 w-4" />;
+      case "matching":
+        return <XCircle className="h-4 w-4" />;
+      default:
+        return <FileQuestion className="h-4 w-4" />;
+    }
+  };
+
+  const getIcon = (itemType: ContentType, questionType?: string) => {
+    switch (itemType) {
       case "question":
-        return <HelpCircle className="h-4 w-4" />;
+        return questionType ? getQuestionTypeIcon(questionType) : <HelpCircle className="h-4 w-4" />;
       case "quiz":
         return <BookOpen className="h-4 w-4" />;
       case "article":
@@ -525,7 +542,7 @@ export function ContentSelector({
                               onCheckedChange={() => toggleSelection(item)}
                               onClick={(e) => e.stopPropagation()}
                             />
-                            {getIcon(item.type)}
+                            {getIcon(item.type, item.questionType)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium line-clamp-2 text-sm">
@@ -668,7 +685,7 @@ export function ContentSelector({
                               onCheckedChange={() => toggleSelection(item)}
                               onClick={(e) => e.stopPropagation()}
                             />
-                            {getIcon(item.type)}
+                            {getIcon(item.type, item.questionType)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium line-clamp-2 text-sm">
@@ -889,7 +906,7 @@ export function ContentSelector({
                               onCheckedChange={() => toggleSelection(item)}
                               onClick={(e) => e.stopPropagation()}
                             />
-                            {getIcon(item.type)}
+                            {getIcon(item.type, item.questionType)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium line-clamp-2 text-sm">
