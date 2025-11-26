@@ -113,11 +113,17 @@ export const useUpdateArticle = () => {
         response.error
       ) {
         const errorDetail = (response as any).error;
+        const errorValue = (errorDetail as any)?.value;
         const message =
           typeof errorDetail === "string"
             ? errorDetail
-            : (errorDetail?.message ?? "Erro ao atualizar artigo.");
-        throw new Error(message);
+            : typeof errorValue === "string"
+              ? errorValue
+              : (errorValue?.error?.message ??
+                 errorValue?.message ??
+                 (errorDetail as any)?.message ??
+                 "Erro ao atualizar artigo.");
+        throw new Error(String(message));
       }
       return response;
     },
@@ -166,12 +172,16 @@ export const useDeleteArticle = () => {
       const response = await wikiApi.deleteArticle(id);
       if (response.error) {
         const errorDetail = response.error;
+        const errorValue = (errorDetail as any)?.value;
         const message =
           typeof errorDetail === "string"
             ? errorDetail
-            : (errorDetail?.value ??
-              (errorDetail as any)?.message ??
-              "Erro ao excluir artigo.");
+            : typeof errorValue === "string"
+              ? errorValue
+              : (errorValue?.error?.message ??
+                 errorValue?.message ??
+                 (errorDetail as any)?.message ??
+                 "Erro ao excluir artigo.");
         throw new Error(String(message));
       }
       return response;
@@ -196,12 +206,16 @@ export const useArchiveArticle = () => {
       const response = await wikiApi.archiveArticle(id);
       if (response.error) {
         const errorDetail = response.error;
+        const errorValue = (errorDetail as any)?.value;
         const message =
           typeof errorDetail === "string"
             ? errorDetail
-            : (errorDetail?.value ??
-              (errorDetail as any)?.message ??
-              "Erro ao arquivar artigo.");
+            : typeof errorValue === "string"
+              ? errorValue
+              : (errorValue?.error?.message ??
+                 errorValue?.message ??
+                 (errorDetail as any)?.message ??
+                 "Erro ao arquivar artigo.");
         throw new Error(String(message));
       }
       return response;
@@ -221,12 +235,16 @@ export const usePublishArticle = () => {
       const response = await wikiApi.publishArticle(id);
       if (response.error) {
         const errorDetail = response.error;
+        const errorValue = (errorDetail as any)?.value;
         const message =
           typeof errorDetail === "string"
             ? errorDetail
-            : (errorDetail?.value ??
-              (errorDetail as any)?.message ??
-              "Erro ao publicar artigo.");
+            : typeof errorValue === "string"
+              ? errorValue
+              : (errorValue?.error?.message ??
+                 errorValue?.message ??
+                 (errorDetail as any)?.message ??
+                 "Erro ao publicar artigo.");
         throw new Error(String(message));
       }
       return response;
@@ -246,12 +264,16 @@ export const useUnpublishArticle = () => {
       const response = await wikiApi.unpublishArticle(id);
       if (response.error) {
         const errorDetail = response.error;
+        const errorValue = (errorDetail as any)?.value;
         const message =
           typeof errorDetail === "string"
             ? errorDetail
-            : (errorDetail?.value ??
-              (errorDetail as any)?.message ??
-              "Erro ao despublicar artigo.");
+            : typeof errorValue === "string"
+              ? errorValue
+              : (errorValue?.error?.message ??
+                 errorValue?.message ??
+                 (errorDetail as any)?.message ??
+                 "Erro ao despublicar artigo.");
         throw new Error(String(message));
       }
       return response;
@@ -312,13 +334,17 @@ export const useBulkArticleOperations = () => {
       );
       const errors = responses.filter((r: any) => r.error);
       if (errors.length > 0) {
-        const firstError = errors[0].error;
+        const errorDetail = errors[0].error;
+        const errorValue = (errorDetail as any)?.value;
         const message =
-          typeof firstError === "string"
-            ? firstError
-            : (firstError?.value ??
-              (firstError as any)?.message ??
-              "Erro ao publicar alguns artigos.");
+          typeof errorDetail === "string"
+            ? errorDetail
+            : typeof errorValue === "string"
+              ? errorValue
+              : (errorValue?.error?.message ??
+                 errorValue?.message ??
+                 (errorDetail as any)?.message ??
+                 "Erro ao publicar alguns artigos.");
         throw new Error(String(message));
       }
       return responses;
@@ -333,13 +359,17 @@ export const useBulkArticleOperations = () => {
       );
       const errors = responses.filter((r: any) => r.error);
       if (errors.length > 0) {
-        const firstError = errors[0].error;
+        const errorDetail = errors[0].error;
+        const errorValue = (errorDetail as any)?.value;
         const message =
-          typeof firstError === "string"
-            ? firstError
-            : (firstError?.value ??
-              (firstError as any)?.message ??
-              "Erro ao despublicar alguns artigos.");
+          typeof errorDetail === "string"
+            ? errorDetail
+            : typeof errorValue === "string"
+              ? errorValue
+              : (errorValue?.error?.message ??
+                 errorValue?.message ??
+                 (errorDetail as any)?.message ??
+                 "Erro ao despublicar alguns artigos.");
         throw new Error(String(message));
       }
       return responses;
@@ -354,13 +384,17 @@ export const useBulkArticleOperations = () => {
       );
       const errors = responses.filter((r: any) => r.error);
       if (errors.length > 0) {
-        const firstError = errors[0].error;
+        const errorDetail = errors[0].error;
+        const errorValue = (errorDetail as any)?.value;
         const message =
-          typeof firstError === "string"
-            ? firstError
-            : (firstError?.value ??
-              (firstError as any)?.message ??
-              "Erro ao excluir alguns artigos.");
+          typeof errorDetail === "string"
+            ? errorDetail
+            : typeof errorValue === "string"
+              ? errorValue
+              : (errorValue?.error?.message ??
+                 errorValue?.message ??
+                 (errorDetail as any)?.message ??
+                 "Erro ao excluir alguns artigos.");
         throw new Error(String(message));
       }
       return responses;
