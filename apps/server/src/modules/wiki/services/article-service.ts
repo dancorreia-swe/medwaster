@@ -23,6 +23,7 @@ import {
   ValidationError,
   ConflictError,
   BusinessLogicError,
+  NeedCategoryError,
 } from "@/lib/errors";
 import type {
   CreateArticleData,
@@ -40,6 +41,7 @@ import { ragQueue } from "@/lib/queue";
 import { NoCategoryError } from "../exceptions/no-category-error";
 import { ConfigService } from "@/modules/config/config.service";
 import { CertificateService } from "@/modules/certificates/certificates.service";
+import { ProgressService } from "@/modules/trails/progress.service";
 
 export class ArticleService {
   private static editor: ServerBlockNoteEditor = ServerBlockNoteEditor.create();
@@ -427,9 +429,7 @@ export class ArticleService {
         const categoryId = data.categoryId ?? existingArticle[0].categoryId;
 
         if (!categoryId) {
-          throw new BusinessLogicError(
-            "Published articles must have a category",
-          );
+          throw new NeedCategoryError();
         }
 
         // Validate based on source type
@@ -972,7 +972,7 @@ export class ArticleService {
     }
 
     if (!article[0].categoryId) {
-      throw new BusinessLogicError("Published articles must have a category");
+      throw new NeedCategoryError();
     }
 
     if (
@@ -1406,6 +1406,10 @@ export class ArticleService {
     articleId: number,
     data: { readPercentage: number; timeSpentSeconds: number },
   ) {
+    const clampedPercentage = Math.min(100, Math.max(0, data.readPercentage));
+    const isComplete = clampedPercentage >= 100;
+    const now = new Date();
+
     const [existingRead] = await db
       .select()
       .from(userArticleReads)
@@ -1423,7 +1427,9 @@ export class ArticleService {
         .values({
           userId,
           articleId,
-          readPercentage: data.readPercentage,
+          readPercentage: clampedPercentage,
+          isRead: isComplete,
+          markedReadAt: isComplete ? now : null,
           timeSpentSeconds: data.timeSpentSeconds,
         })
         .returning();
@@ -1431,13 +1437,19 @@ export class ArticleService {
       return progress;
     }
 
+    const shouldMarkRead = isComplete || existingRead.isRead;
+    const markedAt =
+      existingRead.markedReadAt || (isComplete ? now : null) || undefined;
+
     const [progress] = await db
       .update(userArticleReads)
       .set({
-        readPercentage: data.readPercentage,
+        readPercentage: clampedPercentage,
+        isRead: shouldMarkRead,
+        markedReadAt: markedAt ?? null,
         timeSpentSeconds: sql`${userArticleReads.timeSpentSeconds} + ${data.timeSpentSeconds}`,
-        lastReadAt: new Date(),
-        updatedAt: new Date(),
+        lastReadAt: now,
+        updatedAt: now,
       })
       .where(
         and(
@@ -1446,6 +1458,14 @@ export class ArticleService {
         ),
       )
       .returning();
+
+    if (progress?.isRead) {
+      try {
+        await ProgressService.syncArticleCompletionForUser(userId, articleId);
+      } catch (error) {
+        console.error("Failed to sync article read to trails:", error);
+      }
+    }
 
     return progress;
   }
@@ -1476,6 +1496,13 @@ export class ArticleService {
           markedReadAt: new Date(),
         })
         .returning();
+
+      // Sync this read with any trails that include the article
+      try {
+        await ProgressService.syncArticleCompletionForUser(userId, articleId);
+      } catch (error) {
+        console.error("Failed to sync article read to trails:", error);
+      }
 
       // Record activity in gamification system
       try {
@@ -1510,6 +1537,13 @@ export class ArticleService {
         ),
       )
       .returning();
+
+    // Sync this read with any trails that include the article
+    try {
+      await ProgressService.syncArticleCompletionForUser(userId, articleId);
+    } catch (error) {
+      console.error("Failed to sync article read to trails:", error);
+    }
 
     // Record activity in gamification system (only if not already read)
     if (!existingRead.isRead) {

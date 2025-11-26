@@ -136,6 +136,13 @@ export class BusinessLogicError extends BadRequestError {
   }
 }
 
+export class NeedCategoryError extends BusinessLogicError {
+  constructor(message: string = "Published articles must have a category") {
+    super(message, "NEED_CATEGORY");
+    this.name = "NeedCategoryError";
+  }
+}
+
 export class DatabaseError extends InternalServerError {
   constructor(message: string = "Database operation failed") {
     super(message);
