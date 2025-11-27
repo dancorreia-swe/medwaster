@@ -222,7 +222,7 @@ services:
       AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-text-embedding-3-small}
       AI_TRANSCRIPTION_MODEL: ${AI_TRANSCRIPTION_MODEL:-whisper-1}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434/v1}
       OLLAMA_API_KEY: ${OLLAMA_API_KEY}
       LOCALAI_BASE_URL: ${LOCALAI_BASE_URL:-http://localai:8080/v1}
@@ -278,7 +278,7 @@ services:
       AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-text-embedding-3-small}
       AI_TRANSCRIPTION_MODEL: ${AI_TRANSCRIPTION_MODEL:-whisper-1}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434/v1}
       OLLAMA_API_KEY: ${OLLAMA_API_KEY}
       LOCALAI_BASE_URL: ${LOCALAI_BASE_URL:-http://localai:8080/v1}
