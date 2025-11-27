@@ -56,7 +56,7 @@ ai.use(betterAuthMacro).guard(
             },
             model: getChatModel(),
             stopWhen: stepCountIs(5),
-            messages: coreMessages, // Use manual mapping
+            messages: coreMessages,
             system: `You are a helpful AI assistant with access to a knowledge base through tool calls.
 
 # Core Instructions
