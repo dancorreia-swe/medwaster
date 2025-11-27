@@ -1,600 +1,69 @@
-# MedWaster - Guia de Instalação
+# medwaster
 
-Guia completo para hospedar o MedWaster usando Docker Compose.
+> 🇺🇸 **[Read in English](./README.md)**
 
-## Índice
+Este projeto foi criado com [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), uma stack TypeScript moderna que combina React, TanStack Router, Elysia, e mais.
 
-- [Pré-requisitos](#pré-requisitos)
-- [Início Rápido](#início-rápido)
-- [Modos de Implantação](#modos-de-implantação)
-- [Configuração](#configuração)
-- [Migrações do Banco de Dados](#migrações-do-banco-de-dados)
-- [Aplicativo Mobile](#aplicativo-mobile)
-- [Gerenciamento](#gerenciamento)
-- [Backup e Restauração](#backup-e-restauração)
-- [Solução de Problemas](#solução-de-problemas)
+## Funcionalidades
 
-## Pré-requisitos
+- **TypeScript** - Para segurança de tipos e melhor experiência do desenvolvedor
+- **TanStack Router** - Roteamento baseado em arquivos com segurança de tipos completa
+- **React Native** - Construa apps móveis usando React
+- **Expo** - Ferramentas para desenvolvimento React Native
+- **TailwindCSS** - CSS utilitário para desenvolvimento rápido de UI
+- **shadcn/ui** - Componentes de UI reutilizáveis
+- **Elysia** - Framework de alta performance e tipo seguro
+- **Bun** - Ambiente de execução (Runtime)
+- **Drizzle** - ORM TypeScript-first
+- **PostgreSQL** - Motor de Banco de Dados
+- **Autenticação** - Email e senha com Better Auth
+- **Turborepo** - Sistema de build otimizado para monorepos
 
-Antes de começar, você precisa ter instalado:
+## Instalação e Implantação
 
-- **Docker** (versão 20.10 ou superior)
-- **Docker Compose** (versão 2.0 ou superior)
-- **Domínio** (opcional, apenas para modo com proxy reverso e SSL)
-- **Servidor SMTP** (para funcionalidades de email)
-- **Chave API OpenAI** ou IA auto-hospedada (Ollama + Whisper, ou LocalAI em hardware mais robusto)
+Para instruções detalhadas de instalação, incluindo configuração de ambiente, guias de auto-hospedagem e solução de problemas, consulte o **[Guia de Instalação](./docs/INSTALLATION.pt-BR.md)**.
 
-## Início Rápido
+### Início Rápido
 
-### Opção 1: Script Automatizado (Recomendado)
+1.  **Instalar Dependências:**
+    ```bash
+    bun install
+    ```
 
-Baixe e execute o script de configuração automática:
+2.  **Configurar Ambiente:**
+    Copie `.env.example` para `.env` e configure seus segredos (Banco de Dados, Auth, OpenAI, etc.).
+    *Veja [Configuração de Ambiente](./docs/INSTALLATION.pt-BR.md#configuração-de-ambiente-env) para detalhes.*
 
-```bash
-# Instalar diretamente via curl
-curl -fsSL https://raw.githubusercontent.com/dancorreia-swe/medwaster/main/install.sh | bash
+3.  **Iniciar Serviços (Docker):**
+    ```bash
+    docker compose up -d
+    ```
 
-# Ou se você já clonou o repositório
-./install.sh
+4.  **Rodar Servidor de Desenvolvimento:**
+    ```bash
+    bun dev
+    ```
+
+- **Web:** [http://localhost:3000](http://localhost:3000)
+- **API:** [http://localhost:4000](http://localhost:4000)
+
+## Estrutura do Projeto
+
+```
+medwaster/
+├── apps/
+│   ├── web/         # Frontend application (React + TanStack Router)
+│   ├── native/      # Mobile application (React Native, Expo)
+│   └── server/      # Backend API (Elysia)
 ```
 
-Este script baixará o `docker-compose.yml` mais recente e preparará o ambiente.
-
-### Opção 2: Instalação Manual
-
-#### 1. Clone o Repositório
-
-```bash
-git clone <url-do-repositorio>
-cd medwaster
-```
-
-#### 2. Configure as Variáveis de Ambiente
-
-```bash
-cp .env.example .env
-```
-
-#### 3. Edite o Arquivo `.env`
-
-Você **deve** alterar os seguintes valores:
-
-```bash
-# Gerar secrets seguros (execute no terminal)
-openssl rand -base64 32  # Use para BETTER_AUTH_SECRET
-openssl rand -base64 32  # Use para AUDIT_CHECKSUM_SECRET
-
-# Editar no arquivo .env
-BETTER_AUTH_SECRET=cole_o_secret_gerado_aqui
-AUDIT_CHECKSUM_SECRET=cole_o_secret_gerado_aqui
-OPENAI_API_KEY=sua_chave_openai_aqui
-OPENAI_BASE_URL=
-OLLAMA_BASE_URL=http://ollama:11434/v1
-OLLAMA_API_KEY=
-WHISPER_BASE_URL=http://whisper:8081/v1
-WHISPER_API_KEY=
-
-# Credenciais do usuário admin (necessário para o seed automático)
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=sua_senha_segura
-ADMIN_NAME=Administrador
-
-# Armazenamento MinIO/S3 (usa os defaults do MinIO do Docker)
-S3_ENDPOINT=http://minio:9000
-S3_ACCESS_KEY=${MINIO_ROOT_USER}
-S3_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
-S3_BUCKET_QUESTIONS=questions
-S3_BUCKET_WIKI=wiki
-S3_BUCKET_AVATARS=avatars
-S3_BUCKET_ACHIEVEMENTS=achievements
-S3_BUCKET_CERTIFICATES=certificates
-
-# IA auto-hospedada (opcional)
-# Leve (recomendado): Ollama + Whisper
-#   defina AI_PROVIDER=ollama, AI_CHAT_MODEL=llama3, AI_EMBEDDING_MODEL=nomic-embed-text, AI_TRANSCRIPTION_MODEL=whisper:whisper-1
-#   (ou prefixe: AI_CHAT_MODEL=ollama:llama3 etc.)
-# Pesada (LocalAI): AI_PROVIDER=localai, LOCALAI_BASE_URL=http://localai:8080/v1
-LOCALAI_BASE_URL=http://localai:8080/v1
-LOCALAI_API_KEY=              # preencha somente se configurar chave no LocalAI
-```
-
-**Opcional para produção** (recomendado):
-```bash
-POSTGRES_PASSWORD=mude_senha_padrao
-MINIO_ROOT_PASSWORD=mude_senha_padrao
-```
-
-### 4. Inicie os Serviços
-
-```bash
-docker compose up -d
-
-# Opcional: IA local leve (Ollama + Whisper)
-docker compose --profile ollama --profile whisper up -d ollama whisper
-
-# Opcional: IA pesada (LocalAI)
-docker compose --profile localai up -d localai
-```
-
-### 5. Acesse a Aplicação
-
-As migrações do banco de dados e o seed são executados automaticamente na primeira inicialização.
-
-- **Aplicação Web**: http://localhost:3000
-- **API**: http://localhost:4000
-- **Console MinIO**: http://localhost:9001 (usuário: minio, senha: minio123)
-
-🎉 **Pronto!** Sua instalação do MedWaster está funcionando!
-
----
-
-## Modos de Implantação
-
-O MedWaster pode ser implantado em dois modos diferentes:
-
-### Modo 1: Acesso Direto por Porta (Simples)
-
-**Melhor para:** Desenvolvimento local, testes ou auto-hospedagem simples
-
-```bash
-# Iniciar todos os serviços
-docker compose up -d
-
-# Verificar status
-docker compose ps
-
-# Ver logs
-docker compose logs -f
-```
-
-**Acessar:**
-- Aplicação Web: http://localhost:3000
-- API: http://localhost:4000
-- Console MinIO: http://localhost:9001
-- PostgreSQL: localhost:5432
-
-**Configuração no `.env`:**
-```env
-DOMAIN=localhost
-BETTER_AUTH_URL=http://localhost:4000
-CORS_ORIGIN=http://localhost:3000
-VITE_SERVER_URL=http://localhost:4000
-```
-
-### Modo 2: Proxy Reverso com Caddy (Produção)
-
-**Melhor para:** Implantações em produção com HTTPS automático
-
-```bash
-# Iniciar todos os serviços incluindo Caddy
-docker compose --profile proxy up -d
-```
-
-**Acessar:**
-- Tudo: https://seudominio.com
-- API: https://seudominio.com/api
-
-**Configuração no `.env`:**
-```env
-DOMAIN=seudominio.com
-LETSENCRYPT_EMAIL=admin@seudominio.com
-BETTER_AUTH_URL=https://seudominio.com
-CORS_ORIGIN=https://seudominio.com
-VITE_SERVER_URL=https://seudominio.com/api
-```
-
-**Nota:** Certifique-se de que o registro DNS A do seu domínio aponta para o IP do seu servidor antes de iniciar. O Caddy obterá e renovará automaticamente os certificados SSL do Let's Encrypt.
-
----
-
-## Configuração
-
-### Serviços Incluídos
-
-A configuração do Docker Compose inclui:
-
-**Infraestrutura:**
-- PostgreSQL 18 com extensão pgvector (banco de dados vetorial para IA)
-- Redis (cache e fila de jobs)
-- MinIO (armazenamento de objetos compatível com S3)
-- Ollama (chat + embeddings locais; habilite com `--profile ollama`)
-- Whisper (STT local; habilite com `--profile whisper`)
-- LocalAI (alternativa pesada; habilite com `--profile localai`)
-
-**Aplicações:**
-- API do Servidor (backend Elysia na porta 4000)
-- Worker do Servidor (processamento de jobs em segundo plano)
-- Frontend Web (SPA React na porta 3000)
-
-**Opcional (com `--profile proxy`):**
-- Caddy (proxy reverso com HTTPS automático)
-
-### Usando Ollama + Whisper (IA auto-hospedada leve)
-
-1) Suba os serviços de IA locais:
-```bash
-docker compose --profile ollama --profile whisper up -d ollama whisper
-```
-2) Baixe os modelos no Ollama:
-```bash
-docker exec -it medwaster-ollama ollama pull llama3
-docker exec -it medwaster-ollama ollama pull nomic-embed-text
-```
-3) No `.env`, aponte para os endpoints locais:
-```
-OPENAI_BASE_URL=http://ollama:11434/v1
-WHISPER_BASE_URL=http://whisper:8081/v1
-AI_CHAT_MODEL=ollama:llama3
-AI_EMBEDDING_MODEL=ollama:nomic-embed-text
-AI_TRANSCRIPTION_MODEL=whisper:whisper-1
-```
-4) Deixe `AI_PROVIDER=openai` (a SDK usa rotas compatíveis) e `OPENAI_API_KEY` vazio quando for 100% local.
-
-### Usando LocalAI (IA auto-hospedada)
-
-1) Baixe ou copie modelos GGUF para `./localai/models` (montado no container LocalAI).  
-2) No `.env`, defina:  
-   - `AI_PROVIDER=localai`  
-   - `LOCALAI_BASE_URL=http://localai:8080/v1` (padrão do docker-compose)  
-   - `LOCALAI_API_KEY=` (apenas se você configurar chave no LocalAI)  
-3) Suba o LocalAI: `docker compose --profile localai up -d localai`  
-4) Deixe `OPENAI_API_KEY` vazio ao usar LocalAI para evitar chamadas externas.
-
-Guia de modelos do LocalAI (URLs e opções): https://localai.io/models/
-
-### Variáveis de Ambiente Principais
-
-#### Obrigatórias
-
-```bash
-# Autenticação
-BETTER_AUTH_SECRET=        # Secret para tokens JWT
-BETTER_AUTH_URL=           # URL base do serviço de autenticação
-CORS_ORIGIN=              # Origens CORS permitidas
-
-# Banco de Dados
-DATABASE_URL=              # String de conexão PostgreSQL
-
-# IA
-OPENAI_API_KEY=           # Chave API OpenAI (se usar OpenAI)
-
-# Segurança
-AUDIT_CHECKSUM_SECRET=    # Secret para checksums de logs de auditoria
-```
-
-#### Opcionais
-
-```bash
-# OAuth
-GOOGLE_CLIENT_ID=         # ID do cliente Google OAuth
-GOOGLE_CLIENT_SECRET=     # Secret do cliente Google OAuth
-
-# Email (SMTP)
-SMTP_HOST=                # Servidor SMTP
-SMTP_PORT=587             # Porta SMTP
-SMTP_USER=                # Usuário SMTP
-SMTP_PASS=                # Senha SMTP
-SMTP_FROM=                # Endereço de email remetente
-
-# LocalAI (alternativa ao OpenAI)
-LOCALAI_BASE_URL=         # URL base da instância LocalAI
-AI_PROVIDER=localai       # Alterar para usar LocalAI
-```
-
----
-
-### Migrações do Banco de Dados
-
-As migrações e o seed do banco de dados são executados automaticamente na primeira inicialização através do serviço `migrator`. Isso configura o esquema do banco e cria o usuário admin inicial.
-
-**Importante:** Certifique-se de definir as seguintes variáveis de ambiente no `.env` antes de iniciar:
-- `ADMIN_EMAIL` - Email da conta admin
-- `ADMIN_PASSWORD` - Senha da conta admin
-- `ADMIN_NAME` - Nome da conta admin
-
-O serviço migrator executará automaticamente:
-1. Todas as migrações pendentes do banco de dados
-2. Seed do banco com dados iniciais
-3. Criação do usuário admin com suas credenciais especificadas
-
-Se precisar executar migrações ou seed manualmente:
-```bash
-# Executar migrações manualmente
-docker compose exec server bun run db:migrate
-
-# Popular banco manualmente
-docker compose exec server bun run db:seed
-```
-
----
-
-## Aplicativo Mobile
-
-O aplicativo mobile (`apps/native`) é implantado separadamente usando o Expo:
-
-```bash
-cd apps/native
-
-# Configurar URL do backend
-echo "EXPO_PUBLIC_SERVER_URL=https://seudominio.com/api" > .env
-
-# Build e submissão para lojas de aplicativos
-npx eas build --platform all
-npx eas submit --platform all
-```
-
-Para mais detalhes, consulte a [documentação do Expo EAS](https://docs.expo.dev/eas/).
-
----
-
-## Gerenciamento
-
-### Atualizar sua Implantação
-
-```bash
-# Baixar últimas alterações
-git pull
-
-# Reconstruir e reiniciar containers
-docker compose build
-docker compose up -d
-
-# Ou para modo proxy
-docker compose --profile proxy build
-docker compose --profile proxy up -d
-```
-
-### Monitoramento e Logs
-
-```bash
-# Ver todos os logs
-docker compose logs -f
-
-# Ver logs de serviço específico
-docker compose logs -f server
-docker compose logs -f web
-docker compose logs -f server-worker
-
-# Verificar status de saúde
-docker compose ps
-```
-
-### Parar os Serviços
-
-```bash
-# Parar todos os serviços
-docker compose down
-
-# Parar e remover volumes (⚠️ apaga dados)
-docker compose down -v
-```
-
-### Reiniciar um Serviço Específico
-
-```bash
-# Reiniciar apenas o servidor
-docker compose restart server
-
-# Reconstruir e reiniciar
-docker compose up -d --build server
-```
-
----
-
-## Backup e Restauração
-
-### Backup
-
-**Banco de Dados:**
-```bash
-# Criar backup do PostgreSQL
-docker compose exec postgres pg_dump -U postgres medwaster > backup_$(date +%Y%m%d).sql
-```
-
-**Dados do MinIO (armazenamento de objetos):**
-```bash
-# Backup dos dados do MinIO
-docker compose exec minio mc mirror /data ./backup_minio_$(date +%Y%m%d)
-```
-
-**Arquivos de Configuração:**
-```bash
-# Backup das variáveis de ambiente
-cp .env .env.backup_$(date +%Y%m%d)
-```
-
-### Restauração
-
-**Banco de Dados:**
-```bash
-# Restaurar banco de dados PostgreSQL
-cat backup_20250124.sql | docker compose exec -T postgres psql -U postgres medwaster
-```
-
-**Dados do MinIO:**
-```bash
-# Restaurar dados do MinIO
-docker compose exec minio mc mirror ./backup_minio_20250124 /data
-```
-
----
-
-## Solução de Problemas
-
-### Serviços não inicializam
-
-**Verificar logs:**
-```bash
-docker compose logs
-```
-
-**Verificar variáveis de ambiente:**
-```bash
-# Verificar se .env existe e está configurado
-cat .env
-```
-
-**Verificar se as portas estão em uso:**
-```bash
-netstat -tuln | grep -E '(3000|4000|5432|6379|9000)'
-```
-
-**Solução:**
-```bash
-# Reiniciar tudo do zero
-docker compose down -v
-docker compose up -d
-```
-
-### Problemas de conexão com o banco de dados
-
-**Verificar se PostgreSQL está pronto:**
-```bash
-docker compose ps
-# PostgreSQL deve mostrar "(healthy)"
-```
-
-**Verificar DATABASE_URL no `.env`:**
-```bash
-grep DATABASE_URL .env
-# Deve ser: postgresql://postgres:password@postgres:5432/medwaster
-```
-
-**Aguardar o PostgreSQL ficar pronto:**
-```bash
-# Pode levar 10-30 segundos na primeira inicialização
-docker compose logs postgres
-```
-
-### Recursos de IA não funcionam
-
-**Verificar chave API:**
-```bash
-grep OPENAI_API_KEY .env
-# Certifique-se de que está configurada corretamente
-```
-
-**Ou configurar LocalAI:**
-```bash
-# No .env
-AI_PROVIDER=localai
-LOCALAI_BASE_URL=http://seu-servidor-localai:8080/v1
-```
-
-### Email não está enviando
-
-**Verificar credenciais SMTP no `.env`:**
-```bash
-grep SMTP_ .env
-```
-
-**Verificar logs do servidor:**
-```bash
-docker compose logs server | grep -i mail
-```
-
-### Container mostra "unhealthy"
-
-**Verificar se o serviço está realmente funcionando:**
-```bash
-# Testar endpoint de saúde do servidor
-curl http://localhost:4000/health
-
-# Testar aplicação web
-curl http://localhost:3000/health
-```
-
-**Se responder corretamente, o "unhealthy" é apenas cosmético** - o serviço está funcionando normalmente.
-
-### Limpar tudo e recomeçar
-
-```bash
-# ⚠️ Isso apagará TODOS os dados
-docker compose down -v
-docker system prune -f
-rm -rf node_modules
-
-# Recomeçar do zero
-cp .env.example .env
-# Editar .env com suas configurações
-docker compose up -d
-docker compose exec server bun run db:migrate
-```
-
----
-
-## Recursos Adicionais
-
-### Verificar Versões
-
-```bash
-# Versão do Docker
-docker --version
-
-# Versão do Docker Compose
-docker compose version
-
-# Versão do Bun (dentro do container)
-docker compose exec server bun --version
-```
-
-### Acessar Shell do Container
-
-```bash
-# Shell do servidor
-docker compose exec server sh
-
-# Shell do banco de dados
-docker compose exec postgres psql -U postgres medwaster
-
-# Shell do Redis
-docker compose exec redis redis-cli
-```
-
-### Monitorar Uso de Recursos
-
-```bash
-# Uso de CPU/memória de todos os containers
-docker stats
-
-# Espaço em disco usado pelos volumes
-docker system df -v
-```
-
----
-
-## Suporte
-
-Para mais ajuda:
-
-1. Verifique os logs: `docker compose logs -f`
-2. Consulte a [documentação completa em inglês](./README.md)
-3. Abra uma issue no GitHub
-
----
-
-## Notas de Segurança
-
-**Para uso em produção:**
-
-1. ✅ Alterar todos os passwords padrão
-2. ✅ Usar secrets fortes (gerados com `openssl rand -base64 32`)
-3. ✅ Configurar firewall para bloquear portas não necessárias
-4. ✅ Usar HTTPS (modo proxy com Caddy)
-5. ✅ Manter backups regulares
-6. ✅ Atualizar regularmente (`git pull && docker compose up -d --build`)
-
-**Portas expostas por padrão:**
-- 3000 (Web)
-- 4000 (API)
-- 5432 (PostgreSQL)
-- 6379 (Redis)
-- 9000-9001 (MinIO)
-
-**Recomendação:** Em produção, considere expor apenas as portas 80/443 (usando modo proxy) e manter as outras portas acessíveis apenas internamente.
-
----
-
-## Licença
-
-Este projeto está licenciado sob os termos especificados no arquivo LICENSE.
+## Scripts Disponíveis
+
+- `bun dev`: Inicia todas as aplicações em modo de desenvolvimento
+- `bun build`: Compila todas as aplicações
+- `bun dev:web`: Inicia apenas a aplicação web
+- `bun dev:server`: Inicia apenas o servidor
+- `bun check-types`: Checa tipos TypeScript em todos os apps
+- `bun dev:native`: Inicia o servidor de desenvolvimento React Native/Expo
+- `bun db:push`: Envia mudanças de esquema para o banco de dados
+- `bun db:studio`: Abre a interface do estúdio do banco de dados

@@ -30,7 +30,7 @@ console.log(`[AI] URLs:`, {
 const registry = createProviderRegistry({
   openai: createOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    baseURL: process.env.OPENAI_BASE_URL,
+    baseURL: process.env.OPENAI_BASE_URL || undefined,
   }),
   localai: createOpenAICompatible({
     name: "localai",
