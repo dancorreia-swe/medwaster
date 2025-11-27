@@ -2,7 +2,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createProviderRegistry } from "ai";
 
-const PROVIDERS = ["openai", "localai"] as const;
+const PROVIDERS = ["openai", "localai", "whisper", "ollama"] as const;
 type ProviderName = (typeof PROVIDERS)[number];
 
 const requestedProvider = (process.env.AI_PROVIDER || "openai").toLowerCase();
@@ -21,11 +21,22 @@ if (!PROVIDERS.includes(requestedProvider as ProviderName)) {
 const registry = createProviderRegistry({
   openai: createOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_BASE_URL,
   }),
   localai: createOpenAICompatible({
     name: "localai",
     baseURL: process.env.LOCALAI_BASE_URL || "http://localhost:8080/v1",
     apiKey: process.env.LOCALAI_API_KEY,
+  }),
+  ollama: createOpenAICompatible({
+    name: "ollama",
+    baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
+    apiKey: process.env.OLLAMA_API_KEY,
+  }),
+  whisper: createOpenAI({
+    name: "whisper",
+    baseURL: process.env.WHISPER_BASE_URL || "http://localhost:8081/v1",
+    apiKey: process.env.WHISPER_API_KEY,
   }),
 });
 

@@ -63,10 +63,50 @@ services:
       retries: 3
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: medwaster-ollama
+    profiles: ["ollama"]
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - medwaster-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  whisper:
+    image: ghcr.io/dancorreia-swe/medwaster-whisper:latest
+    container_name: medwaster-whisper
+    profiles: ["whisper"]
+    environment:
+      WHISPER_MODEL: ${WHISPER_MODEL:-small.en}
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+      WHISPER_MODEL_DIR: /models
+    ports:
+      - "${WHISPER_PORT:-8081}:8081"
+    volumes:
+      - whisper_models:/models
+    networks:
+      - medwaster-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Optional heavy stack - keep for robust hosts
   localai:
     image: quay.io/go-skynet/local-ai:latest
     container_name: medwaster-localai
-    profiles: ["ai"]
+    profiles: ["localai"]
     environment:
       MODELS_PATH: /models
       THREADS: 4
@@ -89,7 +129,7 @@ services:
   model-loader:
     image: ghcr.io/dancorreia-swe/medwaster-model-loader:latest
     container_name: medwaster-model-loader
-    profiles: ["ai"]
+    profiles: ["localai"]
     volumes:
       - ./localai/models:/models
     networks:
@@ -182,8 +222,13 @@ services:
       AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-text-embedding-3-small}
       AI_TRANSCRIPTION_MODEL: ${AI_TRANSCRIPTION_MODEL:-whisper-1}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434/v1}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
       LOCALAI_BASE_URL: ${LOCALAI_BASE_URL:-http://localai:8080/v1}
       LOCALAI_API_KEY: ${LOCALAI_API_KEY}
+      WHISPER_BASE_URL: ${WHISPER_BASE_URL:-http://whisper:8081/v1}
+      WHISPER_API_KEY: ${WHISPER_API_KEY}
     ports:
       - "${SERVER_HOST_PORT:-4000}:4000"
     volumes:
@@ -233,8 +278,13 @@ services:
       AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-text-embedding-3-small}
       AI_TRANSCRIPTION_MODEL: ${AI_TRANSCRIPTION_MODEL:-whisper-1}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434/v1}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
       LOCALAI_BASE_URL: ${LOCALAI_BASE_URL:-http://localai:8080/v1}
       LOCALAI_API_KEY: ${LOCALAI_API_KEY}
+      WHISPER_BASE_URL: ${WHISPER_BASE_URL:-http://whisper:8081/v1}
+      WHISPER_API_KEY: ${WHISPER_API_KEY}
       AUDIT_CHECKSUM_SECRET: ${AUDIT_CHECKSUM_SECRET}
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
@@ -308,6 +358,10 @@ volumes:
   redis_data:
     driver: local
   minio_data:
+    driver: local
+  ollama_data:
+    driver: local
+  whisper_models:
     driver: local
   caddy_data:
     driver: local

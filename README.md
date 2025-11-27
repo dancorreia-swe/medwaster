@@ -79,7 +79,7 @@ MedWaster can be self-hosted using Docker Compose in two modes: **Direct Port Mo
 - Docker and Docker Compose installed
 - Domain name (for reverse proxy mode with SSL)
 - SMTP server credentials for email functionality
-- OpenAI API key or LocalAI instance for AI features
+ - OpenAI API key or self-hosted AI (Ollama + Whisper profile, or LocalAI on beefier hardware)
 
 ### Quick Start
 
@@ -115,11 +115,13 @@ Required values to configure:
 - `ADMIN_EMAIL` - Email for the admin account (created automatically on first start)
 - `ADMIN_PASSWORD` - Password for the admin account
 - `ADMIN_NAME` - Name for the admin account
-- `OPENAI_API_KEY` - Your OpenAI API key (or configure LocalAI)
+- `OPENAI_API_KEY` - Your OpenAI API key (or configure self-hosted endpoints)
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` - Your SMTP credentials
 - `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_ACCESS_KEY` - MinIO/S3 connection (defaults map to bundled MinIO)
 - Bucket names per service: `S3_BUCKET_QUESTIONS`, `S3_BUCKET_WIKI`, `S3_BUCKET_AVATARS`, `S3_BUCKET_ACHIEVEMENTS`, `S3_BUCKET_CERTIFICATES`
-- Optional self-hosted AI: `AI_PROVIDER=localai`, `LOCALAI_BASE_URL=http://localai:8080/v1`, `LOCALAI_API_KEY` (if set)
+- Optional self-hosted AI:
+  - Lightweight (recommended): `OLLAMA_BASE_URL=http://ollama:11434/v1`, `WHISPER_BASE_URL=http://whisper:8081/v1`, pick models like `AI_CHAT_MODEL=ollama:llama3`, `AI_EMBEDDING_MODEL=ollama:nomic-embed-text`, `AI_TRANSCRIPTION_MODEL=whisper:whisper-1`
+  - Heavy: `AI_PROVIDER=localai`, `LOCALAI_BASE_URL=http://localai:8080/v1`, `LOCALAI_API_KEY` (if set)
 
 3. **Choose your deployment mode**
 
@@ -131,8 +133,10 @@ Best for: Local development, testing, or simple self-hosting
 # Start all services
 docker compose up -d
 
-# Optional: start LocalAI (self-hosted OpenAI-compatible API)
-docker compose --profile ai up -d localai
+# Optional: start local AI
+# - Ollama for chat/embeddings
+# - Whisper (fast) for STT
+docker compose --profile ollama --profile whisper up -d ollama whisper
 
 # Check status
 docker compose ps
@@ -191,7 +195,9 @@ The Docker Compose setup includes:
 - PostgreSQL 18 with pgvector extension (vector database for AI)
 - Redis (caching and job queue)
 - MinIO (S3-compatible object storage)
-- LocalAI (optional, self-hosted OpenAI-compatible API on profile `ai`)
+- Ollama (local chat + embeddings; enable with `--profile ollama`)
+- Whisper (local STT; enable with `--profile whisper`)
+- LocalAI (optional heavy alternative; enable with `--profile localai`)
 
 **Applications:**
 - Server API (Elysia backend on port 4000)
@@ -200,38 +206,38 @@ The Docker Compose setup includes:
 
 **Optional (with `--profile proxy`):**
 - Caddy (reverse proxy with automatic HTTPS)
-- LocalAI (OpenAI-compatible API; enable with `--profile ai`)
 
-### Using LocalAI (self-hosted AI)
+### Using Ollama + Whisper (lightweight self-hosted AI)
+
+1) Start the local AI services:
+```bash
+docker compose --profile ollama --profile whisper up -d ollama whisper
+```
+2) Pull your models into Ollama:
+```bash
+docker exec -it medwaster-ollama ollama pull llama3
+docker exec -it medwaster-ollama ollama pull nomic-embed-text
+```
+3) In `.env` (or compose overrides), point to the local endpoints:
+```
+OPENAI_BASE_URL=
+OLLAMA_BASE_URL=http://ollama:11434/v1
+WHISPER_BASE_URL=http://whisper:8081/v1
+AI_CHAT_MODEL=ollama:llama3
+AI_EMBEDDING_MODEL=ollama:nomic-embed-text
+AI_TRANSCRIPTION_MODEL=whisper:whisper-1
+```
+4) Leave `OPENAI_API_KEY` empty when fully local. Prefixing models with `ollama:` also works if you prefer.
+
+### Using LocalAI (heavy alternative)
 
 1) Download or place GGUF models into `./localai/models` (mounted into the LocalAI container).  
 2) Set in `.env`:  
    - `AI_PROVIDER=localai`  
    - `LOCALAI_BASE_URL=http://localai:8080/v1` (default matches docker-compose)  
    - `LOCALAI_API_KEY=` (only if you configure one in LocalAI)  
-3) Start the LocalAI container: `docker compose --profile ai up -d localai`  
+3) Start the LocalAI container: `docker compose --profile localai up -d localai`  
 4) Keep `OPENAI_API_KEY` unset/empty when using LocalAI to avoid sending traffic to OpenAI.
-
-**Add models on the fly:** pick a GGUF URL from the LocalAI model docs and run:
-```bash
-docker compose --profile ai exec localai sh -c "cd /models && curl -L <model-url> -o <model-name>.gguf"
-```
-Restart LocalAI if you add new files after the container is already running.
-
-**Preloaded gallery models:** the `localai` service now preloads a chat model (`phi-2`), an embedding model (`bert-embeddings`), and Whisper (`whisper-1`) from the LocalAI gallery on startup. Override by setting `PRELOAD_MODELS` in your `.env` with a JSON array matching the LocalAI docs if you want different defaults.
-
-See the LocalAI model guide for URLs and options: https://localai.io/models/ .
-
-Example downloads (replace with the model you want):
-```bash
-# Small chat model (Phi-2 chat 2.7B Q4_0)
-docker compose --profile ai exec localai sh -c \
-  "cd /models && curl -L https://huggingface.co/TheBloke/phi-2-GGUF/resolve/main/phi-2.Q4_0.gguf -o phi-2.Q4_0.gguf"
-
-# Instruction-tuned LLaMA 2 7B (Q4_K_M)
-docker compose --profile ai exec localai sh -c \
-  "cd /models && curl -L https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf -o llama-2-7b-chat.Q4_K_M.gguf"
-```
 
 ### Database Migrations
 

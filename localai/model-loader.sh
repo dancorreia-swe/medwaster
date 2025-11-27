@@ -6,9 +6,37 @@ echo '📦 LocalAI Model Loader'
 echo '════════════════════════════════════════════════════════'
 echo ''
 
+MODE=${MODEL_MODE:-all}
 CHAT_MODEL_PATH=/models/mistral-7b-instruct-v0.2.Q4_K_M.gguf
 EMBED_MODEL_PATH=/models/nomic-embed-text-v1.5.Q4_K_M.gguf
 WHISPER_MODEL_PATH=/models/ggml-small.en.bin
+
+LOAD_CHAT=false
+LOAD_EMBED=false
+LOAD_WHISPER=false
+
+case "${MODE}" in
+  all|"")
+    LOAD_CHAT=true
+    LOAD_EMBED=true
+    LOAD_WHISPER=true
+    ;;
+  whisper|audio|speech)
+    LOAD_WHISPER=true
+    ;;
+  chat|llm)
+    LOAD_CHAT=true
+    ;;
+  embed|embeddings)
+    LOAD_EMBED=true
+    ;;
+  *)
+    echo "⚠️  Unknown MODEL_MODE \"${MODE}\". Defaulting to all models."
+    LOAD_CHAT=true
+    LOAD_EMBED=true
+    LOAD_WHISPER=true
+    ;;
+esac
 
 # Ensure target directory exists
 mkdir -p /models
@@ -21,28 +49,34 @@ echo ''
 echo '🔍 Checking for existing models...'
 ALL_EXIST=true
 
-if [ -f "${CHAT_MODEL_PATH}" ]; then
-  SIZE=$(du -h "${CHAT_MODEL_PATH}" | cut -f1)
-  echo "   ✅ Chat model found (${SIZE})"
-else
-  echo "   ⏳ Chat model missing"
-  ALL_EXIST=false
+if [ "${LOAD_CHAT}" = "true" ]; then
+  if [ -f "${CHAT_MODEL_PATH}" ]; then
+    SIZE=$(du -h "${CHAT_MODEL_PATH}" | cut -f1)
+    echo "   ✅ Chat model found (${SIZE})"
+  else
+    echo "   ⏳ Chat model missing"
+    ALL_EXIST=false
+  fi
 fi
 
-if [ -f "${EMBED_MODEL_PATH}" ]; then
-  SIZE=$(du -h "${EMBED_MODEL_PATH}" | cut -f1)
-  echo "   ✅ Embedding model found (${SIZE})"
-else
-  echo "   ⏳ Embedding model missing"
-  ALL_EXIST=false
+if [ "${LOAD_EMBED}" = "true" ]; then
+  if [ -f "${EMBED_MODEL_PATH}" ]; then
+    SIZE=$(du -h "${EMBED_MODEL_PATH}" | cut -f1)
+    echo "   ✅ Embedding model found (${SIZE})"
+  else
+    echo "   ⏳ Embedding model missing"
+    ALL_EXIST=false
+  fi
 fi
 
-if [ -f "${WHISPER_MODEL_PATH}" ]; then
-  SIZE=$(du -h "${WHISPER_MODEL_PATH}" | cut -f1)
-  echo "   ✅ Whisper model found (${SIZE})"
-else
-  echo "   ⏳ Whisper model missing"
-  ALL_EXIST=false
+if [ "${LOAD_WHISPER}" = "true" ]; then
+  if [ -f "${WHISPER_MODEL_PATH}" ]; then
+    SIZE=$(du -h "${WHISPER_MODEL_PATH}" | cut -f1)
+    echo "   ✅ Whisper model found (${SIZE})"
+  else
+    echo "   ⏳ Whisper model missing"
+    ALL_EXIST=false
+  fi
 fi
 echo ''
 
@@ -64,7 +98,7 @@ echo '════════════════════════�
 echo ''
 
 # Download chat model (Mistral 7B Instruct, ~4.1GB Q4_K_M)
-if [ ! -f "${CHAT_MODEL_PATH}" ]; then
+if [ "${LOAD_CHAT}" = "true" ] && [ ! -f "${CHAT_MODEL_PATH}" ]; then
   echo '┌─────────────────────────────────────────────────────┐'
   echo '│ [1/3] Chat Model: Mistral 7B Instruct (Q4_K_M)     │'
   echo '│       Expected size: ~4.1 GB                        │'
@@ -78,7 +112,7 @@ if [ ! -f "${CHAT_MODEL_PATH}" ]; then
 fi
 
 # Download embedding model (~190MB Q4_K_M)
-if [ ! -f "${EMBED_MODEL_PATH}" ]; then
+if [ "${LOAD_EMBED}" = "true" ] && [ ! -f "${EMBED_MODEL_PATH}" ]; then
   echo '┌─────────────────────────────────────────────────────┐'
   echo '│ [2/3] Embedding Model: nomic-embed-text (Q4_K_M)   │'
   echo '│       Expected size: ~190 MB                        │'
@@ -92,7 +126,7 @@ if [ ! -f "${EMBED_MODEL_PATH}" ]; then
 fi
 
 # Download whisper model (~244MB)
-if [ ! -f "${WHISPER_MODEL_PATH}" ]; then
+if [ "${LOAD_WHISPER}" = "true" ] && [ ! -f "${WHISPER_MODEL_PATH}" ]; then
   echo '┌─────────────────────────────────────────────────────┐'
   echo '│ [3/3] Whisper Model: ggml-small.en                 │'
   echo '│       Expected size: ~244 MB                        │'
@@ -117,7 +151,7 @@ ls -lh /models/*.yaml 2>/dev/null || echo '  (no config files found)'
 echo ''
 echo '════════════════════════════════════════════════════════'
 echo '🎉 LocalAI is ready! Models loaded:'
-echo '   • mistral-7b-instruct-v0.2.Q4_K_M (chat)'
-echo '   • nomic-embed-text-v1.5.Q4_K_M (embeddings)'
-echo '   • whisper-1 (transcription)'
+[ "${LOAD_CHAT}" = "true" ] && echo '   • mistral-7b-instruct-v0.2.Q4_K_M (chat)'
+[ "${LOAD_EMBED}" = "true" ] && echo '   • nomic-embed-text-v1.5.Q4_K_M (embeddings)'
+[ "${LOAD_WHISPER}" = "true" ] && echo '   • whisper-1 (transcription)'
 echo '════════════════════════════════════════════════════════'

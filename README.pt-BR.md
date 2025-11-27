@@ -22,7 +22,7 @@ Antes de começar, você precisa ter instalado:
 - **Docker Compose** (versão 2.0 ou superior)
 - **Domínio** (opcional, apenas para modo com proxy reverso e SSL)
 - **Servidor SMTP** (para funcionalidades de email)
-- **Chave API OpenAI** ou instância LocalAI (para recursos de IA)
+- **Chave API OpenAI** ou IA auto-hospedada (Ollama + Whisper, ou LocalAI em hardware mais robusto)
 
 ## Início Rápido
 
@@ -68,6 +68,11 @@ openssl rand -base64 32  # Use para AUDIT_CHECKSUM_SECRET
 BETTER_AUTH_SECRET=cole_o_secret_gerado_aqui
 AUDIT_CHECKSUM_SECRET=cole_o_secret_gerado_aqui
 OPENAI_API_KEY=sua_chave_openai_aqui
+OPENAI_BASE_URL=
+OLLAMA_BASE_URL=http://ollama:11434/v1
+OLLAMA_API_KEY=
+WHISPER_BASE_URL=http://whisper:8081/v1
+WHISPER_API_KEY=
 
 # Credenciais do usuário admin (necessário para o seed automático)
 ADMIN_EMAIL=admin@example.com
@@ -84,8 +89,11 @@ S3_BUCKET_AVATARS=avatars
 S3_BUCKET_ACHIEVEMENTS=achievements
 S3_BUCKET_CERTIFICATES=certificates
 
-# LocalAI (IA auto-hospedada, compatível com OpenAI)
-AI_PROVIDER=localai          # defina se quiser usar o LocalAI
+# IA auto-hospedada (opcional)
+# Leve (recomendado): Ollama + Whisper
+#   defina AI_PROVIDER=ollama, AI_CHAT_MODEL=llama3, AI_EMBEDDING_MODEL=nomic-embed-text, AI_TRANSCRIPTION_MODEL=whisper:whisper-1
+#   (ou prefixe: AI_CHAT_MODEL=ollama:llama3 etc.)
+# Pesada (LocalAI): AI_PROVIDER=localai, LOCALAI_BASE_URL=http://localai:8080/v1
 LOCALAI_BASE_URL=http://localai:8080/v1
 LOCALAI_API_KEY=              # preencha somente se configurar chave no LocalAI
 ```
@@ -101,11 +109,11 @@ MINIO_ROOT_PASSWORD=mude_senha_padrao
 ```bash
 docker compose up -d
 
-# Opcional: iniciar LocalAI (API compatível com OpenAI)
-docker compose --profile ai up -d localai
+# Opcional: IA local leve (Ollama + Whisper)
+docker compose --profile ollama --profile whisper up -d ollama whisper
 
-# Adicionar modelos no LocalAI em execução
-docker compose --profile ai exec localai sh -c "cd /models && curl -L <url-do-modelo> -o <nome-modelo>.gguf"
+# Opcional: IA pesada (LocalAI)
+docker compose --profile localai up -d localai
 ```
 
 ### 5. Acesse a Aplicação
@@ -189,6 +197,9 @@ A configuração do Docker Compose inclui:
 - PostgreSQL 18 com extensão pgvector (banco de dados vetorial para IA)
 - Redis (cache e fila de jobs)
 - MinIO (armazenamento de objetos compatível com S3)
+- Ollama (chat + embeddings locais; habilite com `--profile ollama`)
+- Whisper (STT local; habilite com `--profile whisper`)
+- LocalAI (alternativa pesada; habilite com `--profile localai`)
 
 **Aplicações:**
 - API do Servidor (backend Elysia na porta 4000)
@@ -198,8 +209,26 @@ A configuração do Docker Compose inclui:
 **Opcional (com `--profile proxy`):**
 - Caddy (proxy reverso com HTTPS automático)
 
-**Opcional (com `--profile ai`):**
-- LocalAI (API compatível com OpenAI, auto-hospedada)
+### Usando Ollama + Whisper (IA auto-hospedada leve)
+
+1) Suba os serviços de IA locais:
+```bash
+docker compose --profile ollama --profile whisper up -d ollama whisper
+```
+2) Baixe os modelos no Ollama:
+```bash
+docker exec -it medwaster-ollama ollama pull llama3
+docker exec -it medwaster-ollama ollama pull nomic-embed-text
+```
+3) No `.env`, aponte para os endpoints locais:
+```
+OPENAI_BASE_URL=http://ollama:11434/v1
+WHISPER_BASE_URL=http://whisper:8081/v1
+AI_CHAT_MODEL=ollama:llama3
+AI_EMBEDDING_MODEL=ollama:nomic-embed-text
+AI_TRANSCRIPTION_MODEL=whisper:whisper-1
+```
+4) Deixe `AI_PROVIDER=openai` (a SDK usa rotas compatíveis) e `OPENAI_API_KEY` vazio quando for 100% local.
 
 ### Usando LocalAI (IA auto-hospedada)
 
@@ -208,7 +237,7 @@ A configuração do Docker Compose inclui:
    - `AI_PROVIDER=localai`  
    - `LOCALAI_BASE_URL=http://localai:8080/v1` (padrão do docker-compose)  
    - `LOCALAI_API_KEY=` (apenas se você configurar chave no LocalAI)  
-3) Suba o LocalAI: `docker compose --profile ai up -d localai`  
+3) Suba o LocalAI: `docker compose --profile localai up -d localai`  
 4) Deixe `OPENAI_API_KEY` vazio ao usar LocalAI para evitar chamadas externas.
 
 Guia de modelos do LocalAI (URLs e opções): https://localai.io/models/

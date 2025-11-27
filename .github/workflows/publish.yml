@@ -31,6 +31,9 @@ jobs:
           - context: localai
             dockerfile: localai/Dockerfile
             image_suffix: model-loader
+          - context: services/whisper
+            dockerfile: services/whisper/Dockerfile
+            image_suffix: whisper
 
     steps:
       - name: Checkout repository
