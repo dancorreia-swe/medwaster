@@ -1,6 +1,6 @@
-import { db } from "./src/db";
-import { certificates } from "./src/db/schema/certificates";
-import { trails, userTrailProgress } from "./src/db/schema/trails";
+import { db } from "../db";
+import { certificates } from "../db/schema/certificates";
+import { trails, userTrailProgress } from "../db/schema/trails";
 import { eq, and } from "drizzle-orm";
 
 const userId = "KBukyNRNSCstIQDMiiUdQZ9ihjjR6HnH";

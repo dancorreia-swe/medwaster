@@ -23,7 +23,11 @@
     "db:watch": "docker compose up",
     "db:stop": "docker compose stop",
     "db:down": "docker compose down",
-    "gamification:assign-missions": "bun run src/scripts/assign-missions.ts"
+    "gamification:assign-missions": "bun run src/scripts/assign-missions.ts",
+    "check:certificates": "bun run src/scripts/check-certificates.ts",
+    "check:db": "bun run src/scripts/check-db.ts",
+    "check:unlocked": "bun run src/scripts/check-unlocked.ts",
+    "achievements:recalculate": "bun run src/scripts/recalculate-achievements.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.52",

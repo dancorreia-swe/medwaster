@@ -1,5 +1,5 @@
-import { db } from "./src/db";
-import { userAchievements, achievements } from "./src/db/schema/achievements";
+import { db } from "../db";
+import { userAchievements, achievements } from "../db/schema/achievements";
 import { eq, and } from "drizzle-orm";
 
 async function checkUnlocked() {

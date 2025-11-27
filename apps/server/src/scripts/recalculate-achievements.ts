@@ -1,5 +1,5 @@
-import { db } from "./src/db";
-import { AchievementEngine } from "./src/modules/achievements/engine";
+import { db } from "../db";
+import { AchievementEngine } from "../modules/achievements/engine";
 
 async function recalculate() {
   const userId = "6GNf80UB2vhvr3Aq5HKmE0FAbgudlqwE";
