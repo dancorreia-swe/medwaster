@@ -77,6 +77,7 @@ The simplest way to get started.
 |----------|-------|
 | `AI_PROVIDER` | `openai` |
 | `OPENAI_API_KEY` | **[REQUIRED]** Your OpenAI API Key (`sk-...`). |
+| `OPENAI_BASE_URL` | API endpoint. Defaults to `https://api.openai.com/v1`. |
 | `AI_CHAT_MODEL` | `gpt-4o` (Recommended) or `gpt-3.5-turbo`. |
 | `AI_EMBEDDING_MODEL` | `text-embedding-3-small`. |
 | `AI_TRANSCRIPTION_MODEL` | `whisper-1`. |

@@ -77,6 +77,7 @@ A maneira mais simples de começar.
 |----------|-------|
 | `AI_PROVIDER` | `openai` |
 | `OPENAI_API_KEY` | **[OBRIGATÓRIO]** Sua chave da API OpenAI (`sk-...`). |
+| `OPENAI_BASE_URL` | Endpoint da API. Padrão: `https://api.openai.com/v1`. |
 | `AI_CHAT_MODEL` | `gpt-4o` (Recomendado) ou `gpt-3.5-turbo`. |
 | `AI_EMBEDDING_MODEL` | `text-embedding-3-small`. |
 | `AI_TRANSCRIPTION_MODEL` | `whisper-1`. |
