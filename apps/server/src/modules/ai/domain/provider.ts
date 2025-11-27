@@ -18,6 +18,14 @@ if (!PROVIDERS.includes(requestedProvider as ProviderName)) {
   );
 }
 
+console.log(`[AI] Configured Provider: ${defaultProvider}`);
+console.log(`[AI] URLs:`, {
+  openai: process.env.OPENAI_BASE_URL,
+  localai: process.env.LOCALAI_BASE_URL || "http://localhost:8080/v1",
+  ollama: process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
+  whisper: process.env.WHISPER_BASE_URL || "http://localhost:8081/v1",
+});
+
 const registry = createProviderRegistry({
   openai: createOpenAI({
     apiKey: process.env.OPENAI_API_KEY,

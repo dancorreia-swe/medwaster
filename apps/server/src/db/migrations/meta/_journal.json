@@ -141,6 +141,13 @@
       "when": 1763987419339,
       "tag": "0019_tricky_tarot",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1764212004617,
+      "tag": "0020_married_loa",
+      "breakpoints": true
     }
   ]
 }
