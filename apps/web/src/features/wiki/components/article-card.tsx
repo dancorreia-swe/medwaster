@@ -295,7 +295,10 @@ export function ArticleCard({ article }: ArticleCardProps) {
       toast.success("Ícone atualizado");
     } catch (error) {
       console.error("Icon update error:", error);
-      toast.error("Erro ao atualizar ícone");
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Erro ao atualizar ícone";
+      toast.error(errorMessage);
     }
   };
 

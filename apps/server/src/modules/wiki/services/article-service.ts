@@ -40,7 +40,6 @@ import type {
   ArticleDifficultyValue,
 } from "../types/article";
 import { ragQueue } from "@/lib/queue";
-import { NoCategoryError } from "../exceptions/no-category-error";
 import { ConfigService } from "@/modules/config/config.service";
 import { CertificateService } from "@/modules/certificates/certificates.service";
 import { ProgressService } from "@/modules/trails/progress.service";
@@ -222,6 +221,15 @@ export class ArticleService {
     data: CreateArticleData,
     authorId: string,
   ): Promise<ArticleDetail> {
+    // Validate title
+    if (!data.title || data.title.trim().length === 0) {
+      throw new ValidationError("Article title is required");
+    }
+
+    if (data.title.length > 500) {
+      throw new ValidationError("Article title must be 500 characters or less");
+    }
+
     const baseSlug = generateSlug(data.title);
 
     const existingSlugs = await db
@@ -358,6 +366,11 @@ export class ArticleService {
     data: UpdateArticleData,
     authorId: string,
   ): Promise<ArticleDetail> {
+    // Validate article ID
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new ValidationError("Invalid article ID");
+    }
+
     const existingArticle = await db
       .select()
       .from(wikiArticles)
@@ -371,6 +384,17 @@ export class ArticleService {
     const updateData: Partial<NewWikiArticle> = {
       updatedAt: new Date(),
     };
+
+    if (data.title !== undefined) {
+      // Validate title if provided
+      if (!data.title || data.title.trim().length === 0) {
+        throw new ValidationError("Article title cannot be empty");
+      }
+
+      if (data.title.length > 500) {
+        throw new ValidationError("Article title must be 500 characters or less");
+      }
+    }
 
     if (data.title && data.title !== existingArticle[0].title) {
       const baseSlug = generateSlug(data.title);

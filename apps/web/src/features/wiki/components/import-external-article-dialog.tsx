@@ -121,7 +121,11 @@ export function ImportExternalArticleDialog({
       resetForm();
     } catch (error) {
       console.error("Error importing external article:", error);
-      toast.error("Erro ao importar artigo. Tente novamente.");
+      // Extract the error message from the Error object
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Erro ao importar artigo. Tente novamente.";
+      toast.error(errorMessage);
     }
   };
 

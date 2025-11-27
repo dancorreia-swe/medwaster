@@ -117,7 +117,10 @@ export function ArticleTagsInput({ selectedTags, onTagsChange }: ArticleTagsInpu
       setDebouncedSearch("");
     } catch (error) {
       console.error("Error creating tag:", error);
-      toast.error("Erro ao criar tag. Tente novamente.");
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Erro ao criar tag. Tente novamente.";
+      toast.error(errorMessage);
     }
   };
 

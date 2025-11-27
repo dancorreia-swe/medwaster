@@ -232,12 +232,52 @@ export const globalErrorHandler = new Elysia({
     case "VALIDATION":
       console.log("[Global Error Handler] Handling validation error");
       set.status = 422;
+
+      // Extract clean validation errors from Elysia's ValidationError
+      // Use error.all which contains array of { message, path, summary }
+      const err = error as any;
+      const validationErrors = err.all || [];
+
+      // Get the first error for the main message
+      const firstError = validationErrors[0];
+
+      // Extract minimal validation details
+      const validationDetails: any = {
+        field: firstError?.path?.replace(/^\//, "") || "unknown",
+        message: firstError?.message || "Validation failed",
+      };
+
+      // Add constraints from the valueError if available (for better error messages)
+      if (err.valueError?.schema) {
+        const schema = err.valueError.schema;
+        validationDetails.constraints = {};
+
+        if (schema.minLength !== undefined) validationDetails.constraints.minLength = schema.minLength;
+        if (schema.maxLength !== undefined) validationDetails.constraints.maxLength = schema.maxLength;
+        if (schema.minimum !== undefined) validationDetails.constraints.minimum = schema.minimum;
+        if (schema.maximum !== undefined) validationDetails.constraints.maximum = schema.maximum;
+        if (schema.pattern !== undefined) validationDetails.constraints.pattern = schema.pattern;
+
+        // Remove constraints if empty
+        if (Object.keys(validationDetails.constraints).length === 0) {
+          delete validationDetails.constraints;
+        }
+      }
+
+      // Add all validation errors if there are multiple
+      if (validationErrors.length > 1) {
+        validationDetails.allErrors = validationErrors.map((e: any) => ({
+          field: e.path?.replace(/^\//, "") || "unknown",
+          message: e.message,
+        }));
+      }
+
       return {
         success: false,
         error: {
           code: "VALIDATION_ERROR",
-          message: "Request validation failed",
-          details: error,
+          message: validationDetails.message,
+          details: validationDetails,
           timestamp,
           path,
           requestId,
