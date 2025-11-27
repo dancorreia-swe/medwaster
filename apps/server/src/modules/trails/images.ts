@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { betterAuthMacro, ROLES } from "@/lib/auth";
+import { ROLES } from "@/lib/auth";
 import { S3StorageService } from "../questions/s3-storage.service";
 
 // Configuration
@@ -12,9 +12,9 @@ const ALLOWED_MIME_TYPES = [
   "image/svg+xml",
 ];
 
-export const trailImages = new Elysia({ prefix: "/images" })
-  .use(betterAuthMacro)
-  .guard({ auth: true, role: [ROLES.ADMIN, ROLES.SUPER_ADMIN] }, (app) =>
+export const trailImages = new Elysia({ prefix: "/images" }).guard(
+  { auth: true, role: [ROLES.ADMIN, ROLES.SUPER_ADMIN] },
+  (app) =>
     app
       .post(
         "/upload",
@@ -59,4 +59,4 @@ export const trailImages = new Elysia({ prefix: "/images" })
           },
         }
       )
-  );
+);

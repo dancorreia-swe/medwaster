@@ -26,6 +26,7 @@ import {
 
 export const adminTrails = new Elysia({ prefix: "/admin/trails" })
   .use(betterAuthMacro)
+  .use(trailImages)
   .guard({ auth: true, role: [ROLES.ADMIN, ROLES.SUPER_ADMIN] }, (app) =>
     app
       // List all trails
@@ -294,8 +295,7 @@ export const adminTrails = new Elysia({ prefix: "/admin/trails" })
           },
         },
       ),
-  )
-  .use(trailImages);
+  );
 
 // ===================================
 // Student Routes

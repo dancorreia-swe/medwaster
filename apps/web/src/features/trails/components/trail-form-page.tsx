@@ -214,9 +214,9 @@ export const TrailFormPage = forwardRef<TrailFormHandle, TrailFormPageProps>(
                       }
                     }}
                     label="Imagem de Capa da Trilha"
-                    uploadPath="/admin/trails/images/upload"
+                    uploadPath="/api/admin/trails/images/upload"
                     keyValue={form.getFieldValue("coverImageKey") || undefined}
-                    deletePath="/admin/trails/images"
+                    deletePath="/api/admin/trails/images"
                   />
                 )}
               </form.Field>

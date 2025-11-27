@@ -200,8 +200,8 @@ export function QuizForm({ formData, onChange, questionCount }: QuizFormProps) {
               label="Imagem do Quiz"
               value={formData.imageUrl}
               keyValue={formData.imageKey}
-              uploadPath="/admin/quizzes/images/upload"
-              deletePath="/admin/quizzes/images"
+              uploadPath="/api/admin/quizzes/images/upload"
+              deletePath="/api/admin/quizzes/images"
               onChange={(data) => {
                 handleInputChange("imageUrl", data?.url || undefined);
                 handleInputChange("imageKey", data?.key || undefined);
