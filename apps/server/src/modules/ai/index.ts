@@ -22,16 +22,32 @@ export const ai = new Elysia({
   },
 });
 
-ai.use(betterAuthMacro)
-// .guard(
-//   {
-//     auth: true,
-//   },
-  // (app) =>
-    ai.post(
+ai.use(betterAuthMacro).guard(
+  {
+    auth: false,
+  },
+  (app) =>
+    app
+      .post(
         "/chat",
-        ({ body: { messages } }: { body: { messages: UIMessage[] } }) =>
-          streamText({
+        ({ body: { messages } }: { body: { messages: UIMessage[] } }) => {
+          console.log(
+            "[AI Chat] Raw messages:",
+            JSON.stringify(messages, null, 2),
+          );
+
+          const coreMessages = messages.map((m: any) => ({
+            role: m.role,
+            content:
+              m.content ??
+              m.parts
+                ?.filter((p: any) => p.type === "text")
+                .map((p: any) => p.text)
+                .join("") ??
+              "",
+          })) as any;
+
+          return streamText({
             experimental_transform: smoothStream({
               delayInMs: 20,
             }),
@@ -40,7 +56,7 @@ ai.use(betterAuthMacro)
             },
             model: getChatModel(),
             stopWhen: stepCountIs(5),
-            messages: convertToModelMessages(messages),
+            messages: coreMessages, // Use manual mapping
             system: `You are a helpful AI assistant with access to a knowledge base through tool calls.
 
 # Core Instructions
@@ -88,14 +104,32 @@ Assistant: "Desculpe, não encontrei informações sobre isso na base de conheci
 - Never fabricate or invent information
 - Always prioritize accuracy over completeness
 - Use retrieval tools for every query before responding`,
+            onFinish: ({ text }) => {
+              console.log("[AI Chat] Finished generation:", text);
+            },
             tools: {
               getInformation: tool({
                 description: `get information from your knowledge base to answer questions.`,
                 inputSchema: z.object({
                   question: z.string().describe("the users question"),
                 }),
-                execute: async ({ question }) =>
-                  AIService.findRelevantContent(question),
+                execute: async ({ question }) => {
+                  try {
+                    console.log(
+                      `[AI Chat] Tool 'getInformation' called with: "${question}"`,
+                    );
+                    const startTime = Date.now();
+                    const results = await AIService.findRelevantContent(question);
+                    const duration = Date.now() - startTime;
+                    console.log(
+                      `[AI Chat] Tool returned ${results.length} results in ${duration}ms`,
+                    );
+                    return results;
+                  } catch (error) {
+                    console.error("[AI Chat] Tool execution error:", error);
+                    return [];
+                  }
+                },
               }),
             },
           }).toUIMessageStreamResponse({
@@ -103,7 +137,8 @@ Assistant: "Desculpe, não encontrei informações sobre isso na base de conheci
               "Content-Type": "text/plain; charset=utf-8",
               "Content-Encoding": "none",
             },
-          }),
+          });
+        },
         {
           body: t.Object({
             messages: t.Array(t.Any(), {
@@ -133,9 +168,7 @@ Assistant: "Desculpe, não encontrei informações sobre isso na base de conheci
 
           let audioData: Uint8Array;
           const normalizedType =
-            mimeType === "audio/x-m4a"
-              ? "audio/m4a"
-              : mimeType || "audio/m4a";
+            mimeType === "audio/x-m4a" ? "audio/m4a" : mimeType || "audio/m4a";
           let resolvedMimeType = normalizedType;
 
           console.info("[ai/transcribe] Incoming payload info", {
@@ -147,7 +180,7 @@ Assistant: "Desculpe, não encontrei informações sobre isso na base de conheci
 
           if (typeof audio === "string") {
             const base64 = audio.startsWith("data:")
-              ? audio.split(",")[1] ?? ""
+              ? (audio.split(",")[1] ?? "")
               : audio;
             audioData = Uint8Array.from(Buffer.from(base64, "base64"));
           } else if (audio instanceof Blob) {
@@ -183,5 +216,5 @@ Assistant: "Desculpe, não encontrei informações sobre isso na base de conheci
             tags: ["AI Assistant"],
           },
         },
-      );
-// );
+      ),
+);

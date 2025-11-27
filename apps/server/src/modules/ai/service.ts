@@ -4,7 +4,7 @@ import { embed, embedMany } from "ai";
 import { cosineDistance, desc, gt, sql } from "drizzle-orm";
 import { embeddings } from "@/db/schema/embeddings";
 import { db } from "@/db";
-import { getEmbeddingModel } from "./domain/provider";
+import { getEmbeddingModel, getCurrentProvider } from "./domain/provider";
 
 export abstract class AIService {
   private static embeddingModel = getEmbeddingModel();
@@ -53,12 +53,15 @@ export abstract class AIService {
       userQueryEmbedded,
     )})`;
 
+    const provider = getCurrentProvider();
+    const limit = provider === "openai" ? 5 : 2;
+
     const similarGuides = await db
       .select({ name: embeddings.content, similarity })
       .from(embeddings)
       .where(gt(similarity, 0.5))
       .orderBy((t) => desc(t.similarity))
-      .limit(5);
+      .limit(limit);
 
     return similarGuides;
   }

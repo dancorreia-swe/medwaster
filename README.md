@@ -1,5 +1,7 @@
 # medwaster
 
+> 🇧🇷 **[Leia em Português](./README.pt-BR.md)**
+
 This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Router, Elysia, and more.
 
 ## Features
@@ -30,7 +32,6 @@ This project uses PostgreSQL with Drizzle ORM.
 
 1. Make sure you have a PostgreSQL database set up.
 2. Update your `apps/server/.env` file with your PostgreSQL connection details.
-
 3. Apply the schema to your database:
 ```bash
 bun db:push
@@ -79,7 +80,8 @@ MedWaster can be self-hosted using Docker Compose in two modes: **Direct Port Mo
 - Docker and Docker Compose installed
 - Domain name (for reverse proxy mode with SSL)
 - SMTP server credentials for email functionality
- - OpenAI API key or self-hosted AI (Ollama + Whisper profile, or LocalAI on beefier hardware)
+- OpenAI API key or self-hosted AI (Ollama + Whisper profile, or LocalAI on beefier hardware)
+  - *Note: If your local hardware is not powerful enough to run the AI models (especially LocalAI), consider using a cloud provider or sticking to the OpenAI API for better performance.*
 
 ### Quick Start
 
@@ -120,7 +122,8 @@ Required values to configure:
 - `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_ACCESS_KEY` - MinIO/S3 connection (defaults map to bundled MinIO)
 - Bucket names per service: `S3_BUCKET_QUESTIONS`, `S3_BUCKET_WIKI`, `S3_BUCKET_AVATARS`, `S3_BUCKET_ACHIEVEMENTS`, `S3_BUCKET_CERTIFICATES`
 - Optional self-hosted AI:
-  - Lightweight (recommended): `OLLAMA_BASE_URL=http://ollama:11434/v1`, `WHISPER_BASE_URL=http://whisper:8081/v1`, pick models like `AI_CHAT_MODEL=ollama:llama3`, `AI_EMBEDDING_MODEL=ollama:nomic-embed-text`, `AI_TRANSCRIPTION_MODEL=whisper:whisper-1`
+  - Lightweight (recommended): `AI_PROVIDER=ollama`, `OLLAMA_BASE_URL=http://ollama:11434/v1`, `WHISPER_BASE_URL=http://whisper:8081/v1`, pick models like `AI_CHAT_MODEL=qwen3` (or `llama3.1` for basic chat), `AI_EMBEDDING_MODEL=nomic-embed-text`, `AI_TRANSCRIPTION_MODEL=whisper-1`
+    - **Note:** For RAG with tool calling, use `qwen3` or `llama3.3` models. `llama3.1` has limited tool support.
   - Heavy: `AI_PROVIDER=localai`, `LOCALAI_BASE_URL=http://localai:8080/v1`, `LOCALAI_API_KEY` (if set)
 
 3. **Choose your deployment mode**
@@ -215,19 +218,22 @@ docker compose --profile ollama --profile whisper up -d ollama whisper
 ```
 2) Pull your models into Ollama:
 ```bash
-docker exec -it medwaster-ollama ollama pull llama3
+# For tool calling/RAG support, use qwen3 (recommended) or llama3.3
+docker exec -it medwaster-ollama ollama pull qwen3
 docker exec -it medwaster-ollama ollama pull nomic-embed-text
 ```
 3) In `.env` (or compose overrides), point to the local endpoints:
 ```
+AI_PROVIDER=ollama
 OPENAI_BASE_URL=
 OLLAMA_BASE_URL=http://ollama:11434/v1
 WHISPER_BASE_URL=http://whisper:8081/v1
-AI_CHAT_MODEL=ollama:llama3
-AI_EMBEDDING_MODEL=ollama:nomic-embed-text
-AI_TRANSCRIPTION_MODEL=whisper:whisper-1
+AI_CHAT_MODEL=qwen3
+AI_EMBEDDING_MODEL=nomic-embed-text
+AI_TRANSCRIPTION_MODEL=whisper-1
 ```
-4) Leave `OPENAI_API_KEY` empty when fully local. Prefixing models with `ollama:` also works if you prefer.
+**Important:** Model names should NOT include provider prefixes. Use `qwen3`, not `ollama:qwen3`. The provider is set via `AI_PROVIDER=ollama`.
+4) Leave `OPENAI_API_KEY` empty when fully local.
 
 ### Using LocalAI (heavy alternative)
 
