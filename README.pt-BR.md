@@ -60,10 +60,16 @@ medwaster/
 ## Scripts Disponíveis
 
 - `bun dev`: Inicia todas as aplicações em modo de desenvolvimento
+- `bun dev:all`: Inicia todas as aplicações incluindo worker em segundo plano
 - `bun build`: Compila todas as aplicações
 - `bun dev:web`: Inicia apenas a aplicação web
 - `bun dev:server`: Inicia apenas o servidor
-- `bun check-types`: Checa tipos TypeScript em todos os apps
+- `bun dev:worker`: Inicia apenas o worker em segundo plano
 - `bun dev:native`: Inicia o servidor de desenvolvimento React Native/Expo
-- `bun db:push`: Envia mudanças de esquema para o banco de dados
+- `bun check-types`: Checa tipos TypeScript em todos os apps
+- `bun db:push`: Envia mudanças de esquema para o banco de dados (prototipagem)
+- `bun db:generate`: Gera migrações SQL a partir do esquema
+- `bun db:migrate`: Aplica migrações pendentes ao banco de dados
+- `bun db:seed`: Popula o banco de dados com dados iniciais
+- `bun db:reset`: Reseta o banco de dados (apaga e reaplica esquema)
 - `bun db:studio`: Abre a interface do estúdio do banco de dados

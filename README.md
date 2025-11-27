@@ -63,12 +63,18 @@ medwaster/
 ## Available Scripts
 
 - `bun dev`: Start all applications in development mode
+- `bun dev:all`: Start all applications including background worker
 - `bun build`: Build all applications
 - `bun dev:web`: Start only the web application
 - `bun dev:server`: Start only the server
-- `bun check-types`: Check TypeScript types across all apps
+- `bun dev:worker`: Start only the background worker
 - `bun dev:native`: Start the React Native/Expo development server
-- `bun db:push`: Push schema changes to database
+- `bun check-types`: Check TypeScript types across all apps
+- `bun db:push`: Push schema changes to database (prototyping)
+- `bun db:generate`: Generate SQL migrations from schema
+- `bun db:migrate`: Apply pending migrations to database
+- `bun db:seed`: Seed database with initial data
+- `bun db:reset`: Reset database (drop and re-apply schema)
 - `bun db:studio`: Open database studio UI
 
 ## Installation & Deployment
