@@ -22,13 +22,13 @@ export const ai = new Elysia({
   },
 });
 
-ai.use(betterAuthMacro).guard(
-  {
-    auth: true,
-  },
-  (app) =>
-    app
-      .post(
+ai.use(betterAuthMacro)
+// .guard(
+//   {
+//     auth: true,
+//   },
+  // (app) =>
+    ai.post(
         "/chat",
         ({ body: { messages } }: { body: { messages: UIMessage[] } }) =>
           streamText({
@@ -100,7 +100,7 @@ Assistant: "Desculpe, não encontrei informações sobre isso na base de conheci
             },
           }).toUIMessageStreamResponse({
             headers: {
-              "Content-Type": "application/octet-stream",
+              "Content-Type": "text/plain; charset=utf-8",
               "Content-Encoding": "none",
             },
           }),
@@ -183,5 +183,5 @@ Assistant: "Desculpe, não encontrei informações sobre isso na base de conheci
             tags: ["AI Assistant"],
           },
         },
-      ),
-);
+      );
+// );
