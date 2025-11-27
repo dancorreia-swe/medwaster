@@ -64,6 +64,7 @@
     "jspdf": "^3.0.3",
     "logixlysia": "^5.3.0",
     "nodemailer": "^7.0.6",
+    "ollama-ai-provider-v2": "^1.5.5",
     "openai": "^6.4.0",
     "pdf-parse": "^1",
     "pdfjs-dist": "^5.4.394",

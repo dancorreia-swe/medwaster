@@ -1,5 +1,6 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { createOllama } from "ollama-ai-provider-v2";
 import { createProviderRegistry } from "ai";
 
 const PROVIDERS = ["openai", "localai", "whisper", "ollama"] as const;
@@ -22,7 +23,7 @@ console.log(`[AI] Configured Provider: ${defaultProvider}`);
 console.log(`[AI] URLs:`, {
   openai: process.env.OPENAI_BASE_URL,
   localai: process.env.LOCALAI_BASE_URL || "http://localhost:8080/v1",
-  ollama: process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
+  ollama: process.env.OLLAMA_BASE_URL || "http://localhost:11434/api",
   whisper: process.env.WHISPER_BASE_URL || "http://localhost:8081/v1",
 });
 
@@ -36,10 +37,8 @@ const registry = createProviderRegistry({
     baseURL: process.env.LOCALAI_BASE_URL || "http://localhost:8080/v1",
     apiKey: process.env.LOCALAI_API_KEY,
   }),
-  ollama: createOpenAICompatible({
-    name: "ollama",
-    baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
-    apiKey: process.env.OLLAMA_API_KEY,
+  ollama: createOllama({
+    baseURL: process.env.OLLAMA_BASE_URL?.replace("/v1", "/api") || "http://localhost:11434/api",
   }),
   whisper: createOpenAI({
     name: "whisper",

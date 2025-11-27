@@ -27,7 +27,8 @@
       "WebSearch",
       "Bash(git checkout:*)",
       "WebFetch(domain:stackoverflow.com)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(cat:*)"
     ],
     "deny": []
   }

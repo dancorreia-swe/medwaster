@@ -62,8 +62,9 @@ function RecordingWaveform({
   barColorIdle?: string;
 }) {
   const barValues = useRef(
-    Array.from({ length: RECORDING_BARS }, () =>
-      new Animated.Value(MIN_BAR_HEIGHT),
+    Array.from(
+      { length: RECORDING_BARS },
+      () => new Animated.Value(MIN_BAR_HEIGHT),
     ),
   );
 
@@ -155,22 +156,31 @@ export default function TutorScreen() {
   const { messages, sendMessage, status, stop } = useChat({
     transport: new DefaultChatTransport({
       fetch: expoFetch as unknown as typeof globalThis.fetch,
-      api: process.env.EXPO_PUBLIC_SERVER_URL + "/ai/chat",
+      api: process.env.EXPO_PUBLIC_SERVER_URL + "/api/ai/chat",
       headers: {
         Cookie: cookies,
       },
     }),
     onError: (error) => {
       stopRequestedRef.current = false;
-      console.error(error, "ERROR");
+      console.error("[Tutor Chat] Error:", error);
     },
     onFinish: ({ isAbort, message }) => {
+      console.log("[Tutor Chat] Finished:", { isAbort, messageId: message?.id, content: message?.content });
       if ((isAbort || stopRequestedRef.current) && message?.id) {
         setCancelledMessageId(message.id);
       }
       stopRequestedRef.current = false;
     },
   });
+
+  useEffect(() => {
+    console.log("[Tutor Chat] Status:", status);
+    console.log("[Tutor Chat] Messages count:", messages.length);
+    if (messages.length > 0) {
+      console.log("[Tutor Chat] Last message:", messages[messages.length - 1]);
+    }
+  }, [status, messages]);
 
   const getMessageText = useCallback(
     (message: (typeof messages)[number]) =>
@@ -220,9 +230,7 @@ export default function TutorScreen() {
         const blob = await fileResponse.blob();
 
         const mimeType =
-          blob.type === "audio/x-m4a"
-            ? "audio/m4a"
-            : blob.type || "audio/m4a";
+          blob.type === "audio/x-m4a" ? "audio/m4a" : blob.type || "audio/m4a";
         const base64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => {
@@ -245,7 +253,7 @@ export default function TutorScreen() {
         });
 
         const response = await fetch(
-          `${process.env.EXPO_PUBLIC_SERVER_URL}/ai/transcribe`,
+          `${process.env.EXPO_PUBLIC_SERVER_URL}/api/ai/transcribe`,
           {
             method: "POST",
             headers: {
@@ -345,12 +353,10 @@ export default function TutorScreen() {
       });
 
       const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(
-        {
-          ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
-          isMeteringEnabled: true,
-        },
-      );
+      await recording.prepareToRecordAsync({
+        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        isMeteringEnabled: true,
+      });
       await recording.startAsync();
       recordingRef.current = recording;
       setIsRecording(true);
@@ -566,12 +572,7 @@ export default function TutorScreen() {
               const messageText = getMessageText(message);
 
               if (message.role === "user") {
-                return (
-                  <UserMessage
-                    key={message.id}
-                    message={messageText}
-                  />
-                );
+                return <UserMessage key={message.id} message={messageText} />;
               }
 
               const isAudioActive = speakingMessageId === message.id;
@@ -691,9 +692,16 @@ export default function TutorScreen() {
                 </View>
               </TouchableOpacity>
             ) : isRecording ? (
-              <TouchableOpacity onPress={stopRecordingAndTranscribe} className="mb-1">
+              <TouchableOpacity
+                onPress={stopRecordingAndTranscribe}
+                className="mb-1"
+              >
                 <View className="size-14 rounded-full items-center justify-center bg-red-500">
-                  <Icon icon={Square} size={14} className="text-white fill-white" />
+                  <Icon
+                    icon={Square}
+                    size={14}
+                    className="text-white fill-white"
+                  />
                 </View>
               </TouchableOpacity>
             ) : isTranscribing ? (

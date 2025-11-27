@@ -997,11 +997,19 @@ export class ArticleService {
 
     const publishedArticle = await this.getArticleById(id);
 
-    await ragQueue.add("generate-embeddings", {
-      type: "generate-embeddings",
-      articleId: id,
-      content: article[0].contentText || "",
-    });
+    if (article[0].sourceType === "external" && article[0].externalUrl) {
+      await ragQueue.add("scrape-and-embed", {
+        type: "scrape-and-embed",
+        articleId: id,
+        url: article[0].externalUrl,
+      });
+    } else {
+      await ragQueue.add("generate-embeddings", {
+        type: "generate-embeddings",
+        articleId: id,
+        content: article[0].contentText || "",
+      });
+    }
 
     return publishedArticle;
   }
