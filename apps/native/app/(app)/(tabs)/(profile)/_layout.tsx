@@ -3,14 +3,14 @@ import { Stack } from "expo-router";
 export default function ProfileLayout() {
   return (
     <Stack
-      initialRouteName="profile-index"
+      initialRouteName="index"
       screenOptions={{
         headerShown: false,
         animation: "slide_from_right",
       }}
     >
       <Stack.Screen
-        name="profile-index"
+        name="index"
         options={{
           animation: "none",
         }}

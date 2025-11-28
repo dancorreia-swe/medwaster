@@ -12,7 +12,7 @@ import { CategoryCard } from "@/features/home/components/category-card";
 import { TrailCard } from "@/features/home/components/trail-card";
 import { QuickAccessCard } from "@/features/home/components/quick-access-card";
 import { authClient } from "@/lib/auth-client";
-import { router } from "expo-router";
+import { Link, router, useRootNavigationState } from "expo-router";
 import { useArticleStore } from "@/lib/stores/article-store";
 import { useAchievementNotifications } from "@/features/achievements";
 import {
@@ -38,6 +38,7 @@ const CATEGORY_COLORS = [
 ];
 
 export default function Home() {
+  const navigationState = useRootNavigationState();
   const { data: session } = authClient.useSession();
   const { data: recommendedCategories, isLoading: isLoadingCategories } =
     useRecommendedCategories({ enabled: !!session });
@@ -62,6 +63,15 @@ export default function Home() {
   }, [trails]);
 
   const hasCompletedAllTrails = certificateData?.certificate !== null;
+
+  const handleBannerPress = () => {
+    // First navigate to the profile tab to ensure the stack is initialized
+    router.navigate("/(app)/(tabs)/(profile)");
+    // Then push to certificates after a small delay
+    setTimeout(() => {
+      router.push("/(app)/(tabs)/(profile)/certificates");
+    }, 100);
+  };
 
   const handleCategoryPress = (categoryId: number) => {
     setSelectedCategoriesInStore([categoryId]);
@@ -159,9 +169,7 @@ export default function Home() {
                 </Text>
               </View>
               <TouchableOpacity
-                onPress={() =>
-                  router.push("/(app)/(tabs)/(profile)/certificates")
-                }
+                onPress={handleBannerPress}
                 activeOpacity={0.85}
                 className="rounded-2xl overflow-hidden shadow-lg"
               >
