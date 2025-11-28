@@ -92,7 +92,7 @@ export function ProfilePictureUploader({
         throw new Error("API URL não configurada (EXPO_PUBLIC_SERVER_URL ou EXPO_PUBLIC_API_URL)");
       }
 
-      const response = await fetch(`${apiUrl}/profile/avatar/upload`, {
+      const response = await fetch(`${apiUrl}/api/profile/avatar/upload`, {
         method: "POST",
         body: formData,
         headers: {
