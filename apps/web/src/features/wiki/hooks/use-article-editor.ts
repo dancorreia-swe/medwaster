@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useDebouncedCallback } from "@/hooks/use-debounce";
 import { useUpdateArticle } from "../api/wikiQueries";
 import type { BlockNoteEditor } from "@blocknote/core";
 import { toast } from "sonner";
+import { DEFAULT_ARTICLE_TITLE } from "../constants";
 
 const MIN_TITLE_LENGTH = 5;
 
@@ -10,6 +11,7 @@ interface UseArticleEditorProps {
   articleId: number;
   article: any;
   onPublish: () => void;
+  isNewDraft?: boolean;
 }
 
 function arraysEqual(a: string[], b: string[]): boolean {
@@ -23,6 +25,7 @@ export function useArticleEditor({
   articleId,
   article,
   onPublish,
+  isNewDraft = false,
 }: UseArticleEditorProps) {
   const { mutateAsync: updateArticle, isPending: isUpdating } = useUpdateArticle();
 
@@ -35,6 +38,8 @@ export function useArticleEditor({
   const [editor, setEditor] = useState<BlockNoteEditor | null>(null);
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
   const [icon, setIcon] = useState<string | undefined>();
+  const hasInitialEditorContent = useRef(false);
+  const contentTouched = useRef(false);
 
   // Track initial values from server to detect actual changes
   const serverState = useRef({
@@ -72,6 +77,11 @@ export function useArticleEditor({
       selectedTags: newSelectedTags,
       icon: newIcon,
     };
+
+    hasInitialEditorContent.current =
+      !isNewDraft &&
+      Boolean(article.content && JSON.stringify(article.content) !== "{}");
+    contentTouched.current = false;
   }, [articleId, article]);
 
   const handleSave = useCallback(
@@ -167,6 +177,7 @@ export function useArticleEditor({
   }, [title, categoryId, selectedTags, icon, hasChanges, debouncedAutoSave]);
 
   const handleEditorChange = useCallback(() => {
+    contentTouched.current = true;
     setHasPendingChanges(true);
     // Editor changes are always considered changes
     debouncedAutoSave();
@@ -198,6 +209,21 @@ export function useArticleEditor({
     }
   }, []);
 
+  const hasContent = useMemo(() => {
+    const trimmedTitle = title.trim();
+    const titleIsMeaningful =
+      trimmedTitle.length > 0 && trimmedTitle !== DEFAULT_ARTICLE_TITLE;
+
+    return (
+      titleIsMeaningful ||
+      contentTouched.current ||
+      hasInitialEditorContent.current ||
+      categoryId !== undefined ||
+      selectedTags.length > 0 ||
+      Boolean(icon)
+    );
+  }, [title, categoryId, selectedTags, icon]);
+
   return {
     title,
     setTitle,
@@ -219,5 +245,6 @@ export function useArticleEditor({
     canPublish: title.trim().length >= MIN_TITLE_LENGTH && Boolean(categoryId),
     icon,
     setIcon,
+    hasContent,
   };
 }

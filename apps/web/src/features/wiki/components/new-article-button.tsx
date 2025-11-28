@@ -3,8 +3,7 @@ import { useCreateArticle } from "@/features/wiki/api/wikiQueries";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, Plus } from "lucide-react";
 import { useState } from "react";
-
-const DEFAULT_TITLE = "Novo artigo";
+import { DEFAULT_ARTICLE_TITLE } from "../constants";
 
 export function NewArticleButton() {
   const navigate = useNavigate();
@@ -19,7 +18,7 @@ export function NewArticleButton() {
 
     try {
       const response = await createArticle({
-        title: DEFAULT_TITLE,
+        title: DEFAULT_ARTICLE_TITLE,
         excerpt: "",
         status: "draft",
       });

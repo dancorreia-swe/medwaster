@@ -27,7 +27,7 @@ import {
 import { useArticleEditor } from "@/features/wiki/hooks/use-article-editor";
 import { toast } from "sonner";
 import { buildPageHead } from "@/lib/page-title";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_auth/wiki/$articleId/")({
@@ -61,6 +61,7 @@ function RouteComponent() {
   const search = Route.useSearch();
   const queryClient = useQueryClient();
   const numericArticleId = Number(articleId);
+  const isNewDraftRef = useRef(search.new === "true");
 
   const articleQuery = useArticle(numericArticleId);
 
@@ -121,6 +122,7 @@ function RouteComponent() {
       onPublish={() => {
         toast.success("Artigo publicado com sucesso.");
       }}
+      isNewDraft={isNewDraftRef.current}
     />
   );
 }
@@ -129,9 +131,15 @@ interface ArticleEditorProps {
   articleId: number;
   article: any;
   onPublish: () => void;
+  isNewDraft: boolean;
 }
 
-function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
+function ArticleEditor({
+  articleId,
+  article,
+  onPublish,
+  isNewDraft,
+}: ArticleEditorProps) {
   const { user } = usePermissions();
   const { data: categoriesData, isPending: categoriesLoading } =
     useCategories();
@@ -168,28 +176,88 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
     canPublish,
     icon,
     setIcon,
+    hasContent,
   } = useArticleEditor({
     articleId,
     article: article.data,
     onPublish,
+    isNewDraft,
   });
 
   // External article state
   const [externalUrl, setExternalUrl] = useState(
-    article?.data?.externalUrl || ""
+    article?.data?.externalUrl || "",
   );
   const [externalAuthors, setExternalAuthors] = useState<string[]>(
-    article?.data?.externalAuthors || [""]
+    article?.data?.externalAuthors || [""],
   );
   const [publicationSource, setPublicationSource] = useState(
-    article?.data?.publicationSource || ""
+    article?.data?.publicationSource || "",
   );
   const [publicationDate, setPublicationDate] = useState(
     article?.data?.publicationDate
       ? new Date(article.data.publicationDate).toISOString().split("T")[0]
-      : ""
+      : "",
   );
   const [excerpt, setExcerpt] = useState(article?.data?.excerpt || "");
+  const hasDiscardedDraft = useRef(false);
+  const hasContentRef = useRef(hasContent);
+
+  useEffect(() => {
+    hasContentRef.current = hasContent;
+  }, [hasContent]);
+
+  const discardDraft = useCallback(
+    async ({
+      navigateAfter = true,
+      notify = true,
+    }: { navigateAfter?: boolean; notify?: boolean } = {}) => {
+      if (hasDiscardedDraft.current) return;
+      if (hasContentRef.current) {
+        if (notify) {
+          toast.info(
+            "Este rascunho já tem alterações. Exclua manualmente se desejar descartá-lo.",
+          );
+        }
+        return;
+      }
+
+      try {
+        await deleteMutation.mutateAsync(articleId);
+        hasDiscardedDraft.current = true;
+        if (notify) {
+          toast.success("Rascunho descartado.");
+        }
+        if (navigateAfter) {
+          navigate({ to: "/wiki" });
+        }
+      } catch (error) {
+        console.error("Erro ao descartar rascunho:", error);
+        if (notify) {
+          toast.error("Não foi possível descartar o rascunho.");
+        }
+      }
+    },
+    [articleId, deleteMutation, navigate],
+  );
+
+  useEffect(() => {
+    if (!isNewDraft) return;
+
+    const toastId = toast("Rascunho criado.", {
+      className: "justify-between items-center",
+      action: (
+        <Button size="sm" className="text-sm" onClick={() => discardDraft()}>
+          Desfazer
+        </Button>
+      ),
+      duration: 6000,
+    });
+
+    return () => {
+      toast.dismiss(toastId);
+    };
+  }, [isNewDraft]);
 
   // Custom save handler for external articles
   const handleExternalArticleSave = async (publish = false) => {
@@ -265,7 +333,9 @@ function ArticleEditor({ articleId, article, onPublish }: ArticleEditorProps) {
         hasPendingChanges={hasPendingChanges}
         canPublish={canPublish}
         articleTitle={title}
-        onPublish={() => isExternalArticle ? handleExternalArticleSave(true) : handleSave(true)}
+        onPublish={() =>
+          isExternalArticle ? handleExternalArticleSave(true) : handleSave(true)
+        }
         onUnpublish={handleUnpublishArticle}
         onArchive={handleArchiveArticle}
         onDelete={handleDeleteArticle}
