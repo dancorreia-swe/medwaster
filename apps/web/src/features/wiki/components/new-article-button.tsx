@@ -32,9 +32,11 @@ export function NewArticleButton() {
       }
 
       // Navigate immediately without waiting for any state updates
+      // Pass 'new' search param to trigger query invalidation after page loads
       await navigate({
         to: "/wiki/$articleId",
         params: { articleId: String(createdId) },
+        search: { new: "true" },
       });
     } catch (error) {
       const fallback =

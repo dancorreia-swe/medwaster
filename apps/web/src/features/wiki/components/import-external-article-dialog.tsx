@@ -18,11 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreateArticle } from "@/features/wiki/api/wikiQueries";
+import { useCreateArticle, wikiQueryKeys } from "@/features/wiki/api/wikiQueries";
 import { ArticleTagsInput } from "./article-tags-input";
 import { Download, Loader2, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ImportExternalArticleDialogProps {
   categories?: Array<{ id: number; name: string }>;
@@ -32,6 +33,7 @@ export function ImportExternalArticleDialog({
   categories = [],
 }: ImportExternalArticleDialogProps) {
   const { mutateAsync: createArticle, isPending } = useCreateArticle();
+  const queryClient = useQueryClient();
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -115,6 +117,10 @@ export function ImportExternalArticleDialog({
         tagIds: selectedTags.length > 0 ? selectedTags : undefined,
         status: "draft",
       });
+
+      // Invalidate queries to show the new article in the list
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.stats() });
 
       toast.success("Artigo externo importado com sucesso!");
       setOpen(false);

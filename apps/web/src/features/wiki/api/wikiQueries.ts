@@ -5,6 +5,8 @@ import {
   useQueryClient,
   queryOptions,
   keepPreviousData,
+  useInfiniteQuery,
+  infiniteQueryOptions,
 } from "@tanstack/react-query";
 import { wikiApi } from "./wikiApi";
 import { client } from "@/lib/client";
@@ -235,6 +237,29 @@ export const articlesQueryOptions = (filters?: ArticleListQueryParams) =>
 export const useArticles = (filters?: ArticleListQueryParams) =>
   useQuery(articlesQueryOptions(filters));
 
+export const articlesInfiniteQueryOptions = (
+  filters?: Omit<ArticleListQueryParams, "page">
+) =>
+  infiniteQueryOptions({
+    queryKey: [...wikiQueryKeys.articles(), "infinite", filters] as const,
+    queryFn: ({ pageParam = 1 }) =>
+      wikiApi.listArticles({ ...filters, page: pageParam, limit: 12 }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      const response = lastPage?.data?.data;
+      if (!response) return undefined;
+
+      const { currentPage, totalPages } = response.pagination;
+      return currentPage < totalPages ? currentPage + 1 : undefined;
+    },
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+  });
+
+export const useArticlesInfinite = (
+  filters?: Omit<ArticleListQueryParams, "page">
+) => useInfiniteQuery(articlesInfiniteQueryOptions(filters));
+
 export const articleQueryOptions = (id: number) =>
   queryOptions({
     queryKey: wikiQueryKeys.article(id),
@@ -274,8 +299,8 @@ export const useCreateArticle = () => {
         queryClient.setQueryData(wikiQueryKeys.article(created.id), response);
       }
 
-      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
-      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.stats() });
+      // Don't invalidate queries here - will be done after navigation
+      // to avoid empty list issue when going back without changes
     },
     onError: (error) => {
       console.error("Error creating article:", error);

@@ -15,6 +15,7 @@ import {
   useDeleteArticle,
   useUnpublishArticle,
   useUpdateArticle,
+  wikiQueryKeys,
 } from "@/features/wiki/api/wikiQueries";
 import {
   ArticleEditorToolbar,
@@ -26,10 +27,16 @@ import {
 import { useArticleEditor } from "@/features/wiki/hooks/use-article-editor";
 import { toast } from "sonner";
 import { buildPageHead } from "@/lib/page-title";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_auth/wiki/$articleId/")({
   head: ({ params }) => buildPageHead(`Editar Artigo ${params.articleId}`),
+  validateSearch: (search: Record<string, unknown>): { new?: string } => {
+    return {
+      new: search.new === "true" ? "true" : undefined,
+    };
+  },
   loader: async ({ context: { queryClient }, params: { articleId } }) => {
     const numericArticleId = Number(articleId);
 
@@ -51,9 +58,28 @@ export const Route = createFileRoute("/_auth/wiki/$articleId/")({
 function RouteComponent() {
   const navigate = useNavigate();
   const { articleId } = Route.useParams();
+  const search = Route.useSearch();
+  const queryClient = useQueryClient();
   const numericArticleId = Number(articleId);
 
   const articleQuery = useArticle(numericArticleId);
+
+  // Invalidate queries after navigating to a newly created article
+  useEffect(() => {
+    if (search.new === "true") {
+      // Invalidate articles list and stats to show the new article
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.articles() });
+      queryClient.invalidateQueries({ queryKey: wikiQueryKeys.stats() });
+
+      // Remove the 'new' search param to avoid re-invalidating on subsequent renders
+      navigate({
+        to: "/wiki/$articleId",
+        params: { articleId },
+        search: { new: undefined },
+        replace: true,
+      });
+    }
+  }, [search.new, queryClient, navigate, articleId]);
 
   if (Number.isNaN(numericArticleId)) {
     return (
