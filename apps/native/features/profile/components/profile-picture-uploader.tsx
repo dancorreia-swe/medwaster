@@ -136,6 +136,7 @@ export function ProfilePictureUploader({
             source={{ uri: currentImage }}
             className="h-full w-full"
             resizeMode="cover"
+            key={currentImage}
           />
         ) : (
           <View className="h-full w-full items-center justify-center">

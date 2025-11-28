@@ -129,10 +129,16 @@ O MedWaster inclui MinIO para armazenamento de objetos (compatível com S3).
 
 | Variável | Descrição |
 |----------|-----------|
-| `S3_ENDPOINT` | `http://minio:9000` (interno) ou URL do seu provedor S3. |
+| `S3_ENDPOINT` | `http://minio:9000` (rede interna Docker) ou URL do seu provedor S3. Usado pelo servidor para enviar arquivos. |
+| `PUBLIC_S3_ENDPOINT` | **(Opcional)** URL externa para downloads de clientes. Use quando `S3_ENDPOINT` for interno (ex: `http://minio:9000`) mas clientes precisam de acesso externo (ex: `http://192.168.1.100:9000`). Usa `S3_ENDPOINT` como fallback se não definido. |
 | `MINIO_ROOT_USER` | Usuário admin do console MinIO. |
 | `MINIO_ROOT_PASSWORD` | Senha admin do console MinIO. |
 | `S3_BUCKET_*` | Nomes para vários buckets de armazenamento (questions, wiki, etc.). |
+
+**Quando usar `PUBLIC_S3_ENDPOINT`:**
+- **Implantações Docker**: Defina para IP/domínio externo (ex: `http://192.168.1.100:9000`) enquanto `S3_ENDPOINT` permanece `http://minio:9000`
+- **Configurações de servidor único**: Deixe vazio ou defina igual a `S3_ENDPOINT`
+- **Produção com CDN**: Defina para a URL do seu CDN
 
 ### 🗄️ Banco de Dados (PostgreSQL)
 

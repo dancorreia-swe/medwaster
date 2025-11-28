@@ -34,6 +34,7 @@ export function UserAvatar({
             source={{ uri: imageUrl }}
             className="w-full h-full"
             resizeMode="cover"
+            key={imageUrl}
           />
         ) : (
           <Text className={`${textSizeClasses[size]} font-bold text-gray-600`}>

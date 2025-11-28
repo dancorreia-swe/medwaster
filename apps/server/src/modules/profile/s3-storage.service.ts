@@ -62,7 +62,7 @@ export class AvatarStorageService {
     await this.ensureBucket();
 
     const filename = this.generateFilename(file.name);
-    const key = `avatars/${filename}`;
+    const key = filename; // Don't add prefix since bucket name is already "avatars"
 
     try {
       const buffer = Buffer.from(await file.arrayBuffer());
@@ -78,7 +78,9 @@ export class AvatarStorageService {
       await s3Client.send(command);
 
       // Generate the public MinIO URL
-      const url = `${S3_CONFIG.ENDPOINT}/${BUCKET_NAME}/${key}`;
+      // Use PUBLIC_S3_ENDPOINT if available (for external access), otherwise fall back to S3_ENDPOINT
+      const publicEndpoint = process.env.PUBLIC_S3_ENDPOINT || S3_CONFIG.ENDPOINT;
+      const url = `${publicEndpoint}/${BUCKET_NAME}/${key}`;
 
       return {
         url,
@@ -113,9 +115,17 @@ export class AvatarStorageService {
    */
   static extractKeyFromUrl(url: string): string | null {
     try {
-      const urlPattern = new RegExp(`${S3_CONFIG.ENDPOINT}/${BUCKET_NAME}/(.+)`);
-      const match = url.match(urlPattern);
-      return match ? match[1] : null;
+      // Support both internal and public endpoints
+      const publicEndpoint = process.env.PUBLIC_S3_ENDPOINT || S3_CONFIG.ENDPOINT;
+
+      // Try public endpoint first, then internal
+      for (const endpoint of [publicEndpoint, S3_CONFIG.ENDPOINT]) {
+        const urlPattern = new RegExp(`${endpoint.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/${BUCKET_NAME}/(.+)`);
+        const match = url.match(urlPattern);
+        if (match) return match[1];
+      }
+
+      return null;
     } catch {
       return null;
     }
