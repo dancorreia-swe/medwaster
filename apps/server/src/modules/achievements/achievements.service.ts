@@ -308,7 +308,7 @@ export abstract class AchievementsService {
           },
         },
       },
-      orderBy: [asc(achievements.displayOrder), asc(achievements.createdAt)],
+      orderBy: [asc(achievements.category), asc(achievements.createdAt)],
       limit: pageSize,
       offset: (page - 1) * pageSize,
     });

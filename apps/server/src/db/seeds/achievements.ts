@@ -58,30 +58,6 @@ export async function achievementsSeed() {
         createdBy: systemUserId,
       },
       {
-        slug: "onboarding-complete",
-        name: "Bem-vindo!",
-        description: "Complete o processo de onboarding",
-        category: "general",
-        difficulty: "bronze",
-        type: "milestone",
-        status: "active",
-        visibility: "public",
-        badge: {
-          type: "icon",
-          value: "check-circle",
-          color: "#3B82F6",
-        },
-        triggerConfig: {
-          type: "onboarding_complete",
-          conditions: {},
-        },
-        rewards: {
-          points: 25,
-        },
-        displayOrder: 2,
-        createdBy: systemUserId,
-      },
-      {
         slug: "login-streak-7",
         name: "Sete Dias de Dedicação",
         description: "Faça login por 7 dias consecutivos",
@@ -194,7 +170,7 @@ export async function achievementsSeed() {
         category: "trails",
         difficulty: "gold",
         type: "progressive",
-        status: "active",
+        status: "inactive",
         visibility: "public",
         badge: {
           type: "icon",
@@ -381,7 +357,7 @@ export async function achievementsSeed() {
         category: "questions",
         difficulty: "gold",
         type: "milestone",
-        status: "active",
+        status: "inactive",
         visibility: "public",
         badge: {
           type: "icon",

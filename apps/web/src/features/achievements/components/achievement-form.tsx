@@ -49,7 +49,6 @@ const achievementFormSchema = z.object({
   badgeColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida"),
   badgeImageUrl: z.string().optional(),
   customMessage: z.string().optional(),
-  displayOrder: z.number(),
   isSecret: z.boolean(),
 });
 
@@ -94,11 +93,9 @@ const triggerTypes = [
   { value: "first_certificate", label: "Primeiro Certificado" },
   { value: "certificate_high_score", label: "Certificado com Nota Alta" },
   { value: "certificate_fast_approval", label: "Aprovação Rápida" },
-  { value: "onboarding_complete", label: "Completar Onboarding" },
   { value: "first_login", label: "Primeiro Login" },
   { value: "login_streak", label: "Sequência de Logins" },
   { value: "use_ai_assistant", label: "Usar Assistente IA" },
-  { value: "manual", label: "Manual" },
 ] as const;
 
 export function AchievementForm({
@@ -158,7 +155,7 @@ export function AchievementForm({
       category: "general" as const,
       difficulty: "medium" as const,
       status: "active" as const,
-      triggerType: "manual",
+      triggerType: "complete_trails",
       targetCount: undefined as number | undefined,
       targetResourceId: undefined as string | undefined,
       targetAccuracy: undefined as number | undefined,
@@ -170,7 +167,6 @@ export function AchievementForm({
       badgeColor: "#fbbf24",
       badgeImageUrl: undefined as string | undefined,
       customMessage: undefined as string | undefined,
-      displayOrder: 0,
       isSecret: false,
     },
     onSubmit: async ({ value }) => {
@@ -192,7 +188,6 @@ export function AchievementForm({
         badgeColor: value.badgeColor,
         badgeImageUrl: value.badgeImageUrl,
         customMessage: value.customMessage,
-        displayOrder: value.displayOrder,
         isSecret: value.isSecret,
       };
 
@@ -213,7 +208,7 @@ export function AchievementForm({
       form.setFieldValue("category", achievement.category || "general");
       form.setFieldValue("difficulty", achievement.difficulty || "medium");
       form.setFieldValue("status", achievement.status || "active");
-      form.setFieldValue("triggerType", achievement.triggerType || "manual");
+      form.setFieldValue("triggerType", achievement.triggerType || "complete_trails");
       form.setFieldValue("targetCount", achievement.targetCount);
       form.setFieldValue("targetResourceId", achievement.targetResourceId);
       form.setFieldValue("targetAccuracy", achievement.targetAccuracy);
@@ -225,7 +220,6 @@ export function AchievementForm({
       form.setFieldValue("badgeColor", achievement.badgeColor || "#fbbf24");
       form.setFieldValue("badgeImageUrl", achievement.badgeImageUrl);
       form.setFieldValue("customMessage", achievement.customMessage);
-      form.setFieldValue("displayOrder", achievement.displayOrder || 0);
       form.setFieldValue("isSecret", achievement.isSecret || false);
     }
   }, [achievementData, form]);
@@ -751,23 +745,6 @@ export function AchievementForm({
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                  )}
-                </form.Field>
-
-                <form.Field name="displayOrder">
-                  {(field) => (
-                    <div className="space-y-2">
-                      <Label htmlFor={field.name}>Ordem de Exibição</Label>
-                      <Input
-                        id={field.name}
-                        type="number"
-                        value={field.state.value}
-                        onChange={(e) => field.handleChange(Number(e.target.value))}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Menor número aparece primeiro
-                      </p>
                     </div>
                   )}
                 </form.Field>

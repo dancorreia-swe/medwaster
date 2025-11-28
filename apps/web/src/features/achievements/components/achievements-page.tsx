@@ -15,7 +15,6 @@ import {
   EmptyDescription,
 } from "@/components/ui/empty";
 import { AchievementGrid } from "./achievement-grid";
-import { AchievementOrderManager } from "./achievement-order-manager";
 import { achievementsApi } from "../api/achievementsApi";
 import type { Achievement } from "@server/db/schema/achievements";
 
@@ -27,37 +26,14 @@ export function AchievementsPage() {
   const achievements = data?.data ?? [];
   const orderedAchievements = useMemo(() => {
     return [...achievements].sort((a, b) => {
-      const aOrder = a.displayOrder ?? Number.MAX_SAFE_INTEGER;
-      const bOrder = b.displayOrder ?? Number.MAX_SAFE_INTEGER;
-      if (aOrder === bOrder) {
-        return a.name.localeCompare(b.name);
+      // Sort by category first, then by creation date
+      if (a.category !== b.category) {
+        return a.category.localeCompare(b.category);
       }
-      return aOrder - bOrder;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
   }, [achievements]);
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, body }: { id: number; body: any }) =>
-      achievementsApi.updateAchievement(id, body),
-    onMutate: ({ body }) => {
-      if (body.displayOrder !== undefined) {
-        toast.loading("Atualizando ordem...", { id: "update-achievement" });
-      }
-    },
-    onSuccess: (_, variables) => {
-      if (variables.body.displayOrder !== undefined) {
-        toast.success(`Ordem atualizada para #${variables.body.displayOrder}!`, {
-          id: "update-achievement",
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ["achievements"] });
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "Erro ao atualizar conquista", {
-        id: "update-achievement",
-      });
-    },
-  });
 
   const handleEdit = (achievement: Achievement) => {
     navigate({
@@ -73,30 +49,6 @@ export function AchievementsPage() {
     });
   };
 
-  const handleBulkReorder = async (reordered: Achievement[]) => {
-    try {
-      toast.loading("Salvando nova ordem...", { id: "achievements-reorder" });
-
-      const updates = reordered.map((achievement, index) =>
-        updateMutation.mutateAsync({
-          id: achievement.id,
-          body: { displayOrder: index + 1 },
-        }),
-      );
-
-      await Promise.all(updates);
-      await queryClient.invalidateQueries({ queryKey: ["achievements"] });
-      toast.success("Ordem das conquistas atualizada!", {
-        id: "achievements-reorder",
-      });
-    } catch (error) {
-      console.error("Error updating achievement order:", error);
-      toast.error("Erro ao atualizar ordem das conquistas", {
-        id: "achievements-reorder",
-      });
-    }
-  };
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between">
@@ -109,12 +61,6 @@ export function AchievementsPage() {
           </p>
         </header>
         <div className="flex items-center gap-2">
-          {orderedAchievements.length > 1 && (
-            <AchievementOrderManager
-              achievements={orderedAchievements}
-              onSave={handleBulkReorder}
-            />
-          )}
           <Button onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
             Nova conquista
