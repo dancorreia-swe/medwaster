@@ -5,7 +5,7 @@ import type { AppStateStatus } from "react-native";
 import { toast } from "sonner-native";
 import { Icon } from "@/components/icon";
 import { getLucideIcon } from "./utils";
-import { useRouter } from "expo-router";
+import { useRouter, usePathname } from "expo-router";
 import { authClient } from "@/lib/auth-client";
 
 /**
@@ -19,6 +19,7 @@ export function useAchievementNotifications() {
   const isCheckingRef = useRef(false);
   const processedAchievementsRef = useRef<Set<number>>(new Set());
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session } = authClient.useSession();
 
   const checkForUnnotifiedAchievements = async () => {
@@ -107,7 +108,10 @@ export function useAchievementNotifications() {
             {
               duration: 4000,
               onDismiss: () => {
-                router.push("/(app)/(tabs)/(profile)/achievements");
+                // Only navigate if we're not already on the achievements screen
+                if (pathname !== "/(app)/(tabs)/(profile)/achievements") {
+                  router.push("/(app)/(tabs)/(profile)/achievements");
+                }
               },
             }
           );
