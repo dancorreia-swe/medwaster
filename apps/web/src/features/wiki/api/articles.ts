@@ -8,14 +8,26 @@ export const articlesQueryOptions = (params?: {
   category?: string;
   page?: number;
   limit?: number;
-}) =>
-  queryOptions({
-    queryKey: ["wiki", "articles", params],
+  offset?: number;
+}) => {
+  const limit = params?.limit;
+  const offset = params?.offset ?? 0;
+  const page =
+    params?.page ??
+    (limit ? Math.floor(offset / limit) + 1 : undefined);
+
+  return queryOptions({
+    queryKey: ["wiki", "articles", { ...params, offset, page }],
     queryFn: () =>
       client.wiki.articles.get({
-        query: params,
+        query: {
+          ...params,
+          page,
+          limit,
+        },
       }),
   });
+};
 
 // Single article query options
 export const articleQueryOptions = (id: number) =>

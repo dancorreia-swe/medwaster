@@ -15,17 +15,17 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tag, X, ChevronDown } from "lucide-react";
+import { Tag, X, ChevronDown, Loader2 } from "lucide-react";
 import {
-  articlesQueryOptions,
+  articlesInfiniteQueryOptions,
   categoriesQueryOptions,
-  useArticles,
   useCategories,
   useWikiStats,
   wikiQueryKeys,
   wikiStatsQueryOptions,
   useTags,
 } from "@/features/wiki/api/wikiQueries";
+import { useArticles } from "@/features/wiki/hooks/use-articles";
 import {
   ArticleGrid,
   ArticleGridSkeleton,
@@ -42,6 +42,7 @@ import {
 import { useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { buildPageHead } from "@/lib/page-title";
+import { useInView } from "react-intersection-observer";
 
 const PAGE_TITLE = "Wiki";
 
@@ -89,31 +90,29 @@ export const Route = createFileRoute("/_auth/wiki")({
     // Only prefetch articles on initial load - use cached data on subsequent visits
     // The component will handle refetching via React Query's staleTime
     const tags = deps.tags;
-    
-    const articlesKey = articlesQueryOptions({
-      page: 1,
-      limit: 12,
+
+    const infiniteQueryKey = articlesInfiniteQueryOptions({
       status,
       categoryId: deps.categoryId || undefined,
       search: deps.q,
       tags,
       sort: "updated_at",
       order: "desc",
+      limit: 12,
     }).queryKey;
 
-    const hasData = queryClient.getQueryData(articlesKey);
+    const hasData = queryClient.getQueryData(infiniteQueryKey);
 
     if (!hasData) {
-      await queryClient.prefetchQuery(
-        articlesQueryOptions({
-          page: 1,
-          limit: 12,
+      await queryClient.prefetchInfiniteQuery(
+        articlesInfiniteQueryOptions({
           status,
           categoryId: deps.categoryId || undefined,
           search: deps.q,
           tags,
           sort: "updated_at",
           order: "desc",
+          limit: 12,
         }),
       );
     }
@@ -136,26 +135,34 @@ function RouteComponent() {
 
   // Data is preloaded by loader - these hooks return cached data instantly
   const tags = search.tags;
-  
+
   const articlesQuery = useArticles({
-    page: 1,
-    limit: 12,
     status,
     categoryId: search.categoryId || undefined,
     search: search.q,
     tags,
     sort: "updated_at",
     order: "desc",
+    itemsPerPage: 12,
   });
 
   const statsQuery = useWikiStats();
   const categoriesQuery = useCategories();
   const tagsQuery = useTags();
 
-  const articles =
-    articlesQuery.isSuccess && articlesQuery.data?.data?.data?.articles
-      ? articlesQuery.data.data.data.articles
-      : [];
+  const articles = articlesQuery.articles;
+
+  // Infinite scroll trigger
+  const { ref, inView } = useInView({
+    threshold: 0,
+  });
+
+  // Load more when scroll trigger is in view
+  useEffect(() => {
+    if (inView) {
+      articlesQuery.loadMoreArticles();
+    }
+  }, [inView, articlesQuery.loadMoreArticles]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -400,18 +407,40 @@ function RouteComponent() {
           ))}
         </TabsList>
         <TabsContent value={status} className="mt-4">
-          {(() => {
-            const state = articlesQuery.isPending
-              ? "pending"
-              : articlesQuery.isError
-                ? "error"
-                : articlesQuery.isSuccess && articles.length === 0
-                  ? "empty"
-                  : "success";
+          <div className="space-y-6">
+            {(() => {
+              const state = articlesQuery.isPending
+                ? "pending"
+                : articlesQuery.isError
+                  ? "error"
+                  : articlesQuery.isSuccess && articles.length === 0
+                    ? "empty"
+                    : "success";
 
-            const Component = ARTICLE_STATES[state];
-            return <Component articles={articles} />;
-          })()}
+              const Component = ARTICLE_STATES[state];
+              return <Component articles={articles} />;
+            })()}
+
+            {/* Infinite scroll trigger - positioned at the bottom of the list */}
+            {articlesQuery.isSuccess && articles.length > 0 && (
+              <div ref={ref} className="flex justify-center py-8">
+                {articlesQuery.isFetchingNextPage ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando mais artigos...
+                  </div>
+                ) : articlesQuery.hasNextPage ? (
+                  <div className="text-sm text-muted-foreground">
+                    Role para carregar mais
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    Todos os artigos foram carregados
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

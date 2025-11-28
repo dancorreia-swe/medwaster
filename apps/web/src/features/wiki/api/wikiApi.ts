@@ -6,14 +6,32 @@ type ArticleListQuery = ArticlesGetParams extends { query?: infer Q }
   ? Q
   : undefined;
 
+type ArticleListQueryWithOffset = ArticleListQuery & {
+  offset?: number;
+};
+
 const toArticleResource = (id: number) =>
   client.admin.wiki.articles({ id: id.toString() });
 
 export const wikiApi = {
-  listArticles: (query?: ArticleListQuery) =>
-    query
-      ? client.admin.wiki.articles.get({ query })
-      : client.admin.wiki.articles.get(),
+  listArticles: (query?: ArticleListQueryWithOffset) => {
+    if (!query) return client.admin.wiki.articles.get();
+
+    const { offset, limit, ...rest } = query;
+    const page =
+      query.page ??
+      (offset !== undefined && limit
+        ? Math.floor(offset / limit) + 1
+        : undefined);
+
+    return client.admin.wiki.articles.get({
+      query: {
+        ...rest,
+        limit,
+        page,
+      },
+    });
+  },
 
   getStats: () => client.admin.wiki.articles.stats.get(),
 
@@ -62,4 +80,4 @@ export type CreateArticleResponse = Awaited<
 export type UpdateArticleResponse = Awaited<
   ReturnType<typeof wikiApi.updateArticle>
 >;
-export type ArticleListQueryParams = ArticleListQuery;
+export type ArticleListQueryParams = ArticleListQueryWithOffset;

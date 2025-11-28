@@ -238,23 +238,40 @@ export const useArticles = (filters?: ArticleListQueryParams) =>
   useQuery(articlesQueryOptions(filters));
 
 export const articlesInfiniteQueryOptions = (
-  filters?: Omit<ArticleListQueryParams, "page">
-) =>
-  infiniteQueryOptions({
-    queryKey: [...wikiQueryKeys.articles(), "infinite", filters] as const,
-    queryFn: ({ pageParam = 1 }) =>
-      wikiApi.listArticles({ ...filters, page: pageParam, limit: 12 }),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage, allPages) => {
-      const response = lastPage?.data?.data;
-      if (!response) return undefined;
+  filters?: Omit<ArticleListQueryParams, "page">,
+) => {
+  const itemsPerPage = filters?.limit ?? 12;
+  const initialOffset = filters?.offset ?? 0;
 
-      const { currentPage, totalPages } = response.pagination;
-      return currentPage < totalPages ? currentPage + 1 : undefined;
+  return infiniteQueryOptions({
+    queryKey: [
+      ...wikiQueryKeys.articles(),
+      "infinite",
+      { ...filters, limit: itemsPerPage, offset: initialOffset },
+    ] as const,
+    queryFn: ({ pageParam = initialOffset }) =>
+      wikiApi.listArticles({
+        ...filters,
+        limit: itemsPerPage,
+        page: Math.floor(Number(pageParam) / itemsPerPage) + 1,
+      }),
+    initialPageParam: initialOffset,
+    getNextPageParam: (lastPage) => {
+      const response = lastPage?.data?.data;
+      const pagination = response?.pagination;
+
+      if (!pagination) return undefined;
+
+      const { page, pages, limit } = pagination;
+      const pageSize = limit ?? itemsPerPage;
+      const hasMore = page < pages;
+
+      return hasMore ? page * pageSize : undefined;
     },
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
   });
+};
 
 export const useArticlesInfinite = (
   filters?: Omit<ArticleListQueryParams, "page">
