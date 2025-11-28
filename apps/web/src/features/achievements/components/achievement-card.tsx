@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Trophy, Hash } from "lucide-react";
+import { Eye, EyeOff, Trophy } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Achievement } from "@server/db/schema/achievements";
@@ -106,10 +106,6 @@ export function AchievementCard({ achievement, onEdit }: AchievementCardProps) {
           <div className="flex items-center justify-center gap-3 text-sm pt-3 border-t">
             <Badge variant="outline" className="text-xs">
               {difficultyLabels[achievement.difficulty]}
-            </Badge>
-            <Badge variant="outline" className="inline-flex items-center gap-1 text-xs">
-              <Hash className="h-3 w-3 text-muted-foreground" />
-              #{achievement.displayOrder ?? "?"}
             </Badge>
             {achievement.isSecret ? (
               <EyeOff className="h-4 w-4 text-muted-foreground" />
