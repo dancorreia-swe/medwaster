@@ -96,6 +96,10 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
       const result = await createMutation.mutateAsync(formData);
       const newTrailId = result.data.id;
       setLocalTrailId(newTrailId);
+
+      // Refetch the newly created trail to populate the form with server data
+      await refetchTrail();
+
       toast.success("Trilha criada! Agora adicione conteúdo.");
       setActiveTab("content");
       return newTrailId;
@@ -418,6 +422,7 @@ export function TrailBuilderPage({ mode, trailId, initialTab }: TrailBuilderPage
               mode={mode}
               trailId={localTrailId}
               onSave={mode === "create" ? handleCreateTrail : handleUpdateTrail}
+              hasContent={localContent.length > 0}
             />
           </TabsContent>
 

@@ -247,6 +247,13 @@ export abstract class TrailsService {
   }
 
   static async createTrail(newTrail: CreateTrailBody, authorId: string) {
+    // Check if trying to create a published trail (not allowed without content)
+    if (newTrail.status === "published") {
+      throw new BusinessLogicError(
+        "Não é possível criar uma trilha diretamente como publicada. Crie como rascunho, adicione conteúdo e depois publique.",
+      );
+    }
+
     // Generate a unique trail_id from the name
     const baseSlug = newTrail.name
       .toLowerCase()
@@ -326,6 +333,21 @@ export abstract class TrailsService {
 
     if (!existing) {
       throw new NotFoundError("Trail");
+    }
+
+    // Check if trying to publish a trail without content
+    if (updates.status === "published") {
+      const contentCount = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(trailContent)
+        .where(eq(trailContent.trailId, trailId))
+        .then(([result]) => Number(result?.count ?? 0));
+
+      if (contentCount === 0) {
+        throw new BusinessLogicError(
+          "Não é possível publicar uma trilha sem conteúdo. Adicione pelo menos um item de conteúdo antes de publicar.",
+        );
+      }
     }
 
     if (updates.unlockOrder !== undefined && updates.unlockOrder !== null) {

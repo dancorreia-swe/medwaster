@@ -289,11 +289,24 @@ export abstract class ProgressService {
 
     // Auto-enroll if not enrolled - improves UX by removing friction
     if (!progress?.isEnrolled) {
-      // Use the existing enrollInTrail method
-      progress = await this.enrollInTrail(userId, trailId);
+      // enrollInTrail creates progress, syncs article reads, and returns enriched progress
+      await this.enrollInTrail(userId, trailId);
+
+      // Re-fetch the raw progress from DB after enrollment completes
+      progress = await db.query.userTrailProgress.findFirst({
+        where: and(
+          eq(userTrailProgress.userId, userId),
+          eq(userTrailProgress.trailId, trailId),
+        ),
+      });
+
+      if (!progress) {
+        throw new Error("Trail progress not found after enrollment");
+      }
     }
 
-    // Sync previously read articles so progress is up to date for gating
+    // Always sync to ensure article reads are up-to-date
+    // This is safe to call multiple times (idempotent)
     progress = await this.syncArticleCompletionsFromReads(
       userId,
       trailId,
@@ -350,9 +363,11 @@ export abstract class ProgressService {
 
     // Attach progress to each content item
     // Handle both string (from DB) and array (from enrollInTrail return)
-    const completedIds = typeof progress.completedContentIds === 'string'
-      ? JSON.parse(progress.completedContentIds || "[]")
-      : (progress.completedContentIds || []);
+    const completedIds = progress?.completedContentIds
+      ? (typeof progress.completedContentIds === 'string'
+          ? JSON.parse(progress.completedContentIds)
+          : progress.completedContentIds)
+      : [];
     const contentWithProgress = contentItems.map((item, index) => {
       const itemProgress = progressMap.get(item.id);
 

@@ -168,26 +168,76 @@ export default function JourneyDetail() {
 
   const isLoading = trailLoading || (progressLoading && !progressError);
 
+  // DEBUG: Log data received from queries
+  console.log('[TrailDetail] Query states:', {
+    trailId,
+    trailLoading,
+    progressLoading,
+    contentLoading,
+    hasProgress: !!progress,
+    hasContent: !!content,
+    contentLength: content?.length,
+    isEnrolled: progress?.isEnrolled,
+    completedContentIds: progress?.completedContentIds,
+    progressPercentage: progress?.progressPercentage,
+  });
+
+  // DEBUG: Log content items data
+  if (content) {
+    console.log('[TrailDetail] Content items:', content.map((item: any) => ({
+      id: item.id,
+      articleId: item.articleId,
+      isCompleted: item.isCompleted,
+      progressIsCompleted: item.progress?.isCompleted,
+      hasProgress: !!item.progress,
+    })));
+  }
+
   const modules =
     content
       ?.filter((item: any) => item && item.id)
       ?.map((item: any, index: number) => {
-        const isCompleted = item.progress?.isCompleted || false;
+        // Use item.isCompleted which is derived from completedContentIds (synced with article reads)
+        // Fallback to item.progress?.isCompleted for backwards compatibility
+        const isCompleted = item.isCompleted || item.progress?.isCompleted || false;
         const isEnrolled = progress?.isEnrolled || false;
 
+        // DEBUG: Log completion status calculation for first 3 items
+        if (index < 3) {
+          console.log(`[TrailDetail] Module ${index} (id=${item.id}):`, {
+            itemIsCompleted: item.isCompleted,
+            progressIsCompleted: item.progress?.isCompleted,
+            finalIsCompleted: isCompleted,
+            isEnrolled,
+            articleId: item.articleId,
+          });
+        }
+
+        // Determine module status
+        // Priority: completed > accessible (based on previous completion) > locked
         let status: ModuleStatus = "locked";
-        if (!isEnrolled) {
-          status = index === 0 ? "current" : "locked";
-        } else if (isCompleted) {
+
+        if (isCompleted) {
+          // If already completed (e.g., article read before enrollment), mark as completed
           status = "completed";
         } else {
+          // Not completed - check if accessible
           const previousIndex = index - 1;
+
           if (previousIndex < 0) {
+            // First item is always accessible
             status = "current";
           } else {
+            // Check if previous item is completed
             const previousContent = content[previousIndex];
-            if (previousContent?.progress?.isCompleted) {
+            const previousCompleted = previousContent?.isCompleted || previousContent?.progress?.isCompleted;
+
+            if (previousCompleted) {
+              // Previous item completed, this one is accessible
               status = "current";
+            } else {
+              // Previous item not completed, this one is locked
+              status = "locked";
             }
           }
         }

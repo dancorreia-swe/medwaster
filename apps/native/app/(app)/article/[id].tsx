@@ -112,9 +112,16 @@ export default function WikiArticle() {
 
   const handleMarkAsReadCallback = useCallback(async () => {
     if (!article || !Number.isFinite(articleId)) return;
+    console.log('[Article] Marking article as read:', {
+      articleId,
+      title: article.title,
+      trailId: trailIdNum,
+      contentId: contentIdNum,
+    });
     try {
       setRead(articleId);
       await markArticleAsRead(articleId);
+      console.log('[Article] Article marked as read successfully');
 
       queryClient.invalidateQueries({
         queryKey: gamificationKeys.todayActivity(),
@@ -133,7 +140,12 @@ export default function WikiArticle() {
       });
 
       // Ensure trail data reflects the newly read article (even when coming from wiki)
-      queryClient.invalidateQueries({ queryKey: trailKeys.all, exact: false });
+      console.log('[Article] Clearing trail cache...');
+      // Use removeQueries to completely clear cache, forcing fresh fetch on next access
+      queryClient.removeQueries({ queryKey: trailKeys.all });
+      // Also invalidate to trigger refetch for any active queries
+      queryClient.invalidateQueries({ queryKey: trailKeys.all });
+      console.log('[Article] Trail cache cleared');
 
       if (trailIdNum && contentIdNum) {
         const result = await markTrailArticleReadMutation.mutateAsync({

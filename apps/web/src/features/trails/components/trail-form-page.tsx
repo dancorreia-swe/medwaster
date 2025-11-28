@@ -2,6 +2,7 @@ import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ interface TrailFormPageProps {
   mode: "create" | "edit";
   trailId?: number;
   onSave?: (formData: CreateTrailBody) => Promise<any>;
+  hasContent?: boolean;
 }
 
 export interface TrailFormHandle {
@@ -49,7 +51,7 @@ const trailStatusOptions = [
 ];
 
 export const TrailFormPage = forwardRef<TrailFormHandle, TrailFormPageProps>(
-  function TrailFormPage({ mode, trailId, onSave }, ref) {
+  function TrailFormPage({ mode, trailId, onSave, hasContent = false }, ref) {
     // Fetch trail data if editing
     const { data: existingTrail, isLoading: isLoadingTrail } = useQuery({
       ...trailQueryOptions(trailId!),
@@ -118,6 +120,9 @@ export const TrailFormPage = forwardRef<TrailFormHandle, TrailFormPageProps>(
         if (onSave) {
           await onSave(cleanedData);
         }
+
+        // After successful save, don't reset the form
+        // The form values should remain so they're visible after tab switch
       },
     });
 
@@ -129,7 +134,24 @@ export const TrailFormPage = forwardRef<TrailFormHandle, TrailFormPageProps>(
 
     // Update form when trail data loads
     useEffect(() => {
-      if (mode === "edit" && trail) {
+      if (trail) {
+        // Update form values when trail data is loaded
+        form.setFieldValue("name", trail.name || "");
+        form.setFieldValue("description", trail.description || undefined);
+        form.setFieldValue("categoryId", trail.categoryId || undefined);
+        form.setFieldValue("difficulty", trail.difficulty || "basic");
+        form.setFieldValue("status", trail.status || "draft");
+        form.setFieldValue("passPercentage", trail.passPercentage || 100);
+        form.setFieldValue("attemptsAllowed", trail.attemptsAllowed || null);
+        form.setFieldValue("timeLimitMinutes", trail.timeLimitMinutes || null);
+        form.setFieldValue("allowSkipQuestions", trail.allowSkipQuestions ?? false);
+        form.setFieldValue("showImmediateExplanations", trail.showImmediateExplanations ?? true);
+        form.setFieldValue("randomizeContentOrder", trail.randomizeContentOrder ?? false);
+        form.setFieldValue("coverImageUrl", trail.coverImageUrl || null);
+        form.setFieldValue("coverImageKey", (trail as any)?.coverImageKey || null);
+        form.setFieldValue("themeColor", trail.themeColor || null);
+        form.setFieldValue("estimatedTimeMinutes", trail.estimatedTimeMinutes || null);
+
         // Show advanced section if any advanced field has non-default value
         if (
           trail.passPercentage !== 100 ||
@@ -140,7 +162,7 @@ export const TrailFormPage = forwardRef<TrailFormHandle, TrailFormPageProps>(
           setShowAdvanced(true);
         }
       }
-    }, [mode, trail]);
+    }, [trail, form]);
 
     if (mode === "edit" && isLoadingTrail) {
       return <div>Carregando...</div>;
@@ -286,16 +308,27 @@ export const TrailFormPage = forwardRef<TrailFormHandle, TrailFormPageProps>(
                       <Label htmlFor="status">Status</Label>
                       <Select
                         value={field.state.value}
-                        onValueChange={(value: any) =>
-                          field.handleChange(value)
-                        }
+                        onValueChange={(value: any) => {
+                          // Prevent publishing if there's no content
+                          if (value === "published" && !hasContent) {
+                            toast.error(
+                              "Não é possível publicar uma trilha sem conteúdo. Adicione pelo menos um item na aba de conteúdo."
+                            );
+                            return;
+                          }
+                          field.handleChange(value);
+                        }}
                       >
                         <SelectTrigger id="status">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {trailStatusOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
+                            <SelectItem
+                              key={option.value}
+                              value={option.value}
+                              disabled={option.value === "published" && !hasContent}
+                            >
                               <div className="flex items-center gap-2">
                                 <Badge
                                   variant="secondary"
@@ -308,6 +341,11 @@ export const TrailFormPage = forwardRef<TrailFormHandle, TrailFormPageProps>(
                           ))}
                         </SelectContent>
                       </Select>
+                      {!hasContent && (
+                        <p className="text-xs text-muted-foreground">
+                          Adicione conteúdo na aba "Conteúdo" para publicar a trilha
+                        </p>
+                      )}
                     </div>
                   )}
                 />

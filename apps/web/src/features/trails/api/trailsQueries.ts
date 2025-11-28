@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { trailsApi } from "./trailsApi";
+import { extractErrorMessage } from "@/lib/api-error-handler";
 import type {
   TrailListQueryParams,
   CreateTrailBody,
@@ -47,22 +48,7 @@ export function useCreateTrail() {
     },
     onError: (error: any) => {
       console.error("Create trail error:", error);
-      // Extract meaningful error message from validation errors
-      let errorMessage = "Erro ao criar trilha";
-      
-      if (error?.value?.message) {
-        try {
-          const parsed = JSON.parse(error.value.message);
-          errorMessage = parsed.summary || parsed.message || errorMessage;
-        } catch {
-          errorMessage = error.value.message;
-        }
-      } else if (error?.message) {
-        errorMessage = error.message;
-      } else if (error?.summary) {
-        errorMessage = error.summary;
-      }
-      
+      const errorMessage = extractErrorMessage(error, "Erro ao criar trilha");
       toast.error(errorMessage, { id: "create-trail" });
     },
   });
@@ -103,21 +89,7 @@ export function useUpdateTrail(options?: { silent?: boolean }) {
     },
     onError: (error: any) => {
       console.error("Update trail error:", error);
-      let errorMessage = "Erro ao atualizar trilha";
-
-      if (error?.value?.message) {
-        try {
-          const parsed = JSON.parse(error.value.message);
-          errorMessage = parsed.summary || parsed.message || errorMessage;
-        } catch {
-          errorMessage = error.value.message;
-        }
-      } else if (error?.message) {
-        errorMessage = error.message;
-      } else if (error?.summary) {
-        errorMessage = error.summary;
-      }
-
+      const errorMessage = extractErrorMessage(error, "Erro ao atualizar trilha");
       toast.error(errorMessage, { id: "update-trail" });
     },
   });
