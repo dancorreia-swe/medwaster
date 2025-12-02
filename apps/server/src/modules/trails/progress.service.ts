@@ -219,7 +219,6 @@ export abstract class ProgressService {
       return null;
     }
 
-    // Get trail details
     const trailRecord = await db.query.trails.findFirst({
       where: eq(trails.id, trailId),
     });
@@ -240,7 +239,7 @@ export abstract class ProgressService {
       orderBy: [asc(trailContent.sequence)],
     });
 
-    const completedIds = JSON.parse(progress.completedContentIds || "[]");
+    const completedIds = JSON.parse(progress?.completedContentIds || "[]");
     const totalContent = contentItems.length;
     const completedContent = completedIds.length;
     const progressPercentage =
@@ -305,13 +304,14 @@ export abstract class ProgressService {
       }
     }
 
-    // Always sync to ensure article reads are up-to-date
-    // This is safe to call multiple times (idempotent)
-    progress = await this.syncArticleCompletionsFromReads(
-      userId,
-      trailId,
-      progress,
-    );
+    // DISABLED: Don't auto-sync article reads from wiki to trails
+    // Users must explicitly click "Mark as Read" for trail articles
+    // even if they've read them before in the wiki
+    // progress = await this.syncArticleCompletionsFromReads(
+    //   userId,
+    //   trailId,
+    //   progress,
+    // );
 
     // Fetch ordered content items with their linked records
     const contentItems = await db.query.trailContent.findMany({
@@ -1262,32 +1262,36 @@ export abstract class ProgressService {
   }
 
   /**
-   * When an article is marked read from the wiki, propagate completion to any
-   * trails where that article appears (for already-enrolled users).
+   * DISABLED: Don't auto-sync article reads from wiki to trails
+   * When an article is marked read from the wiki, DO NOT propagate completion to trails.
+   * Users must explicitly mark articles as read within the trail context.
    */
   static async syncArticleCompletionForUser(userId: string, articleId: number) {
-    const contents = await db.query.trailContent.findMany({
-      where: eq(trailContent.articleId, articleId),
-      columns: {
-        id: true,
-        trailId: true,
-      },
-    });
+    // Disabled - no automatic syncing
+    return;
 
-    if (contents.length === 0) return;
+    // const contents = await db.query.trailContent.findMany({
+    //   where: eq(trailContent.articleId, articleId),
+    //   columns: {
+    //     id: true,
+    //     trailId: true,
+    //   },
+    // });
 
-    for (const content of contents) {
-      const progress = await db.query.userTrailProgress.findFirst({
-        where: and(
-          eq(userTrailProgress.userId, userId),
-          eq(userTrailProgress.trailId, content.trailId),
-        ),
-      });
+    // if (contents.length === 0) return;
 
-      if (!progress) continue; // user not enrolled/unlocked for this trail
+    // for (const content of contents) {
+    //   const progress = await db.query.userTrailProgress.findFirst({
+    //     where: and(
+    //       eq(userTrailProgress.userId, userId),
+    //       eq(userTrailProgress.trailId, content.trailId),
+    //     ),
+    //   });
 
-      await this.syncArticleCompletionsFromReads(userId, content.trailId, progress);
-    }
+    //   if (!progress) continue; // user not enrolled/unlocked for this trail
+
+    //   await this.syncArticleCompletionsFromReads(userId, content.trailId, progress);
+    // }
   }
 
   /**

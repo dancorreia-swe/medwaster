@@ -31,11 +31,7 @@ function RouteComponent() {
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center justify-center gap-14 px-6 py-16">
         {/* Logo */}
         <div className="flex items-center gap-2 text-xl font-normal text-slate-900">
-          <img
-            src="/light-mascot.png"
-            alt="MedWaster"
-            className="h-7 w-7"
-          />
+          <img src="/light-mascot.png" alt="MedWaster" className="h-7 w-7" />
           <span className="font-medium">MedWaster</span>
         </div>
 

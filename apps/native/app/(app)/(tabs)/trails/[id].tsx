@@ -197,9 +197,10 @@ export default function JourneyDetail() {
     content
       ?.filter((item: any) => item && item.id)
       ?.map((item: any, index: number) => {
-        // Use item.isCompleted which is derived from completedContentIds (synced with article reads)
-        // Fallback to item.progress?.isCompleted for backwards compatibility
-        const isCompleted = item.isCompleted || item.progress?.isCompleted || false;
+        // ONLY use item.isCompleted which is derived from completedContentIds
+        // Do NOT use item.progress?.isCompleted as it may contain stale data
+        // from old auto-sync behavior
+        const isCompleted = item.isCompleted || false;
         const isEnrolled = progress?.isEnrolled || false;
 
         // DEBUG: Log completion status calculation for first 3 items
@@ -229,8 +230,9 @@ export default function JourneyDetail() {
             status = "current";
           } else {
             // Check if previous item is completed
+            // ONLY use isCompleted from completedContentIds, not progress.isCompleted
             const previousContent = content[previousIndex];
-            const previousCompleted = previousContent?.isCompleted || previousContent?.progress?.isCompleted;
+            const previousCompleted = previousContent?.isCompleted || false;
 
             if (previousCompleted) {
               // Previous item completed, this one is accessible
@@ -309,18 +311,10 @@ export default function JourneyDetail() {
       if (module.status === "locked") return;
 
       // Backend handles auto-enrollment, so just navigate
-      // For articles, navigate directly to the article detail page
-      // Pass trail context as query params so article page can mark content complete
-      if (module.type === "article" && module.articleId) {
-        router.push(
-          `/article/${module.articleId}?trailId=${module.trailId}&contentId=${module.contentId}` as any,
-        );
-      } else {
-        // For questions and quizzes, use the trail content screen
-        router.push(
-          `/trails/${module.trailId}/content/${module.contentId}` as any,
-        );
-      }
+      // All content types (articles, questions, quizzes) use the trail content screen
+      router.push(
+        `/trails/${module.trailId}/content/${module.contentId}` as any,
+      );
     };
 
     return (

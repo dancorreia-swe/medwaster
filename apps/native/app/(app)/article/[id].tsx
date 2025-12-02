@@ -202,8 +202,9 @@ export default function WikiArticle() {
     scrollViewHeight,
     handleScroll,
   } = useArticleScroll(
-    // Disable auto-read for external articles
-    isExternalArticle ? undefined : handleMarkAsReadCallback,
+    // Disable auto-read for external articles OR when viewing from trails
+    // (trails require explicit "Mark as Read" button click)
+    isExternalArticle || trailIdNum ? undefined : handleMarkAsReadCallback,
     canScroll,
     setHasReachedEnd,
     isReading,
@@ -227,6 +228,10 @@ export default function WikiArticle() {
   }, [articleId, fabTranslateY]);
 
   useEffect(() => {
+    // Don't auto-mark articles when viewing from trails
+    // (trails require explicit "Mark as Read" button click)
+    if (trailIdNum) return;
+
     if (
       !articleIsRead &&
       hasReachedEnd &&
@@ -246,6 +251,7 @@ export default function WikiArticle() {
     article,
     articleId,
     handleMarkAsReadCallback,
+    trailIdNum,
   ]);
 
   const contentText = useMemo(
@@ -777,6 +783,9 @@ export default function WikiArticle() {
             <CompletionBadge
               isRead={articleIsRead}
               hasReachedEnd={hasReachedEnd}
+              isFromTrail={!!trailIdNum}
+              onMarkAsRead={handleMarkAsRead}
+              isMarking={markTrailArticleReadMutation.isPending}
             />
           </View>
         ) : (
@@ -787,6 +796,9 @@ export default function WikiArticle() {
             <CompletionBadge
               isRead={articleIsRead}
               hasReachedEnd={hasReachedEnd}
+              isFromTrail={!!trailIdNum}
+              onMarkAsRead={handleMarkAsRead}
+              isMarking={markTrailArticleReadMutation.isPending}
             />
           </View>
         )}

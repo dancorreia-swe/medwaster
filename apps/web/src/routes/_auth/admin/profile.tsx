@@ -235,15 +235,6 @@ function ProfilePage() {
               Alterar Senha
             </Button>
           </div>
-          <div className="flex items-center justify-between py-3">
-            <div>
-              <h4 className="font-medium">Autenticação de Dois Fatores</h4>
-              <p className="text-sm text-slate-600">
-                Adicione uma camada extra de segurança à sua conta
-              </p>
-            </div>
-            <Button variant="outline">Configurar</Button>
-          </div>
         </CardContent>
       </Card>
 

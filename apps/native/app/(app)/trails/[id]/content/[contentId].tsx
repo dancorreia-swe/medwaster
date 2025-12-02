@@ -464,49 +464,29 @@ export default function TrailContentScreen() {
   const renderArticle = () => {
     const article = contentItem.article;
 
+    // Navigate to full article view with trail context
+    // This allows users to read the full article with all formatting
+    if (article?.id) {
+      router.replace(
+        `/article/${article.id}?trailId=${trailId}&contentId=${contentItemId}` as any,
+      );
+      return null;
+    }
+
+    // Fallback if no article ID (shouldn't happen)
     return (
       <View>
-        {/* Article Content */}
         <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200 dark:bg-gray-900 dark:border-gray-800">
           <Text className="text-sm text-primary font-semibold mb-4">
             ARTIGO
           </Text>
           <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-4">
-            {article.title}
+            {article?.title || "Artigo"}
           </Text>
           <Text className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
-            {article.summary || "Conteúdo do artigo..."}
+            Artigo não encontrado.
           </Text>
-          {/* TODO: Render full article content/body */}
         </View>
-
-        {/* Mark as Read Button */}
-        {!contentItem.progress?.isCompleted && (
-          <TouchableOpacity
-            onPress={handleMarkArticleRead}
-            disabled={markArticleReadMutation.isPending}
-            className="bg-primary rounded-full py-4 items-center"
-          >
-            {markArticleReadMutation.isPending ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text className="text-white text-base font-semibold">
-                Marcar como Lido
-              </Text>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {contentItem.progress?.isCompleted && (
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="bg-green-600 rounded-full py-4 items-center"
-          >
-            <Text className="text-white text-base font-semibold">
-              ✓ Artigo Concluído - Voltar
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
     );
   };
