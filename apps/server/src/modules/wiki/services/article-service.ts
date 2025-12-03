@@ -366,201 +366,38 @@ export class ArticleService {
     data: UpdateArticleData,
     authorId: string,
   ): Promise<ArticleDetail> {
-    // Validate article ID
-    if (!Number.isInteger(id) || id <= 0) {
-      throw new ValidationError("Invalid article ID");
-    }
+    this.validateArticleId(id);
 
-    const existingArticle = await db
-      .select()
-      .from(wikiArticles)
-      .where(eq(wikiArticles.id, id))
-      .limit(1);
+    const existingArticle = await this.getExistingArticle(id);
+    const updateData: Partial<NewWikiArticle> = { updatedAt: new Date() };
 
-    if (existingArticle.length === 0) {
-      throw new NotFoundError("Article");
-    }
-
-    const updateData: Partial<NewWikiArticle> = {
-      updatedAt: new Date(),
-    };
-
-    if (data.title !== undefined) {
-      // Validate title if provided
-      if (!data.title || data.title.trim().length === 0) {
-        throw new ValidationError("Article title cannot be empty");
-      }
-
-      if (data.title.length > 500) {
-        throw new ValidationError("Article title must be 500 characters or less");
-      }
-    }
-
-    if (data.title && data.title !== existingArticle[0].title) {
-      const baseSlug = generateSlug(data.title);
-      const existingSlugs = await db
-        .select({ slug: wikiArticles.slug })
-        .from(wikiArticles)
-        .where(sql`${wikiArticles.id} != ${id}`)
-        .then((results) => results.map((r) => r.slug));
-
-      updateData.title = data.title;
-      updateData.slug = ensureUniqueSlug(baseSlug, existingSlugs);
-    }
-
-    const sourceType = existingArticle[0].sourceType;
-
-    // Update content and recalculate metrics (for original articles only)
-    if (data.content && sourceType === "original") {
-      updateData.content = data.content;
-
-      const markdown = await this.editor.blocksToMarkdownLossy(data.content);
-      updateData.contentText = ContentProcessor.decodeHTMLEntities(markdown);
-
-      updateData.readingTimeMinutes = ContentProcessor.calculateReadingTime(
-        data.content,
-      );
-
-      if (!data.excerpt) {
-        updateData.excerpt = ContentProcessor.generateExcerpt(data.content);
-      }
-    }
-
-    if (sourceType === "external") {
-      if (data.externalUrl !== undefined)
-        updateData.externalUrl = data.externalUrl;
-      if (data.externalAuthors !== undefined)
-        updateData.externalAuthors = data.externalAuthors;
-      if (data.publicationDate !== undefined)
-        updateData.publicationDate = data.publicationDate
-          ? new Date(data.publicationDate)
-          : null;
-      if (data.publicationSource !== undefined)
-        updateData.publicationSource = data.publicationSource;
-      if (data.readingTimeMinutes !== undefined)
-        updateData.readingTimeMinutes = data.readingTimeMinutes;
-    }
-
-    if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
-    if (data.featuredImageUrl !== undefined)
-      updateData.featuredImageUrl = data.featuredImageUrl;
-    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
-    if (data.icon !== undefined) updateData.icon = data.icon;
-
-    if (data.status) {
-      const oldStatus = existingArticle[0].status;
-      const newStatus = data.status;
-
-      if (newStatus === "published") {
-        const categoryId = data.categoryId ?? existingArticle[0].categoryId;
-
-        if (!categoryId) {
-          throw new NeedCategoryError();
-        }
-
-        // Validate based on source type
-        if (sourceType === "original") {
-          const content = data.content ?? existingArticle[0].content;
-          const contentText = data.content
-            ? ContentProcessor.extractPlainText(content)
-            : existingArticle[0].contentText;
-
-          if (!contentText || contentText.length < 50) {
-            throw new BusinessLogicError(
-              "Published articles must have at least 50 characters of content",
-            );
-          }
-        } else if (sourceType === "external") {
-          const externalUrl =
-            data.externalUrl ?? existingArticle[0].externalUrl;
-          const externalAuthors =
-            data.externalAuthors ?? existingArticle[0].externalAuthors;
-          const excerpt = data.excerpt ?? existingArticle[0].excerpt;
-
-          if (!externalUrl) {
-            throw new BusinessLogicError(
-              "Published external articles must have an external URL",
-            );
-          }
-
-          if (!externalAuthors || externalAuthors.length === 0) {
-            throw new BusinessLogicError(
-              "Published external articles must have at least one author",
-            );
-          }
-
-          if (excerpt?.length && excerpt.length < 50) {
-            throw new BusinessLogicError(
-              "Published external articles must have an excerpt with at least 50 characters",
-            );
-          }
-        }
-
-        if (oldStatus !== "published") {
-          updateData.publishedAt = new Date();
-        }
-      } else if (newStatus === "draft" && oldStatus === "published") {
-        updateData.publishedAt = null;
-      }
-
-      updateData.status = newStatus;
-    }
+    await this.processTitleUpdate(id, data, existingArticle, updateData);
+    await this.processContentUpdate(data, existingArticle, updateData);
+    this.processFieldUpdates(data, updateData);
+    await this.processStatusUpdate(data, existingArticle, updateData);
 
     if (data.categoryId) {
-      const category = await db
-        .select()
-        .from(contentCategories)
-        .where(
-          and(
-            eq(contentCategories.id, data.categoryId),
-            eq(contentCategories.isActive, true),
-          ),
-        )
-        .limit(1);
-
-      if (category.length === 0) {
-        throw new ValidationError("Category not found or not active", {
-          categoryId: data.categoryId,
-        });
-      }
+      await this.validateCategory(data.categoryId);
     }
 
     try {
-      // Update article
       await db
         .update(wikiArticles)
         .set(updateData)
         .where(eq(wikiArticles.id, id));
 
-      // Update tags if provided
       if (data.tagIds !== undefined) {
         await this.updateArticleTags(id, data.tagIds, authorId);
       }
 
       const updatedArticle = await this.getArticleById(id);
 
-      // Queue embedding generation based on source type
-      if (sourceType === "original" && data.content) {
-        await ragQueue.add("generate-embeddings", {
-          type: "generate-embeddings",
-          articleId: id,
-          content:
-            updateData.contentText || existingArticle[0].contentText || "",
-        });
-      } else if (
-        sourceType === "external" &&
-        (data.externalUrl || data.status === "published")
-      ) {
-        // Re-scrape if URL changed or article was just published
-        const url = data.externalUrl || existingArticle[0].externalUrl;
-        if (url) {
-          await ragQueue.add("scrape-and-embed", {
-            type: "scrape-and-embed",
-            articleId: id,
-            url,
-          });
-        }
-      }
+      await this.queueEmbeddingGeneration(
+        id,
+        existingArticle,
+        data,
+        updateData,
+      );
 
       return updatedArticle;
     } catch (error) {
@@ -573,6 +410,298 @@ export class ArticleService {
         });
       }
       throw error;
+    }
+  }
+
+  /**
+   * Validate article ID
+   */
+  private static validateArticleId(id: number): void {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new ValidationError("Invalid article ID");
+    }
+  }
+
+  /**
+   * Get existing article or throw NotFoundError
+   */
+  private static async getExistingArticle(id: number) {
+    const [article] = await db
+      .select()
+      .from(wikiArticles)
+      .where(eq(wikiArticles.id, id))
+      .limit(1);
+
+    if (!article) {
+      throw new NotFoundError("Article");
+    }
+
+    return article;
+  }
+
+  /**
+   * Process title update and regenerate slug if needed
+   */
+  private static async processTitleUpdate(
+    id: number,
+    data: UpdateArticleData,
+    existingArticle: any,
+    updateData: Partial<NewWikiArticle>,
+  ): Promise<void> {
+    if (data.title !== undefined) {
+      this.validateTitle(data.title);
+
+      if (data.title !== existingArticle.title) {
+        const baseSlug = generateSlug(data.title);
+        const existingSlugs = await db
+          .select({ slug: wikiArticles.slug })
+          .from(wikiArticles)
+          .where(sql`${wikiArticles.id} != ${id}`)
+          .then((results) => results.map((r) => r.slug));
+
+        updateData.title = data.title;
+        updateData.slug = ensureUniqueSlug(baseSlug, existingSlugs);
+      }
+    }
+  }
+
+  /**
+   * Validate article title
+   */
+  private static validateTitle(title: string): void {
+    if (!title || title.trim().length === 0) {
+      throw new ValidationError("Article title cannot be empty");
+    }
+
+    if (title.length > 500) {
+      throw new ValidationError("Article title must be 500 characters or less");
+    }
+  }
+
+  /**
+   * Process content updates based on source type
+   */
+  private static async processContentUpdate(
+    data: UpdateArticleData,
+    existingArticle: any,
+    updateData: Partial<NewWikiArticle>,
+  ): Promise<void> {
+    const sourceType = existingArticle.sourceType;
+
+    if (sourceType === "original" && data.content) {
+      await this.processOriginalContentUpdate(data, updateData);
+    } else if (sourceType === "external") {
+      this.processExternalContentUpdate(data, updateData);
+    }
+  }
+
+  /**
+   * Process original article content update
+   */
+  private static async processOriginalContentUpdate(
+    data: UpdateArticleData,
+    updateData: Partial<NewWikiArticle>,
+  ): Promise<void> {
+    if (!data.content) return;
+
+    updateData.content = data.content;
+
+    const markdown = await this.editor.blocksToMarkdownLossy(data.content);
+    updateData.contentText = ContentProcessor.decodeHTMLEntities(markdown);
+    updateData.readingTimeMinutes = ContentProcessor.calculateReadingTime(
+      data.content,
+    );
+
+    if (!data.excerpt) {
+      updateData.excerpt = ContentProcessor.generateExcerpt(data.content);
+    }
+  }
+
+  /**
+   * Process external article content update
+   */
+  private static processExternalContentUpdate(
+    data: UpdateArticleData,
+    updateData: Partial<NewWikiArticle>,
+  ): void {
+    if (data.externalUrl !== undefined)
+      updateData.externalUrl = data.externalUrl;
+    if (data.externalAuthors !== undefined)
+      updateData.externalAuthors = data.externalAuthors;
+    if (data.publicationDate !== undefined)
+      updateData.publicationDate = data.publicationDate
+        ? new Date(data.publicationDate)
+        : null;
+    if (data.publicationSource !== undefined)
+      updateData.publicationSource = data.publicationSource;
+    if (data.readingTimeMinutes !== undefined)
+      updateData.readingTimeMinutes = data.readingTimeMinutes;
+  }
+
+  /**
+   * Process simple field updates
+   */
+  private static processFieldUpdates(
+    data: UpdateArticleData,
+    updateData: Partial<NewWikiArticle>,
+  ): void {
+    if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
+    if (data.featuredImageUrl !== undefined)
+      updateData.featuredImageUrl = data.featuredImageUrl;
+    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+    if (data.icon !== undefined) updateData.icon = data.icon;
+  }
+
+  /**
+   * Process status update with validation
+   */
+  private static async processStatusUpdate(
+    data: UpdateArticleData,
+    existingArticle: any,
+    updateData: Partial<NewWikiArticle>,
+  ): Promise<void> {
+    if (!data.status) return;
+
+    const oldStatus = existingArticle.status;
+    const newStatus = data.status;
+
+    if (newStatus === "published") {
+      await this.validatePublishing(data, existingArticle, updateData);
+
+      if (oldStatus !== "published") {
+        updateData.publishedAt = new Date();
+      }
+    } else if (newStatus === "draft" && oldStatus === "published") {
+      updateData.publishedAt = null;
+    }
+
+    updateData.status = newStatus;
+  }
+
+  /**
+   * Validate publishing requirements
+   */
+  private static async validatePublishing(
+    data: UpdateArticleData,
+    existingArticle: any,
+    updateData: Partial<NewWikiArticle>,
+  ): Promise<void> {
+    const categoryId = data.categoryId ?? existingArticle.categoryId;
+
+    if (!categoryId) {
+      throw new NeedCategoryError();
+    }
+
+    const sourceType = existingArticle.sourceType;
+
+    if (sourceType === "original") {
+      this.validateOriginalArticlePublishing(data, existingArticle);
+    } else if (sourceType === "external") {
+      this.validateExternalArticlePublishing(data, existingArticle);
+    }
+  }
+
+  /**
+   * Validate original article publishing requirements
+   */
+  private static validateOriginalArticlePublishing(
+    data: UpdateArticleData,
+    existingArticle: any,
+  ): void {
+    const content = data.content ?? existingArticle.content;
+    const contentText = data.content
+      ? ContentProcessor.extractPlainText(content)
+      : existingArticle.contentText;
+
+    if (!contentText || contentText.length < 50) {
+      throw new BusinessLogicError(
+        "Published articles must have at least 50 characters of content",
+      );
+    }
+  }
+
+  /**
+   * Validate external article publishing requirements
+   */
+  private static validateExternalArticlePublishing(
+    data: UpdateArticleData,
+    existingArticle: any,
+  ): void {
+    const externalUrl = data.externalUrl ?? existingArticle.externalUrl;
+    const externalAuthors =
+      data.externalAuthors ?? existingArticle.externalAuthors;
+    const excerpt = data.excerpt ?? existingArticle.excerpt;
+
+    if (!externalUrl) {
+      throw new BusinessLogicError(
+        "Published external articles must have an external URL",
+      );
+    }
+
+    if (!externalAuthors || externalAuthors.length === 0) {
+      throw new BusinessLogicError(
+        "Published external articles must have at least one author",
+      );
+    }
+
+    if (excerpt?.length && excerpt.length < 50) {
+      throw new BusinessLogicError(
+        "Published external articles must have an excerpt with at least 50 characters",
+      );
+    }
+  }
+
+  /**
+   * Validate category exists and is active
+   */
+  private static async validateCategory(categoryId: number): Promise<void> {
+    const [category] = await db
+      .select()
+      .from(contentCategories)
+      .where(
+        and(
+          eq(contentCategories.id, categoryId),
+          eq(contentCategories.isActive, true),
+        ),
+      )
+      .limit(1);
+
+    if (!category) {
+      throw new ValidationError("Category not found or not active", {
+        categoryId,
+      });
+    }
+  }
+
+  /**
+   * Queue embedding generation based on article type and changes
+   */
+  private static async queueEmbeddingGeneration(
+    id: number,
+    existingArticle: any,
+    data: UpdateArticleData,
+    updateData: Partial<NewWikiArticle>,
+  ): Promise<void> {
+    if (data.status !== "published") return;
+
+    const sourceType = existingArticle.sourceType;
+
+    if (sourceType === "original" && data.content) {
+      await ragQueue.add("generate-embeddings", {
+        type: "generate-embeddings",
+        articleId: id,
+        content: updateData.contentText || existingArticle.contentText || "",
+      });
+    } else if (sourceType === "external" && data.externalUrl) {
+      const url = data.externalUrl || existingArticle.externalUrl;
+
+      if (url) {
+        await ragQueue.add("scrape-and-embed", {
+          type: "scrape-and-embed",
+          articleId: id,
+          url,
+        });
+      }
     }
   }
 
@@ -1064,10 +1193,7 @@ export class ArticleService {
       .from(trailContent)
       .innerJoin(trails, eq(trailContent.trailId, trails.id))
       .where(
-        and(
-          eq(trailContent.articleId, id),
-          eq(trails.status, "published"),
-        ),
+        and(eq(trailContent.articleId, id), eq(trails.status, "published")),
       );
 
     if (activeTrails.length > 0) {
