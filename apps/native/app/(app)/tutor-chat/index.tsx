@@ -24,7 +24,8 @@ import {
 import { Container } from "@/components/container";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  AudioRecorder,
+  useAudioRecorder,
+  useAudioRecorderState,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   RecordingPresets
@@ -147,7 +148,8 @@ export default function TutorScreen() {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const stopRequestedRef = useRef(false);
-  const recordingRef = useRef<AudioRecorder | null>(null);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(audioRecorder);
 
   const handleBack = () => {
     if (returnTo) {
@@ -300,13 +302,12 @@ export default function TutorScreen() {
   );
 
   const stopRecordingAndTranscribe = useCallback(async () => {
-    if (!recordingRef.current) return;
+    if (!audioRecorder.isRecording) return;
 
     try {
       setIsRecording(false);
-      await recordingRef.current.stop();
-      const uri = recordingRef.current.uri;
-      recordingRef.current = null;
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
 
       if (uri) {
         await transcribeAndSend(uri);
@@ -317,26 +318,22 @@ export default function TutorScreen() {
         "Erro ao gravar",
         "Não conseguimos finalizar a gravação. Tente novamente.",
       );
-    } finally {
-      recordingRef.current = null;
     }
-  }, [transcribeAndSend]);
+  }, [audioRecorder, transcribeAndSend]);
 
   const cancelRecording = useCallback(async () => {
-    if (!recordingRef.current) return;
+    if (!audioRecorder.isRecording) return;
 
     try {
       setIsRecording(false);
       setRecordingStartedAt(null);
       setRecordingDurationMs(0);
       setRecordingLevel(-60);
-      await recordingRef.current.stop();
+      await audioRecorder.stop();
     } catch (error) {
       console.error(error);
-    } finally {
-      recordingRef.current = null;
     }
-  }, []);
+  }, [audioRecorder]);
 
   const handleStartRecording = useCallback(async () => {
     if (status !== "ready" || isTranscribing) return;
@@ -356,10 +353,8 @@ export default function TutorScreen() {
         playsInSilentMode: true,
       });
 
-      const recording = new AudioRecorder();
-      await recording.prepareToRecordAsync(RecordingPresets.HIGH_QUALITY);
-      recording.record();
-      recordingRef.current = recording;
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
       setIsRecording(true);
       setRecordingStartedAt(Date.now());
       setRecordingLevel(-60);
@@ -373,9 +368,8 @@ export default function TutorScreen() {
       setRecordingStartedAt(null);
       setRecordingDurationMs(0);
       setRecordingLevel(-60);
-      recordingRef.current = null;
     }
-  }, [isTranscribing, status]);
+  }, [audioRecorder, isTranscribing, status]);
 
   const handleAudioToggle = useCallback(
     async (messageId: string, messageText: string) => {
@@ -483,12 +477,11 @@ export default function TutorScreen() {
   }, [isRecording, recordingStartedAt]);
 
   useEffect(() => {
-    if (!isRecording || !recordingRef.current) return;
+    if (!isRecording || !audioRecorder.isRecording) return;
 
     const interval = setInterval(async () => {
       try {
-        const recorder = recordingRef.current;
-        if (recorder?.isRecording) {
+        if (audioRecorder.isRecording) {
           // expo-audio doesn't expose metering directly
           // Using a simulated value based on recording activity
           setRecordingLevel(-20 + Math.random() * 15);
@@ -499,7 +492,7 @@ export default function TutorScreen() {
     }, 150);
 
     return () => clearInterval(interval);
-  }, [isRecording]);
+  }, [isRecording, audioRecorder]);
 
   return (
     <Container
