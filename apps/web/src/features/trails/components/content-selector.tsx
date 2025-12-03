@@ -95,7 +95,7 @@ export function ContentSelector({
     ...tagsListQueryOptions(),
     enabled: isOpen,
   });
-  const allTags = tagsResponse?.data || [];
+  const allTags = tagsResponse || [];
 
   const { data: searchedTagsResponse, isFetching: isSearchingTags } = useQuery({
     ...tagsListQueryOptions(
@@ -108,7 +108,7 @@ export function ContentSelector({
 
   const filteredTags =
     debouncedTagSearch.trim().length > 0
-      ? searchedTagsResponse?.data || []
+      ? searchedTagsResponse || []
       : allTags;
 
   // Fetch content based on type
