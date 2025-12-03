@@ -25,8 +25,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "tsconfigPaths": true,
-      "autolinkingModuleResolution": true
+      "tsconfigPaths": true
     },
     "newArchEnabled": true,
     "orientation": "portrait",
@@ -37,14 +36,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.medwaster.app",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Precisamos do microfone para você enviar perguntas por áudio ao tutor.",
         "NSPhotoLibraryUsageDescription": "Precisamos acessar sua galeria para você escolher ou alterar sua foto de perfil.",
-        "NSPhotoLibraryAddUsageDescription": "Precisamos salvar a foto escolhida no seu dispositivo ao atualizar seu perfil."
+        "NSPhotoLibraryAddUsageDescription": "Precisamos salvar a foto escolhida no seu dispositivo ao atualizar seu perfil.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -54,13 +53,16 @@
       },
       "package": "com.medwaster.app",
       "edgeToEdgeEnabled": true,
-      "permissions": ["RECORD_AUDIO"]
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
     },
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "10a3bf06-57dc-4ef1-bcbd-817970c07582"
+        "projectId": "b833ff3c-d533-424d-af97-88adfba41d00"
       }
-    }
+    },
+    "owner": "danielcorreia-swe"
   }
 }
