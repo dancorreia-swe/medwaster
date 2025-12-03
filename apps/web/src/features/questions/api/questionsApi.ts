@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "@/lib/client";
 import type { QuestionListQueryParams } from "../types";
+import { handleApiError, extractErrorMessage } from "@/lib/api-error-handler";
+import { toast } from "sonner";
 
 type QuestionReference = {
   title: string;
@@ -98,8 +100,7 @@ export const questionsApi = {
   },
 
   deleteQuestion: async (id: number) => {
-    const response = await client.admin.questions({ id: id.toString() }).delete();
-    return response.data;
+    return client.admin.questions({ id: id.toString() }).delete();
   },
 };
 
@@ -143,9 +144,19 @@ export function useDeleteQuestion() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: questionsApi.deleteQuestion,
+    mutationFn: async (id: number) => {
+      const response = await questionsApi.deleteQuestion(id);
+      handleApiError(response, "Erro ao excluir questão");
+      return response;
+    },
     onSuccess: () => {
+      toast.success("Questão excluída com sucesso");
       queryClient.invalidateQueries({ queryKey: ["questions"] });
+    },
+    onError: (error) => {
+      const message = extractErrorMessage(error, "Erro ao excluir questão");
+      toast.error(message);
+      console.error("Error deleting question:", error);
     },
   });
 }

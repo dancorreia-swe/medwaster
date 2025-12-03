@@ -66,11 +66,9 @@ export function QuestionDetail({ questionId, onBack }: QuestionDetailProps) {
     setIsDeleting(true);
     try {
       await deleteQuestion.mutateAsync(questionId);
-      toast.success("Questão excluída com sucesso!");
       navigate({ to: "/questions" });
     } catch (error) {
-      toast.error("Erro ao excluir questão. Tente novamente.");
-      console.error("Error deleting question:", error);
+      // Error is already handled by the mutation hook
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);

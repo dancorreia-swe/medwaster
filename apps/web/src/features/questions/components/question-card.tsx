@@ -93,13 +93,11 @@ export function QuestionCard({ question }: { question: QuestionListItem }) {
     setIsDeleting(true);
     try {
       await deleteQuestion.mutateAsync(question.id);
-      setShowDeleteDialog(false);
-      toast.success("Questão excluída com sucesso");
     } catch (error) {
-      toast.error("Erro ao excluir questão");
-      console.error("Error deleting question:", error);
+      // Error is already handled by the mutation hook
     } finally {
       setIsDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 

@@ -12,8 +12,10 @@ import {
   type QuestionDifficulty,
   type QuestionStatus,
 } from "@/db/schema/questions";
+import { quizQuestions } from "@/db/schema/quizzes";
+import { trailContent } from "@/db/schema/trails";
 import { asc, desc, eq, and, sql, ilike, or, inArray } from "drizzle-orm";
-import { NotFoundError } from "@/lib/errors";
+import { NotFoundError, DependencyError } from "@/lib/errors";
 import { S3StorageService } from "./s3-storage.service";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -430,6 +432,36 @@ export abstract class QuestionsService {
 
     if (!existing) {
       throw new NotFoundError("Question");
+    }
+
+    // Check if question is used in any quizzes or trails
+    const dependencies: string[] = [];
+
+    const quizUsage = await db
+      .select({ quizId: quizQuestions.quizId })
+      .from(quizQuestions)
+      .where(eq(quizQuestions.questionId, questionId))
+      .limit(1);
+
+    if (quizUsage.length > 0) {
+      dependencies.push("questionários");
+    }
+
+    const trailUsage = await db
+      .select({ trailId: trailContent.trailId })
+      .from(trailContent)
+      .where(eq(trailContent.questionId, questionId))
+      .limit(1);
+
+    if (trailUsage.length > 0) {
+      dependencies.push("trilhas");
+    }
+
+    if (dependencies.length > 0) {
+      throw new DependencyError(
+        "Não é possível excluir esta questão pois ela está sendo usada em outros recursos.",
+        dependencies,
+      );
     }
 
     // Delete associated image from S3 if exists
