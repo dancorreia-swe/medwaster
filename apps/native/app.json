@@ -21,6 +21,12 @@
           "resizeMode": "contain",
           "imageWidth": 160
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Precisamos do microfone para você enviar perguntas por áudio ao tutor."
+        }
       ]
     ],
     "experiments": {
