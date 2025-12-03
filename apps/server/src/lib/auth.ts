@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { localization } from "better-auth-localization";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { expo } from "@better-auth/expo";
 import { db } from "../db";
@@ -141,6 +142,10 @@ export const auth = betterAuth({
   plugins: [
     expo(),
     openAPI(),
+    localization({
+      defaultLocale: "pt-BR",
+      fallbackLocale: "default",
+    }),
     admin({
       defaultRole: ROLES.USER,
       adminRoles: [ROLES.ADMIN, ROLES.SUPER_ADMIN],
@@ -154,7 +159,8 @@ export const auth = betterAuth({
   ],
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
-      const isSignIn = ctx.path.startsWith("/sign-in") || ctx.path.startsWith("/callback");
+      const isSignIn =
+        ctx.path.startsWith("/sign-in") || ctx.path.startsWith("/callback");
       const isSignUp = ctx.path.startsWith("/sign-up");
 
       if (isSignIn || isSignUp) {
