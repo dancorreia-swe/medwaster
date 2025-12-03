@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "@/lib/client";
 import type { QuizListQueryParams } from "../types";
+import { handleApiError, extractErrorMessage } from "@/lib/api-error-handler";
+import { toast } from "sonner";
 
 type QuizCreateBody = {
   title: string;
@@ -76,8 +78,7 @@ export const quizzesApi = {
   },
 
   deleteQuiz: async (id: number) => {
-    const response = await client.admin.quizzes({ id: id.toString() }).delete();
-    return response.data;
+    return client.admin.quizzes({ id: id.toString() }).delete();
   },
 
   archiveQuiz: async (id: number) => {
@@ -313,7 +314,11 @@ export function useDeleteQuiz() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: quizzesApi.deleteQuiz,
+    mutationFn: async (id: number) => {
+      const response = await quizzesApi.deleteQuiz(id);
+      handleApiError(response, "Erro ao excluir questionário");
+      return response;
+    },
     onMutate: async (quizId) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["quizzes", "list"] });
@@ -337,15 +342,19 @@ export function useDeleteQuiz() {
 
       return { previousQuizzes };
     },
-    onError: (_err, _quizId, context) => {
+    onError: (error, _quizId, context) => {
       // Rollback on error
       if (context?.previousQuizzes) {
         context.previousQuizzes.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
         });
       }
+      const message = extractErrorMessage(error, "Erro ao excluir questionário");
+      toast.error(message);
+      console.error("Error deleting quiz:", error);
     },
     onSuccess: () => {
+      toast.success("Questionário excluído com sucesso");
       // No invalidation needed - optimistic update already removed the item
       // The cache is consistent with the server state after deletion
     },

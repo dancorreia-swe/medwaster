@@ -78,11 +78,9 @@ export function QuizDetail({ quizId, onBack }: QuizDetailProps) {
     setIsDeleting(true);
     try {
       await deleteQuiz.mutateAsync(quizId);
-      toast.success("Quiz excluído com sucesso!");
       navigate({ to: "/quizzes" });
     } catch (error) {
-      toast.error("Erro ao excluir quiz. Tente novamente.");
-      console.error("Error deleting quiz:", error);
+      // Error is already handled by the mutation hook
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);

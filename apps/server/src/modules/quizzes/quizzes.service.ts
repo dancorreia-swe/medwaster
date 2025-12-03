@@ -1,9 +1,9 @@
 import { db } from "@/db";
-import type { 
-  CreateQuizBody, 
-  UpdateQuizBody, 
+import type {
+  CreateQuizBody,
+  UpdateQuizBody,
   StartQuizAttemptBody,
-  SubmitQuizAttemptBody 
+  SubmitQuizAttemptBody
 } from "./model";
 import {
   quizzes,
@@ -15,8 +15,9 @@ import {
   type QuizDifficulty,
   type Quiz,
 } from "@/db/schema/quizzes";
+import { trailContent } from "@/db/schema/trails";
 import { asc, desc, eq, ne, and, sql, ilike, or, inArray } from "drizzle-orm";
-import { NotFoundError } from "@/lib/errors";
+import { NotFoundError, DependencyError } from "@/lib/errors";
 import { trackQuizCompleted } from "../achievements/trackers";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -296,6 +297,20 @@ export abstract class QuizzesService {
 
     if (!existing) {
       throw new NotFoundError("Quiz");
+    }
+
+    // Check if quiz is used in any trails
+    const trailUsage = await db
+      .select({ trailId: trailContent.trailId })
+      .from(trailContent)
+      .where(eq(trailContent.quizId, quizId))
+      .limit(1);
+
+    if (trailUsage.length > 0) {
+      throw new DependencyError(
+        "Não é possível excluir este questionário pois ele está sendo usado em trilhas.",
+        ["trilhas"],
+      );
     }
 
     await db.delete(quizzes).where(eq(quizzes.id, quizId));
