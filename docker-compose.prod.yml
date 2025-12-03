@@ -150,6 +150,10 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:password@postgres:5432/medwaster}
       NODE_ENV: ${NODE_ENV:-production}
+      # Auth (needed for seeding)
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      # Audit (needed for seeding)
+      AUDIT_CHECKSUM_SECRET: ${AUDIT_CHECKSUM_SECRET}
       # Admin Setup (needed for seeding)
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
@@ -287,7 +291,11 @@ services:
       LOCALAI_API_KEY: ${LOCALAI_API_KEY}
       WHISPER_BASE_URL: ${WHISPER_BASE_URL:-http://whisper:8081/v1}
       WHISPER_API_KEY: ${WHISPER_API_KEY}
+      # Auth
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      # Audit
       AUDIT_CHECKSUM_SECRET: ${AUDIT_CHECKSUM_SECRET}
+      # Admin
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ADMIN_NAME: ${ADMIN_NAME}
