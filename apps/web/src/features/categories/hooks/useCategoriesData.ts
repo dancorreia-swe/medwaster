@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { wikiQueryKeys } from "@/features/wiki/api/wikiQueries";
 import { questionsQueryKeys } from "@/features/questions/api/questionsQueries";
 import { categoriesApi, categoriesListQueryOptions, categoriesQueryKeys } from "../api";
+import { handleApiError, extractErrorMessage } from "@/lib/api-error-handler";
 
 const invalidateCategoryDependentQueries = (
   queryClient: ReturnType<typeof useQueryClient>,
@@ -24,15 +25,19 @@ export const useCreateCategory = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: categoriesApi.createCategory,
+    mutationFn: async (data: Parameters<typeof categoriesApi.createCategory>[0]) => {
+      const response = await categoriesApi.createCategory(data);
+      handleApiError(response, "Erro ao criar categoria");
+      return response;
+    },
     onSuccess: () => {
       toast.success("Categoria criada com sucesso");
       invalidateCategoryDependentQueries(queryClient);
     },
     onError: (error) => {
-      toast.error(
-        error instanceof Error ? error.message : "Erro ao criar categoria"
-      );
+      const message = extractErrorMessage(error, "Erro ao criar categoria");
+      toast.error(message);
+      console.error("Error creating category:", error);
     },
   });
 };
@@ -41,18 +46,21 @@ export const useUpdateCategory = (options?: { silent?: boolean; skipRefetch?: bo
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: number } & Parameters<typeof categoriesApi.updateCategory>[1]) =>
-      categoriesApi.updateCategory(id, data),
+    mutationFn: async ({ id, ...data }: { id: number } & Parameters<typeof categoriesApi.updateCategory>[1]) => {
+      const response = await categoriesApi.updateCategory(id, data);
+      handleApiError(response, "Erro ao atualizar categoria");
+      return response;
+    },
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: categoriesQueryKeys.lists() });
-      
+
       const previousCategories = queryClient.getQueriesData({ queryKey: categoriesQueryKeys.lists() });
 
       queryClient.setQueriesData(
         { queryKey: categoriesQueryKeys.lists() },
         (old: any) => {
           if (!old) return old;
-          
+
           return {
             ...old,
             data: old.data?.map((category: any) =>
@@ -77,10 +85,10 @@ export const useUpdateCategory = (options?: { silent?: boolean; skipRefetch?: bo
           queryClient.setQueryData(queryKey, data);
         });
       }
-      
-      toast.error(
-        error instanceof Error ? error.message : "Erro ao atualizar categoria"
-      );
+
+      const message = extractErrorMessage(error, "Erro ao atualizar categoria");
+      toast.error(message);
+      console.error("Error updating category:", error);
     },
     onSettled: () => {
       invalidateCategoryDependentQueries(queryClient, {
@@ -94,16 +102,20 @@ export const useDeleteCategory = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => categoriesApi.deleteCategory(id),
+    mutationFn: async (id: number) => {
+      const response = await categoriesApi.deleteCategory(id);
+      handleApiError(response, "Erro ao excluir categoria");
+      return response;
+    },
     onSuccess: (_, id) => {
       toast.success("Categoria excluída com sucesso");
       queryClient.removeQueries({ queryKey: categoriesQueryKeys.detail(id) });
       invalidateCategoryDependentQueries(queryClient);
     },
     onError: (error) => {
-      toast.error(
-        error instanceof Error ? error.message : "Erro ao excluir categoria"
-      );
+      const message = extractErrorMessage(error, "Erro ao excluir categoria");
+      toast.error(message);
+      console.error("Error deleting category:", error);
     },
   });
 };

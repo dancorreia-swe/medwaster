@@ -10,6 +10,7 @@ import { relations } from "drizzle-orm";
 import { wikiArticles } from "./wiki";
 import { questions } from "./questions";
 import { quizzes } from "./quizzes";
+import { trails } from "./trails";
 
 export const contentCategories = pgTable(
   "content_categories",
@@ -36,6 +37,7 @@ export const contentCategoriesRelations = relations(
     wikiArticles: many(wikiArticles),
     questions: many(questions),
     quizzes: many(quizzes),
+    trails: many(trails),
   }),
 );
 

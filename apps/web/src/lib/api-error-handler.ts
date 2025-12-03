@@ -219,18 +219,23 @@ export const getErrorMessage = (responseError: any, defaultMessage: string): str
     }
   }
 
-  // Use predefined error message if available
-  if (code && ERROR_MESSAGES[code]) {
-    return ERROR_MESSAGES[code];
-  }
-
-  // Try to extract message from various possible locations
+  // Try to extract message from backend first (prioritize specific messages)
   const extractedMessage =
     errorData?.message ||
     errorValue?.message ||
     responseError?.message;
 
-  return extractedMessage || defaultMessage;
+  // Use specific backend message if available
+  if (extractedMessage) {
+    return extractedMessage;
+  }
+
+  // Fall back to predefined error message if available
+  if (code && ERROR_MESSAGES[code]) {
+    return ERROR_MESSAGES[code];
+  }
+
+  return defaultMessage;
 };
 
 /**

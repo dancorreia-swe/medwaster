@@ -141,6 +141,18 @@ export abstract class CategoriesService {
           where: (quizzes, { ne }) => ne(quizzes.status, "archived"),
           limit: 5,
         },
+        trails: {
+          columns: {
+            id: true,
+            name: true,
+            description: true,
+            difficulty: true,
+            status: true,
+            updatedAt: true,
+          },
+          where: (trails, { ne }) => ne(trails.status, "archived"),
+          limit: 5,
+        },
       },
       orderBy: (categories) => [asc(categories.id), asc(categories.createdAt)],
       limit: pageSize,
@@ -161,6 +173,50 @@ export abstract class CategoriesService {
 
     if (!existing) {
       throw new NotFoundError("Category");
+    }
+
+    // Check if category has published content
+    const categoryWithContent = await db.query.contentCategories.findFirst({
+      where: eq(contentCategories.id, categoryId),
+      with: {
+        wikiArticles: {
+          columns: { id: true },
+          where: (articles, { eq }) => eq(articles.status, "published"),
+          limit: 1,
+        },
+        questions: {
+          columns: { id: true },
+          where: (questions, { eq }) => eq(questions.status, "active"),
+          limit: 1,
+        },
+        quizzes: {
+          columns: { id: true },
+          where: (quizzes, { eq }) => eq(quizzes.status, "active"),
+          limit: 1,
+        },
+        trails: {
+          columns: { id: true },
+          where: (trails, { eq }) => eq(trails.status, "published"),
+          limit: 1,
+        },
+      },
+    });
+
+    const hasPublishedArticles = categoryWithContent?.wikiArticles.length ?? 0 > 0;
+    const hasActiveQuestions = categoryWithContent?.questions.length ?? 0 > 0;
+    const hasActiveQuizzes = categoryWithContent?.quizzes.length ?? 0 > 0;
+    const hasPublishedTrails = categoryWithContent?.trails.length ?? 0 > 0;
+
+    if (hasPublishedArticles || hasActiveQuestions || hasActiveQuizzes || hasPublishedTrails) {
+      const contentTypes = [];
+      if (hasPublishedArticles) contentTypes.push("artigos publicados");
+      if (hasActiveQuestions) contentTypes.push("questões ativas");
+      if (hasActiveQuizzes) contentTypes.push("quizzes ativos");
+      if (hasPublishedTrails) contentTypes.push("trilhas publicadas");
+
+      throw new ConflictError(
+        `Não é possível excluir categoria com ${contentTypes.join(", ")}. Por favor, arquive ou remova o conteúdo primeiro.`
+      );
     }
 
     await db

@@ -22,6 +22,7 @@ import {
   Trash2,
   HelpCircle,
   ClipboardList,
+  Map,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Category, CategoryWikiArticle } from "../../api";
@@ -33,6 +34,7 @@ import { CategoryStatusDropdown } from "./category-status-dropdown";
 import { ArticleListItem } from "./article-list-item";
 import { QuestionListItem } from "./question-list-item";
 import { QuizListItem } from "./quiz-list-item";
+import { TrailListItem } from "./trail-list-item";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
 
 interface CategoryRowProps {
@@ -53,8 +55,9 @@ export function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
   const articleCount = category.wikiArticles?.length ?? 0;
   const questionCount = category.questions?.length ?? 0;
   const quizCount = category.quizzes?.length ?? 0;
+  const trailCount = (category as any).trails?.length ?? 0;
 
-  const totalContents = articleCount + questionCount + quizCount;
+  const totalContents = articleCount + questionCount + quizCount + trailCount;
 
   const updateCategory = useUpdateCategory({ silent: true, skipRefetch: true });
   const deleteCategory = useDeleteCategory();
@@ -134,9 +137,12 @@ export function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
   const handleDelete = async () => {
     try {
       await deleteCategory.mutateAsync(category.id);
-      setDeleteDialogOpen(false);
     } catch (error) {
+      // Error is already handled by the hook's onError callback
       console.error(error);
+    } finally {
+      // Always close the dialog, whether success or error
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -229,6 +235,21 @@ export function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
                   </TooltipContent>
                 </Tooltip>
               )}
+              {trailCount > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground cursor-help">
+                      <Map className="h-4 w-4" />
+                      <span>{trailCount}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {trailCount} {trailCount === 1 ? "trilha" : "trilhas"}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {totalContents === 0 && (
                 <span className="text-xs text-muted-foreground">
                   Nenhum conteúdo
@@ -305,6 +326,9 @@ export function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
                 ))}
                 {category.quizzes?.map((quiz) => (
                   <QuizListItem key={`quiz-${quiz.id}`} quiz={quiz} />
+                ))}
+                {(category as any).trails?.map((trail: any) => (
+                  <TrailListItem key={`trail-${trail.id}`} trail={trail} />
                 ))}
               </div>
             </div>

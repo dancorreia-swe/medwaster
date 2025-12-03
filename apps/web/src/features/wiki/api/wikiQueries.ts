@@ -9,8 +9,7 @@ import {
   infiniteQueryOptions,
 } from "@tanstack/react-query";
 import { wikiApi } from "./wikiApi";
-import { client } from "@/lib/client";
-import { isErrorResponse, getErrorMessage, handleApiError } from "@/lib/api-error-handler";
+import { isErrorResponse, handleApiError } from "@/lib/api-error-handler";
 
 export const wikiQueryKeys = {
   all: ["wiki"] as const,

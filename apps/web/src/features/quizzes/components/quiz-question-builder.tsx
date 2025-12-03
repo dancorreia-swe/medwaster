@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -9,18 +9,17 @@ import {
   DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
-} from '@dnd-kit/core';
+} from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -104,7 +103,6 @@ interface QuestionCardProps {
 
 function QuestionCard({
   question,
-  index,
   onRemove,
   onUpdate,
   isDragOverlay = false,
@@ -124,7 +122,7 @@ function QuestionCard({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    ...(isDragging && { willChange: 'transform' }),
+    ...(isDragging && { willChange: "transform" }),
   };
 
   return (
@@ -132,101 +130,103 @@ function QuestionCard({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={isDragging ? 'opacity-0' : ''}
+      className={isDragging ? "opacity-0" : ""}
     >
       <Card
-        className={`transition-all ${isDragOverlay ? 'shadow-2xl ring-2 ring-primary cursor-grabbing' : 'hover:shadow-md'}`}
+        className={`transition-all ${isDragOverlay ? "shadow-2xl ring-2 ring-primary cursor-grabbing" : "hover:shadow-md"}`}
       >
-      <CardHeader className="pb-3">
-        <div className="flex items-start gap-3">
-          <div className="flex items-center gap-2 mt-1">
-            <div
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none"
-            >
-              <GripVertical className="h-4 w-4" />
+        <CardHeader className="pb-3">
+          <div className="flex items-start gap-3">
+            <div className="flex items-center gap-2 mt-1">
+              <div
+                {...listeners}
+                className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none"
+              >
+                <GripVertical className="h-4 w-4" />
+              </div>
+              <Badge variant="outline" className="font-mono text-xs">
+                {question.order}
+              </Badge>
             </div>
-            <Badge variant="outline" className="font-mono text-xs">
-              {question.order}
-            </Badge>
-          </div>
 
-          <div className="flex-1 min-w-0">
-            {question.question && (
-              <>
-                <div className="flex items-center gap-2 mb-2">
-                  {getQuestionTypeIcon(question.question.type)}
-                  <Badge
-                    variant="secondary"
-                    className={getDifficultyColor(question.question.difficulty)}
-                  >
-                    {getDifficultyLabel(question.question.difficulty)}
-                  </Badge>
-                </div>
-
-                <p className="text-sm font-medium line-clamp-2 mb-2">
-                  {stripHtml(question.question.prompt)}
-                </p>
-
-                {question.question.category && (
-                  <Badge variant="outline" className="text-xs mb-2">
-                    {question.question.category.name}
-                  </Badge>
-                )}
-
-                {question.question.tags &&
-                  question.question.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {question.question.tags.slice(0, 2).map((tag) => (
-                        <Badge
-                          key={tag.id}
-                          variant="outline"
-                          className="text-xs h-4 px-1"
-                          style={{ color: tag.color || undefined }}
-                        >
-                          {tag.name}
-                        </Badge>
-                      ))}
-                      {question.question.tags.length > 2 && (
-                        <Badge variant="outline" className="text-xs h-4 px-1">
-                          +{question.question.tags.length - 2}
-                        </Badge>
+            <div className="flex-1 min-w-0">
+              {question.question && (
+                <>
+                  <div className="flex items-center gap-2 mb-2">
+                    {getQuestionTypeIcon(question.question.type)}
+                    <Badge
+                      variant="secondary"
+                      className={getDifficultyColor(
+                        question.question.difficulty,
                       )}
-                    </div>
+                    >
+                      {getDifficultyLabel(question.question.difficulty)}
+                    </Badge>
+                  </div>
+
+                  <p className="text-sm font-medium line-clamp-2 mb-2">
+                    {stripHtml(question.question.prompt)}
+                  </p>
+
+                  {question.question.category && (
+                    <Badge variant="outline" className="text-xs mb-2">
+                      {question.question.category.name}
+                    </Badge>
                   )}
-              </>
-            )}
-            {!question.question && (
-              <p className="text-sm text-muted-foreground">
-                Questão ID: {question.questionId}
-              </p>
-            )}
+
+                  {question.question.tags &&
+                    question.question.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {question.question.tags.slice(0, 2).map(({ tag }) => (
+                          <Badge
+                            key={tag.id}
+                            variant="outline"
+                            className="text-xs h-4 px-1"
+                            style={{ color: tag.color || undefined }}
+                          >
+                            {tag.name}
+                          </Badge>
+                        ))}
+                        {question.question.tags.length > 2 && (
+                          <Badge variant="outline" className="text-xs h-4 px-1">
+                            +{question.question.tags.length - 2}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                </>
+              )}
+              {!question.question && (
+                <p className="text-sm text-muted-foreground">
+                  Questão ID: {question.questionId}
+                </p>
+              )}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRemove}
+              className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
+        </CardHeader>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRemove}
-            className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="pt-0">
-        <div className="flex items-center gap-2">
-          <Switch
-            id={`required-${question.id}`}
-            checked={question.required}
-            onCheckedChange={(checked) => onUpdate({ required: checked })}
-          />
-          <Label htmlFor={`required-${question.id}`} className="text-xs">
-            Obrigatória
-          </Label>
-        </div>
-      </CardContent>
-    </Card>
+        <CardContent className="pt-0">
+          <div className="flex items-center gap-2">
+            <Switch
+              id={`required-${question.id}`}
+              checked={question.required}
+              onCheckedChange={(checked) => onUpdate({ required: checked })}
+            />
+            <Label htmlFor={`required-${question.id}`} className="text-xs">
+              Obrigatória
+            </Label>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -236,7 +236,6 @@ export function QuizQuestionBuilder({
   onRemoveQuestion,
   onReorderQuestions,
   onUpdateQuestion,
-  onAddQuestion,
 }: QuizQuestionBuilderProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -250,7 +249,7 @@ export function QuizQuestionBuilder({
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -269,7 +268,7 @@ export function QuizQuestionBuilder({
         (item, index) => ({
           ...item,
           order: index + 1,
-        })
+        }),
       );
 
       onReorderQuestions(reordered);
@@ -316,7 +315,8 @@ export function QuizQuestionBuilder({
                 Nenhuma pergunta adicionada
               </h3>
               <p className="text-sm text-muted-foreground max-w-sm">
-                Arraste perguntas do banco de dados no painel à esquerda para adicioná-las ao seu quiz.
+                Arraste perguntas do banco de dados no painel à esquerda para
+                adicioná-las ao seu quiz.
               </p>
             </div>
           </div>
@@ -340,7 +340,9 @@ export function QuizQuestionBuilder({
                       question={question}
                       index={index}
                       onRemove={() => onRemoveQuestion(question.id)}
-                      onUpdate={(updates) => onUpdateQuestion(question.id, updates)}
+                      onUpdate={(updates) =>
+                        onUpdateQuestion(question.id, updates)
+                      }
                     />
                   ))}
                 </div>
@@ -349,11 +351,11 @@ export function QuizQuestionBuilder({
             <DragOverlay
               dropAnimation={{
                 duration: 200,
-                easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+                easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
               }}
             >
               {activeItem ? (
-                <div style={{ cursor: 'grabbing' }}>
+                <div style={{ cursor: "grabbing" }}>
                   <QuestionCard
                     question={activeItem}
                     index={questions.findIndex((q) => q.id === activeItem.id)}
@@ -404,4 +406,3 @@ export function QuizQuestionBuilder({
     </Card>
   );
 }
-

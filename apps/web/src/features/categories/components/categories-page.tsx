@@ -115,10 +115,12 @@ export function CategoriesPage({
 
     try {
       await deleteCategoryMutation.mutateAsync(numericId);
-      setIsDeleteDialogOpen(false);
-      setCategoryPendingDelete(null);
     } catch (error) {
       console.error(error);
+    } finally {
+      // Always close dialog and reset state, whether success or error
+      setIsDeleteDialogOpen(false);
+      setCategoryPendingDelete(null);
     }
   }
 

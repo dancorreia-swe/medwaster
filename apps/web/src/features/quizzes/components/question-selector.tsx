@@ -45,7 +45,6 @@ import type {
   QuestionDifficulty,
 } from "@/features/questions/types";
 
-
 interface QuestionFilters {
   search?: string;
   type?: QuestionType;
@@ -163,7 +162,7 @@ function DraggableQuestionCard({
 
         {question.tags && question.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {question.tags.slice(0, 3).map((tag) => (
+            {question.tags.slice(0, 3).map(({ tag }) => (
               <Badge
                 key={tag.id}
                 variant="outline"
@@ -384,7 +383,7 @@ export function QuestionSelector({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as categorias</SelectItem>
-                  {categories.map((category) => (
+                  {categories?.map((category) => (
                     <SelectItem
                       key={category.id}
                       value={category.id.toString()}
@@ -416,47 +415,47 @@ export function QuestionSelector({
           <ScrollArea className="absolute inset-0">
             <div className="space-y-3 py-1 pr-3">
               {isLoadingQuestions ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="h-20 bg-muted rounded-lg"></div>
-                  </div>
-                ))}
-              </div>
-            ) : questionsError ? (
-              <div className="text-center py-8 text-destructive">
-                <FileQuestion className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm font-medium mb-1">
-                  Erro ao carregar perguntas
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {questionsError instanceof Error
-                    ? questionsError.message
-                    : "Erro desconhecido"}
-                </p>
-              </div>
-            ) : questions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileQuestion className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">
-                  {Object.keys(filters).length > 0
-                    ? "Nenhuma pergunta encontrada com os filtros aplicados"
-                    : "Nenhuma pergunta disponível"}
-                </p>
-              </div>
-            ) : (
-              questions.map((question) => {
-                const isAdded = addedQuestions.has(question.id);
-                return (
-                  <DraggableQuestionCard
-                    key={question.id}
-                    question={question}
-                    isAdded={isAdded}
-                    onAddQuestion={handleAddQuestion}
-                  />
-                );
-              })
-            )}
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-20 bg-muted rounded-lg"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : questionsError ? (
+                <div className="text-center py-8 text-destructive">
+                  <FileQuestion className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm font-medium mb-1">
+                    Erro ao carregar perguntas
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {questionsError instanceof Error
+                      ? questionsError.message
+                      : "Erro desconhecido"}
+                  </p>
+                </div>
+              ) : questions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileQuestion className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">
+                    {Object.keys(filters).length > 0
+                      ? "Nenhuma pergunta encontrada com os filtros aplicados"
+                      : "Nenhuma pergunta disponível"}
+                  </p>
+                </div>
+              ) : (
+                questions.map((question) => {
+                  const isAdded = addedQuestions.has(question.id);
+                  return (
+                    <DraggableQuestionCard
+                      key={question.id}
+                      question={question}
+                      isAdded={isAdded}
+                      onAddQuestion={handleAddQuestion}
+                    />
+                  );
+                })
+              )}
             </div>
           </ScrollArea>
         </div>
