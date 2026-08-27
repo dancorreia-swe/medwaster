@@ -144,6 +144,8 @@ services:
   # ============================================
 
   migrator:
+    # Coolify: do not treat this one-shot migration job as a long-running service.
+    exclude_from_hc: true
     image: ghcr.io/dancorreia-swe/medwaster-server:latest
     container_name: medwaster-migrator
     command: sh -c "bun run db:migrate && bun run db:seed"
