@@ -55,7 +55,7 @@ RUN chmod +x /docker-entrypoint.d/40-env-config.sh
 # Copy nginx configuration
 COPY <<'EOF' /etc/nginx/conf.d/default.conf
 server {
-    listen 3000;
+    listen 80;
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
@@ -100,11 +100,11 @@ RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/run/nginx.pid
 
 # Expose port
-EXPOSE 3000
+EXPOSE 80
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:80/health || exit 1
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

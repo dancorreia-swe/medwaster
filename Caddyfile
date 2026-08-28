@@ -50,7 +50,7 @@
 
     # Web app - proxy to nginx serving static files
     handle {
-        reverse_proxy web:3000 {
+        reverse_proxy web:80 {
             # Health check
             health_uri /health
             health_interval 30s
