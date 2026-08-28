@@ -8,6 +8,8 @@ import {
   Linking,
   Alert,
   Image,
+  Modal,
+  useWindowDimensions,
 } from "react-native";
 import { Container } from "@/components/container";
 import {
@@ -24,9 +26,9 @@ import {
 } from "lucide-react-native";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useColorScheme } from "@/lib/use-color-scheme";
-import { url } from "better-auth";
+import Pdf from "react-native-pdf";
 
 export default function CertificatesScreen() {
   const router = useRouter();
@@ -35,6 +37,10 @@ export default function CertificatesScreen() {
   const { data: session } = authClient.useSession();
   const certificate = data?.certificate;
   const [downloading, setDownloading] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const { width, height } = useWindowDimensions();
   const chevronColor = isDarkColorScheme ? "#E5E7EB" : "#364153";
 
   const formatDate = (date: Date | string | null | undefined) => {
@@ -59,17 +65,39 @@ export default function CertificatesScreen() {
     return `${mins}min`;
   };
 
+  const resolvePdfUrl = useCallback(async () => {
+    if (!certificate) return null;
+
+    const rawUrl = await getCertificateDownloadUrl(certificate.id);
+    return rawUrl.startsWith("http")
+      ? rawUrl
+      : `${process.env.EXPO_PUBLIC_SERVER_URL}${rawUrl}`;
+  }, [certificate]);
+
+  const handlePreviewPDF = async () => {
+    if (!certificate) return;
+
+    try {
+      setPreviewing(true);
+      setPreviewError(null);
+      const pdfUrl = await resolvePdfUrl();
+      if (!pdfUrl) return;
+      setPreviewUrl(pdfUrl);
+    } catch (error) {
+      console.error("Error preparing PDF preview:", error);
+      setPreviewError("Não foi possível carregar o PDF");
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
   const handleDownloadPDF = async () => {
-    if (!certificate || !certificate.certificateUrl) return;
+    if (!certificate) return;
 
     try {
       setDownloading(true);
-
-      // Build full URL - check if certificateUrl is already absolute
-      const rawUrl = certificate.certificateUrl;
-      const pdfUrl = rawUrl.startsWith('http')
-        ? rawUrl
-        : `${process.env.EXPO_PUBLIC_SERVER_URL}${rawUrl}`;
+      const pdfUrl = await resolvePdfUrl();
+      if (!pdfUrl) return;
 
       const canOpen = await Linking.canOpenURL(pdfUrl);
       if (canOpen) {
@@ -89,13 +117,7 @@ export default function CertificatesScreen() {
     if (!certificate) return;
 
     try {
-      const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL;
-      const rawUrl = certificate.certificateUrl;
-      const pdfUrl = rawUrl
-        ? rawUrl.startsWith("http")
-          ? rawUrl
-          : `${serverUrl}${rawUrl}`
-        : undefined;
+      const pdfUrl = await resolvePdfUrl();
 
       const baseMessage = `🎓 Conquistei meu Certificado de Conclusão no MedWaster!\n\n${certificate.totalTrailsCompleted} trilhas • ${certificate.averageScore.toFixed(1)}% de média\n\nCódigo: ${certificate.verificationCode}`;
 
@@ -105,7 +127,7 @@ export default function CertificatesScreen() {
 
       await Share.share({
         title: "Meu certificado MedWaster",
-        url: pdfUrl,
+        url: pdfUrl ?? undefined,
         message: shareMessage,
       });
     } catch (error) {
@@ -167,6 +189,7 @@ export default function CertificatesScreen() {
   const isPending = certificate.status === "pending";
   const isApproved = certificate.status === "approved";
   const isRejected = certificate.status === "rejected";
+  const hasIssuedPdf = isApproved && Boolean(certificate.certificateUrl);
 
   const statusContent = {
     pending: {
@@ -322,7 +345,7 @@ export default function CertificatesScreen() {
             </Text>
 
             {/* Stats */}
-            <View className="flex-row gap-6 mb-12 pb-10 border-b border-gray-200 dark:border-gray-800">
+            <View className="flex-row gap-4 mb-12 pb-10 border-b border-gray-200 dark:border-gray-800">
               <View className="flex-1">
                 <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                   Média
@@ -337,6 +360,14 @@ export default function CertificatesScreen() {
                 </Text>
                 <Text className="text-3xl font-bold text-gray-900 dark:text-gray-50">
                   {certificate.totalTrailsCompleted}
+                </Text>
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Tempo de estudo
+                </Text>
+                <Text className="text-3xl font-bold text-gray-900 dark:text-gray-50">
+                  {formatTime(certificate.totalTimeMinutes)}
                 </Text>
               </View>
             </View>
@@ -363,28 +394,41 @@ export default function CertificatesScreen() {
           </View>
 
           {/* Action Buttons */}
-          {isApproved && (
+          {hasIssuedPdf && (
             <View className="gap-4">
+              <TouchableOpacity
+                onPress={handlePreviewPDF}
+                disabled={previewing}
+                className="bg-blue-500 rounded-2xl py-6 flex-row items-center justify-center gap-3"
+                activeOpacity={0.7}
+              >
+                {previewing ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text className="text-white text-lg font-semibold">
+                    Visualizar certificado em PDF
+                  </Text>
+                )}
+              </TouchableOpacity>
+
               {/* Download PDF Button */}
-              {certificate.certificateUrl && (
-                <TouchableOpacity
-                  onPress={handleDownloadPDF}
-                  disabled={downloading}
-                  className="bg-blue-500 rounded-2xl py-6 flex-row items-center justify-center gap-3"
-                  activeOpacity={0.7}
-                >
-                  {downloading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Download size={22} color="#FFFFFF" strokeWidth={2.5} />
-                      <Text className="text-white text-lg font-semibold">
-                        Baixar PDF
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                onPress={handleDownloadPDF}
+                disabled={downloading}
+                className="bg-white border-2 border-blue-500 rounded-2xl py-6 flex-row items-center justify-center gap-3 dark:bg-gray-900 dark:border-blue-400"
+                activeOpacity={0.7}
+              >
+                {downloading ? (
+                  <ActivityIndicator size="small" color="#155DFC" />
+                ) : (
+                  <>
+                    <Download size={22} color="#155DFC" strokeWidth={2.5} />
+                    <Text className="text-blue-500 dark:text-blue-200 text-lg font-semibold">
+                      Baixar PDF
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
 
               {/* Share Button */}
               <TouchableOpacity
@@ -398,9 +442,60 @@ export default function CertificatesScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-          )}
-        </View>
-      </ScrollView>
-    </Container>
+            )}
+          </View>
+        </ScrollView>
+
+        <Modal
+          visible={previewUrl !== null}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setPreviewUrl(null)}
+        >
+          <View className="flex-1 bg-gray-50 dark:bg-gray-950">
+            <View className="px-6 pt-5 pb-5 bg-white flex-row items-center justify-between border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
+              <Text className="text-xl font-bold text-gray-900 dark:text-gray-50">
+                Prévia do certificado
+              </Text>
+              <TouchableOpacity
+                onPress={() => setPreviewUrl(null)}
+                className="rounded-xl border border-gray-200 px-4 py-3 dark:border-gray-700"
+                activeOpacity={0.7}
+              >
+                <Text className="font-semibold text-gray-700 dark:text-gray-200">
+                  Fechar
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {previewUrl && (
+              <Pdf
+                source={{ uri: previewUrl }}
+                style={{ width, height: height - 90, flex: 1 }}
+                renderActivityIndicator={() => (
+                  <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator size="large" color="#155DFC" />
+                  </View>
+                )}
+                onError={(error) => {
+                  console.error("Certificate PDF error:", error);
+                  setPreviewError("Não foi possível carregar o PDF");
+                }}
+              />
+            )}
+            {previewError && (
+              <View className="absolute bottom-8 left-6 right-6 rounded-2xl bg-red-50 p-4 dark:bg-red-900/40">
+                <Text className="text-center text-red-700 dark:text-red-200">
+                  {previewError}
+                </Text>
+              </View>
+            )}
+          </View>
+        </Modal>
+        {previewError && !previewUrl && (
+          <Text className="mt-3 text-center text-sm text-red-600 dark:text-red-300">
+            {previewError}
+          </Text>
+        )}
+      </Container>
   );
 }
