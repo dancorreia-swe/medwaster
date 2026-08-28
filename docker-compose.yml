@@ -311,6 +311,9 @@ services:
       server:
         condition: service_healthy
     restart: unless-stopped
+    # No HTTP surface in the worker; see docker-compose.prod.yml.
+    healthcheck:
+      disable: true
 
   web:
     build:

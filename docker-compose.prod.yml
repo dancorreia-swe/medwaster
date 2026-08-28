@@ -317,6 +317,11 @@ services:
       server:
         condition: service_healthy
     restart: unless-stopped
+    # The server image's HEALTHCHECK curls :4000/health, but this container runs
+    # the BullMQ worker, which serves no HTTP. Inheriting it reports a permanently
+    # unhealthy container and makes Coolify's status badge meaningless.
+    healthcheck:
+      disable: true
 
   web:
     image: ghcr.io/dancorreia-swe/medwaster-web:latest
