@@ -164,7 +164,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: on-failure
+    # One-shot job: never restart (see docker-compose.prod.yml).
+    restart: "no"
 
   server:
     build:

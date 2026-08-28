@@ -168,7 +168,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: on-failure
+    # One-shot job: never restart. With `service_completed_successfully` dependents,
+    # `on-failure` turns any migrate/seed error into an infinite `up -d` hang.
+    restart: "no"
 
   server:
     image: ghcr.io/dancorreia-swe/medwaster-server:latest
