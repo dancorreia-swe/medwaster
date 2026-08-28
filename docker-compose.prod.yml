@@ -82,6 +82,7 @@ services:
 
   whisper:
     image: ghcr.io/dancorreia-swe/medwaster-whisper:latest
+    pull_policy: always
     container_name: medwaster-whisper
     profiles: ["whisper"]
     environment:
@@ -128,6 +129,7 @@ services:
 
   model-loader:
     image: ghcr.io/dancorreia-swe/medwaster-model-loader:latest
+    pull_policy: always
     container_name: medwaster-model-loader
     profiles: ["localai"]
     volumes:
@@ -147,6 +149,7 @@ services:
     # Coolify: do not treat this one-shot migration job as a long-running service.
     exclude_from_hc: true
     image: ghcr.io/dancorreia-swe/medwaster-server:latest
+    pull_policy: always
     container_name: medwaster-migrator
     command: sh -c "bun run db:migrate && bun run db:seed"
     environment:
@@ -169,6 +172,7 @@ services:
 
   server:
     image: ghcr.io/dancorreia-swe/medwaster-server:latest
+    pull_policy: always
     container_name: medwaster-server
     environment:
       # Database
@@ -261,6 +265,7 @@ services:
 
   server-worker:
     image: ghcr.io/dancorreia-swe/medwaster-server:latest
+    pull_policy: always
     container_name: medwaster-worker
     command: ["bun", "run", "src/workers/index.ts"]
     environment:
@@ -313,6 +318,7 @@ services:
 
   web:
     image: ghcr.io/dancorreia-swe/medwaster-web:latest
+    pull_policy: always
     container_name: medwaster-web
     expose:
       - "80"
