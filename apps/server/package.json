@@ -19,6 +19,7 @@
     "db:reset": "bun run src/db/reset.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:import:rss-2026-08": "bun run src/db/content-imports/rss-2026-08-import.ts",
     "db:start": "docker compose up -d",
     "db:watch": "docker compose up",
     "db:stop": "docker compose stop",

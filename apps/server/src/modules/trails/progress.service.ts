@@ -865,9 +865,16 @@ export abstract class ProgressService {
     });
 
     const attempts = (existingProgress?.attempts || 0) + 1;
-    const timeSpent = (existingProgress?.timeSpent || 0) + (data.timeSpent || 0);
-    const score = attemptResult.score || 0;
-    const isCompleted = score >= (content.passingScore || 70); // Use content passing score or default to 70%
+    const timeSpentMinutes =
+      (existingProgress?.timeSpentMinutes ?? 0) +
+      Math.ceil((attemptResult.timeSpent ?? 0) / 60);
+    const attemptScore = attemptResult.score ?? 0;
+    const score = existingProgress?.isCompleted
+      ? Math.max(existingProgress.score ?? 0, attemptScore)
+      : attemptScore;
+    const passingScore = fullResults.quiz.passingScore ?? 70;
+    const isCompleted =
+      Boolean(existingProgress?.isCompleted) || attemptScore >= passingScore;
 
     if (existingProgress) {
       await db
@@ -875,9 +882,11 @@ export abstract class ProgressService {
         .set({
           score,
           attempts,
-          timeSpent,
+          timeSpentMinutes,
           isCompleted,
-          completedAt: isCompleted ? new Date() : existingProgress.completedAt,
+          completedAt: isCompleted
+            ? existingProgress.completedAt ?? new Date()
+            : existingProgress.completedAt,
           updatedAt: new Date(),
         })
         .where(eq(userContentProgress.id, existingProgress.id));
@@ -887,7 +896,7 @@ export abstract class ProgressService {
         trailContentId: contentId,
         score,
         attempts,
-        timeSpent,
+        timeSpentMinutes,
         isCompleted,
         completedAt: isCompleted ? new Date() : undefined,
       });
@@ -929,7 +938,7 @@ export abstract class ProgressService {
       });
     }
 
-    // Mark content as complete if passed
+    // Mark content as complete after a pass, while keeping completion sticky.
     if (isCompleted) {
       await this.markContentComplete(userId, trailId, contentId);
     }
