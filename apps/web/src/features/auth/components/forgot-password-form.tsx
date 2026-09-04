@@ -68,17 +68,17 @@ export function ForgotPasswordForm({ onEmailSent }: ForgotPasswordFormProps) {
 
   if (emailSent) {
     return (
-      <Card className="w-full max-w-sm border-slate-200 bg-white shadow-md">
+      <Card className="w-full max-w-sm border border-border/80 bg-card/95 text-card-foreground shadow-md dark:border-border/60 dark:bg-card/80">
         <CardContent className="flex flex-col items-center gap-6 p-8">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
-            <Check className="h-5 w-5 text-slate-900" strokeWidth={2.5} />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+            <Check className="h-5 w-5 text-foreground" strokeWidth={2.5} />
           </div>
-          
+
           <div className="flex flex-col items-center gap-2 text-center">
-            <h2 className="text-xl font-bold text-slate-900">
+            <h2 className="text-xl font-bold text-foreground">
               Verifique seu email!
             </h2>
-            <p className="text-base text-slate-500 leading-relaxed">
+            <p className="text-base text-muted-foreground leading-relaxed">
               Enviamos um link mágico{"\n"}
               para você fazer login na sua conta.
             </p>
@@ -88,7 +88,7 @@ export function ForgotPasswordForm({ onEmailSent }: ForgotPasswordFormProps) {
           <div className="w-full pt-6">
             <Button
               onClick={handleResendEmail}
-              className="h-10 w-full bg-[#155DFC] text-sm font-medium text-white hover:bg-[#155DFC]/90"
+              className="h-10 w-full bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Reenviar Email
             </Button>
@@ -99,14 +99,14 @@ export function ForgotPasswordForm({ onEmailSent }: ForgotPasswordFormProps) {
   }
 
   return (
-    <Card className="w-full max-w-sm border-slate-200 bg-white shadow-md">
+    <Card className="w-full max-w-sm border border-border/80 bg-card/95 text-card-foreground shadow-md dark:border-border/60 dark:bg-card/80">
       <CardContent className="flex flex-col gap-6">
         {/* Title and Description */}
         <div className="flex flex-col gap-1">
-          <CardTitle className="text-xl font-bold text-slate-900">
+          <CardTitle className="text-xl font-bold text-foreground">
             Resete sua senha
           </CardTitle>
-          <CardDescription className="text-sm text-slate-500">
+          <CardDescription className="text-sm text-muted-foreground">
             Digite seu endereço de e-mail e enviaremos um link para
             redefinir sua senha.
           </CardDescription>
@@ -126,7 +126,7 @@ export function ForgotPasswordForm({ onEmailSent }: ForgotPasswordFormProps) {
               <div className="flex flex-col gap-2">
                 <Label
                   htmlFor={field.name}
-                  className="text-sm font-medium text-slate-900"
+                  className="text-sm font-medium text-foreground"
                 >
                   Email
                 </Label>
@@ -134,11 +134,11 @@ export function ForgotPasswordForm({ onEmailSent }: ForgotPasswordFormProps) {
                   id={field.name}
                   name={field.name}
                   type="email"
-                  placeholder="team@mywaster.com"
+                  placeholder="Insira seu e-mail"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="h-10 border-slate-200 bg-white"
+                  className="h-10"
                 />
                 {field.state.meta.errors.map((error) => (
                   <p key={error?.message} className="text-sm text-destructive">
@@ -167,7 +167,7 @@ export function ForgotPasswordForm({ onEmailSent }: ForgotPasswordFormProps) {
         {/* Back to Login */}
         <Link
           to="/login"
-          className="flex items-center gap-1 text-sm text-slate-900 hover:text-slate-700 transition-colors"
+          className="flex items-center gap-1 text-sm text-foreground hover:text-muted-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar ao Login

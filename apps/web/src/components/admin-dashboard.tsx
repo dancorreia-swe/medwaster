@@ -52,7 +52,7 @@ export function Dashboard() {
           Bem-vindo, {user?.name || "Usuário"}!
         </h1>
         <p className="text-muted-foreground mt-1">
-          Painel de controle do MedWaster Learning
+          Painel de controle do EduConecta
         </p>
       </div>
 

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Medwaster",
+    "name": "EduConecta",
     "slug": "medwaster",
     "scheme": "medwaster",
     "version": "1.0.0",
@@ -19,7 +19,8 @@
         {
           "image": "./assets/splash.png",
           "resizeMode": "contain",
-          "imageWidth": 160
+          "imageWidth": 160,
+          "backgroundColor": "#FFFFFF"
         }
       ],
       [
@@ -40,7 +41,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true,
@@ -55,7 +56,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#102A43"
       },
       "package": "com.medwaster.app",
       "edgeToEdgeEnabled": true,

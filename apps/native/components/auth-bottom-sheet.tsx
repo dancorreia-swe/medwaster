@@ -549,7 +549,7 @@ export const AuthBottomSheet = forwardRef<
                 hitSlop={12}
               >
                 {isGoogleLoading ? (
-                  <ActivityIndicator size="small" color="#155DFC" accessibilityLabel="Carregando Google" />
+                  <ActivityIndicator size="small" color="#1261A0" accessibilityLabel="Carregando Google" />
                 ) : (
                   <GoogleIcon size={16} />
                 )}

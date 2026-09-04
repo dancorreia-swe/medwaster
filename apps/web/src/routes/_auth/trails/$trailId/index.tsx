@@ -39,7 +39,13 @@ function RouteComponent() {
     );
   }
 
-  if (error) {
+  if (isLoading) {
+    return <TrailDetailPage trail={{} as any} isLoading={true} />;
+  }
+
+  // A failed request resolves with no data rather than rejecting, so an absent
+  // trail after loading means "not found" — not "still loading".
+  if (error || !trailData) {
     return (
       <div className="flex h-full min-h-[400px] items-center justify-center">
         <Alert variant="destructive" className="max-w-md">
@@ -49,10 +55,6 @@ function RouteComponent() {
         </Alert>
       </div>
     );
-  }
-
-  if (isLoading || !trailData) {
-    return <TrailDetailPage trail={{} as any} isLoading={true} />;
   }
 
   // Handle nested data structure from API

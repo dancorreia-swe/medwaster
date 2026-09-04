@@ -1,4 +1,5 @@
 import { Tailwind, Section, Text, Button, Link } from "@react-email/components";
+import { BRAND_COLORS, BRAND_DISPLAY_NAME } from "../brand";
 
 export type ForgetPasswordEmailProps = {
   url: string;
@@ -23,7 +24,8 @@ export default function ForgetPasswordEmail({
           </Text>
           <Button
             href={url}
-            className="no-underline py-2 bg-neutral-600 rounded text-white font-semibold w-full text-center my-4"
+            className="no-underline py-2 rounded text-white font-semibold w-full text-center my-4"
+            style={{ backgroundColor: BRAND_COLORS.navy }}
             target="_blank"
             rel="noreferrer"
           >
@@ -35,6 +37,9 @@ export default function ForgetPasswordEmail({
           <Text className="text-gray-400/50 my-0 mb-2 text-xs text-center">
             Your password will not change until you access the link above and
             create a new one.
+          </Text>
+          <Text className="text-xs text-center" style={{ color: BRAND_COLORS.green }}>
+            {BRAND_DISPLAY_NAME}
           </Text>
         </Section>
       </Section>

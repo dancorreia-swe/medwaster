@@ -4,6 +4,7 @@ import { NotFoundError, InternalServerError } from "@/lib/errors";
 import { jsPDF } from "jspdf";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { BRAND_DISPLAY_NAME } from "../../../emails/brand";
 
 export interface PDFExportOptions {
   includeImages?: boolean;
@@ -119,7 +120,7 @@ export abstract class ExportService {
 
     const footerHTML = options.showFooter 
       ? `<div style="position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #eee; padding-top: 10px;">
-           MedWaster Learning - Sistema de Gestão de Resíduos Médicos
+           ${BRAND_DISPLAY_NAME} - Sistema de Gestão de Resíduos Médicos
          </div>`
       : "";
 

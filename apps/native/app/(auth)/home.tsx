@@ -1,4 +1,4 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { BUTTON_HEIGHT } from "@/components/styles/buttons";
 import { Container } from "@/components/container";
 import { Image } from "expo-image";
@@ -8,11 +8,12 @@ import {
   type AuthBottomSheetRef,
 } from "@/components/auth-bottom-sheet";
 import { useRef, useCallback } from "react";
-import { Asset, useAssets } from "expo-asset";
+import { BRAND_LOGO_EXTENDED, BRAND_NAME } from "@/lib/brand";
 
 export default function Landing() {
   const authBottomSheetRef = useRef<AuthBottomSheetRef>(null);
-  const [assets] = useAssets([require("../../assets/medwaster-mascot.png")]);
+  const { width } = useWindowDimensions();
+  const logoSize = Math.min(400, Math.max(240, width - 48));
 
   const handleOpenSignIn = useCallback(() => {
     authBottomSheetRef.current?.switchToSignIn();
@@ -35,15 +36,15 @@ export default function Landing() {
       <View className="flex-1 items-center justify-center px-8">
         <View>
           <Image
-            source={assets?.[0]}
-            style={{ width: 400, height: 400 }}
+            source={BRAND_LOGO_EXTENDED}
+            style={{ width: logoSize, height: logoSize }}
             contentFit="contain"
           />
         </View>
 
         <View className="mb-6">
           <Text className="text-5xl font-bold text-primary text-center tracking-tight">
-            Medwaster
+            {BRAND_NAME}
           </Text>
         </View>
 
@@ -58,7 +59,7 @@ export default function Landing() {
       <View className="px-5 pb-12 gap-6">
         <TouchableOpacity
           onPress={handleOpenSignUp}
-          className="bg-[#155DFC] rounded-[14px] items-center justify-center"
+          className="bg-[#1261A0] rounded-[14px] items-center justify-center"
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 1 },

@@ -29,7 +29,7 @@ import { Trophy } from "lucide-react-native";
 import digitalCertificate from "@/assets/digital-certificate.png";
 
 const CATEGORY_COLORS = [
-  { bg: "#EFF6FF", icon: "#155DFC" },
+  { bg: "#EFF6FF", icon: "#1261A0" },
   { bg: "#FAF5FF", icon: "#9810FA" },
   { bg: "#FEF2F2", icon: "#E7000B" },
   { bg: "#FFFBEB", icon: "#E17100" },
@@ -130,13 +130,15 @@ export default function Home() {
         <View className="border-gray-100 dark:border-gray-800 px-5 py-3.5">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2.5">
-              <Image
-                source={require("@/assets/mini-icon.png")}
-                style={{ width: 48, height: 48 }}
-                resizeMode="contain"
-              />
+              <View className="w-12 h-12 rounded-xl bg-white items-center justify-center">
+                <Image
+                  source={require("@/assets/educonecta-logo.png")}
+                  style={{ width: 40, height: 40 }}
+                  resizeMode="contain"
+                />
+              </View>
               <Text className="text-xl font-semibold text-gray-900 dark:text-gray-50">
-                Medwaster
+                EduConecta
               </Text>
             </View>
             {/* {__DEV__ && ( */}
@@ -174,7 +176,7 @@ export default function Home() {
                 className="rounded-2xl overflow-hidden shadow-lg"
               >
                 <LinearGradient
-                  colors={["#155DFC", "#0B4FDB"]}
+                  colors={["#1261A0", "#102A43"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={{
@@ -228,7 +230,7 @@ export default function Home() {
 
             {isLoadingRecommended ? (
               <View className="h-48 items-center justify-center">
-                <ActivityIndicator size="small" color="#155DFC" />
+                <ActivityIndicator size="small" color="#1261A0" />
               </View>
             ) : uniqueTrails.length > 0 ? (
               <ScrollView
@@ -288,7 +290,7 @@ export default function Home() {
             </Text>
             {isLoadingCategories ? (
               <View className="h-32 items-center justify-center">
-                <ActivityIndicator size="small" color="#155DFC" />
+                <ActivityIndicator size="small" color="#1261A0" />
               </View>
             ) : categories.length > 0 ? (
               <View className="gap-3">
