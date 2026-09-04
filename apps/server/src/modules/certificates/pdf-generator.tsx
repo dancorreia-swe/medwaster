@@ -2,6 +2,7 @@ import React from "react";
 import { pdf, Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import QRCode from "qrcode";
 import { CertificateStorageService } from "./storage.service";
+import { BRAND_COLORS, BRAND_DISPLAY_NAME, BRAND_TAGLINE } from "../../emails/brand";
 
 interface CertificateData {
   id: number;
@@ -26,7 +27,7 @@ const VERIFY_PATH = process.env.CERTIFICATE_VERIFY_PATH || "/verify/certificate"
 
 const styles = StyleSheet.create({
   page: {
-    backgroundColor: "#0F172A",
+    backgroundColor: BRAND_COLORS.navy,
     padding: 24,
   },
   card: {
@@ -37,7 +38,7 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    border: "3 solid #155DFC",
+    border: `3 solid ${BRAND_COLORS.blue}`,
   },
   header: {
     alignItems: "center",
@@ -69,7 +70,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    border: "3 solid #155DFC",
+    border: `3 solid ${BRAND_COLORS.green}`,
   },
   nameBlock: {
     flexGrow: 1,
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     fontWeight: 700,
-    color: "#155DFC",
+    color: BRAND_COLORS.navy,
   },
   achievement: {
     fontSize: 12,
@@ -183,9 +184,9 @@ function generateInitialsAvatar(name: string) {
     .join("");
 
   const svg = `<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-  <rect width="200" height="200" rx="100" fill="#DBEAFE"/>
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="80" font-family="Arial" fill="#1D4ED8">${initials ||
-    "MW"}</text>
+  <rect width="200" height="200" rx="100" fill="#E8F3E5"/>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="80" font-family="Arial" fill="${BRAND_COLORS.navy}">${initials ||
+    "EC"}</text>
 </svg>`;
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
@@ -246,7 +247,7 @@ const CertificateDocument = ({
             <View style={styles.header}>
               <Text style={styles.badge}>CERTIFICADO</Text>
               <Text style={styles.title}>{title}</Text>
-              <Text style={styles.subtitle}>Medwaster Plataforma Educacional</Text>
+              <Text style={styles.subtitle}>{BRAND_DISPLAY_NAME} Plataforma Educacional</Text>
             </View>
 
             <View style={styles.profileRow}>
@@ -299,7 +300,7 @@ const CertificateDocument = ({
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>MEDWASTER • EDUCAÇÃO PARA PROFISSIONAIS DE SAÚDE</Text>
+            <Text style={styles.footerText}>{BRAND_DISPLAY_NAME} • {BRAND_TAGLINE}</Text>
           </View>
         </View>
       </Page>
