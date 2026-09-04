@@ -22,9 +22,9 @@ export const Route = createFileRoute("/forgot-password")({
 
 function RouteComponent() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center justify-center gap-14 px-6 py-16">
-        <div className="flex items-center gap-2 text-xl font-normal text-slate-900">
+        <div className="flex items-center gap-2 text-xl font-normal text-slate-900 dark:text-slate-100">
           <img
             src={BRAND_LOGO_COMPACT}
             alt={BRAND_NAME}
@@ -37,7 +37,7 @@ function RouteComponent() {
           <ForgotPasswordForm />
         </div>
 
-        <p className="text-sm text-slate-500">© 2025 {BRAND_NAME}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">© 2025 {BRAND_NAME}</p>
       </div>
     </div>
   );

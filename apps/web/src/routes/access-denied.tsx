@@ -45,13 +45,13 @@ function RouteComponent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
       <Card className="max-w-2xl w-full">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-            <AlertTriangle className="w-8 h-8 text-red-600" />
+          <div className="mx-auto mb-4 w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-destructive" />
           </div>
-          <CardTitle className="text-2xl text-slate-900">
+          <CardTitle className="text-2xl">
             Acesso Negado ao Painel Web
           </CardTitle>
           <CardDescription className="text-lg">{errorMessage}</CardDescription>
@@ -60,17 +60,17 @@ function RouteComponent() {
         <CardContent className="space-y-6">
           {/* User Role Information */}
           {session?.user && (
-            <div className="bg-slate-100 rounded-lg p-4">
+            <div className="bg-muted rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-900">
+                  <p className="text-sm font-medium">
                     Usuário atual:
                   </p>
-                  <p className="text-slate-700">
+                  <p className="text-muted-foreground">
                     {session.user.name || session.user.email}
                   </p>
                 </div>
-                <Badge variant="outline" className="bg-white">
+                <Badge variant="outline" className="bg-background">
                   {getRoleDisplayName(session.user.role)}
                 </Badge>
               </div>
@@ -79,14 +79,14 @@ function RouteComponent() {
 
           {/* Instructions for User Role */}
           {isUserRole && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div className="bg-accent border border-border rounded-lg p-6">
               <div className="flex items-center gap-3 mb-4">
-                <Smartphone className="w-6 h-6 text-blue-600" />
-                <h3 className="font-semibold text-blue-900">
+                <Smartphone className="w-6 h-6 text-accent-foreground" />
+                <h3 className="font-semibold text-accent-foreground">
                   Use o Aplicativo Móvel
                 </h3>
               </div>
-              <div className="space-y-3 text-blue-800">
+              <div className="space-y-3 text-accent-foreground">
                 <p>
                   Como usuário regular, você deve acessar o EduConecta através do
                   aplicativo móvel:
@@ -97,7 +97,7 @@ function RouteComponent() {
                   <li>Estatísticas detalhadas de desempenho</li>
                   <li>Interface otimizada para dispositivos móveis</li>
                 </ul>
-                <div className="mt-4 p-3 bg-blue-100 rounded border">
+                <div className="mt-4 p-3 bg-background/60 rounded border border-border">
                   <p className="text-sm font-medium">
                     📱 Baixe o aplicativo EduConecta na App Store ou Google Play
                   </p>
@@ -108,11 +108,11 @@ function RouteComponent() {
 
           {/* Instructions for Other Roles */}
           {!isUserRole && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
-              <h3 className="font-semibold text-amber-900 mb-2">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 dark:bg-amber-950/40 dark:border-amber-900">
+              <h3 className="font-semibold text-amber-900 mb-2 dark:text-amber-200">
                 Acesso Administrativo Necessário
               </h3>
-              <p className="text-amber-800">
+              <p className="text-amber-800 dark:text-amber-300">
                 O painel web é exclusivo para administradores e super
                 administradores. Entre em contato com um administrador do
                 sistema para obter as permissões adequadas.
@@ -121,11 +121,11 @@ function RouteComponent() {
           )}
 
           {/* Administrator Contact */}
-          <div className="bg-slate-100 rounded-lg p-4">
-            <h4 className="font-medium text-slate-900 mb-2">
+          <div className="bg-muted rounded-lg p-4">
+            <h4 className="font-medium mb-2">
               Precisa de acesso administrativo?
             </h4>
-            <p className="text-slate-600 text-sm">
+            <p className="text-muted-foreground text-sm">
               Entre em contato com um super administrador para solicitar
               permissões de acesso ao painel web. Apenas profissionais
               autorizados podem gerenciar o sistema através desta interface.
@@ -140,7 +140,7 @@ function RouteComponent() {
             </Button>
 
             {isUserRole && (
-              <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
+              <Button className="flex-1">
                 <Smartphone className="w-4 h-4 mr-2" />
                 Baixar App Móvel
               </Button>
@@ -148,7 +148,7 @@ function RouteComponent() {
           </div>
 
           {/* Footer */}
-          <div className="text-center text-sm text-slate-500 pt-4 border-t">
+          <div className="text-center text-sm text-muted-foreground pt-4 border-t">
             EduConecta - Painel Administrativo
           </div>
         </CardContent>

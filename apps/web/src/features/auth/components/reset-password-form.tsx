@@ -66,13 +66,13 @@ export function ResetPasswordForm() {
 
   if (!search.token) {
     return (
-      <Card className="w-full max-w-sm border-slate-200 bg-white shadow-md">
+      <Card className="w-full max-w-sm border border-border/80 bg-card/95 text-card-foreground shadow-md dark:border-border/60 dark:bg-card/80">
         <CardContent className="flex flex-col items-center gap-6 p-8">
           <div className="text-center">
-            <h2 className="text-xl font-bold text-slate-900 mb-2">
+            <h2 className="text-xl font-bold text-foreground mb-2">
               Token Inválido
             </h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               O link de redefinição de senha é inválido ou expirou.
             </p>
           </div>
@@ -88,12 +88,12 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm border-slate-200 bg-white shadow-md">
+    <Card className="w-full max-w-sm border border-border/80 bg-card/95 text-card-foreground shadow-md dark:border-border/60 dark:bg-card/80">
       <CardHeader>
-        <CardTitle className="text-xl font-bold text-slate-900">
+        <CardTitle className="text-xl font-bold text-foreground">
           Crie uma nova senha
         </CardTitle>
-        <CardDescription className="text-sm text-slate-500">
+        <CardDescription className="text-sm text-muted-foreground">
           Sua nova senha deve ser diferente da anterior.
         </CardDescription>
       </CardHeader>
@@ -111,7 +111,7 @@ export function ResetPasswordForm() {
               <div className="flex flex-col gap-2">
                 <Label
                   htmlFor={field.name}
-                  className="text-sm font-medium text-slate-900"
+                  className="text-sm font-medium text-foreground"
                 >
                   Nova Senha
                 </Label>
@@ -121,7 +121,7 @@ export function ResetPasswordForm() {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="h-10 border-slate-200 bg-white"
+                  className="h-10"
                 />
                 {field.state.meta.errors.map((error) => (
                   <p key={error?.message} className="text-sm text-destructive">
@@ -137,7 +137,7 @@ export function ResetPasswordForm() {
               <div className="flex flex-col gap-2">
                 <Label
                   htmlFor={field.name}
-                  className="text-sm font-medium text-slate-900"
+                  className="text-sm font-medium text-foreground"
                 >
                   Confirmar Senha
                 </Label>
@@ -147,7 +147,7 @@ export function ResetPasswordForm() {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="h-10 border-slate-200 bg-white"
+                  className="h-10"
                 />
                 {field.state.meta.errors.map((error) => (
                   <p key={error?.message} className="text-sm text-destructive">
