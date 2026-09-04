@@ -97,7 +97,7 @@ export function CertificateVerificationPage({
                   <div className="flex items-center gap-3">
                     <Award className="h-5 w-5 text-amber-500" />
                     <p>
-                      Este certificado foi emitido pela plataforma MedWaster e pode ser consultado a qualquer
+                      Este certificado foi emitido pela plataforma EduConecta e pode ser consultado a qualquer
                       momento neste endereço.
                     </p>
                   </div>

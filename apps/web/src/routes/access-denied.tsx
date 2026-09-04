@@ -88,7 +88,7 @@ function RouteComponent() {
               </div>
               <div className="space-y-3 text-blue-800">
                 <p>
-                  Como usuário regular, você deve acessar o MedWaster através do
+                  Como usuário regular, você deve acessar o EduConecta através do
                   aplicativo móvel:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-sm">
@@ -99,7 +99,7 @@ function RouteComponent() {
                 </ul>
                 <div className="mt-4 p-3 bg-blue-100 rounded border">
                   <p className="text-sm font-medium">
-                    📱 Baixe o aplicativo MedWaster na App Store ou Google Play
+                    📱 Baixe o aplicativo EduConecta na App Store ou Google Play
                   </p>
                 </div>
               </div>
@@ -149,7 +149,7 @@ function RouteComponent() {
 
           {/* Footer */}
           <div className="text-center text-sm text-slate-500 pt-4 border-t">
-            MedWaster Learning Platform - Painel Administrativo
+            EduConecta - Painel Administrativo
           </div>
         </CardContent>
       </Card>

@@ -9,6 +9,7 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import "../index.css";
+import { BRAND_NAME } from "@/lib/brand";
 
 export interface RouterAppContext {
   queryClient: QueryClient;
@@ -21,13 +22,14 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
     meta: [
       {
         name: "description",
-        content: "medwaster is a web application",
+        content: `${BRAND_NAME} é uma plataforma de aprendizagem sobre descarte correto de resíduos hospitalares.`,
       },
     ],
     links: [
       {
         rel: "icon",
-        href: "/favicon.ico",
+        type: "image/png",
+        href: "/favicon.png",
       },
       {
         rel: "apple-touch-icon",

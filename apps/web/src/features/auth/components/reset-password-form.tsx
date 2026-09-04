@@ -162,7 +162,7 @@ export function ResetPasswordForm() {
             {(state) => (
               <Button
                 type="submit"
-                className="h-10 w-full bg-[#155DFC] text-sm font-medium text-white hover:bg-[#155DFC]/90"
+                className="h-10 w-full bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90"
                 disabled={!state.canSubmit || state.isSubmitting}
               >
                 {state.isSubmitting ? "Redefinindo..." : "Redefinir Senha"}

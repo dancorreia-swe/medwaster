@@ -72,7 +72,7 @@ export default function SignUpForm({
           Crie sua conta
         </CardTitle>
         <CardDescription>
-          Junte-se ao MedWaster para simplificar o acompanhamento e a
+          Junte-se ao EduConecta para simplificar o acompanhamento e a
           conformidade dos resíduos.
         </CardDescription>
       </CardHeader>

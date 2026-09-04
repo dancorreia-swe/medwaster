@@ -2,6 +2,7 @@ import { ForgotPasswordForm } from "@/features/auth/components/forgot-password-f
 import { authClient } from "@/lib/auth-client";
 import { buildPageHead } from "@/lib/page-title";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { BRAND_NAME, BRAND_LOGO_COMPACT } from "@/lib/brand";
 
 const PAGE_TITLE = "Recuperar Senha";
 
@@ -25,18 +26,18 @@ function RouteComponent() {
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center justify-center gap-14 px-6 py-16">
         <div className="flex items-center gap-2 text-xl font-normal text-slate-900">
           <img
-            src="/light-mascot.png"
-            alt="MedWaster"
+            src={BRAND_LOGO_COMPACT}
+            alt={BRAND_NAME}
             className="h-7 w-7"
           />
-          <span className="font-medium">MedWaster</span>
+          <span className="font-medium">{BRAND_NAME}</span>
         </div>
 
         <div className="flex w-full justify-center">
           <ForgotPasswordForm />
         </div>
 
-        <p className="text-sm text-slate-500">© 2025 MynaUI</p>
+        <p className="text-sm text-slate-500">© 2025 {BRAND_NAME}</p>
       </div>
     </div>
   );

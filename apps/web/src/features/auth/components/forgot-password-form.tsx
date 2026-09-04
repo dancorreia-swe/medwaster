@@ -88,7 +88,7 @@ export function ForgotPasswordForm({ onEmailSent }: ForgotPasswordFormProps) {
           <div className="w-full pt-6">
             <Button
               onClick={handleResendEmail}
-              className="h-10 w-full bg-[#155DFC] text-sm font-medium text-white hover:bg-[#155DFC]/90"
+              className="h-10 w-full bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Reenviar Email
             </Button>
