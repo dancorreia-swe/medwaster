@@ -97,14 +97,14 @@ export default function CertificatesScreen() {
           : `${serverUrl}${rawUrl}`
         : undefined;
 
-      const baseMessage = `🎓 Conquistei meu Certificado de Conclusão no MedWaster!\n\n${certificate.totalTrailsCompleted} trilhas • ${certificate.averageScore.toFixed(1)}% de média\n\nCódigo: ${certificate.verificationCode}`;
+      const baseMessage = `🎓 Conquistei meu Certificado de Conclusão no EduConecta!\n\n${certificate.totalTrailsCompleted} trilhas • ${certificate.averageScore.toFixed(1)}% de média\n\nCódigo: ${certificate.verificationCode}`;
 
       const shareMessage = pdfUrl
         ? `${baseMessage}\n\nBaixar certificado: ${pdfUrl}`
         : baseMessage;
 
       await Share.share({
-        title: "Meu certificado MedWaster",
+        title: "Meu certificado EduConecta",
         url: pdfUrl,
         message: shareMessage,
       });
@@ -117,7 +117,7 @@ export default function CertificatesScreen() {
     return (
       <Container className="flex-1 bg-gray-50 dark:bg-gray-950">
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#155DFC" />
+          <ActivityIndicator size="large" color="#1261A0" />
         </View>
       </Container>
     );
@@ -295,13 +295,13 @@ export default function CertificatesScreen() {
             {/* Header */}
             <View className="items-center mb-12 pb-10 border-b border-gray-200 dark:border-gray-800">
               <View className="w-24 h-24 bg-blue-50 rounded-full items-center justify-center mb-5 dark:bg-blue-900/30">
-                <Award size={48} color="#155DFC" strokeWidth={2.5} />
+                <Award size={48} color="#1261A0" strokeWidth={2.5} />
               </View>
               <Text className="text-2xl font-bold text-gray-900 dark:text-gray-50 text-center mb-3">
                 Certificado de Conclusão
               </Text>
               <Text className="text-base text-gray-600 dark:text-gray-400 text-center">
-                MedWaster
+                EduConecta
               </Text>
             </View>
 
@@ -392,7 +392,7 @@ export default function CertificatesScreen() {
                 className="bg-white border-2 border-blue-500 rounded-2xl py-6 flex-row items-center justify-center gap-3 dark:bg-gray-900 dark:border-blue-400"
                 activeOpacity={0.7}
               >
-                <Share2 size={22} color="#155DFC" strokeWidth={2.5} />
+                <Share2 size={22} color="#1261A0" strokeWidth={2.5} />
                 <Text className="text-blue-500 dark:text-blue-200 text-lg font-semibold">
                   Compartilhar
                 </Text>

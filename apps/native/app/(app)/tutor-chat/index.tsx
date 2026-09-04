@@ -58,7 +58,7 @@ function RecordingWaveform({
   isActive,
   level,
   containerStyle,
-  barColorActive = "#155DFC",
+  barColorActive = "#1261A0",
   barColorIdle = "#CBD5E1",
 }: {
   isActive: boolean;
@@ -548,7 +548,7 @@ export default function TutorScreen() {
               </View>
 
               <Text className="text-2xl font-medium text-gray-900 dark:text-gray-50 text-center leading-snug tracking-tight">
-                Tutor Medwaster
+                Tutor EduConecta
               </Text>
 
               <Text className="text-base text-gray-500 dark:text-gray-400 text-center leading-tight px-4">
