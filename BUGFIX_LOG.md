@@ -1,0 +1,1 @@
+2026-08-28 | certificates/auth | Unauthenticated certificate downloads crashed with 500 | The download route was outside the auth guard and dereferenced an absent user | Guarded the route; in-process regression test verifies 401

@@ -180,8 +180,7 @@ export const studentCertificates = new Elysia({ prefix: "/certificates" })
             description: "Get the authenticated user's certificate (if exists)",
           },
         },
-      ),
-  )
+      )
 
   /**
    * GET /certificates/download/:id
@@ -220,6 +219,7 @@ export const studentCertificates = new Elysia({ prefix: "/certificates" })
         description: "Get download URL for certificate PDF",
       },
     },
+   ),
   )
 
   /**
