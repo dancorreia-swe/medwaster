@@ -41,6 +41,14 @@ vi.mock("@/db/schema/trails", () => ({ trailContent: {} }),
 vi.mock("@/lib/errors", () => ({
   DependencyError: class DependencyError extends Error {},
   NotFoundError: class NotFoundError extends Error {},
+  ValidationError: class ValidationError extends Error {
+    statusCode = 400;
+
+    constructor(message: string) {
+      super(message);
+      this.name = "ValidationError";
+    }
+  },
 }),
   // @ts-ignore The installed Vitest type declarations omit the virtual option.
   { virtual: true });
@@ -94,9 +102,10 @@ describe("QuestionsService.updateQuestion content integrity", () => {
     async (type, patch) => {
       mockExistingQuestion(type);
 
-      await expect(QuestionsService.updateQuestion(1, patch)).rejects.toThrow(
-        /requires/i,
-      );
+      await expect(QuestionsService.updateQuestion(1, patch)).rejects.toMatchObject({
+        name: "ValidationError",
+        statusCode: 400,
+      });
 
       expect(mockDb.transaction).not.toHaveBeenCalled();
       expect(mockTx.delete).not.toHaveBeenCalled();

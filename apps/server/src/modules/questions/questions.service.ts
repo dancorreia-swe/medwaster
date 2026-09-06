@@ -15,7 +15,7 @@ import {
 import { quizQuestions } from "@/db/schema/quizzes";
 import { trailContent } from "@/db/schema/trails";
 import { asc, desc, eq, and, sql, ilike, or, inArray } from "drizzle-orm";
-import { NotFoundError, DependencyError } from "@/lib/errors";
+import { NotFoundError, DependencyError, ValidationError } from "@/lib/errors";
 import { S3StorageService } from "./s3-storage.service";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -49,7 +49,7 @@ function validateQuestionData(
     !hasRequiredData ||
     (Array.isArray(hasRequiredData) && hasRequiredData.length === 0)
   ) {
-    throw new Error(
+    throw new ValidationError(
       `Question type "${type}" requires "${requiredField}" to be provided`,
     );
   }
