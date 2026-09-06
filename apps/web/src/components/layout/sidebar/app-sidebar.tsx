@@ -33,6 +33,7 @@ import {
 import { SuperAdminOnly, usePermissions } from "@/components/auth/role-guard";
 import type { TRoute } from "@/types/routes";
 import { Link, useLocation } from "@tanstack/react-router";
+import { BRAND_NAME, BRAND_LOGO_COMPACT } from "@/lib/brand";
 import { NavUser } from "./nav-user";
 import type { AuthenticatedUser } from "@/types/user";
 import { authClient } from "@/lib/auth-client";
@@ -173,15 +174,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link to="/">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-white ring-1 ring-border">
                   <img
-                    src="/outline-mascot.png"
-                    alt="MedWaster"
+                    src={BRAND_LOGO_COMPACT}
+                    alt={BRAND_NAME}
                     className="h-5 w-5"
                   />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">MedWaster</span>
+                  <span className="truncate font-medium">{BRAND_NAME}</span>
                   <span className="truncate text-xs">
                     Painel Administrativo
                   </span>

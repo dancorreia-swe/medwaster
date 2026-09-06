@@ -4,6 +4,7 @@ import { buildPageHead } from "@/lib/page-title";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
+import { BRAND_NAME, BRAND_LOGO_COMPACT } from "@/lib/brand";
 
 const resetPasswordSearch = z.object({
   token: z.string().optional(),
@@ -27,12 +28,12 @@ export const Route = createFileRoute("/reset-password")({
 
 function RouteComponent() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center justify-center gap-14 px-6 py-16">
         {/* Logo */}
-        <div className="flex items-center gap-2 text-xl font-normal text-slate-900">
-          <img src="/light-mascot.png" alt="MedWaster" className="h-7 w-7" />
-          <span className="font-medium">MedWaster</span>
+        <div className="flex items-center gap-2 text-xl font-normal text-slate-900 dark:text-slate-100">
+          <img src={BRAND_LOGO_COMPACT} alt={BRAND_NAME} className="h-7 w-7" />
+          <span className="font-medium">{BRAND_NAME}</span>
         </div>
 
         {/* Reset Password Form */}
@@ -41,7 +42,7 @@ function RouteComponent() {
         </div>
 
         {/* Footer */}
-        <p className="text-sm text-slate-500">© 2025 MynaUI</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">© 2025 {BRAND_NAME}</p>
       </div>
     </div>
   );

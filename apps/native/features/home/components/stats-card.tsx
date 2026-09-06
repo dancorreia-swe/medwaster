@@ -46,7 +46,7 @@ export function StatsCard() {
   if (isLoading) {
     return (
       <View className="mx-5 mb-5 bg-white dark:bg-gray-900 rounded-[14px] border border-gray-200 dark:border-gray-800 p-6 items-center justify-center">
-        <ActivityIndicator size="small" color="#155DFC" />
+        <ActivityIndicator size="small" color="#1261A0" />
         <Text className="text-xs text-gray-600 dark:text-gray-400 mt-2">Carregando...</Text>
       </View>
     );

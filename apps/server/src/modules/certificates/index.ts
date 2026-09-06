@@ -234,7 +234,7 @@ export const studentCertificates = new Elysia({ prefix: "/certificates" })
       if (!result) {
         return {
           isValid: false,
-          message: "Certificate not found or not approved",
+          message: "Certificado não encontrado ou ainda não aprovado.",
         };
       }
 
