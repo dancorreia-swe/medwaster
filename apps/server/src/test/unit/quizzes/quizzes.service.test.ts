@@ -133,7 +133,7 @@ const updatedAttempt = {
   earnedPoints: 100,
 };
 
-function setupAttempt() {
+function setupAttempt(questions = quizQuestions) {
   mockDb.query.quizAttempts.findFirst.mockResolvedValue({
     id: 1,
     quizId: 10,
@@ -142,7 +142,7 @@ function setupAttempt() {
     startedAt: new Date(),
     quiz: {
       timeLimit: null,
-      questions: quizQuestions,
+      questions,
     },
   });
 
@@ -181,6 +181,42 @@ describe("QuizzesService.submitQuizAttempt", () => {
         answers: [...answers, answers[0]!],
       }),
     ).rejects.toThrow(/duplicate answer/i);
+
+    expect(mockDb.transaction).not.toHaveBeenCalled();
+    expect(mockTx.insert).not.toHaveBeenCalled();
+  });
+
+  it("uses every configured question as the denominator when correct and incorrect questions are omitted", async () => {
+    setupAttempt(
+      quizQuestions.map((quizQuestion) => ({
+        ...quizQuestion,
+        required: false,
+      })),
+    );
+
+    await QuizzesService.submitQuizAttempt(1, "user-1", {
+      answers: [answers[0]!],
+    });
+
+    const updateSet = mockTx.update.mock.results[0]?.value.set;
+    expect(updateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        score: 10,
+        totalPoints: 100,
+        earnedPoints: 10,
+      }),
+    );
+  });
+
+  it("rejects answers for quiz questions outside the attempt", async () => {
+    await expect(
+      QuizzesService.submitQuizAttempt(1, "user-1", {
+        answers: [
+          ...answers,
+          { quizQuestionId: 999, selectedOptions: [301] },
+        ],
+      }),
+    ).rejects.toThrow(/does not belong to this attempt/i);
 
     expect(mockDb.transaction).not.toHaveBeenCalled();
     expect(mockTx.insert).not.toHaveBeenCalled();

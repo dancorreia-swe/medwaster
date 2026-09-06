@@ -539,8 +539,17 @@ export abstract class QuizzesService {
     // Required questions must be answered once, and no question may be answered
     // more than once. Otherwise the score denominator could be based on a
     // partial or duplicated submission.
+    const attemptQuestionIds = new Set(
+      (attempt.quiz.questions || []).map((quizQuestion) => quizQuestion.id),
+    );
     const submittedQuestionIds = new Set<number>();
     for (const answerData of data.answers) {
+      if (!attemptQuestionIds.has(answerData.quizQuestionId)) {
+        throw new BadRequestError(
+          `Quiz question ${answerData.quizQuestionId} does not belong to this attempt`,
+        );
+      }
+
       if (submittedQuestionIds.has(answerData.quizQuestionId)) {
         throw new BadRequestError(
           `Duplicate answer for quiz question ${answerData.quizQuestionId}`,
