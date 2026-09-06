@@ -28,12 +28,22 @@ const QUESTION_TYPE_REQUIREMENTS = {
   matching: "matchingPairs",
 } as const;
 
-function validateQuestionData(data: CreateQuestionBody | UpdateQuestionBody) {
-  const type = data.type;
+function validateQuestionData(
+  data: CreateQuestionBody | UpdateQuestionBody,
+  persistedType?: QuestionType,
+) {
+  const type = data.type ?? persistedType;
   if (!type) return;
 
   const requiredField = QUESTION_TYPE_REQUIREMENTS[type];
   const hasRequiredData = data[requiredField as keyof typeof data];
+
+  const shouldValidateRequiredData =
+    persistedType === undefined ||
+    data.type !== undefined ||
+    hasRequiredData !== undefined;
+
+  if (!shouldValidateRequiredData) return;
 
   if (
     !hasRequiredData ||
@@ -183,9 +193,7 @@ export abstract class QuestionsService {
       throw new NotFoundError("Question not found");
     }
 
-    if (data.type) {
-      validateQuestionData(data);
-    }
+    validateQuestionData(data, existing.type);
 
     if (data.imageKey && existing.imageKey && data.imageKey !== existing.imageKey) {
       await S3StorageService.deleteImage(existing.imageKey);
