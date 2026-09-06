@@ -8,7 +8,6 @@ import {
   questionMatchingPairs,
   questionTags,
   tags,
-  type QuestionType,
   type QuestionDifficulty,
   type QuestionStatus,
 } from "@/db/schema/questions";
@@ -17,33 +16,10 @@ import { trailContent } from "@/db/schema/trails";
 import { asc, desc, eq, and, sql, ilike, or, inArray } from "drizzle-orm";
 import { NotFoundError, DependencyError } from "@/lib/errors";
 import { S3StorageService } from "./s3-storage.service";
+import { validateQuestionData } from "./question-content.validator";
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
-
-const QUESTION_TYPE_REQUIREMENTS = {
-  multiple_choice: "options",
-  true_false: "options",
-  fill_in_the_blank: "fillInBlanks",
-  matching: "matchingPairs",
-} as const;
-
-function validateQuestionData(data: CreateQuestionBody | UpdateQuestionBody) {
-  const type = data.type;
-  if (!type) return;
-
-  const requiredField = QUESTION_TYPE_REQUIREMENTS[type];
-  const hasRequiredData = data[requiredField as keyof typeof data];
-
-  if (
-    !hasRequiredData ||
-    (Array.isArray(hasRequiredData) && hasRequiredData.length === 0)
-  ) {
-    throw new Error(
-      `Question type "${type}" requires "${requiredField}" to be provided`,
-    );
-  }
-}
 
 export abstract class QuestionsService {
   static async getQuestionById(questionId: number) {
@@ -183,9 +159,7 @@ export abstract class QuestionsService {
       throw new NotFoundError("Question not found");
     }
 
-    if (data.type) {
-      validateQuestionData(data);
-    }
+    validateQuestionData(data, existing.type);
 
     if (data.imageKey && existing.imageKey && data.imageKey !== existing.imageKey) {
       await S3StorageService.deleteImage(existing.imageKey);
