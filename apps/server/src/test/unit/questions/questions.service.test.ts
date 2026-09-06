@@ -111,4 +111,19 @@ describe("QuestionsService.updateQuestion content integrity", () => {
       expect(mockTx.delete).not.toHaveBeenCalled();
     },
   );
+
+  it("allows an update that leaves the required variation unchanged", async () => {
+    mockExistingQuestion("multiple_choice");
+    mockTx.update.mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: 1 }]),
+        }),
+      }),
+    });
+
+    await expect(
+      QuestionsService.updateQuestion(1, { prompt: "Updated prompt" }),
+    ).resolves.toEqual({ id: 1 });
+  });
 });
