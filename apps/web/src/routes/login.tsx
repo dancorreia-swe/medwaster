@@ -4,6 +4,7 @@ import { buildPageHead } from "@/lib/page-title";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
+import { BRAND_NAME, BRAND_LOGO_COMPACT } from "@/lib/brand";
 
 const loginSearch = z.object({
   redirect: z.string().optional(),
@@ -33,11 +34,11 @@ function RouteComponent() {
         <div className="flex items-center gap-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
           <span className="flex items-center gap-2">
             <img
-              src="/light-mascot.png"
-              alt="MedWaster"
+              src={BRAND_LOGO_COMPACT}
+              alt={BRAND_NAME}
               className="h-8 w-8"
             />
-            MedWaster
+            {BRAND_NAME}
           </span>
         </div>
 
@@ -45,7 +46,7 @@ function RouteComponent() {
           <SignInForm />
         </div>
 
-        <p className="text-sm text-slate-500 dark:text-slate-400">© 2025 MedWaster</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">© 2025 {BRAND_NAME}</p>
       </div>
     </div>
   );

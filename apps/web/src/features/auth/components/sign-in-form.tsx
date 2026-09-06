@@ -14,6 +14,7 @@ import {
 import { Label } from "../../../components/ui/label";
 import { Input, PasswordInput } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { BRAND_NAME } from "@/lib/brand";
 
 export function SignInForm({}: { onSwitchToSignUp?: () => void }) {
   const navigate = useNavigate({
@@ -71,7 +72,7 @@ export function SignInForm({}: { onSwitchToSignUp?: () => void }) {
           Bem-vindo de volta
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Entre para acessar o painel do MedWaster.
+          Entre para acessar o painel do {BRAND_NAME}.
         </CardDescription>
       </CardHeader>
       <CardContent>

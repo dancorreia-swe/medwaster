@@ -5,6 +5,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import { BRAND_BOT_NAME } from "../../../emails/brand";
 
 interface ScrapeResult {
   success: boolean;
@@ -25,7 +26,7 @@ class ContentScraperService {
   private browser: Browser | null = null;
   private readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
   private readonly DEFAULT_USER_AGENT =
-    "Mozilla/5.0 (compatible; MedWasterBot/1.0; +https://medwaster.com)";
+    `Mozilla/5.0 (compatible; ${BRAND_BOT_NAME}/1.0; +https://medwaster.com)`;
 
   /**
    * Initialize the browser instance

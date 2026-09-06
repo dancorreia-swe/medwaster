@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the centralized error handling system for API requests across the MedWaster web application.
+This document describes the centralized error handling system for API requests across the EduConecta web application.
 
 ## Purpose
 

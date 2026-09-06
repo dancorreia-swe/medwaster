@@ -25,7 +25,7 @@ function RouteComponent() {
   const { trailId } = Route.useParams();
   const numericTrailId = Number(trailId);
 
-  const { data: trailData, isLoading, error } = useQuery(
+  const { data: trailData, isPending, isError } = useQuery(
     trailQueryOptions(numericTrailId)
   );
 
@@ -39,7 +39,16 @@ function RouteComponent() {
     );
   }
 
-  if (error) {
+  // isPending (not isLoading) covers the whole no-data-yet window, including
+  // after usePublishTrail's removeQueries drops this key and the refetch has
+  // not started — isLoading is false there, which would flash the error state.
+  if (isPending) {
+    return <TrailDetailPage trail={{} as any} isLoading={true} />;
+  }
+
+  // A failed request resolves with no data rather than rejecting, so an absent
+  // trail once the query has settled means "not found" — not "still loading".
+  if (isError || !trailData) {
     return (
       <div className="flex h-full min-h-[400px] items-center justify-center">
         <Alert variant="destructive" className="max-w-md">
@@ -49,10 +58,6 @@ function RouteComponent() {
         </Alert>
       </div>
     );
-  }
-
-  if (isLoading || !trailData) {
-    return <TrailDetailPage trail={{} as any} isLoading={true} />;
   }
 
   // Handle nested data structure from API

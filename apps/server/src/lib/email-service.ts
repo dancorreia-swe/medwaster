@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { render } from '@react-email/render';
 import ForgetPasswordEmail from '../emails/auth/forget-password';
+import { BRAND_COLORS, BRAND_DISPLAY_NAME } from '../emails/brand';
 
 export interface EmailServiceConfig {
   host: string;
@@ -50,7 +51,7 @@ export abstract class EmailService {
           pass: process.env.SMTP_PASS || '',
         },
         from: {
-          name: process.env.SMTP_FROM_NAME || 'MedWaster Learning',
+          name: process.env.SMTP_FROM_NAME || BRAND_DISPLAY_NAME,
           address: process.env.SMTP_FROM_ADDRESS || 'noreply@medwaster.com',
         },
       };
@@ -80,7 +81,7 @@ export abstract class EmailService {
       const mailOptions = {
         from: `"${this.config.from.name}" <${this.config.from.address}>`,
         to: params.to,
-        subject: 'Reset your password - MedWaster Learning',
+        subject: `Reset your password - ${BRAND_DISPLAY_NAME}`,
         html: emailHtml,
       };
 
@@ -115,17 +116,17 @@ export abstract class EmailService {
             <title>Verify Your New Email</title>
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #2563eb;">Verify Your New Email Address</h2>
+            <h2 style="color: ${BRAND_COLORS.navy};">Verify Your New Email Address</h2>
             <p>Hello ${params.userName},</p>
-            <p>You requested to change your email address for your MedWaster Learning account. To complete this process, please use the verification code below:</p>
-            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-              <code style="font-size: 24px; font-weight: bold; letter-spacing: 2px; color: #2563eb;">${params.token}</code>
+            <p>You requested to change your email address for your ${BRAND_DISPLAY_NAME} account. To complete this process, please use the verification code below:</p>
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 1px solid ${BRAND_COLORS.green};">
+              <code style="font-size: 24px; font-weight: bold; letter-spacing: 2px; color: ${BRAND_COLORS.blue};">${params.token}</code>
             </div>
             <p>This verification code will expire in 1 hour.</p>
             <p>If you didn't request this email change, please ignore this email and your account will remain unchanged.</p>
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
             <p style="font-size: 12px; color: #6b7280;">
-              This email was sent by MedWaster Learning. If you have any questions, please contact our support team.
+              This email was sent by ${BRAND_DISPLAY_NAME}. If you have any questions, please contact our support team.
             </p>
           </body>
         </html>
@@ -134,7 +135,7 @@ export abstract class EmailService {
       const mailOptions = {
         from: `"${this.config.from.name}" <${this.config.from.address}>`,
         to: params.to,
-        subject: 'Verify your new email address - MedWaster Learning',
+        subject: `Verify your new email address - ${BRAND_DISPLAY_NAME}`,
         html: emailHtml,
       };
 

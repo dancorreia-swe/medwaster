@@ -17,7 +17,7 @@ import {
 } from "@/db/schema/quizzes";
 import { trailContent } from "@/db/schema/trails";
 import { asc, desc, eq, ne, and, sql, ilike, or, inArray } from "drizzle-orm";
-import { NotFoundError, DependencyError } from "@/lib/errors";
+import { BadRequestError, NotFoundError, DependencyError } from "@/lib/errors";
 import { trackQuizCompleted } from "../achievements/trackers";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -535,6 +535,32 @@ export abstract class QuizzesService {
       throw new Error("Attempt is not in progress");
     }
 
+    // Validate the complete answer set before grading or writing any answers.
+    // Required questions must be answered once, and no question may be answered
+    // more than once. Otherwise the score denominator could be based on a
+    // partial or duplicated submission.
+    const submittedQuestionIds = new Set<number>();
+    for (const answerData of data.answers) {
+      if (submittedQuestionIds.has(answerData.quizQuestionId)) {
+        throw new BadRequestError(
+          `Duplicate answer for quiz question ${answerData.quizQuestionId}`,
+        );
+      }
+
+      submittedQuestionIds.add(answerData.quizQuestionId);
+    }
+
+    const missingRequiredQuestion = (attempt.quiz.questions || []).find(
+      (quizQuestion) =>
+        quizQuestion.required && !submittedQuestionIds.has(quizQuestion.id),
+    );
+
+    if (missingRequiredQuestion) {
+      throw new BadRequestError(
+        `Missing answer for required quiz question ${missingRequiredQuestion.id}`,
+      );
+    }
+
     // Check time limit if set
     if (attempt.quiz.timeLimit) {
       const startedAt = new Date(attempt.startedAt);
@@ -557,8 +583,15 @@ export abstract class QuizzesService {
     }
 
     return await db.transaction(async (tx) => {
-      let totalPoints = 0;
       let earnedPoints = 0;
+
+      // The possible score is defined by the quiz, not by the submitted
+      // answers. This keeps omitted optional answers from changing the
+      // denominator and prevents duplicate answers from inflating totals.
+      const totalPoints = (attempt.quiz.questions || []).reduce(
+        (sum, quizQuestion) => sum + quizQuestion.points,
+        0,
+      );
 
       // Process each answer
       for (const answerData of data.answers) {
@@ -568,7 +601,6 @@ export abstract class QuizzesService {
 
         if (!quizQuestion) continue;
 
-        totalPoints += quizQuestion.points;
         const isCorrect = this.checkAnswer(quizQuestion.question, answerData);
         const pointsEarned = isCorrect ? quizQuestion.points : 0;
         earnedPoints += pointsEarned;

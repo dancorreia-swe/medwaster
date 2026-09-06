@@ -1,0 +1,164 @@
+# Orca worktree hooks, shared with the team.
+# Local equivalents live in Settings → Worktree Hooks; this file wins for everyone.
+
+# Don't start the agent until setup finishes — it installs node_modules and
+# writes the .env files the agent needs immediately.
+setupAgentStartupPolicy: wait-for-setup
+
+# Optional: share node_modules across worktrees to make `bun install` near-instant
+# and save a few GB per worktree. Left off deliberately — worktrees on branches
+# with different dependency pins would mutate one shared tree. Enable if your
+# branches keep deps in lockstep:
+#
+# worktree:
+#   sharedDirectories:
+#     - node_modules
+
+scripts:
+  setup: |
+    set -euo pipefail
+    cd "${ORCA_WORKTREE_PATH:?}"
+
+    log() { printf '\n▸ %s\n' "$*"; }
+
+    # Replace KEY=value in a dotenv file, or append it if the key isn't there.
+    set_env() {
+      key="$1"; val="$2"; file="$3"
+      if [ -f "$file" ] && grep -q "^${key}=" "$file"; then
+        awk -v k="$key" -v v="$val" 'index($0, k "=")==1 {print k "=" v; next} {print}' \
+          "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+      else
+        # Guarantee a trailing newline first — the .env.example files here don't
+        # all have one, and appending would glue two keys onto the same line.
+        if [ -s "$file" ] && [ "$(tail -c1 "$file" | wc -l)" -eq 0 ]; then
+          printf '\n' >> "$file"
+        fi
+        printf '%s=%s\n' "$key" "$val" >> "$file"
+      fi
+    }
+    get_env()    { grep -E "^$1=" "$2" 2>/dev/null | head -1 | cut -d= -f2- || true; }
+    port_taken() { lsof -iTCP:"$1" -sTCP:LISTEN -n -P >/dev/null 2>&1; }
+    pick_port()  { p="$1"; while port_taken "$p"; do p=$((p+1)); done; printf '%s' "$p"; }
+
+    log "Installing dependencies"
+    bun install
+
+    # --- ports ---------------------------------------------------------------
+    # Each worktree gets its own web/API ports so several can run dev servers at
+    # once. Derived from the workspace name (stable), then probed upward for a
+    # free port. Once in .env the values stick, so re-running never moves them.
+    [ -f apps/web/.env ]    || cp apps/web/.env.example apps/web/.env
+    [ -f apps/server/.env ] || cp apps/server/.env.example apps/server/.env
+    [ -f apps/native/.env ] || cp apps/native/.env.example apps/native/.env
+
+    offset=$(( $(printf '%s' "${ORCA_WORKSPACE_NAME:-default}" | cksum | cut -d' ' -f1) % 40 * 10 ))
+    WEB_PORT=$(get_env WEB_PORT apps/web/.env)
+    API_PORT=$(get_env PORT apps/server/.env)
+    [ -n "$WEB_PORT" ] || WEB_PORT=$(pick_port $((3001 + offset)))
+    [ -n "$API_PORT" ] || API_PORT=$(pick_port $((4001 + offset)))
+    log "Ports for this worktree: web=$WEB_PORT api=$API_PORT"
+
+    # --- env files -----------------------------------------------------------
+    # The .example files ship the sensitive/local keys empty, and the server
+    # example is missing PORT and ADMIN_* entirely, so copying isn't enough.
+    log "Writing .env files"
+    set_env DATABASE_URL "postgresql://postgres:password@localhost:5432/medwaster" apps/server/.env
+    set_env PORT "$API_PORT" apps/server/.env
+    set_env CORS_ORIGIN "http://localhost:$WEB_PORT" apps/server/.env
+    set_env BETTER_AUTH_URL "http://localhost:$API_PORT" apps/server/.env
+    set_env ADMIN_EMAIL "system@admin.com" apps/server/.env
+    set_env ADMIN_PASSWORD "password" apps/server/.env
+    set_env ADMIN_NAME '"System Admin"' apps/server/.env
+    set_env AUDIT_CHECKSUM_SECRET "local-dev-audit-checksum-secret" apps/server/.env
+    grep -qE '^BETTER_AUTH_SECRET=.+' apps/server/.env \
+      || set_env BETTER_AUTH_SECRET "$(openssl rand -hex 32)" apps/server/.env
+
+    set_env WEB_PORT "$WEB_PORT" apps/web/.env
+    set_env VITE_SERVER_URL "http://localhost:$API_PORT" apps/web/.env
+    set_env EXPO_PUBLIC_SERVER_URL "http://localhost:$API_PORT" apps/native/.env
+
+    # --- database ------------------------------------------------------------
+    if ! docker info >/dev/null 2>&1; then
+      log "Docker isn't running — skipping database bootstrap."
+      echo "  Start Docker, then: bun run db:start && bun run db:push && bun run db:seed"
+      exit 0
+    fi
+
+    log "Starting shared dev containers (postgres/redis/minio)"
+    ( cd apps/server && docker compose up -d )
+
+    PG=medwaster-postgres-dev
+    log "Waiting for postgres"
+    for _ in $(seq 1 45); do
+      docker exec "$PG" pg_isready -U postgres >/dev/null 2>&1 && break
+      sleep 1
+    done
+    docker exec "$PG" pg_isready -U postgres >/dev/null 2>&1 \
+      || { echo "postgres never became ready"; exit 1; }
+
+    # drizzle push fails with `type "vector" does not exist` without this.
+    docker exec "$PG" psql -U postgres -d medwaster \
+      -c 'CREATE EXTENSION IF NOT EXISTS vector;' >/dev/null
+
+    # apps/server/docker-compose.yml pins `name: medwaster-server`, so ALL
+    # worktrees share this one database. Only bootstrap when it's empty —
+    # otherwise a new worktree pushes its schema over another's work.
+    already=$(docker exec "$PG" psql -U postgres -d medwaster -tAc \
+      "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='user'" || true)
+
+    if [ -n "$already" ]; then
+      log "Database already initialised — leaving schema and data alone"
+    else
+      log "Bootstrapping schema"
+      # `bun run db:push` breaks when bun doesn't link the drizzle-kit binary.
+      ( cd apps/server
+        set -a; . ./.env; set +a
+        if [ -x node_modules/.bin/drizzle-kit ]; then
+          node_modules/.bin/drizzle-kit push --force
+        else
+          node ./node_modules/drizzle-kit/bin.cjs push --force
+        fi )
+
+      log "Seeding"
+      bun run db:seed
+
+      # The seed creates this account as `admin`; super-admin unlocks the panel.
+      docker exec "$PG" psql -U postgres -d medwaster \
+        -c "UPDATE \"user\" SET role='super-admin' WHERE email='system@admin.com';" >/dev/null
+    fi
+
+    log "Ready. bun run dev:server (:$API_PORT) · bun run dev:web (:$WEB_PORT) · login system@admin.com / password"
+
+  archive: |
+    set -uo pipefail
+    cd "${ORCA_WORKTREE_PATH:?}"
+
+    log() { printf '\n▸ %s\n' "$*"; }
+    before=$(du -sh . 2>/dev/null | cut -f1)
+
+    # Local secrets — setup generates a fresh BETTER_AUTH_SECRET, so these are
+    # disposable and shouldn't linger in an archived tree.
+    log "Removing local .env files"
+    rm -f apps/server/.env apps/web/.env apps/native/.env
+
+    log "Removing build output and caches"
+    rm -rf apps/web/dist .turbo apps/*/.turbo apps/native/.expo
+
+    # Gitignored expo prebuild output; Pods alone is ~1GB.
+    log "Removing native prebuild output (ios/, android/)"
+    rm -rf apps/native/ios apps/native/android
+
+    log "Removing node_modules"
+    rm -rf node_modules apps/*/node_modules packages/*/node_modules
+
+    log "Reclaimed: was $before, now $(du -sh . 2>/dev/null | cut -f1)"
+
+    # Deliberately NOT stopping docker: the compose project name is fixed, so the
+    # postgres/redis/minio stack and its data are SHARED by every worktree.
+    # `docker compose down` here would pull the database out from under any other
+    # active worktree. When the last one is gone:
+    #     cd apps/server && docker compose down      # keep data
+    #     cd apps/server && docker compose down -v   # also drop volumes
+    #
+    # Also skipping Xcode DerivedData: the dir is EduConecta-<hash-of-path>, and a
+    # glob would take out other worktrees' caches too.
