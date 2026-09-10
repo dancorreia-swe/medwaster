@@ -45,21 +45,29 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
       controlledValue ?? defaultValue,
     );
 
+    const updateValue = useCallback(
+      (nextValue: number | undefined) => {
+        setValue(nextValue);
+        onValueChange?.(nextValue);
+      },
+      [onValueChange],
+    );
+
     const handleIncrement = useCallback(() => {
-      setValue((prev) =>
-        prev === undefined
-          ? (stepper ?? 1)
-          : Math.min(prev + (stepper ?? 1), max),
-      );
-    }, [stepper, max]);
+      const nextValue =
+        value === undefined
+          ? Math.min(Math.max(stepper ?? 1, min), max)
+          : Math.min(value + (stepper ?? 1), max);
+      updateValue(nextValue);
+    }, [stepper, max, updateValue, value]);
 
     const handleDecrement = useCallback(() => {
-      setValue((prev) =>
-        prev === undefined
-          ? -(stepper ?? 1)
-          : Math.max(prev - (stepper ?? 1), min),
-      );
-    }, [stepper, min]);
+      const nextValue =
+        value === undefined
+          ? Math.max(-(stepper ?? 1), min)
+          : Math.max(value - (stepper ?? 1), min);
+      updateValue(nextValue);
+    }, [stepper, min, updateValue, value]);
 
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -93,22 +101,15 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
     }) => {
       const newValue =
         values.floatValue === undefined ? undefined : values.floatValue;
-      setValue(newValue);
-      if (onValueChange) {
-        onValueChange(newValue);
-      }
+      updateValue(newValue);
     };
 
     const handleBlur = () => {
       if (value !== undefined) {
         if (value < min) {
-          setValue(min);
-          (ref as React.RefObject<HTMLInputElement>).current!.value =
-            String(min);
+          updateValue(min);
         } else if (value > max) {
-          setValue(max);
-          (ref as React.RefObject<HTMLInputElement>).current!.value =
-            String(max);
+          updateValue(max);
         }
       }
     };

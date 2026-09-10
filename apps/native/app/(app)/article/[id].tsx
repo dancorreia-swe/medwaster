@@ -139,14 +139,6 @@ export default function WikiArticle() {
         queryKey: gamificationKeys.streak(),
       });
 
-      // Ensure trail data reflects the newly read article (even when coming from wiki)
-      console.log('[Article] Clearing trail cache...');
-      // Use removeQueries to completely clear cache, forcing fresh fetch on next access
-      queryClient.removeQueries({ queryKey: trailKeys.all });
-      // Also invalidate to trigger refetch for any active queries
-      queryClient.invalidateQueries({ queryKey: trailKeys.all });
-      console.log('[Article] Trail cache cleared');
-
       if (trailIdNum && contentIdNum) {
         const result = await markTrailArticleReadMutation.mutateAsync({
           trailId: trailIdNum,
@@ -174,6 +166,10 @@ export default function WikiArticle() {
             } as any);
           }, 500);
         }
+      } else {
+        // Read from the wiki rather than inside a trail: the trail write above
+        // never ran, so refresh trail data here instead of in the mutation.
+        queryClient.invalidateQueries({ queryKey: trailKeys.all });
       }
     } catch (error) {
       console.error("Erro ao marcar artigo como lido:", error);

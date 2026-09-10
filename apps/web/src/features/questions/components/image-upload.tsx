@@ -18,9 +18,14 @@ interface ImageUploadProps {
   disabled?: boolean;
   className?: string;
   label?: string;
+  description?: string;
   uploadPath?: string; // custom endpoint; defaults to questions upload
   keyValue?: string;
   deletePath?: string; // optional delete endpoint (without trailing key)
+  /** Called when the current image is removed, before any storage cleanup. */
+  onRemove?: (key?: string) => void;
+  /** Set to false when the owning form must persist before deleting storage. */
+  deleteOnRemove?: boolean;
 }
 
 export function ImageUpload({
@@ -29,9 +34,12 @@ export function ImageUpload({
   disabled,
   className,
   label = "Imagem da Questão",
+  description = "Imagem opcional para acompanhar a questão (diagramas, ilustrações, etc.)",
   uploadPath = "/api/admin/questions/images/upload",
   keyValue,
   deletePath,
+  onRemove,
+  deleteOnRemove = true,
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(value || null);
@@ -105,10 +113,10 @@ export function ImageUpload({
 
   const handleRemove = () => {
     const maybeDelete = async () => {
-      if (!deletePath || !keyValue) return;
+      if (!deleteOnRemove || !deletePath || !keyValue) return;
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL || "http://localhost:3000"}${deletePath}/${encodeURIComponent(keyValue)}`,
+          `${getApiUrl()}${deletePath}/${encodeURIComponent(keyValue)}`,
           { method: "DELETE", credentials: "include" },
         );
         if (!response.ok) {
@@ -118,6 +126,7 @@ export function ImageUpload({
         console.error("Delete image error:", error);
       }
     };
+    onRemove?.(keyValue);
     void maybeDelete();
 
     setPreview(null);
@@ -215,9 +224,9 @@ export function ImageUpload({
         />
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Imagem opcional para acompanhar a questão (diagramas, ilustrações, etc.)
-      </p>
+      {description && (
+        <p className="text-xs text-muted-foreground">{description}</p>
+      )}
     </div>
   );
 }
