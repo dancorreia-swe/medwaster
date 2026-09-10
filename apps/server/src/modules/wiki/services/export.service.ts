@@ -1,10 +1,22 @@
-import puppeteer from "puppeteer";
 import { ArticleService } from "./article-service";
 import { NotFoundError, InternalServerError } from "@/lib/errors";
 import { jsPDF } from "jspdf";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { BRAND_DISPLAY_NAME } from "../../../emails/brand";
+
+/**
+ * puppeteer is imported lazily.
+ *
+ * Its postinstall downloads a browser, and a failed or interrupted download
+ * leaves the package unusable. A top-level import made that a boot failure for
+ * the entire API (`ENOENT reading .../node_modules/puppeteer`) rather than a
+ * failure of the two features that actually need a browser.
+ */
+async function loadPuppeteer() {
+  const mod = await import("puppeteer");
+  return mod.default ?? (mod as unknown as typeof import("puppeteer").default);
+}
 
 export interface PDFExportOptions {
   includeImages?: boolean;
@@ -278,6 +290,7 @@ export abstract class ExportService {
       );
 
       // Launch Puppeteer and generate PDF
+      const puppeteer = await loadPuppeteer();
       const browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -381,6 +394,7 @@ export abstract class ExportService {
       const title = options.title || `Coletânea de Artigos - ${validArticles.length} artigos`;
       const html = this.generatePDFTemplate(title, combinedContent, finalOptions);
 
+      const puppeteer = await loadPuppeteer();
       const browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
