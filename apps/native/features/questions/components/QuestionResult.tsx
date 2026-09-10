@@ -3,7 +3,10 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { CheckCircle2, XCircle, Sparkles } from "lucide-react-native";
 import type { QuestionResultProps, Question } from "../types";
 import { MatchingPairsList } from "./MatchingPairsList";
-import { getMatchingPairsForDisplay } from "../utils";
+import {
+  formatCorrectAnswerText,
+  getMatchingPairsForDisplay,
+} from "../utils";
 
 /**
  * Question Result Component
@@ -71,32 +74,35 @@ export function QuestionResult({
         </View>
       )}
 
-      {/* Detailed feedback - Only show for incorrect answers when showFeedback is true */}
+      {/* Explanation — the admin authors a single explanation per question, so it
+          is shown whether the learner got it right or wrong. Previously it only
+          appeared on a wrong answer, which hid authored content half the time. */}
+      {showFeedback && result.explanation && (
+        <View className={`gap-2 ${isCorrect ? "mt-5" : "mb-5"}`}>
+          <Text className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide">
+            EXPLICAÇÃO
+          </Text>
+          <Text className="text-lg leading-relaxed text-gray-900 dark:text-gray-50">
+            {showFullExplanation ? result.explanation : explanationPreview}
+          </Text>
+          {result.explanation.length > explanationPreview.length && (
+            <TouchableOpacity
+              onPress={() => setShowFullExplanation((v) => !v)}
+              accessibilityRole="button"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="self-start"
+            >
+              <Text className="text-sm font-semibold text-blue-600 dark:text-blue-300">
+                {showFullExplanation ? "Ver menos" : "Ver mais"}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Correct answer — only useful when the learner got it wrong. */}
       {showFeedback && !isCorrect && (
         <>
-          {/* Explanation */}
-          {result.explanation && (
-            <View className="mb-5 gap-2">
-              <Text className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide">
-                EXPLICAÇÃO
-              </Text>
-              <Text className="text-lg leading-relaxed text-gray-900 dark:text-gray-50">
-                {showFullExplanation ? result.explanation : explanationPreview}
-              </Text>
-              {result.explanation.length > explanationPreview.length && (
-                <TouchableOpacity
-                  onPress={() => setShowFullExplanation((v) => !v)}
-                  className="self-start"
-                >
-                  <Text className="text-sm font-semibold text-blue-600 dark:text-blue-300">
-                    {showFullExplanation ? "Ver menos" : "Ver mais"}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-
-          {/* Correct Answer */}
           {result.correctAnswer !== undefined && (
             <View>
               <Text className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide mb-2">
@@ -120,7 +126,7 @@ export function QuestionResult({
               ) : (
                 <View className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
                   <Text className="text-base text-gray-900 dark:text-gray-50">
-                    {formatCorrectAnswer(result.correctAnswer, question)}
+                    {formatCorrectAnswerText(result.correctAnswer, question)}
                   </Text>
                 </View>
               )}
@@ -176,7 +182,7 @@ function formatFillInBlankAnswer(
     });
   }
 
-  return question.fillInBlanks
+  return [...question.fillInBlanks]
     .sort((a, b) => a.sequence - b.sequence)
     .map((blank, index) => {
       const blankId = blank.id.toString();
@@ -236,89 +242,6 @@ function formatMatchingAnswer(
   }
 
   return <MatchingPairsList pairs={pairs} tone="success" />;
-}
-
-/**
- * Helper function to format correct answer for display
- */
-function formatCorrectAnswer(
-  answer: number | number[] | string | Record<string, string>,
-  question?: Question,
-): string {
-  if (typeof answer === "string") {
-    return answer;
-  }
-
-  if (typeof answer === "number") {
-    // Try to find the option text from the question
-    if (question?.options) {
-      const option = question.options.find((opt) => opt.id === answer);
-      if (option) {
-        return (
-          (option as any).content || option.optionText || `Opção ${answer}`
-        );
-      }
-    }
-    return `Opção ${answer}`;
-  }
-
-  if (Array.isArray(answer)) {
-    // Try to find the option texts from the question
-    if (question?.options) {
-      return answer
-        .map((id) => {
-          const option = question.options!.find((opt) => opt.id === id);
-          return option
-            ? (option as any).content || option.optionText || `Opção ${id}`
-            : `Opção ${id}`;
-        })
-        .join(", ");
-    }
-    return answer.map((id) => `Opção ${id}`).join(", ");
-  }
-
-  if (typeof answer === "object") {
-    // For matching pairs - show as formatted list
-    if (question?.type === "matching" && question.matchingPairs) {
-      const entries = Object.entries(answer);
-      return entries
-        .map(([leftId, rightId]) => {
-          const pair = question.matchingPairs!.find(
-            (p) => p.id.toString() === leftId,
-          );
-          const rightPair = question.matchingPairs!.find(
-            (p) => p.id.toString() === rightId,
-          );
-
-          const leftText = pair?.leftText || leftId;
-          const rightText = rightPair?.rightText || rightId;
-
-          return `${leftText} → ${rightText}`;
-        })
-        .join("\n");
-    }
-
-    // For fill-in-blank answers
-    if (question?.type === "fill_in_blank" && question.fillInBlanks) {
-      const entries = Object.entries(answer);
-      return entries
-        .map(([blankId, value]) => {
-          const blank = question.fillInBlanks!.find(
-            (b) => b.id.toString() === blankId,
-          );
-          const placeholder = blank?.placeholder || blankId;
-          return `${placeholder}: ${value}`;
-        })
-        .join("\n");
-    }
-
-    // Fallback for other object types
-    return Object.entries(answer)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join(", ");
-  }
-
-  return "Resposta não disponível";
 }
 
 // -----------------
