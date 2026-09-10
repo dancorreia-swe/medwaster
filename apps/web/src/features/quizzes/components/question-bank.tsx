@@ -35,6 +35,15 @@ interface QuestionFilters {
   categoryId?: number;
 }
 
+// The question endpoint calls this parameter `search`; the shared question
+// list type still exposes the legacy `q` name. Keep the translation local to
+// the quiz bank until that shared type can be updated without widening scope.
+type QuestionBankQueryParams = Parameters<
+  typeof questionsListQueryOptions
+>[0] & {
+  search?: string;
+};
+
 interface QuestionBankProps {
   onAddQuestion: (questionId: number, question: QuestionListItem) => void;
   addedQuestionIds: Set<number>;
@@ -113,12 +122,12 @@ export function QuestionBank({
     error,
   } = useQuery(
     questionsListQueryOptions({
-      q: filters.search,
+      search: filters.search,
       type: filters.type ? [filters.type] : undefined,
       difficulty: filters.difficulty,
       categoryId: filters.categoryId,
       pageSize: 50,
-    }),
+    } as QuestionBankQueryParams),
   );
 
   const questions = questionsResponse?.data || [];

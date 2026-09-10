@@ -1,6 +1,13 @@
 import { t } from "elysia";
 import { quizStatusValues, quizDifficultyValues } from "@/db/schema/quizzes";
 
+// Nullable values are intentionally distinct from omitted values: omitted
+// fields leave an existing value unchanged on PATCH, while null clears it.
+// Keep 0 as a backwards-compatible representation of an unlimited quiz.
+const quizTimeLimit = t.Optional(
+  t.Nullable(t.Union([t.Literal(0), t.Number({ minimum: 1 })])),
+);
+
 export const quizQuestionBody = t.Object({
   questionId: t.Number(),
   order: t.Number({ minimum: 1 }),
@@ -14,15 +21,15 @@ export const createQuizBody = t.Object({
   instructions: t.Optional(t.String()),
   difficulty: t.Union(quizDifficultyValues.map((d) => t.Literal(d))),
   status: t.Optional(t.Union(quizStatusValues.map((s) => t.Literal(s)))),
-  categoryId: t.Optional(t.Number()),
-  timeLimit: t.Optional(t.Number({ minimum: 1 })),
+  categoryId: t.Optional(t.Nullable(t.Number())),
+  timeLimit: quizTimeLimit,
   maxAttempts: t.Optional(t.Number({ minimum: 1 })),
   showResults: t.Optional(t.Boolean()),
   showCorrectAnswers: t.Optional(t.Boolean()),
   randomizeQuestions: t.Optional(t.Boolean()),
   randomizeOptions: t.Optional(t.Boolean()),
   passingScore: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
-  imageUrl: t.Optional(t.String()),
+  imageUrl: t.Optional(t.Nullable(t.String())),
   questions: t.Optional(t.Array(quizQuestionBody)),
   tagIds: t.Optional(t.Array(t.Number())),
 });
@@ -33,15 +40,15 @@ export const updateQuizBody = t.Object({
   instructions: t.Optional(t.String()),
   difficulty: t.Optional(t.Union(quizDifficultyValues.map((d) => t.Literal(d)))),
   status: t.Optional(t.Union(quizStatusValues.map((s) => t.Literal(s)))),
-  categoryId: t.Optional(t.Number()),
-  timeLimit: t.Optional(t.Number({ minimum: 1 })),
+  categoryId: t.Optional(t.Nullable(t.Number())),
+  timeLimit: quizTimeLimit,
   maxAttempts: t.Optional(t.Number({ minimum: 1 })),
   showResults: t.Optional(t.Boolean()),
   showCorrectAnswers: t.Optional(t.Boolean()),
   randomizeQuestions: t.Optional(t.Boolean()),
   randomizeOptions: t.Optional(t.Boolean()),
   passingScore: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
-  imageUrl: t.Optional(t.String()),
+  imageUrl: t.Optional(t.Nullable(t.String())),
   questions: t.Optional(t.Array(quizQuestionBody)),
   tagIds: t.Optional(t.Array(t.Number())),
 });

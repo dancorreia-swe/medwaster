@@ -10,28 +10,28 @@ export interface QuizListQueryParams {
 export interface QuizListItem {
   id: number;
   title: string;
-  description?: string;
+  description?: string | null;
   difficulty: "basic" | "intermediate" | "advanced" | "mixed";
   status: "draft" | "active" | "inactive" | "archived";
-  categoryId?: number;
+  categoryId?: number | null;
   authorId: string;
-  timeLimit?: number;
+  timeLimit?: number | null;
   maxAttempts?: number;
-  passingScore?: number;
-  imageUrl?: string;
+  passingScore?: number | null;
+  imageUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   questionCount: number;
   author: {
     id: string;
     name: string;
-    image?: string;
+    image?: string | null;
   };
   category?: {
     id: number;
     name: string;
     slug: string;
-  };
+  } | null;
 }
 
 export interface QuizFilters {
@@ -111,25 +111,20 @@ export function quizStatusOption(status: string) {
   return QUIZ_STATUS_OPTIONS.find((o) => o.value === status);
 }
 
-/**
- * The shape the builder page edits. `randomizeQuestions` / `randomizeOptions`
- * exist in the schema and are shuffled by QuizzesService.startQuizAttempt, but
- * the native trail flow renders the unshuffled quiz from the content list, so
- * they are deliberately not authorable here. `maxAttempts` is likewise skipped
- * in the trail flow.
- */
 export interface QuizFormData {
   title: string;
   description: string;
   instructions: string;
   difficulty: QuizDifficulty;
   status: QuizStatus;
-  categoryId?: number;
-  timeLimit?: number;
+  categoryId?: number | null;
+  timeLimit?: number | null;
   showResults: boolean;
   showCorrectAnswers: boolean;
+  randomizeQuestions: boolean;
+  randomizeOptions: boolean;
   passingScore: number;
-  imageUrl?: string;
-  imageKey?: string;
+  imageUrl?: string | null;
+  imageKey?: string | null;
   tagIds?: number[];
 }

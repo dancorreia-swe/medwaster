@@ -34,6 +34,7 @@ import {
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getApiUrl } from "@/lib/env";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { QuestionListItem } from "@/features/questions/types";
 import { quizQueryOptions } from "../api/quizzesQueries";
@@ -49,16 +50,72 @@ interface QuizBuilderPageProps {
   quizId?: number;
 }
 
+type QuizQuestionRevision = Pick<
+  QuizQuestion,
+  "questionId" | "order" | "points" | "required"
+>;
+
+interface QuizDraftRevision {
+  id: number;
+  changedAt: number;
+  formData: QuizFormData;
+  questions: readonly QuizQuestionRevision[];
+  deferredImageKeys: readonly string[];
+}
+
+function createQuizDraftRevision(
+  id: number,
+  formData: QuizFormData,
+  questions: readonly QuizQuestion[],
+  deferredImageKeys: ReadonlySet<string>,
+): QuizDraftRevision {
+  const formDataSnapshot = Object.freeze({
+    ...formData,
+    tagIds: formData.tagIds ? [...formData.tagIds] : formData.tagIds,
+  });
+  const questionsSnapshot = Object.freeze(
+    questions.map(({ questionId, order, points, required }) =>
+      Object.freeze({ questionId, order, points, required }),
+    ),
+  );
+
+  return Object.freeze({
+    id,
+    changedAt: Date.now(),
+    formData: formDataSnapshot,
+    questions: questionsSnapshot,
+    deferredImageKeys: Object.freeze([...deferredImageKeys]),
+  });
+}
+
+function buildQuizSavePayload(
+  revision: QuizDraftRevision,
+  publish = false,
+) {
+  const { imageKey: _imageKey, ...formDataToSave } = revision.formData;
+
+  return {
+    ...formDataToSave,
+    status: publish ? ("active" as const) : revision.formData.status,
+    questions: revision.questions.map((question) => ({ ...question })),
+  };
+}
+
 const initialFormData: QuizFormData = {
   title: "",
   description: "",
   instructions: "",
   difficulty: "basic",
   status: "draft",
+  categoryId: null,
+  timeLimit: null,
   showResults: true,
   showCorrectAnswers: true,
+  randomizeQuestions: false,
+  randomizeOptions: false,
   passingScore: 70,
-  imageKey: undefined,
+  imageUrl: null,
+  imageKey: null,
   tagIds: [],
 };
 
@@ -80,7 +137,21 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
 
   // Track initial load to prevent auto-save on mount
   const isInitialLoad = useRef(true);
-  const autoSaveTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const [draftRevision, setDraftRevision] =
+    useState<QuizDraftRevision | null>(null);
+  const [autoSaveRetry, setAutoSaveRetry] = useState(0);
+  const revisionCounter = useRef(0);
+  const latestRevision = useRef<QuizDraftRevision | null>(null);
+  const hydrationTarget = useRef<{
+    formData: QuizFormData;
+    questions: QuizQuestion[];
+  } | null>(null);
+  const skipDirtyTracking = useRef(false);
+  const autoSaveTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const autoSaveInFlight = useRef<number | null>(null);
+  const pendingImageKeys = useRef<Set<string>>(new Set());
 
   const createQuiz = useCreateQuiz();
   const updateQuiz = useUpdateQuiz(quizId || 0); // Pass 0 as placeholder in create mode
@@ -96,41 +167,52 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
 
   // Load existing quiz data when editing
   useEffect(() => {
-    if (existingQuiz && mode === "edit") {
-      setFormData({
+    if (existingQuiz && mode === "edit" && isInitialLoad.current) {
+      const loadedFormData: QuizFormData = {
         title: existingQuiz.title || "",
         description: existingQuiz.description || "",
         instructions: existingQuiz.instructions || "",
         difficulty: existingQuiz.difficulty,
         status: existingQuiz.status,
-        categoryId: existingQuiz.categoryId || undefined,
-        timeLimit: existingQuiz.timeLimit || undefined,
+        categoryId: existingQuiz.categoryId ?? null,
+        timeLimit: existingQuiz.timeLimit ?? null,
         showResults: existingQuiz.showResults ?? true,
         showCorrectAnswers: existingQuiz.showCorrectAnswers ?? true,
+        randomizeQuestions: existingQuiz.randomizeQuestions ?? false,
+        randomizeOptions: existingQuiz.randomizeOptions ?? false,
         passingScore: existingQuiz.passingScore || 70,
-        imageUrl: existingQuiz.imageUrl || undefined,
-        imageKey: (existingQuiz as any).imageKey || undefined,
+        imageUrl: existingQuiz.imageUrl ?? null,
+        imageKey: (existingQuiz as any).imageKey ?? null,
         tagIds: (existingQuiz as any).tags?.map((t: any) => t.tag.id) || [],
-      });
+      };
 
       const quizQuestions = (existingQuiz as any).questions;
-      if (
+      const loadedQuestions: QuizQuestion[] =
         quizQuestions &&
         Array.isArray(quizQuestions) &&
         quizQuestions.length > 0
-      ) {
-        setQuestions(
-          quizQuestions.map((q: any) => ({
+          ? quizQuestions.map((q: any) => ({
             id: `existing-${q.id}`,
             questionId: q.questionId,
             order: q.order,
             points: q.points,
             required: q.required,
             question: q.question as QuestionListItem,
-          })),
-        );
+          }))
+          : [];
+
+      hydrationTarget.current = {
+        formData: loadedFormData,
+        questions: loadedQuestions,
+      };
+      skipDirtyTracking.current = true;
+      setFormData(loadedFormData);
+      setQuestions(loadedQuestions);
+
+      if (loadedQuestions.length > 0) {
         // An existing quiz already has its sequence; the bank is only in the
-        // way until the author asks for it.
+        // way until the author asks for it. Do this only during initial load;
+        // autosave invalidations must not close the bank again.
         setIsBankOpen(false);
       }
 
@@ -139,21 +221,122 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
     }
   }, [existingQuiz, mode]);
 
-  // Track unsaved changes
-  useEffect(() => {
-    if (!isInitialLoad.current) {
-      setHasUnsavedChanges(true);
-      setAutoSaveStatus("idle");
-    }
-  }, [formData, questions]);
+  const deleteDeferredImages = useCallback(
+    async (revision: QuizDraftRevision, requireCurrentRevision = true) => {
+      for (const key of revision.deferredImageKeys) {
+        const currentRevision = latestRevision.current;
+        if (
+          requireCurrentRevision &&
+          currentRevision?.id !== revision.id
+        ) {
+          return;
+        }
 
-  // Auto-save drafts (only in edit mode)
+        const currentImageKey = currentRevision
+          ? currentRevision.formData.imageKey
+          : revision.formData.imageKey;
+        if (
+          currentImageKey === key ||
+          !pendingImageKeys.current.has(key)
+        ) {
+          continue;
+        }
+
+        try {
+          const response = await fetch(
+            `${getApiUrl()}/api/admin/quizzes/images/${encodeURIComponent(key)}`,
+            { method: "DELETE", credentials: "include" },
+          );
+
+          if (response.ok) {
+            pendingImageKeys.current.delete(key);
+          } else {
+            console.error("Failed to delete quiz cover image", key);
+          }
+        } catch (error) {
+          console.error("Delete quiz cover image error:", error);
+        }
+      }
+    },
+    [],
+  );
+
+  // Track each substantive edit as an immutable revision. The hydration
+  // revision is explicitly skipped so loading a quiz is never autosaved.
+  useEffect(() => {
+    if (mode !== "edit" || isInitialLoad.current) return;
+
+    if (skipDirtyTracking.current) {
+      const target = hydrationTarget.current;
+      if (target && target.formData === formData && target.questions === questions) {
+        skipDirtyTracking.current = false;
+        hydrationTarget.current = null;
+      }
+      return;
+    }
+
+    const revision = createQuizDraftRevision(
+      ++revisionCounter.current,
+      formData,
+      questions,
+      pendingImageKeys.current,
+    );
+    latestRevision.current = revision;
+    setDraftRevision(revision);
+    setHasUnsavedChanges(true);
+    setAutoSaveStatus("idle");
+  }, [formData, mode, questions]);
+
+  const persistAutoSave = useCallback(
+    (revision: QuizDraftRevision) => {
+      if (autoSaveInFlight.current !== null) return;
+
+      autoSaveInFlight.current = revision.id;
+      setAutoSaveStatus("saving");
+
+      updateQuiz.mutate(buildQuizSavePayload(revision), {
+        onSuccess: async () => {
+          if (latestRevision.current?.id !== revision.id) return;
+
+          await deleteDeferredImages(revision);
+
+          // The user may have edited while deferred storage cleanup was in
+          // flight. Never mark that newer revision as saved.
+          if (latestRevision.current?.id !== revision.id) return;
+
+          setAutoSaveStatus("saved");
+          setHasUnsavedChanges(false);
+          setTimeout(() => {
+            if (latestRevision.current?.id === revision.id) {
+              setAutoSaveStatus("idle");
+            }
+          }, 2000);
+        },
+        onError: (error) => {
+          console.error("Auto-save failed:", error);
+          if (latestRevision.current?.id === revision.id) {
+            setAutoSaveStatus("idle");
+          }
+        },
+        onSettled: () => {
+          autoSaveInFlight.current = null;
+          if (latestRevision.current?.id !== revision.id) {
+            setAutoSaveRetry((retry) => retry + 1);
+          }
+        },
+      });
+    },
+    [deleteDeferredImages, updateQuiz],
+  );
+
+  // Auto-save drafts (only in edit mode). The revision is a dependency so
+  // every edit resets the debounce, including edits made during a save.
   useEffect(() => {
     if (
-      isInitialLoad.current ||
+      !draftRevision ||
       mode !== "edit" ||
-      formData.status !== "draft" ||
-      !formData.title.trim() ||
+      draftRevision.formData.status !== "draft" ||
+      !draftRevision.formData.title.trim() ||
       !hasUnsavedChanges
     ) {
       return;
@@ -163,40 +346,22 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
       clearTimeout(autoSaveTimeout.current);
     }
 
+    const delay = Math.max(
+      0,
+      draftRevision.changedAt + 3000 - Date.now(),
+    );
     autoSaveTimeout.current = setTimeout(() => {
-      setAutoSaveStatus("saving");
-
-      const { imageKey, ...formDataToSave } = formData;
-      const dataToSave = {
-        ...formDataToSave,
-        questions: questions.map((q) => ({
-          questionId: q.questionId,
-          order: q.order,
-          points: q.points,
-          required: q.required,
-        })),
-      };
-
-      updateQuiz.mutate(dataToSave, {
-        onSuccess: () => {
-          setAutoSaveStatus("saved");
-          setHasUnsavedChanges(false);
-          setTimeout(() => setAutoSaveStatus("idle"), 2000);
-        },
-        onError: (error) => {
-          console.error("Auto-save failed:", error);
-          setAutoSaveStatus("idle");
-        },
-      });
-    }, 3000);
+      autoSaveTimeout.current = undefined;
+      persistAutoSave(draftRevision);
+    }, delay);
 
     return () => {
       if (autoSaveTimeout.current) {
         clearTimeout(autoSaveTimeout.current);
+        autoSaveTimeout.current = undefined;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasUnsavedChanges]);
+  }, [autoSaveRetry, draftRevision, hasUnsavedChanges, mode, persistAutoSave]);
 
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
   const addedQuestionIds = new Set(questions.map((q) => q.questionId));
@@ -207,6 +372,12 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
 
   const handleFormChange = useCallback((data: Partial<QuizFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
+  }, []);
+
+  const handleImageRemove = useCallback((key?: string) => {
+    if (key) {
+      pendingImageKeys.current.add(key);
+    }
   }, []);
 
   const handleAddQuestion = useCallback(
@@ -266,23 +437,26 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
           return;
         }
 
-        const { imageKey, ...formDataToSave } = formData;
-        const dataToSave = {
-          ...formDataToSave,
-          status: publish ? ("active" as const) : formData.status,
-          questions: questions.map((q) => ({
-            questionId: q.questionId,
-            order: q.order,
-            points: q.points,
-            required: q.required,
-          })),
-        };
+        if (autoSaveTimeout.current) {
+          clearTimeout(autoSaveTimeout.current);
+          autoSaveTimeout.current = undefined;
+        }
+
+        const revision = createQuizDraftRevision(
+          ++revisionCounter.current,
+          formData,
+          questions,
+          pendingImageKeys.current,
+        );
+        latestRevision.current = revision;
+        const dataToSave = buildQuizSavePayload(revision, publish);
 
         if (mode === "create") {
           const result = await createQuiz.mutateAsync(dataToSave);
           toast.success("Quiz criado");
 
           if (result && !publish) {
+            await deleteDeferredImages(revision);
             navigate({
               to: "/quizzes/$quizId/edit",
               params: { quizId: result.id.toString() },
@@ -294,7 +468,11 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
           toast.success(publish ? "Quiz publicado" : "Quiz salvo");
         }
 
-        setHasUnsavedChanges(false);
+        await deleteDeferredImages(revision);
+
+        if (latestRevision.current?.id === revision.id) {
+          setHasUnsavedChanges(false);
+        }
 
         if (publish) {
           navigate({ to: "/quizzes" });
@@ -306,7 +484,15 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
         console.error("Failed to save quiz:", error);
       }
     },
-    [formData, questions, mode, createQuiz, updateQuiz, navigate],
+    [
+      formData,
+      questions,
+      mode,
+      createQuiz,
+      updateQuiz,
+      navigate,
+      deleteDeferredImages,
+    ],
   );
 
   // Warn about unsaved changes
@@ -490,7 +676,7 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
       <div className="flex min-h-0 flex-1">
         {/* Source rail: where questions come from. Collapsible, because once
             the sequence is built it is dead weight. */}
-        {isBankOpen && hasRailRoom && (
+        {isBankOpen && hasRailRoom === true && (
           <aside className="w-80 shrink-0 border-r py-3">
             <QuestionBank
               onAddQuestion={handleAddQuestion}
@@ -504,7 +690,11 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
         <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="mx-auto max-w-3xl px-6 py-8">
-              <QuizCover formData={formData} onChange={handleFormChange} />
+              <QuizCover
+                formData={formData}
+                onChange={handleFormChange}
+                onImageRemove={handleImageRemove}
+              />
 
               <div className="mt-10">
                 <div className="mb-3 flex items-baseline justify-between gap-4">
@@ -542,7 +732,7 @@ export function QuizBuilderPage({ mode, quizId }: QuizBuilderPageProps) {
       </div>
 
       <Sheet
-        open={isBankOpen && !hasRailRoom}
+        open={isBankOpen && hasRailRoom === false}
         onOpenChange={setIsBankOpen}
       >
         <SheetContent side="left" className="w-full gap-0 p-0 sm:max-w-sm">

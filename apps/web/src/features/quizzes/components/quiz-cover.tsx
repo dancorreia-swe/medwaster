@@ -6,6 +6,22 @@ import type { QuizFormData } from "../types";
 interface QuizCoverProps {
   formData: QuizFormData;
   onChange: (data: Partial<QuizFormData>) => void;
+  onImageRemove?: (key?: string) => void;
+}
+
+function imageKeyFromUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+
+  try {
+    const pathname = new URL(url).pathname;
+    const marker = "/images/";
+    const markerIndex = pathname.indexOf(marker);
+    return markerIndex === -1
+      ? undefined
+      : decodeURIComponent(pathname.slice(markerIndex + 1));
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -13,7 +29,13 @@ interface QuizCoverProps {
  * on the intro screen before starting. These belong at the top of the document
  * rather than in the settings panel, because they are content, not rules.
  */
-export function QuizCover({ formData, onChange }: QuizCoverProps) {
+export function QuizCover({
+  formData,
+  onChange,
+  onImageRemove,
+}: QuizCoverProps) {
+  const imageKey = formData.imageKey ?? imageKeyFromUrl(formData.imageUrl);
+
   return (
     <div className="space-y-5">
       <div>
@@ -66,14 +88,15 @@ export function QuizCover({ formData, onChange }: QuizCoverProps) {
         className="max-w-sm"
         label="Imagem de capa"
         description="Opcional. Aparece na tela de abertura do quiz."
-        value={formData.imageUrl}
-        keyValue={formData.imageKey}
+        value={formData.imageUrl ?? undefined}
+        keyValue={imageKey}
         uploadPath="/api/admin/quizzes/images/upload"
-        deletePath="/api/admin/quizzes/images"
+        deleteOnRemove={false}
+        onRemove={onImageRemove}
         onChange={(data) =>
           onChange({
-            imageUrl: data?.url || undefined,
-            imageKey: data?.key || undefined,
+            imageUrl: data?.url ?? null,
+            imageKey: data?.key ?? null,
           })
         }
       />

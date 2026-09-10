@@ -111,7 +111,7 @@ function QuestionRow({
         isDragOverlay && "rounded-lg border shadow-lg",
       )}
     >
-      <div className="flex gap-3 py-4">
+      <div className="flex flex-wrap gap-3 py-4 lg:flex-nowrap">
         <div className="flex w-10 shrink-0 flex-col items-center gap-1 pt-0.5">
           <span className="font-mono text-sm tabular-nums text-muted-foreground">
             {question.order}
@@ -172,7 +172,7 @@ function QuestionRow({
           )}
         </div>
 
-        <div className="flex shrink-0 items-start gap-4 pt-0.5">
+        <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 pl-[3.25rem] pt-0.5 lg:w-auto lg:shrink-0 lg:items-start lg:gap-4 lg:pl-0">
           <div className="flex items-center gap-2">
             <Label
               htmlFor={`points-${question.id}`}
@@ -211,7 +211,7 @@ function QuestionRow({
             size="sm"
             onClick={onRemove}
             aria-label={`Remover pergunta ${question.order}`}
-            className="h-8 w-8 p-0 text-muted-foreground opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 hover:text-destructive"
+            className="h-10 w-10 shrink-0 p-0 text-muted-foreground transition-opacity hover:text-destructive lg:h-8 lg:w-8 lg:opacity-0 lg:focus-visible:opacity-100 lg:group-hover:opacity-100"
           >
             <Trash2 className="h-4 w-4" />
           </Button>

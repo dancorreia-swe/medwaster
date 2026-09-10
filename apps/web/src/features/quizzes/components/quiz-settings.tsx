@@ -219,7 +219,7 @@ export function QuizSettings({
             value={formData.categoryId?.toString() || "none"}
             onValueChange={(value) =>
               onChange({
-                categoryId: value === "none" ? undefined : Number(value),
+                categoryId: value === "none" ? null : Number(value),
               })
             }
           >
@@ -397,19 +397,39 @@ export function QuizSettings({
         <Field
           label="Tempo limite"
           htmlFor="timeLimit"
-          hint="Verificado no envio: passar do tempo invalida a tentativa. O app ainda não mostra contagem regressiva ao aluno. Deixe em 0 para sem limite."
+          hint="Verificado no envio: passar do tempo invalida a tentativa. O app ainda não mostra contagem regressiva ao aluno. Deixe vazio para sem limite."
         >
           <NumberInput
             id="timeLimit"
-            value={formData.timeLimit}
-            onValueChange={(value) => onChange({ timeLimit: value })}
-            min={0}
+            value={formData.timeLimit ?? undefined}
+            onValueChange={(value) =>
+              onChange({ timeLimit: value ?? null })
+            }
+            min={1}
             max={600}
             stepper={5}
             suffix=" min"
-            placeholder="0"
+            placeholder="Sem limite"
           />
         </Field>
+
+        <ToggleRow
+          id="randomizeQuestions"
+          label="Embaralhar perguntas"
+          description="Apresenta as perguntas em uma ordem diferente a cada tentativa."
+          checked={formData.randomizeQuestions}
+          onCheckedChange={(checked) =>
+            onChange({ randomizeQuestions: checked })
+          }
+        />
+
+        <ToggleRow
+          id="randomizeOptions"
+          label="Embaralhar alternativas"
+          description="Apresenta as alternativas em uma ordem diferente a cada tentativa."
+          checked={formData.randomizeOptions}
+          onCheckedChange={(checked) => onChange({ randomizeOptions: checked })}
+        />
       </Section>
 
       <Section

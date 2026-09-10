@@ -10,15 +10,15 @@ type QuizCreateBody = {
   instructions?: string;
   difficulty: "basic" | "intermediate" | "advanced" | "mixed";
   status?: "draft" | "active" | "inactive" | "archived";
-  categoryId?: number;
-  timeLimit?: number;
+  categoryId?: number | null;
+  timeLimit?: number | null;
   maxAttempts?: number;
   showResults?: boolean;
   showCorrectAnswers?: boolean;
   randomizeQuestions?: boolean;
   randomizeOptions?: boolean;
   passingScore?: number;
-  imageUrl?: string;
+  imageUrl?: string | null;
   tagIds?: number[];
   questions?: Array<{
     questionId: number;
@@ -34,15 +34,15 @@ type QuizUpdateBody = {
   instructions?: string;
   difficulty?: "basic" | "intermediate" | "advanced" | "mixed";
   status?: "draft" | "active" | "inactive" | "archived";
-  categoryId?: number;
-  timeLimit?: number;
+  categoryId?: number | null;
+  timeLimit?: number | null;
   maxAttempts?: number;
   showResults?: boolean;
   showCorrectAnswers?: boolean;
   randomizeQuestions?: boolean;
   randomizeOptions?: boolean;
   passingScore?: number;
-  imageUrl?: string;
+  imageUrl?: string | null;
   tagIds?: number[];
   questions?: Array<{
     questionId: number;
@@ -74,6 +74,7 @@ export const quizzesApi = {
     const response = await client.admin.quizzes({ id: id.toString() }).patch(
       body as any,
     );
+    handleApiError(response, "Erro ao atualizar questionário");
     return response.data;
   },
 
