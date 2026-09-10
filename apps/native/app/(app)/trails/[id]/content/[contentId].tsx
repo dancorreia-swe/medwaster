@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import {
   useTrailContent,
@@ -70,9 +70,19 @@ export default function TrailContentScreen() {
   // Track time spent on content
   const contentStartTime = useRef<Date>(new Date());
 
-  // Reset timer when content changes
+  // Reset per-content state when moving to another content item. The screen stays
+  // mounted when only the contentId param changes, so without this the previous
+  // item's answer and result would carry over onto the new one.
   useEffect(() => {
     contentStartTime.current = new Date();
+    quizStartedRef.current = false;
+    setShowQuestionResult(false);
+    setQuestionResult(null);
+    setCurrentQuestionAnswer(null);
+    setQuizAttemptId(null);
+    setQuizResults(null);
+    setIsStartingQuiz(false);
+    setCompletionData(null);
   }, [contentItemId]);
 
   // Find the specific content item
@@ -422,6 +432,19 @@ export default function TrailContentScreen() {
     );
   }
 
+  // Articles are read in the full article view, which gets the trail context so it
+  // can mark the content item complete. Redirect declaratively — navigating from
+  // inside render warns about updating another component while rendering.
+  if (contentItem.contentType === "article" && contentItem.article?.id) {
+    return (
+      <Redirect
+        href={
+          `/article/${contentItem.article.id}?trailId=${trailId}&contentId=${contentItemId}` as any
+        }
+      />
+    );
+  }
+
   // ============================================================================
   // Render Methods
   // ============================================================================
@@ -464,16 +487,8 @@ export default function TrailContentScreen() {
   const renderArticle = () => {
     const article = contentItem.article;
 
-    // Navigate to full article view with trail context
-    // This allows users to read the full article with all formatting
-    if (article?.id) {
-      router.replace(
-        `/article/${article.id}?trailId=${trailId}&contentId=${contentItemId}` as any,
-      );
-      return null;
-    }
-
-    // Fallback if no article ID (shouldn't happen)
+    // Only reached when the item has no article id; the redirect above handles
+    // every article that can actually be opened.
     return (
       <View>
         <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200 dark:bg-gray-900 dark:border-gray-800">

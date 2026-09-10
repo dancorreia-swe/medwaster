@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { X, Clock, Target, Users, Eye } from "lucide-react";
+import { X, Clock, Eye, ListChecks, Award } from "lucide-react";
 import { stripHtml } from "@/lib/utils";
+import { quizDifficultyOption, type QuizFormData } from "../types";
 
 interface QuizQuestion {
   id: string;
@@ -26,22 +27,6 @@ interface QuizQuestion {
   };
 }
 
-interface QuizFormData {
-  title: string;
-  description: string;
-  instructions: string;
-  difficulty: "basic" | "intermediate" | "advanced" | "mixed";
-  status: "draft" | "active" | "inactive" | "archived";
-  categoryId?: number;
-  timeLimit?: number;
-  maxAttempts: number;
-  showResults: boolean;
-  showCorrectAnswers: boolean;
-  randomizeQuestions: boolean;
-  randomizeOptions: boolean;
-  passingScore: number;
-  imageUrl?: string;
-}
 
 interface QuizPreviewProps {
   formData: QuizFormData;
@@ -49,35 +34,12 @@ interface QuizPreviewProps {
   onClose: () => void;
 }
 
-const getDifficultyColor = (difficulty: string) => {
-  switch (difficulty) {
-    case "basic":
-      return "bg-green-100 text-green-800";
-    case "intermediate":
-      return "bg-yellow-100 text-yellow-800";
-    case "advanced":
-      return "bg-red-100 text-red-800";
-    case "mixed":
-      return "bg-purple-100 text-purple-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
-};
+const getDifficultyColor = (difficulty: string) =>
+  quizDifficultyOption(difficulty)?.badgeClass ??
+  "bg-muted text-muted-foreground border-border";
 
-const getDifficultyLabel = (difficulty: string) => {
-  switch (difficulty) {
-    case "basic":
-      return "Básico";
-    case "intermediate":
-      return "Intermediário";
-    case "advanced":
-      return "Avançado";
-    case "mixed":
-      return "Misto";
-    default:
-      return difficulty;
-  }
-};
+const getDifficultyLabel = (difficulty: string) =>
+  quizDifficultyOption(difficulty)?.label ?? difficulty;
 
 export function QuizPreview({ formData, questions, onClose }: QuizPreviewProps) {
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
@@ -100,10 +62,11 @@ export function QuizPreview({ formData, questions, onClose }: QuizPreviewProps) 
               </div>
             </div>
             
-            <Badge variant="outline" className="gap-1">
-              <Badge variant="secondary" className={getDifficultyColor(formData.difficulty)}>
-                {getDifficultyLabel(formData.difficulty)}
-              </Badge>
+            <Badge
+              variant="secondary"
+              className={getDifficultyColor(formData.difficulty)}
+            >
+              {getDifficultyLabel(formData.difficulty)}
             </Badge>
           </div>
         </div>
@@ -145,15 +108,15 @@ export function QuizPreview({ formData, questions, onClose }: QuizPreviewProps) 
                 {/* Quiz Info */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
                   <div className="flex items-center gap-2 text-sm">
-                    <Target className="h-4 w-4 text-muted-foreground" />
+                    <ListChecks className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <div className="font-medium">{questions.length}</div>
                       <div className="text-muted-foreground">Perguntas</div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 text-sm">
-                    <Badge className="h-4 w-4" />
+                    <Award className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <div className="font-medium">{totalPoints}</div>
                       <div className="text-muted-foreground">Pontos</div>
@@ -169,22 +132,16 @@ export function QuizPreview({ formData, questions, onClose }: QuizPreviewProps) 
                       </div>
                     </div>
                   )}
-                  
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="font-medium">{formData.maxAttempts}</div>
-                      <div className="text-muted-foreground">Tentativas</div>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="flex items-center gap-4 pt-4 text-sm text-muted-foreground">
                   <span>Nota mínima: {formData.passingScore}%</span>
-                  {formData.showResults && <span>• Mostra resultados</span>}
-                  {formData.showCorrectAnswers && <span>• Mostra respostas corretas</span>}
-                  {formData.randomizeQuestions && <span>• Perguntas aleatórias</span>}
-                  {formData.randomizeOptions && <span>• Opções aleatórias</span>}
+                  {formData.showResults && (
+                    <span>
+                      Corrige a cada questão
+                      {formData.showCorrectAnswers && ", com a resposta certa"}
+                    </span>
+                  )}
                 </div>
               </div>
             </CardHeader>

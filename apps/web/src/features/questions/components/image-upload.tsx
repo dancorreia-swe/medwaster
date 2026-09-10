@@ -18,6 +18,7 @@ interface ImageUploadProps {
   disabled?: boolean;
   className?: string;
   label?: string;
+  description?: string;
   uploadPath?: string; // custom endpoint; defaults to questions upload
   keyValue?: string;
   deletePath?: string; // optional delete endpoint (without trailing key)
@@ -29,6 +30,7 @@ export function ImageUpload({
   disabled,
   className,
   label = "Imagem da Questão",
+  description = "Imagem opcional para acompanhar a questão (diagramas, ilustrações, etc.)",
   uploadPath = "/api/admin/questions/images/upload",
   keyValue,
   deletePath,
@@ -215,9 +217,9 @@ export function ImageUpload({
         />
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Imagem opcional para acompanhar a questão (diagramas, ilustrações, etc.)
-      </p>
+      {description && (
+        <p className="text-xs text-muted-foreground">{description}</p>
+      )}
     </div>
   );
 }
