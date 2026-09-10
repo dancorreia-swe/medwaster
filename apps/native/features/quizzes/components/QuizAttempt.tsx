@@ -20,6 +20,7 @@ import { QuizTimer } from "./QuizTimer";
 import {
   deriveCorrectAnswer,
   formatCorrectAnswerText,
+  gradeAnswerLocally,
   normalizeMatchingAnswer,
 } from "@/features/questions/utils";
 
@@ -92,58 +93,8 @@ export function QuizAttempt({
     setFeedback(isCorrect ? "correct" : "incorrect");
   };
 
-  const checkAnswerCorrectness = (answer: QuestionAnswer): boolean => {
-    if (!currentQuestion) return false;
-
-    const questionType = currentQuestion.question.type;
-
-    // Multiple Choice or True/False
-    if (questionType === "multiple_choice" || questionType === "true_false") {
-      const selectedOptions = Array.isArray(answer)
-        ? answer
-        : [answer as number];
-      const correctOptions =
-        currentQuestion.question.options
-          ?.filter((opt) => opt.isCorrect)
-          .map((opt) => opt.id) || [];
-
-      if (selectedOptions.length !== correctOptions.length) return false;
-      return selectedOptions.every((id) => correctOptions.includes(id));
-    }
-
-    // Fill in the Blank
-    if (questionType === "fill_in_the_blank") {
-      const userAnswers = answer as Record<string, string>;
-      return (
-        currentQuestion.question.fillInBlanks?.every((blank) => {
-          const userAnswer = userAnswers[blank.id.toString()]
-            ?.toLowerCase()
-            .trim();
-
-          // Find the correct option
-          const correctOption = blank.options?.find((opt) => opt.isCorrect);
-          if (!correctOption) return false;
-
-          return userAnswer === correctOption.text.toLowerCase().trim();
-        }) || false
-      );
-    }
-
-    // Matching
-    if (questionType === "matching") {
-      const normalizedMatches = normalizeMatchingAnswer(
-        answer as Record<string, string>,
-        currentQuestion.question.matchingPairs,
-      );
-      return (
-        currentQuestion.question.matchingPairs?.every(
-          (pair) => normalizedMatches[pair.leftText] === pair.rightText,
-        ) ?? false
-      );
-    }
-
-    return false;
-  };
+  const checkAnswerCorrectness = (answer: QuestionAnswer): boolean =>
+    gradeAnswerLocally(currentQuestion?.question, answer);
 
   const handleContinue = () => {
     if (feedback === "none") {

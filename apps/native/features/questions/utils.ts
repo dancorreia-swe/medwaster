@@ -489,3 +489,73 @@ export function parsePromptSegments(html?: string): PromptSegment[] {
 
   return segments;
 }
+
+/**
+ * Grade an answer locally, mirroring the server's `gradeQuestionAnswer`.
+ *
+ * Used only for the quiz's immediate feedback — the score of record always
+ * comes from the server on submit. Keeping it next to `deriveCorrectAnswer`
+ * means the "was I right?" and "what was right?" answers cannot disagree, which
+ * they previously did: the quiz copy required a correct *option* on every blank
+ * and returned false when a blank carried only its canonical `answer`, marking
+ * a correctly typed free-text blank wrong.
+ */
+export function gradeAnswerLocally(
+  question: Question | null | undefined,
+  answer: QuestionAnswer | null | undefined,
+): boolean {
+  if (!question || answer === null || answer === undefined) return false;
+
+  const normalizeText = (value: unknown) =>
+    typeof value === "string" ? value.trim().toLowerCase() : "";
+
+  switch (question.type) {
+    case "multiple_choice":
+    case "true_false": {
+      const correctIds = (question.options ?? [])
+        .filter((option) => option.isCorrect)
+        .map((option) => option.id);
+      if (correctIds.length === 0) return false;
+
+      const selected = Array.isArray(answer) ? answer : [answer as number];
+      return (
+        selected.length === correctIds.length &&
+        selected.every((id) => correctIds.includes(id as number))
+      );
+    }
+
+    case "fill_in_the_blank": {
+      const blanks = question.fillInBlanks ?? [];
+      if (blanks.length === 0) return false;
+      if (typeof answer !== "object" || Array.isArray(answer)) return false;
+
+      const given = answer as Record<string, string>;
+      return blanks.every((blank) => {
+        // Blanks may be authored as multiple choice or as a single canonical
+        // answer; the server accepts either, so this must too.
+        const expected =
+          blank.options?.find((option) => option.isCorrect)?.text ??
+          blank.answer;
+        if (!expected) return false;
+        return normalizeText(given[blank.id.toString()]) === normalizeText(expected);
+      });
+    }
+
+    case "matching": {
+      const pairs = question.matchingPairs ?? [];
+      if (pairs.length === 0) return false;
+      if (typeof answer !== "object" || Array.isArray(answer)) return false;
+
+      const normalized = normalizeMatchingAnswer(
+        answer as Record<string, string>,
+        pairs,
+      );
+      return pairs.every(
+        (pair) => normalized[pair.leftText] === pair.rightText,
+      );
+    }
+
+    default:
+      return false;
+  }
+}

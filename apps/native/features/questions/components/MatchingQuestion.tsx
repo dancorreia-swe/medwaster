@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Link2, Minus } from "lucide-react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -19,24 +19,31 @@ export function MatchingQuestion({
   const [matches, setMatches] = useState<Record<string, string>>({});
   const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
 
+  useEffect(() => {
+    setMatches({});
+    setSelectedLeft(null);
+  }, [question.id]);
+
   // Sort pairs by sequence
   const sortedPairs = [...(question.matchingPairs || [])].sort(
     (a, b) => a.sequence - b.sequence
   );
 
-  // Shuffle right items for display (to make it challenging)
-  const [rightItems] = useState(() => {
+  // Shuffle the right column so it does not mirror the left. Keyed on the
+  // question so the order is stable across re-renders but is recomputed if the
+  // component is reused for a different question rather than remounted.
+  const rightItems = useMemo(() => {
     const items = sortedPairs.map((pair) => ({
       id: pair.id,
       text: pair.rightText,
     }));
-    // Shuffle array
     for (let i = items.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [items[i], items[j]] = [items[j], items[i]];
     }
     return items;
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question.id]);
 
   const allMatched = Object.keys(matches).length === sortedPairs.length;
   const lastSubmittedRef = useRef<string>("");
