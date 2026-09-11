@@ -4,6 +4,7 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Container } from "@/components/container";
@@ -16,34 +17,32 @@ type MissionTab = "daily" | "weekly" | "monthly";
 
 export default function MissionsScreen() {
   const router = useRouter();
-  const { data: missions, isLoading, isError, error } = useUserMissions();
+  const {
+    data: missions,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useUserMissions();
   const [activeTab, setActiveTab] = useState<MissionTab>("daily");
 
   const activeMissions =
     activeTab === "daily"
-      ? missions?.daily ?? []
+      ? (missions?.daily ?? [])
       : activeTab === "weekly"
-        ? missions?.weekly ?? []
-        : missions?.monthly ?? [];
+        ? (missions?.weekly ?? [])
+        : (missions?.monthly ?? []);
 
   const completedCount = activeMissions.filter((m) => m.isCompleted).length;
   const totalCount = activeMissions.length;
-
-  console.log("📱 [MissionsScreen] Component state:", {
-    isLoading,
-    isError,
-    error: error?.message,
-    hasMissions: !!missions,
-    activeTab,
-    activeMissions: activeMissions.length,
-    missionsData: missions,
-  });
 
   return (
     <Container className="flex-1 bg-gray-50">
       {/* Header */}
       <View className="px-5 pt-4 pb-3 bg-white flex-row items-center border-b border-gray-100">
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
           onPress={() => router.back()}
           className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center"
         >
@@ -60,7 +59,12 @@ export default function MissionsScreen() {
           </View>
           <View className="flex-1">
             <Text className="text-white text-lg font-bold">
-              Suas Missões {activeTab === "daily" ? "Diárias" : activeTab === "weekly" ? "Semanais" : "Mensais"}
+              Suas Missões{" "}
+              {activeTab === "daily"
+                ? "Diárias"
+                : activeTab === "weekly"
+                  ? "Semanais"
+                  : "Mensais"}
             </Text>
             <Text className="text-white/80 text-sm">
               {completedCount} de {totalCount} completadas
@@ -124,12 +128,48 @@ export default function MissionsScreen() {
           <Text className="text-gray-600 mt-3">Carregando missões...</Text>
         </View>
       ) : (
-        <ScrollView className="flex-1 px-5 py-4">
-          {activeMissions.length === 0 ? (
+        <ScrollView
+          className="flex-1 px-5"
+          contentContainerStyle={{
+            paddingTop: 16,
+            paddingBottom: 32,
+            flexGrow: 1,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching}
+              onRefresh={() => void refetch()}
+              tintColor="#155DFC"
+            />
+          }
+        >
+          {isError && (
+            <View className="items-center py-6" accessibilityRole="alert">
+              <Text className="text-gray-600 text-center">
+                Não foi possível atualizar suas missões. Verifique sua conexão e
+                tente novamente.
+              </Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={() => void refetch()}
+                className="mt-3 p-3"
+              >
+                <Text className="text-primary font-semibold">
+                  Tentar novamente
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {activeMissions.length === 0 && !isError ? (
             <View className="items-center justify-center py-12">
               <Target size={48} color="#D1D5DB" strokeWidth={1.5} />
               <Text className="text-gray-600 mt-3 text-center">
-                Nenhuma missão {activeTab === "daily" ? "diária" : activeTab === "weekly" ? "semanal" : "mensal"}{" "}
+                Nenhuma missão{" "}
+                {activeTab === "daily"
+                  ? "diária"
+                  : activeTab === "weekly"
+                    ? "semanal"
+                    : "mensal"}{" "}
                 disponível
               </Text>
             </View>

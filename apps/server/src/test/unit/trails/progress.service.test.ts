@@ -13,6 +13,8 @@ const {
       trailContent: { findFirst: vi.fn() },
       quizAttempts: { findFirst: vi.fn() },
       userContentProgress: { findFirst: vi.fn() },
+      questions: { findFirst: vi.fn() },
+      userArticleReads: { findFirst: vi.fn() },
     },
     update: vi.fn(),
     insert: vi.fn(),
@@ -123,6 +125,31 @@ describe("ProgressService.submitQuizInTrail", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setup();
+  });
+
+  it("credits study time once using the saved attempt duration", async () => {
+    await submit();
+    const minutes = mockRecordActivity.mock.calls.reduce(
+      (sum, [, activity]) => sum + (activity.metadata?.timeSpentMinutes ?? 0), 0,
+    );
+    expect(minutes).toBe(3);
+  });
+
+  it("does not advance completed-content missions for a failed quiz", async () => {
+    mockSubmitQuizAttempt.mockResolvedValue({ score: 10, timeSpent: 60 });
+    await submit();
+    expect(mockRecordActivity.mock.calls.filter(([, activity]) => activity.type === "trail_content")).toHaveLength(0);
+  });
+
+  it("does not advance completed-content missions again on a retry", async () => {
+    setup({ id: 50, isCompleted: true, score: 80, attempts: 1, timeSpentMinutes: 1, completedAt: new Date() });
+    await submit();
+    expect(mockRecordActivity.mock.calls.filter(([, activity]) => activity.type === "trail_content")).toHaveLength(0);
+  });
+
+  it("advances completed-content missions on the first passing quiz", async () => {
+    await submit();
+    expect(mockRecordActivity.mock.calls.filter(([, activity]) => activity.type === "trail_content")).toHaveLength(1);
   });
 
   it("uses the quiz threshold and keeps a failing retry incomplete", async () => {
@@ -238,5 +265,61 @@ describe("ProgressService.submitQuizInTrail", () => {
     expect(mockDb.update.mock.results[0]?.value.set).toHaveBeenCalledWith(
       expect.objectContaining({ score: 85, isCompleted: true }),
     );
+  });
+});
+
+describe("ProgressService question mission credit", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setup();
+    mockDb.query.questions.findFirst.mockResolvedValue({ id: 3, type: "multiple_choice", options: [{ id: 1, isCorrect: true }, { id: 2, isCorrect: false }] });
+    mockDb.query.trailContent.findFirst.mockResolvedValue({ ...content, questionId: 3, quizId: null });
+  });
+
+  it("credits a correct question's time once and its first completion", async () => {
+    await ProgressService.submitQuestionAnswer("user-1", 20, 3, { answer: 1, timeSpentSeconds: 121 });
+    expect(mockRecordActivity.mock.calls.reduce((sum, [, activity]) => sum + (activity.metadata?.timeSpentMinutes ?? 0), 0)).toBe(3);
+    expect(mockRecordActivity.mock.calls.filter(([, activity]) => activity.type === "trail_content")).toHaveLength(1);
+  });
+
+  it("does not credit content completion for an incorrect answer", async () => {
+    await ProgressService.submitQuestionAnswer("user-1", 20, 3, { answer: 2, timeSpentSeconds: 60 });
+    expect(mockRecordActivity.mock.calls.filter(([, activity]) => activity.type === "trail_content")).toHaveLength(0);
+    expect(mockRecordActivity.mock.calls.filter(([, activity]) => activity.type === "question")).toHaveLength(1);
+  });
+
+  it("does not credit a question's content completion twice", async () => {
+    mockDb.query.userContentProgress.findFirst.mockResolvedValue({ id: 50, isCompleted: true });
+    await ProgressService.submitQuestionAnswer("user-1", 20, 3, { answer: 1, timeSpentSeconds: 60 });
+    expect(mockRecordActivity.mock.calls.filter(([, activity]) => activity.type === "trail_content")).toHaveLength(0);
+  });
+});
+
+describe("ProgressService article mission credit", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setup();
+    mockDb.query.trailContent.findFirst.mockResolvedValue({ ...content, articleId: 3, quizId: null });
+    mockDb.query.userArticleReads.findFirst.mockResolvedValue(undefined);
+  });
+
+  it("credits a first article completion and its study time once", async () => {
+    await ProgressService.markArticleReadInTrail("user-1", 20, 10, 5);
+    expect(mockRecordActivity.mock.calls.reduce((sum, [, activity]) => sum + (activity.metadata?.timeSpentMinutes ?? 0), 0)).toBe(5);
+    expect(mockRecordActivity.mock.calls.filter(([, activity]) => activity.type === "article")).toHaveLength(1);
+  });
+
+  it("does not credit the same trail article again", async () => {
+    mockDb.query.userContentProgress.findFirst.mockResolvedValue({ id: 50, isCompleted: true });
+    mockDb.query.userArticleReads.findFirst.mockResolvedValue({ id: 60, isRead: true });
+    await ProgressService.markArticleReadInTrail("user-1", 20, 10, 5);
+    expect(mockRecordActivity).not.toHaveBeenCalled();
+  });
+
+  it("does not double-count a wiki read followed by its trail completion", async () => {
+    mockDb.query.userArticleReads.findFirst.mockResolvedValue({ id: 60, isRead: true });
+    await ProgressService.markArticleReadInTrail("user-1", 20, 10, 0);
+    expect(mockRecordActivity.mock.calls.filter(([, activity]) => activity.type === "article")).toHaveLength(0);
+    expect(mockRecordActivity.mock.calls.filter(([, activity]) => activity.type === "trail_content")).toHaveLength(1);
   });
 });

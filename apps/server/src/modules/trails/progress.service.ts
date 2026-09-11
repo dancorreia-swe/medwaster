@@ -658,16 +658,14 @@ export abstract class ProgressService {
     // Check if trail was already completed before this action
     const wasAlreadyCompleted = progress.isCompleted;
 
-    // Record activity for gamification
-    // Record both trail_content (for trail progress) and question (for general stats)
-    await DailyActivitiesService.recordActivity(userId, {
-      type: "trail_content",
-      metadata: {
-        trailContentId: content.id,
-        questionId: question.id,
-        timeSpentMinutes: Math.ceil((answer.timeSpentSeconds || 0) / 60),
-      },
-    });
+    // Only the first successful completion advances content missions.
+    // Study time belongs to the question event below, not both events.
+    if (isCorrect && !contentProgress?.isCompleted) {
+      await DailyActivitiesService.recordActivity(userId, {
+        type: "trail_content",
+        metadata: { trailContentId: content.id, questionId: question.id },
+      });
+    }
 
     // Also record as question activity for general question stats
     await DailyActivitiesService.recordActivity(userId, {
@@ -905,17 +903,12 @@ export abstract class ProgressService {
     // Check if trail was already completed before this action
     const wasAlreadyCompleted = progress.isCompleted;
 
-    // Record activity for gamification
-    // Record both trail_content (for trail progress) and quiz (for general stats)
-    await DailyActivitiesService.recordActivity(userId, {
-      type: "trail_content",
-      metadata: {
-        trailContentId: contentId,
-        quizId: content.quizId!,
-        score: attemptResult.score || 0,
-        timeSpentMinutes: Math.ceil((data.timeSpent || 0) / 60),
-      },
-    });
+    if (isCompleted && !existingProgress?.isCompleted) {
+      await DailyActivitiesService.recordActivity(userId, {
+        type: "trail_content",
+        metadata: { trailContentId: contentId, quizId: content.quizId! },
+      });
+    }
 
     // Also record as quiz activity for general quiz stats
     await DailyActivitiesService.recordActivity(userId, {
@@ -923,7 +916,7 @@ export abstract class ProgressService {
       metadata: {
         quizId: content.quizId!,
         score: attemptResult.score || 0,
-        timeSpentMinutes: Math.ceil((data.timeSpent || 0) / 60),
+        timeSpentMinutes: Math.ceil((attemptResult.timeSpent || 0) / 60),
       },
     });
 
@@ -1045,23 +1038,27 @@ export abstract class ProgressService {
       });
     }
 
-    // Record activity for gamification
-    // Record both trail_content (for trail progress) and article (for general stats)
-    await DailyActivitiesService.recordActivity(userId, {
-      type: "trail_content",
-      metadata: {
-        trailContentId: contentId,
-        articleId: content.articleId,
-      },
+    const existingRead = await db.query.userArticleReads.findFirst({
+      where: and(
+        eq(userArticleReads.userId, userId),
+        eq(userArticleReads.articleId, content.articleId),
+      ),
     });
 
-    // Also record as article activity for general article stats
-    await DailyActivitiesService.recordActivity(userId, {
-      type: "article",
-      metadata: {
-        articleId: content.articleId,
-      },
-    });
+    // A wiki read can be followed by this trail completion in the native app.
+    // Count the content once, and only count the article if the wiki has not.
+    if (!existingProgress?.isCompleted) {
+      await DailyActivitiesService.recordActivity(userId, {
+        type: "trail_content",
+        metadata: { trailContentId: contentId, articleId: content.articleId, timeSpentMinutes },
+      });
+      if (!existingRead?.isRead) {
+        await DailyActivitiesService.recordActivity(userId, {
+          type: "article",
+          metadata: { articleId: content.articleId },
+        });
+      }
+    }
 
     // Track achievement for article read
     try {
@@ -1072,13 +1069,6 @@ export abstract class ProgressService {
 
     // Mark article as read in wiki to sync with other trails
     if (content.articleId) {
-      const existingRead = await db.query.userArticleReads.findFirst({
-        where: and(
-          eq(userArticleReads.userId, userId),
-          eq(userArticleReads.articleId, content.articleId),
-        ),
-      });
-
       if (existingRead) {
         await db
           .update(userArticleReads)

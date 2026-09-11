@@ -1,9 +1,8 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
+import { useCallback, useEffect } from "react";
+import { AppState } from "react-native";
+import { useFocusEffect } from "expo-router";
 import {
   fetchUserStreak,
   fetchUserMissions,
@@ -105,23 +104,52 @@ export function useUserMissions() {
   const { data: session, isPending } = authClient.useSession();
 
   const query = useQuery({
-    queryKey: gamificationKeys.missions(),
+    queryKey: [...gamificationKeys.missions(), session?.user.id],
     queryFn: fetchUserMissions,
     staleTime: 2 * 60 * 1000, // 2 minutes
     enabled: !!session && !isPending,
     retry: false,
   });
 
-  console.log("📱 [useUserMissions] Hook state:", {
-    isLoading: query.isLoading,
-    isFetching: query.isFetching,
-    isError: query.isError,
-    error: query.error,
-    hasData: !!query.data,
-    daily: query.data?.daily?.length,
-    weekly: query.data?.weekly?.length,
-    monthly: query.data?.monthly?.length,
-  });
+  const enabled = !!session && !isPending;
+  const { refetch } = query;
+  useFocusEffect(
+    useCallback(() => {
+      if (enabled) void refetch();
+    }, [enabled, refetch]),
+  );
+
+  useEffect(() => {
+    if (!enabled) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const scheduleReset = () => {
+      clearTimeout(timer);
+      const now = new Date();
+      const midnight = Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + 1,
+      );
+      timer = setTimeout(
+        () => {
+          void refetch();
+          scheduleReset();
+        },
+        midnight - now.getTime() + 100,
+      );
+    };
+    scheduleReset();
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void refetch();
+        scheduleReset();
+      }
+    });
+    return () => {
+      clearTimeout(timer);
+      subscription.remove();
+    };
+  }, [enabled, refetch]);
 
   return query;
 }
@@ -178,10 +206,9 @@ export function useRecordActivity() {
       });
 
       // Snapshot previous value
-      const previousActivity =
-        queryClient.getQueryData<DailyActivityResponse>(
-          gamificationKeys.todayActivity(),
-        );
+      const previousActivity = queryClient.getQueryData<DailyActivityResponse>(
+        gamificationKeys.todayActivity(),
+      );
 
       // Optimistically update today's activity
       queryClient.setQueryData<DailyActivityResponse>(

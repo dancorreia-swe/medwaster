@@ -64,9 +64,7 @@ function assertSuccess<T>(
   if ("error" in response && response.error) {
     const error = response.error as any;
     const message =
-      typeof error === "string"
-        ? error
-        : error?.message ?? fallbackMessage;
+      typeof error === "string" ? error : (error?.message ?? fallbackMessage);
     throw new Error(message);
   }
 
@@ -117,35 +115,11 @@ export async function fetchStreakMilestones(): Promise<
 // ============================================================================
 
 export async function fetchUserMissions(): Promise<MissionsOverviewResponse> {
-  console.log("📱 [fetchUserMissions] Starting API call...");
-
   const response = await client.gamification.missions.get();
-
-  console.log("📱 [fetchUserMissions] Raw response:", {
-    hasData: !!response?.data,
-    hasError: !!response?.error,
-    dataKeys: response?.data ? Object.keys(response.data) : [],
-    success: response?.data?.success,
-    errorDetails: response?.error,
-  });
-
-  if (response?.data) {
-    console.log("📱 [fetchUserMissions] Full data object:", JSON.stringify(response.data, null, 2));
-  }
-
-  const result = assertSuccess<MissionsOverviewResponse>(
+  return assertSuccess<MissionsOverviewResponse>(
     response,
     "Não foi possível carregar as missões.",
   );
-
-  console.log("📱 [fetchUserMissions] After assertSuccess:", {
-    daily: result.daily?.length,
-    weekly: result.weekly?.length,
-    monthly: result.monthly?.length,
-    dailySample: result.daily?.[0],
-  });
-
-  return result;
 }
 
 // ============================================================================
