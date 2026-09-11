@@ -25,14 +25,36 @@ import type {
 
 export const gamificationKeys = {
   all: ["gamification"] as const,
-  streak: () => [...gamificationKeys.all, "streak"] as const,
-  streakMilestones: () =>
-    [...gamificationKeys.all, "streak", "milestones"] as const,
-  missions: () => [...gamificationKeys.all, "missions"] as const,
-  todayActivity: () => [...gamificationKeys.all, "activity", "today"] as const,
-  weeklyStats: () => [...gamificationKeys.all, "activity", "weekly"] as const,
-  activityHistory: (days?: number) =>
-    [...gamificationKeys.all, "activity", "history", days] as const,
+  streak: (userId?: string) =>
+    userId
+      ? ([...gamificationKeys.all, "streak", userId] as const)
+      : ([...gamificationKeys.all, "streak"] as const),
+  streakMilestones: (userId?: string) =>
+    userId
+      ? ([...gamificationKeys.all, "streak", "milestones", userId] as const)
+      : ([...gamificationKeys.all, "streak", "milestones"] as const),
+  missions: (userId?: string) =>
+    userId
+      ? ([...gamificationKeys.all, "missions", userId] as const)
+      : ([...gamificationKeys.all, "missions"] as const),
+  todayActivity: (userId?: string) =>
+    userId
+      ? ([...gamificationKeys.all, "activity", "today", userId] as const)
+      : ([...gamificationKeys.all, "activity", "today"] as const),
+  weeklyStats: (userId?: string) =>
+    userId
+      ? ([...gamificationKeys.all, "activity", "weekly", userId] as const)
+      : ([...gamificationKeys.all, "activity", "weekly"] as const),
+  activityHistory: (days?: number, userId?: string) =>
+    userId
+      ? ([
+          ...gamificationKeys.all,
+          "activity",
+          "history",
+          days,
+          userId,
+        ] as const)
+      : ([...gamificationKeys.all, "activity", "history", days] as const),
 };
 
 // ============================================================================
@@ -43,7 +65,7 @@ export function useUserStreak() {
   const { data: session, isPending } = authClient.useSession();
 
   return useQuery({
-    queryKey: gamificationKeys.streak(),
+    queryKey: gamificationKeys.streak(session?.user.id),
     queryFn: fetchUserStreak,
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: !!session && !isPending,
@@ -55,7 +77,7 @@ export function useStreakMilestones() {
   const { data: session, isPending } = authClient.useSession();
 
   return useQuery({
-    queryKey: gamificationKeys.streakMilestones(),
+    queryKey: gamificationKeys.streakMilestones(session?.user.id),
     queryFn: fetchStreakMilestones,
     staleTime: 30 * 60 * 1000, // 30 minutes
     enabled: !!session && !isPending,
@@ -65,13 +87,14 @@ export function useStreakMilestones() {
 
 export function useUseStreakFreeze() {
   const queryClient = useQueryClient();
+  const { data: session } = authClient.useSession();
 
   return useMutation({
     mutationFn: (date?: string) => useStreakFreeze(date),
     onSuccess: (data) => {
       // Update streak cache optimistically
       queryClient.setQueryData<UserStreakResponse>(
-        gamificationKeys.streak(),
+        gamificationKeys.streak(session?.user.id),
         (old) => {
           if (!old) return old;
           return {
@@ -87,10 +110,10 @@ export function useUseStreakFreeze() {
     onSettled: () => {
       // Invalidate to refetch from server
       queryClient.invalidateQueries({
-        queryKey: gamificationKeys.streak(),
+        queryKey: gamificationKeys.streak(session?.user.id),
       });
       queryClient.invalidateQueries({
-        queryKey: gamificationKeys.todayActivity(),
+        queryKey: gamificationKeys.todayActivity(session?.user.id),
       });
     },
   });
@@ -104,7 +127,7 @@ export function useUserMissions() {
   const { data: session, isPending } = authClient.useSession();
 
   const query = useQuery({
-    queryKey: [...gamificationKeys.missions(), session?.user.id],
+    queryKey: gamificationKeys.missions(session?.user.id),
     queryFn: fetchUserMissions,
     staleTime: 2 * 60 * 1000, // 2 minutes
     enabled: !!session && !isPending,
@@ -162,7 +185,7 @@ export function useTodayActivity() {
   const { data: session, isPending } = authClient.useSession();
 
   return useQuery({
-    queryKey: gamificationKeys.todayActivity(),
+    queryKey: gamificationKeys.todayActivity(session?.user.id),
     queryFn: fetchTodayActivity,
     staleTime: 1 * 60 * 1000, // 1 minute
     enabled: !!session && !isPending,
@@ -174,7 +197,7 @@ export function useWeeklyStats() {
   const { data: session, isPending } = authClient.useSession();
 
   return useQuery({
-    queryKey: gamificationKeys.weeklyStats(),
+    queryKey: gamificationKeys.weeklyStats(session?.user.id),
     queryFn: fetchWeeklyStats,
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: !!session && !isPending,
@@ -186,7 +209,7 @@ export function useActivityHistory(days: number = 30) {
   const { data: session, isPending } = authClient.useSession();
 
   return useQuery({
-    queryKey: gamificationKeys.activityHistory(days),
+    queryKey: gamificationKeys.activityHistory(days, session?.user.id),
     queryFn: () => fetchActivityHistory(days),
     staleTime: 10 * 60 * 1000, // 10 minutes
     enabled: !!session && !isPending,
@@ -196,23 +219,25 @@ export function useActivityHistory(days: number = 30) {
 
 export function useRecordActivity() {
   const queryClient = useQueryClient();
+  const { data: session } = authClient.useSession();
+  const userId = session?.user.id;
 
   return useMutation({
     mutationFn: recordActivity,
     onMutate: async (variables) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: gamificationKeys.todayActivity(),
+        queryKey: gamificationKeys.todayActivity(userId),
       });
 
       // Snapshot previous value
       const previousActivity = queryClient.getQueryData<DailyActivityResponse>(
-        gamificationKeys.todayActivity(),
+        gamificationKeys.todayActivity(userId),
       );
 
       // Optimistically update today's activity
       queryClient.setQueryData<DailyActivityResponse>(
-        gamificationKeys.todayActivity(),
+        gamificationKeys.todayActivity(userId),
         (old) => {
           if (!old) return old;
 
@@ -252,7 +277,7 @@ export function useRecordActivity() {
       // Rollback on error
       if (context?.previousActivity) {
         queryClient.setQueryData(
-          gamificationKeys.todayActivity(),
+          gamificationKeys.todayActivity(userId),
           context.previousActivity,
         );
       }
@@ -260,16 +285,16 @@ export function useRecordActivity() {
     onSettled: () => {
       // Refetch to ensure consistency
       queryClient.invalidateQueries({
-        queryKey: gamificationKeys.todayActivity(),
+        queryKey: gamificationKeys.todayActivity(userId),
       });
       queryClient.invalidateQueries({
-        queryKey: gamificationKeys.weeklyStats(),
+        queryKey: gamificationKeys.weeklyStats(userId),
       });
       queryClient.invalidateQueries({
-        queryKey: gamificationKeys.streak(),
+        queryKey: gamificationKeys.streak(userId),
       });
       queryClient.invalidateQueries({
-        queryKey: gamificationKeys.missions(),
+        queryKey: gamificationKeys.missions(userId),
       });
     },
   });

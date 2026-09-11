@@ -18,11 +18,18 @@ import {
   BadRequestError,
 } from "@/lib/errors";
 import { QuizzesService } from "../quizzes/quizzes.service";
-import type { StartQuizAttemptBody, SubmitQuizAttemptBody } from "../quizzes/model";
+import type {
+  StartQuizAttemptBody,
+  SubmitQuizAttemptBody,
+} from "../quizzes/model";
 import { DailyActivitiesService } from "../gamification/daily-activities.service";
 import { CertificateService } from "../certificates/certificates.service";
 import { ConfigService } from "../config/config.service";
-import { trackTrailCompleted, trackArticleRead, trackQuestionAnswered } from "../achievements/trackers";
+import {
+  trackTrailCompleted,
+  trackArticleRead,
+  trackQuestionAnswered,
+} from "../achievements/trackers";
 
 export abstract class ProgressService {
   // ===================================
@@ -243,7 +250,9 @@ export abstract class ProgressService {
     const totalContent = contentItems.length;
     const completedContent = completedIds.length;
     const progressPercentage =
-      totalContent > 0 ? Math.round((completedContent / totalContent) * 100) : 0;
+      totalContent > 0
+        ? Math.round((completedContent / totalContent) * 100)
+        : 0;
 
     const trail = {
       ...trailRecord,
@@ -364,9 +373,9 @@ export abstract class ProgressService {
     // Attach progress to each content item
     // Handle both string (from DB) and array (from enrollInTrail return)
     const completedIds = progress?.completedContentIds
-      ? (typeof progress.completedContentIds === 'string'
-          ? JSON.parse(progress.completedContentIds)
-          : progress.completedContentIds)
+      ? typeof progress.completedContentIds === "string"
+        ? JSON.parse(progress.completedContentIds)
+        : progress.completedContentIds
       : [];
     const contentWithProgress = contentItems.map((item, index) => {
       const itemProgress = progressMap.get(item.id);
@@ -443,9 +452,10 @@ export abstract class ProgressService {
 
     // Check if already completed
     // Handle both string (from DB) and array (from enrollInTrail return)
-    const completedIds: number[] = typeof progress.completedContentIds === 'string'
-      ? JSON.parse(progress.completedContentIds || "[]")
-      : (progress.completedContentIds || []);
+    const completedIds: number[] =
+      typeof progress.completedContentIds === "string"
+        ? JSON.parse(progress.completedContentIds || "[]")
+        : progress.completedContentIds || [];
 
     if (completedIds.includes(contentId)) {
       return progress; // Already completed
@@ -641,6 +651,14 @@ export abstract class ProgressService {
           attempts: sql`${userContentProgress.attempts} + 1`,
           score: isCorrect ? 100 : 0,
           timeSpentMinutes: sql`${userContentProgress.timeSpentMinutes} + ${Math.ceil((answer.timeSpentSeconds || 0) / 60)}`,
+          // A successful retry must make completion sticky. Without this,
+          // every later correct retry looks like a first completion.
+          isCompleted: contentProgress.isCompleted || isCorrect,
+          completedAt:
+            isCorrect && !contentProgress.isCompleted
+              ? new Date()
+              : contentProgress.completedAt,
+          updatedAt: new Date(),
         })
         .where(eq(userContentProgress.id, contentProgress.id));
     } else {
@@ -689,7 +707,8 @@ export abstract class ProgressService {
       ),
     });
 
-    const trailJustCompleted = !wasAlreadyCompleted && updatedProgress?.isCompleted;
+    const trailJustCompleted =
+      !wasAlreadyCompleted && updatedProgress?.isCompleted;
 
     return {
       isCorrect,
@@ -845,14 +864,23 @@ export abstract class ProgressService {
     }
 
     if (attempt.trailContentId !== contentId) {
-      throw new BadRequestError("Attempt does not belong to this trail content");
+      throw new BadRequestError(
+        "Attempt does not belong to this trail content",
+      );
     }
 
     // Submit the quiz
-    const attemptResult = await QuizzesService.submitQuizAttempt(attemptId, userId, data);
+    const attemptResult = await QuizzesService.submitQuizAttempt(
+      attemptId,
+      userId,
+      data,
+    );
 
     // Get full attempt results with answers
-    const fullResults = await QuizzesService.getQuizAttemptResults(attemptId, userId);
+    const fullResults = await QuizzesService.getQuizAttemptResults(
+      attemptId,
+      userId,
+    );
 
     // Update or create content progress
     const existingProgress = await db.query.userContentProgress.findFirst({
@@ -883,7 +911,7 @@ export abstract class ProgressService {
           timeSpentMinutes,
           isCompleted,
           completedAt: isCompleted
-            ? existingProgress.completedAt ?? new Date()
+            ? (existingProgress.completedAt ?? new Date())
             : existingProgress.completedAt,
           updatedAt: new Date(),
         })
@@ -944,10 +972,12 @@ export abstract class ProgressService {
       ),
     });
 
-    const trailJustCompleted = !wasAlreadyCompleted && updatedProgress?.isCompleted;
+    const trailJustCompleted =
+      !wasAlreadyCompleted && updatedProgress?.isCompleted;
 
     // Calculate correct/incorrect counts from answers
-    const correctAnswers = fullResults.answers?.filter((a: any) => a.isCorrect).length || 0;
+    const correctAnswers =
+      fullResults.answers?.filter((a: any) => a.isCorrect).length || 0;
     const totalAnswers = fullResults.answers?.length || 0;
     const incorrectAnswers = totalAnswers - correctAnswers;
 
@@ -1050,7 +1080,11 @@ export abstract class ProgressService {
     if (!existingProgress?.isCompleted) {
       await DailyActivitiesService.recordActivity(userId, {
         type: "trail_content",
-        metadata: { trailContentId: contentId, articleId: content.articleId, timeSpentMinutes },
+        metadata: {
+          trailContentId: contentId,
+          articleId: content.articleId,
+          timeSpentMinutes,
+        },
       });
       if (!existingRead?.isRead) {
         await DailyActivitiesService.recordActivity(userId, {
@@ -1062,7 +1096,11 @@ export abstract class ProgressService {
 
     // Track achievement for article read
     try {
-      await trackArticleRead(userId, content.articleId?.toString() || "", undefined);
+      await trackArticleRead(
+        userId,
+        content.articleId?.toString() || "",
+        undefined,
+      );
     } catch (error) {
       console.error("Failed to track article read achievement:", error);
     }
@@ -1117,7 +1155,8 @@ export abstract class ProgressService {
       ),
     });
 
-    const trailJustCompleted = !wasAlreadyCompleted && updatedProgress?.isCompleted;
+    const trailJustCompleted =
+      !wasAlreadyCompleted && updatedProgress?.isCompleted;
 
     return {
       success: true,
@@ -1138,12 +1177,16 @@ export abstract class ProgressService {
   static async syncArticleCompletionsFromReads(
     userId: string,
     trailId: number,
-    progress: (typeof userTrailProgress.$inferSelect) | null,
+    progress: typeof userTrailProgress.$inferSelect | null,
   ) {
-    console.log(`🔄 [syncArticleCompletionsFromReads] Starting sync for userId=${userId}, trailId=${trailId}`);
+    console.log(
+      `🔄 [syncArticleCompletionsFromReads] Starting sync for userId=${userId}, trailId=${trailId}`,
+    );
 
     if (!progress) {
-      console.log(`⚠️ [syncArticleCompletionsFromReads] No progress found, skipping`);
+      console.log(
+        `⚠️ [syncArticleCompletionsFromReads] No progress found, skipping`,
+      );
       return progress;
     }
 
@@ -1152,10 +1195,14 @@ export abstract class ProgressService {
         ? JSON.parse(progress.completedContentIds || "[]")
         : progress.completedContentIds;
     const completedIds: number[] = Array.isArray(completedIdsRaw)
-      ? completedIdsRaw.map((id) => Number(id)).filter((id) => !Number.isNaN(id))
+      ? completedIdsRaw
+          .map((id) => Number(id))
+          .filter((id) => !Number.isNaN(id))
       : [];
 
-    console.log(`📋 [syncArticleCompletionsFromReads] Current completedIds: ${JSON.stringify(completedIds)}`);
+    console.log(
+      `📋 [syncArticleCompletionsFromReads] Current completedIds: ${JSON.stringify(completedIds)}`,
+    );
 
     const alreadyReadArticles = await db
       .select({
@@ -1173,18 +1220,24 @@ export abstract class ProgressService {
       )
       .where(eq(trailContent.trailId, trailId));
 
-    console.log(`📚 [syncArticleCompletionsFromReads] Found ${alreadyReadArticles.length} already-read articles:`,
-      JSON.stringify(alreadyReadArticles, null, 2));
+    console.log(
+      `📚 [syncArticleCompletionsFromReads] Found ${alreadyReadArticles.length} already-read articles:`,
+      JSON.stringify(alreadyReadArticles, null, 2),
+    );
 
     const newCompletions = alreadyReadArticles.filter(
       (item) => item.contentId && !completedIds.includes(item.contentId),
     );
 
-    console.log(`✨ [syncArticleCompletionsFromReads] Found ${newCompletions.length} new completions to add:`,
-      JSON.stringify(newCompletions, null, 2));
+    console.log(
+      `✨ [syncArticleCompletionsFromReads] Found ${newCompletions.length} new completions to add:`,
+      JSON.stringify(newCompletions, null, 2),
+    );
 
     if (newCompletions.length === 0) {
-      console.log(`✅ [syncArticleCompletionsFromReads] No new completions, returning`);
+      console.log(
+        `✅ [syncArticleCompletionsFromReads] No new completions, returning`,
+      );
       return progress;
     }
 
@@ -1231,7 +1284,9 @@ export abstract class ProgressService {
       ]),
     );
 
-    console.log(`💾 [syncArticleCompletionsFromReads] Updating completedContentIds from ${JSON.stringify(completedIds)} to ${JSON.stringify(updatedCompletedIds)}`);
+    console.log(
+      `💾 [syncArticleCompletionsFromReads] Updating completedContentIds from ${JSON.stringify(completedIds)} to ${JSON.stringify(updatedCompletedIds)}`,
+    );
 
     await db
       .update(userTrailProgress)
@@ -1242,7 +1297,9 @@ export abstract class ProgressService {
       })
       .where(eq(userTrailProgress.id, progress.id));
 
-    console.log(`✅ [syncArticleCompletionsFromReads] Updated trail progress, checking for trail completion`);
+    console.log(
+      `✅ [syncArticleCompletionsFromReads] Updated trail progress, checking for trail completion`,
+    );
 
     // Ensure trail-wide completion status reflects the auto-completed items
     await this.checkAndCompleteTrail(userId, trailId);
@@ -1255,7 +1312,9 @@ export abstract class ProgressService {
       ),
     });
 
-    console.log(`🎉 [syncArticleCompletionsFromReads] Sync complete, final completedContentIds: ${updatedProgress?.completedContentIds}`);
+    console.log(
+      `🎉 [syncArticleCompletionsFromReads] Sync complete, final completedContentIds: ${updatedProgress?.completedContentIds}`,
+    );
 
     return updatedProgress || progress;
   }
@@ -1328,7 +1387,11 @@ export abstract class ProgressService {
     }
 
     // Skip check if trail is already completed or no time limit set
-    if (progress.isCompleted || !trail.timeLimitMinutes || !progress.currentAttemptStartedAt) {
+    if (
+      progress.isCompleted ||
+      !trail.timeLimitMinutes ||
+      !progress.currentAttemptStartedAt
+    ) {
       return;
     }
 
@@ -1373,8 +1436,10 @@ export abstract class ProgressService {
   }
 
   private static async checkAndCompleteTrail(userId: string, trailId: number) {
-    console.log(`🔍 [checkAndCompleteTrail] Checking trail ${trailId} for user ${userId}`);
-    
+    console.log(
+      `🔍 [checkAndCompleteTrail] Checking trail ${trailId} for user ${userId}`,
+    );
+
     const [progress, trailRecord, contentItems] = await Promise.all([
       db.query.userTrailProgress.findFirst({
         where: and(
@@ -1410,9 +1475,14 @@ export abstract class ProgressService {
       completedIds.includes(c.id),
     );
 
-    console.log(`  📊 Progress: ${completedIds.length}/${requiredContent.length} required content items completed`);
+    console.log(
+      `  📊 Progress: ${completedIds.length}/${requiredContent.length} required content items completed`,
+    );
     console.log(`  Completed IDs:`, completedIds);
-    console.log(`  Required IDs:`, requiredContent.map(c => c.id));
+    console.log(
+      `  Required IDs:`,
+      requiredContent.map((c) => c.id),
+    );
 
     if (!allRequiredCompleted) {
       console.log(`  ⛔ Not all required content completed yet`);
@@ -1513,7 +1583,9 @@ export abstract class ProgressService {
         config.certificateUnlockRequirement === "trails" ||
         config.certificateUnlockRequirement === "trails_and_articles"
       ) {
-        console.log("📜 [Certificate] Checking if user has completed all trails...");
+        console.log(
+          "📜 [Certificate] Checking if user has completed all trails...",
+        );
         try {
           const hasCompletedAllTrails =
             await CertificateService.hasCompletedAllTrails(userId);
@@ -1541,7 +1613,9 @@ export abstract class ProgressService {
         );
       }
     } else {
-      console.log("⚠️  Trail not passed (score < passing percentage), skipping rewards");
+      console.log(
+        "⚠️  Trail not passed (score < passing percentage), skipping rewards",
+      );
     }
   }
 
@@ -1613,42 +1687,61 @@ export abstract class ProgressService {
       case "fill_in_the_blank":
         // For fill-in-blank with options, userAnswer is an object: { blankId: selectedText }
         // Check if all blanks have the correct option selected
-        if (typeof userAnswer === 'object' && !Array.isArray(userAnswer)) {
-          correctAnswer = question.fillInBlanks.reduce((acc: any, blank: any) => {
-            const correctOption = blank.options?.find((opt: any) => opt.isCorrect);
-            acc[blank.id.toString()] = correctOption?.text || blank.answer;
-            return acc;
-          }, {});
+        if (typeof userAnswer === "object" && !Array.isArray(userAnswer)) {
+          correctAnswer = question.fillInBlanks.reduce(
+            (acc: any, blank: any) => {
+              const correctOption = blank.options?.find(
+                (opt: any) => opt.isCorrect,
+              );
+              acc[blank.id.toString()] = correctOption?.text || blank.answer;
+              return acc;
+            },
+            {},
+          );
 
-          console.log('[Fill-Blank Grading] Debug:', {
+          console.log("[Fill-Blank Grading] Debug:", {
             userAnswer,
             correctAnswer,
             fillInBlanks: question.fillInBlanks.map((blank: any) => ({
               id: blank.id,
-              options: blank.options?.map((o: any) => ({ id: o.id, text: o.text, isCorrect: o.isCorrect }))
-            }))
+              options: blank.options?.map((o: any) => ({
+                id: o.id,
+                text: o.text,
+                isCorrect: o.isCorrect,
+              })),
+            })),
           });
 
           // Check if all blanks are answered correctly
           isCorrect = question.fillInBlanks.every((blank: any) => {
-            const correctOption = blank.options?.find((opt: any) => opt.isCorrect);
+            const correctOption = blank.options?.find(
+              (opt: any) => opt.isCorrect,
+            );
             const expectedAnswer = correctOption?.text || blank.answer;
             const userBlankAnswer = userAnswer[blank.id.toString()];
-            
+
             console.log(`[Fill-Blank] Checking blank ${blank.id}:`, {
               userBlankAnswer,
               expectedAnswer,
-              match: userBlankAnswer?.toLowerCase().trim() === expectedAnswer?.toLowerCase().trim()
+              match:
+                userBlankAnswer?.toLowerCase().trim() ===
+                expectedAnswer?.toLowerCase().trim(),
             });
-            
-            return userBlankAnswer?.toLowerCase().trim() === expectedAnswer?.toLowerCase().trim();
+
+            return (
+              userBlankAnswer?.toLowerCase().trim() ===
+              expectedAnswer?.toLowerCase().trim()
+            );
           });
         } else {
           // Legacy: single blank text answer
-          correctAnswer = question.fillInBlanks.map((blank: any) => blank.answer);
-          isCorrect = question.fillInBlanks.some((blank: any) =>
-            blank.answer.toLowerCase().trim() ===
-            (userAnswer || "").toLowerCase().trim()
+          correctAnswer = question.fillInBlanks.map(
+            (blank: any) => blank.answer,
+          );
+          isCorrect = question.fillInBlanks.some(
+            (blank: any) =>
+              blank.answer.toLowerCase().trim() ===
+              (userAnswer || "").toLowerCase().trim(),
           );
         }
         break;
@@ -1661,8 +1754,8 @@ export abstract class ProgressService {
         }, {});
 
         if (userAnswer && typeof userAnswer === "object") {
-          isCorrect = question.matchingPairs.every((pair: any) =>
-            userAnswer[pair.leftText] === pair.rightText
+          isCorrect = question.matchingPairs.every(
+            (pair: any) => userAnswer[pair.leftText] === pair.rightText,
           );
         }
         break;

@@ -11,7 +11,10 @@ import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { NotFoundError } from "@/lib/errors";
 import type { MissionsOverviewResponse, RecordActivityBody } from "./model";
 
-type MissionDatabase = Pick<typeof db, "query" | "insert" | "update" | "execute">;
+type MissionDatabase = Pick<
+  typeof db,
+  "query" | "insert" | "update" | "execute"
+>;
 
 // Match the UTC activity ledger. Weeks start on Monday.
 function periodStart(date: Date, frequency: MissionFrequency): string {
@@ -137,6 +140,7 @@ export abstract class MissionsService {
         isCompleted:
           group.some((row) => row.isCompleted) ||
           progress >= first.mission.targetValue,
+        hasPersistedCompletion: group.some((row) => row.isCompleted),
       };
     });
   }
@@ -187,11 +191,15 @@ export abstract class MissionsService {
         monthly: [],
       };
       for (const row of await this.currentMissions(tx, userId, now)) {
-        result[row.mission.frequency].push({
-          ...row,
+        const { hasPersistedCompletion: _hasPersistedCompletion, ...mission } =
+          row;
+        result[mission.mission.frequency].push({
+          ...mission,
           progressPercentage: Math.min(
             100,
-            Math.round((row.currentProgress / row.mission.targetValue) * 100),
+            Math.round(
+              (mission.currentProgress / mission.mission.targetValue) * 100,
+            ),
           ),
         });
       }
@@ -231,7 +239,29 @@ export abstract class MissionsService {
         : 0;
     let completed = 0;
     for (const row of active) {
-      if (row.isCompleted) continue;
+      // A pre-fix weekly/monthly mission can be complete only after its old
+      // duplicate rows are aggregated. Persist that state once so it survives
+      // future reads and contributes to the daily completion ledger.
+      if (row.isCompleted) {
+        if (!row.hasPersistedCompletion) {
+          await tx
+            .update(userMissions)
+            .set({
+              currentProgress: row.mission.targetValue,
+              isCompleted: true,
+              completedAt: now,
+              updatedAt: now,
+            })
+            .where(
+              and(
+                eq(userMissions.id, row.id),
+                eq(userMissions.isCompleted, false),
+              ),
+            );
+          completed++;
+        }
+        continue;
+      }
       let progress = row.currentProgress;
       let maximum = false;
       switch (row.mission.type) {
@@ -307,13 +337,11 @@ export abstract class MissionsService {
           })
           .where(eq(userDailyActivities.id, existing.id));
       } else {
-        await tx
-          .insert(userDailyActivities)
-          .values({
-            userId,
-            activityDate: today,
-            missionsCompleted: completed,
-          });
+        await tx.insert(userDailyActivities).values({
+          userId,
+          activityDate: today,
+          missionsCompleted: completed,
+        });
       }
     }
   }

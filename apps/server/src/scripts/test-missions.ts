@@ -25,13 +25,11 @@ await db
     const { MissionsService } =
       await import("../modules/gamification/missions.service");
     const userId = crypto.randomUUID();
-    await tx
-      .insert(user)
-      .values({
-        id: userId,
-        name: "Mission regression",
-        email: `${userId}@example.invalid`,
-      });
+    await tx.insert(user).values({
+      id: userId,
+      name: "Mission regression",
+      email: `${userId}@example.invalid`,
+    });
     const [daily, weekly, monthly, login, score] = await tx
       .insert(missions)
       .values([
@@ -258,14 +256,12 @@ await db
     await check(
       "legacy daily assignments contribute to a single weekly card",
       async () => {
-        await tx
-          .insert(userMissions)
-          .values({
-            userId,
-            missionId: weekly.id,
-            assignedDate: new Date().toISOString().slice(0, 10),
-            currentProgress: 2,
-          });
+        await tx.insert(userMissions).values({
+          userId,
+          missionId: weekly.id,
+          assignedDate: new Date().toISOString().slice(0, 10),
+          currentProgress: 2,
+        });
         const result = await MissionsService.getUserMissions(userId);
         assert.equal(
           result.weekly.filter((m) => m.missionId === weekly.id).length,
@@ -274,6 +270,58 @@ await db
         assert.equal(
           result.weekly.find((m) => m.missionId === weekly.id)?.currentProgress,
           3,
+        );
+      },
+    );
+    await check(
+      "a legacy aggregate completion is persisted and counted once",
+      async () => {
+        const [legacy] = await tx
+          .insert(missions)
+          .values({
+            title: "legacy completion",
+            description: "test",
+            type: "complete_questions",
+            frequency: "weekly",
+            targetValue: 10,
+          })
+          .returning();
+        await tx.insert(userMissions).values([
+          {
+            userId,
+            missionId: legacy.id,
+            assignedDate: "2026-09-08",
+            currentProgress: 5,
+          },
+          {
+            userId,
+            missionId: legacy.id,
+            assignedDate: "2026-09-09",
+            currentProgress: 5,
+          },
+        ]);
+        const before = await tx.query.userDailyActivities.findFirst({
+          where: eq(userDailyActivities.userId, userId),
+        });
+        await MissionsService.getUserMissions(userId);
+        const rows = await tx.query.userMissions.findMany({
+          where: eq(userMissions.missionId, legacy.id),
+        });
+        const after = await tx.query.userDailyActivities.findFirst({
+          where: eq(userDailyActivities.userId, userId),
+        });
+        assert(rows.some((row) => row.isCompleted));
+        assert.equal(
+          after!.missionsCompleted,
+          (before?.missionsCompleted ?? 0) + 1,
+        );
+        await MissionsService.getUserMissions(userId);
+        const finalActivity = await tx.query.userDailyActivities.findFirst({
+          where: eq(userDailyActivities.userId, userId),
+        });
+        assert.equal(
+          finalActivity!.missionsCompleted,
+          after!.missionsCompleted,
         );
       },
     );
@@ -290,13 +338,11 @@ await db
             targetValue: 7,
           })
           .returning();
-        await tx
-          .insert(userStreaks)
-          .values({
-            userId,
-            currentStreak: 4,
-            lastActivityDate: new Date().toISOString().slice(0, 10),
-          });
+        await tx.insert(userStreaks).values({
+          userId,
+          currentStreak: 4,
+          lastActivityDate: new Date().toISOString().slice(0, 10),
+        });
         const result = await MissionsService.getUserMissions(userId);
         assert.equal(
           result.weekly.find((m) => m.missionId === mission.id)
