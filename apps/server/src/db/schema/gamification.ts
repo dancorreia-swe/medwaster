@@ -9,6 +9,7 @@ import {
   text,
   timestamp,
   date,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { user } from "./auth";
@@ -213,6 +214,30 @@ export const userDailyActivitiesRelations = relations(
       references: [user.id],
     }),
   }),
+);
+
+export const userActivityEvents = pgTable(
+  "user_activity_events",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    activityDate: date("activity_date").notNull(),
+    type: text("type").notNull(),
+    dedupeKey: text("dedupe_key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("user_activity_events_dedupe_idx").on(
+      table.userId,
+      table.activityDate,
+      table.type,
+      table.dedupeKey,
+    ),
+  ],
 );
 
 export const streakMilestones = pgTable(

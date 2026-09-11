@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import {
   userDailyActivities,
+  userActivityEvents,
   type UserDailyActivity,
 } from "@/db/schema/gamification";
 import { eq, and, gte, desc } from "drizzle-orm";
@@ -91,6 +92,16 @@ export class DailyActivitiesService {
     activity: RecordActivityBody,
   ): Promise<DailyActivityResponse> {
     const today = this.formatDate(new Date());
+
+    const dedupeKey = this.dedupeKey(activity);
+    if (dedupeKey) {
+      const inserted = await db
+        .insert(userActivityEvents)
+        .values({ userId, activityDate: today, type: activity.type, dedupeKey })
+        .onConflictDoNothing()
+        .returning({ id: userActivityEvents.id });
+      if (!inserted.length) return this.getTodayActivity(userId);
+    }
 
     // Get or create today's activity
     let dailyActivity = await db.query.userDailyActivities.findFirst({
@@ -229,5 +240,13 @@ export class DailyActivitiesService {
     const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
     const day = `${date.getUTCDate()}`.padStart(2, "0");
     return `${year}-${month}-${day}`;
+  }
+
+  private static dedupeKey(activity: RecordActivityBody): string | null {
+    if (activity.type === "trail_content" && activity.metadata?.trailContentId)
+      return `trail-content:${activity.metadata.trailContentId}`;
+    if (activity.type === "article" && activity.metadata?.articleId)
+      return `article:${activity.metadata.articleId}`;
+    return null;
   }
 }
