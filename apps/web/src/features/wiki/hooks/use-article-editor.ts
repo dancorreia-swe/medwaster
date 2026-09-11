@@ -14,7 +14,7 @@ interface UseArticleEditorProps {
   isNewDraft?: boolean;
 }
 
-function arraysEqual(a: string[], b: string[]): boolean {
+function arraysEqual(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
   const sortedA = [...a].sort();
   const sortedB = [...b].sort();

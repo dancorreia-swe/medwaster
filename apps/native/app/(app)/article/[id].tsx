@@ -84,6 +84,19 @@ export default function WikiArticle() {
   const article = data?.article;
   const articleProgress = data?.progress;
   const articleDifficulty = data?.difficulty;
+  const isExternalArticle =
+    article?.sourceType === "external" ||
+    (!!article?.externalUrl && !article?.content);
+  const externalUrl = article?.externalUrl;
+  const isPdfExternal = useMemo(() => {
+    if (!externalUrl) return false;
+    const urlLower = externalUrl.toLowerCase();
+    return (
+      urlLower.endsWith(".pdf") ||
+      urlLower.includes(".pdf?") ||
+      urlLower.includes("/pdf")
+    );
+  }, [externalUrl]);
   const articleIsRead = useMemo(() => {
     if (unreadArticles.has(articleId)) {
       return false;
@@ -505,20 +518,6 @@ export default function WikiArticle() {
   const readingTimeMinutes = article?.readingTimeMinutes
     ? Math.max(1, Math.round(article.readingTimeMinutes))
     : null;
-
-  const isExternalArticle =
-    article?.sourceType === "external" ||
-    (!!article?.externalUrl && !article?.content);
-  const externalUrl = article?.externalUrl;
-  const isPdfExternal = useMemo(() => {
-    if (!externalUrl) return false;
-    const urlLower = externalUrl.toLowerCase();
-    return (
-      urlLower.endsWith(".pdf") ||
-      urlLower.includes(".pdf?") ||
-      urlLower.includes("/pdf")
-    );
-  }, [externalUrl]);
 
   const webViewUrl = useMemo(() => {
     if (!externalUrl || isPdfExternal) return null;

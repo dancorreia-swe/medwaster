@@ -75,7 +75,11 @@ export const Route = createFileRoute("/_auth/wiki")({
       q: search.q as string | undefined,
       status: search.status as string | undefined,
       categoryId: search.categoryId ? Number(search.categoryId) : undefined,
-      tags: search.tags as string | undefined,
+      tags: Array.isArray(search.tags)
+        ? search.tags.filter((tag): tag is string => typeof tag === "string")
+        : typeof search.tags === "string"
+          ? [search.tags]
+          : undefined,
     };
   },
   loaderDeps: ({ search }) => ({

@@ -18,6 +18,7 @@ const MULTIPLE_CHOICE_MIN_OPTIONS = 2;
 type QuestionBody = CreateQuestionBody | UpdateQuestionBody;
 type Options = NonNullable<QuestionBody["options"]>;
 type FillInBlanks = NonNullable<QuestionBody["fillInBlanks"]>;
+type MatchingPairs = NonNullable<QuestionBody["matchingPairs"]>;
 
 /**
  * Validate that a question's variations can actually be rendered and graded.
@@ -71,6 +72,7 @@ export function validateQuestionData(
       validateFillInBlanks(hasRequiredData as FillInBlanks);
       break;
     case "matching":
+      validateMatchingPairs(hasRequiredData as MatchingPairs);
       break;
   }
 }
@@ -124,4 +126,18 @@ function validateFillInBlanks(blanks: FillInBlanks) {
       );
     }
   });
+}
+
+function validateMatchingPairs(pairs: MatchingPairs) {
+  if (!pairs) return;
+
+  if (pairs.length < 2) {
+    throw new ValidationError("Matching questions require at least two pairs");
+  }
+  if (pairs.some((pair) => !pair.leftText.trim() || !pair.rightText.trim())) {
+    throw new ValidationError("Matching pairs cannot be empty");
+  }
+  if (new Set(pairs.map((pair) => pair.sequence)).size !== pairs.length) {
+    throw new ValidationError("Matching pair sequences must be unique");
+  }
 }
