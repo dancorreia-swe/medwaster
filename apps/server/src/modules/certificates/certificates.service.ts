@@ -462,7 +462,7 @@ export abstract class CertificateService {
       userImageUrl: certificate.user.image,
       title: config.certificateTitle,
       unlockRequirement: config.certificateUnlockRequirement,
-    });
+    }, config.certificateDesign);
 
     const [updated] = await db
       .update(certificates)
@@ -538,7 +538,7 @@ export abstract class CertificateService {
       userImageUrl: certificate.user.image,
       title: config.certificateTitle,
       unlockRequirement: config.certificateUnlockRequirement,
-    });
+    }, config.certificateDesign);
 
     // Update certificate status
     const [updated] = await db
@@ -601,7 +601,7 @@ export abstract class CertificateService {
       userImageUrl: certificate.user.image,
       title: currentConfig.certificateTitle,
       unlockRequirement: currentConfig.certificateUnlockRequirement,
-    });
+    }, currentConfig.certificateDesign);
 
     const [updated] = await db
       .update(certificates)

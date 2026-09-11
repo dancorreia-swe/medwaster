@@ -1,6 +1,7 @@
 import {
   boolean,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
@@ -8,6 +9,10 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import {
+  DEFAULT_CERTIFICATE_DESIGN,
+  type CertificateDesign,
+} from "../../modules/certificates/design/catalog";
 
 /**
  * Global system configuration (single-row table).
@@ -43,6 +48,12 @@ export const systemConfig = pgTable("system_config", {
   certificateMaxStudyHours: integer("certificate_max_study_hours")
     .notNull()
     .default(0),
+  // Layout/Palette ids are validated in the app (normalizeCertificateDesign),
+  // not by pg enums, so adding a Palette never needs a migration.
+  certificateDesign: jsonb("certificate_design")
+    .$type<CertificateDesign>()
+    .notNull()
+    .default(DEFAULT_CERTIFICATE_DESIGN),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

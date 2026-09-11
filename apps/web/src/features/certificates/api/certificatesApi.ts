@@ -1,7 +1,19 @@
 import { client } from "@/lib/client";
+import { getApiUrl } from "@/lib/env";
 
 export const certificatesClient = client.admin.certificates;
 const configClient = client.admin.config;
+const certificateDesignClient = configClient["certificate-design"];
+
+/** Saved Certificate Design + title, defaults, and the built-in options. */
+export type CertificateDesignSettings = NonNullable<
+	Awaited<ReturnType<typeof certificateDesignClient.get>>["data"]
+>;
+export type CertificateDesignOptions = CertificateDesignSettings["options"];
+/** Body accepted by the save and preview endpoints. */
+export type CertificateDesignPayload = Parameters<
+	typeof certificateDesignClient.put
+>[0];
 
 type EdenError = {
 	message?: string;
@@ -109,5 +121,60 @@ export const certificatesApi = {
 			throwEdenError(response.error as EdenError, "Failed to update settings");
 		}
 		return response.data as CertificateSettings;
+	},
+
+	getCertificateDesign: async () => {
+		const response = await certificateDesignClient.get();
+		if (response.error) {
+			throwEdenError(
+				response.error as EdenError,
+				"Não foi possível carregar o design do certificado",
+			);
+		}
+		return response.data as CertificateDesignSettings;
+	},
+
+	saveCertificateDesign: async (payload: CertificateDesignPayload) => {
+		const response = await certificateDesignClient.put(payload);
+		if (response.error) {
+			throwEdenError(
+				response.error as EdenError,
+				"Não foi possível salvar o design do certificado",
+			);
+		}
+		return response.data as CertificateDesignSettings;
+	},
+
+	/**
+	 * Renders an unsaved design as a PDF. Plain fetch because the endpoint
+	 * returns binary, which Eden does not type well.
+	 */
+	renderCertificateDesignPreview: async (
+		payload: CertificateDesignPayload,
+		signal?: AbortSignal,
+	) => {
+		const response = await fetch(
+			`${getApiUrl()}/api/admin/config/certificate-design/preview`,
+			{
+				method: "POST",
+				credentials: "include",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload),
+				signal,
+			},
+		);
+
+		if (!response.ok) {
+			let message = "Não foi possível gerar a prévia do certificado";
+			try {
+				const body = await response.json();
+				message = body?.error?.message || body?.message || message;
+			} catch {
+				// Non-JSON error body: keep the default message.
+			}
+			throw new Error(message);
+		}
+
+		return response.blob();
 	},
 };
