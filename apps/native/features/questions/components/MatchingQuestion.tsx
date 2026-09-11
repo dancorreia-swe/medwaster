@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Link2, Minus } from "lucide-react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -19,24 +19,31 @@ export function MatchingQuestion({
   const [matches, setMatches] = useState<Record<string, string>>({});
   const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
 
+  useEffect(() => {
+    setMatches({});
+    setSelectedLeft(null);
+  }, [question.id]);
+
   // Sort pairs by sequence
   const sortedPairs = [...(question.matchingPairs || [])].sort(
     (a, b) => a.sequence - b.sequence
   );
 
-  // Shuffle right items for display (to make it challenging)
-  const [rightItems] = useState(() => {
+  // Shuffle the right column so it does not mirror the left. Keyed on the
+  // question so the order is stable across re-renders but is recomputed if the
+  // component is reused for a different question rather than remounted.
+  const rightItems = useMemo(() => {
     const items = sortedPairs.map((pair) => ({
       id: pair.id,
       text: pair.rightText,
     }));
-    // Shuffle array
     for (let i = items.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [items[i], items[j]] = [items[j], items[i]];
     }
     return items;
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question.id]);
 
   const allMatched = Object.keys(matches).length === sortedPairs.length;
   const lastSubmittedRef = useRef<string>("");
@@ -121,9 +128,15 @@ export function MatchingQuestion({
       {/* Question Text */}
       <HtmlText html={question.prompt || question.questionText} />
 
-      <View className="mb-8 bg-blue-50 dark:bg-blue-900/30 rounded-2xl p-4">
+      <View className="mb-8 bg-blue-50 dark:bg-blue-900/30 rounded-2xl p-4 gap-1">
         <Text className="text-sm text-blue-700 dark:text-blue-200 font-medium text-center">
           💡 Toque em um item da esquerda, depois toque no correspondente da direita
+        </Text>
+        <Text
+          className="text-xs text-blue-600 dark:text-blue-300 text-center"
+          accessibilityLiveRegion="polite"
+        >
+          {Object.keys(matches).length} de {sortedPairs.length} relacionados
         </Text>
       </View>
 
@@ -145,6 +158,14 @@ export function MatchingQuestion({
                   <TouchableOpacity
                     onPress={() => handleLeftItemPress(pair.id)}
                     disabled={disabled}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected, disabled }}
+                    accessibilityLabel={`Coluna A, item ${index + 1}: ${pair.leftText}`}
+                    accessibilityHint={
+                      isMatched
+                        ? "Já relacionado. Toque para selecionar novamente"
+                        : "Toque para selecionar e depois escolha um item da coluna B"
+                    }
                   className={`rounded-3xl p-5 border-2 shadow-sm ${
                       isSelected
                         ? "border-primary bg-primary/10"
@@ -189,6 +210,12 @@ export function MatchingQuestion({
                       </Text>
                       <TouchableOpacity
                         onPress={() => handleRemoveMatch(pair.id)}
+                        disabled={disabled || isSubmitting}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Desfazer correspondência de ${pair.leftText}`}
+                        // Icon button is visually small; hitSlop brings the
+                        // touch target up to ~44pt.
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         className="p-1.5 bg-red-50 dark:bg-red-900/30 rounded-full"
                       >
                         <Minus size={16} color="#EF4444" strokeWidth={2.5} />
@@ -214,11 +241,28 @@ export function MatchingQuestion({
                   key={item.id}
                   onPress={() => handleRightItemPress(item.id)}
                   disabled={disabled || !canSelect}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    disabled: disabled || !canSelect,
+                    selected: isMatched,
+                  }}
+                  accessibilityLabel={`Coluna B, item ${String.fromCharCode(
+                    65 + index,
+                  )}: ${item.text}`}
+                  accessibilityHint={
+                    isMatched
+                      ? "Já relacionado"
+                      : canSelect
+                        ? "Toque para relacionar com o item selecionado"
+                        : "Selecione primeiro um item da coluna A"
+                  }
+                  // "Available to pick" uses a dashed outline so it is not
+                  // confused with the solid fill used for an active selection.
                   className={`rounded-3xl p-5 border-2 mb-4 shadow-sm ${
                     isMatched
                       ? "border-green-500 bg-green-50 dark:border-green-500 dark:bg-green-900/30 opacity-50"
                       : canSelect
-                        ? "border-primary bg-primary/10"
+                        ? "border-primary border-dashed bg-primary/5"
                         : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
                   } ${disabled ? "opacity-50" : ""}`}
                   activeOpacity={0.7}

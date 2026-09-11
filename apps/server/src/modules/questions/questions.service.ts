@@ -10,11 +10,12 @@ import {
   tags,
   type QuestionDifficulty,
   type QuestionStatus,
+  type QuestionType,
 } from "@/db/schema/questions";
 import { quizQuestions } from "@/db/schema/quizzes";
 import { trailContent } from "@/db/schema/trails";
 import { asc, desc, eq, and, sql, ilike, or, inArray } from "drizzle-orm";
-import { NotFoundError, DependencyError } from "@/lib/errors";
+import { NotFoundError, DependencyError, ValidationError } from "@/lib/errors";
 import { S3StorageService } from "./s3-storage.service";
 import { validateQuestionData } from "./question-content.validator";
 
@@ -96,7 +97,9 @@ export abstract class QuestionsService {
             answer ?? blankOptions?.find((option) => option.isCorrect)?.text;
 
           if (!resolvedAnswer) {
-            throw new Error(
+            // Defensive: validateQuestionData rejects this before the
+            // transaction opens. A bare Error would roll back as a 500.
+            throw new ValidationError(
               `Fill-in-the-blank #${blank.sequence} is missing a correct answer`,
             );
           }
@@ -206,7 +209,9 @@ export abstract class QuestionsService {
               answer ?? blankOptions?.find((option) => option.isCorrect)?.text;
 
             if (!resolvedAnswer) {
-              throw new Error(
+              // Defensive: validateQuestionData rejects this before the
+              // transaction opens. A bare Error would roll back as a 500.
+              throw new ValidationError(
                 `Fill-in-the-blank #${blank.sequence} is missing a correct answer`,
               );
             }

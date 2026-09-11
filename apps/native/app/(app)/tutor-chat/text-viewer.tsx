@@ -1,4 +1,4 @@
-import { NitroText as Text } from "react-native-nitro-text";
+import { NitroText as Text } from "@/components/nitro-text";
 import {
   View,
   TouchableOpacity,

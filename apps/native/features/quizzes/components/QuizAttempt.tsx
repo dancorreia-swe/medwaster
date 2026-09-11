@@ -17,7 +17,12 @@ import type { QuizAttemptProps, QuizAttemptProgress } from "../types";
 import type { QuestionAnswer } from "../../questions/types";
 import { QuestionRenderer } from "../../questions/components";
 import { QuizTimer } from "./QuizTimer";
-import { normalizeMatchingAnswer } from "@/features/questions/utils";
+import {
+  deriveCorrectAnswer,
+  formatCorrectAnswerText,
+  gradeAnswerLocally,
+  normalizeMatchingAnswer,
+} from "@/features/questions/utils";
 
 type FeedbackState = "none" | "correct" | "incorrect";
 
@@ -52,6 +57,17 @@ export function QuizAttempt({
   );
 
   const currentQuestion = sortedQuestions[progress.currentQuestionIndex];
+
+  // The quiz endpoints do not return a correct answer on the question, so it is
+  // derived from the option / blank / pair data the payload already carries —
+  // the same source `checkAnswerCorrectness` grades against.
+  const correctAnswerText = currentQuestion
+    ? formatCorrectAnswerText(
+        deriveCorrectAnswer(currentQuestion.question),
+        currentQuestion.question,
+      )
+    : "";
+
   const isLastQuestion =
     progress.currentQuestionIndex === sortedQuestions.length - 1;
 
@@ -77,80 +93,8 @@ export function QuizAttempt({
     setFeedback(isCorrect ? "correct" : "incorrect");
   };
 
-  const checkAnswerCorrectness = (answer: QuestionAnswer): boolean => {
-    if (!currentQuestion) return false;
-
-    const questionType = currentQuestion.question.type;
-
-    // Multiple Choice or True/False
-    if (questionType === "multiple_choice" || questionType === "true_false") {
-      const selectedOptions = Array.isArray(answer)
-        ? answer
-        : [answer as number];
-      const correctOptions =
-        currentQuestion.question.options
-          ?.filter((opt) => opt.isCorrect)
-          .map((opt) => opt.id) || [];
-
-      if (selectedOptions.length !== correctOptions.length) return false;
-      return selectedOptions.every((id) => correctOptions.includes(id));
-    }
-
-    // Fill in the Blank
-    if (questionType === "fill_in_the_blank") {
-      const userAnswers = answer as Record<string, string>;
-      return (
-        currentQuestion.question.fillInBlanks?.every((blank) => {
-          const userAnswer = userAnswers[blank.id.toString()]
-            ?.toLowerCase()
-            .trim();
-
-          // Find the correct option
-          const correctOption = blank.options?.find((opt) => opt.isCorrect);
-          if (!correctOption) return false;
-
-          return userAnswer === correctOption.text.toLowerCase().trim();
-        }) || false
-      );
-    }
-
-    // Matching
-    if (questionType === "matching") {
-      const normalizedMatches = normalizeMatchingAnswer(
-        answer as Record<string, string>,
-        currentQuestion.question.matchingPairs,
-      );
-      return (
-        currentQuestion.question.matchingPairs?.every(
-          (pair) => normalizedMatches[pair.leftText] === pair.rightText,
-        ) ?? false
-      );
-    }
-
-    return false;
-  };
-
-  const formatInlineCorrect = (answer: any, question: any): string => {
-    if (typeof answer === "string") {
-      return answer;
-    }
-
-    if (typeof answer === "number") {
-      const option = question.options?.find((opt: any) => opt.id === answer);
-      return option?.content || option?.optionText || `Opção ${answer}`;
-    }
-
-    if (Array.isArray(answer)) {
-      return answer
-        .map((id: number) => {
-          const option = question.options?.find((opt: any) => opt.id === id);
-          return option?.content || option?.optionText || `Opção ${id}`;
-        })
-        .join(", ");
-    }
-
-    return "Resposta não disponível";
-  };
+  const checkAnswerCorrectness = (answer: QuestionAnswer): boolean =>
+    gradeAnswerLocally(currentQuestion?.question, answer);
 
   const handleContinue = () => {
     if (feedback === "none") {
@@ -268,8 +212,8 @@ export function QuizAttempt({
 
   if (!currentQuestion) {
     return (
-      <View className="flex-1 items-center justify-center p-6 bg-gray-50">
-        <Text className="text-gray-600 text-center">
+      <View className="flex-1 items-center justify-center p-6 bg-gray-50 dark:bg-gray-950">
+        <Text className="text-gray-600 dark:text-gray-300 text-center">
           Nenhuma questão encontrada
         </Text>
       </View>
@@ -277,7 +221,7 @@ export function QuizAttempt({
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-white dark:bg-gray-950">
       {/* Header */}
       <View className="pt-12 pb-3 px-4">
         <View className="flex-row items-center mb-4">
@@ -315,7 +259,7 @@ export function QuizAttempt({
           </View>
 
           {/* Question Counter */}
-          <Text className="text-xs font-semibold text-gray-600 ml-3 min-w-[35px] text-right">
+          <Text className="text-xs font-semibold text-gray-600 dark:text-gray-400 ml-3 min-w-[35px] text-right">
             {progress.currentQuestionIndex + 1}/{sortedQuestions.length}
           </Text>
         </View>
@@ -341,7 +285,6 @@ export function QuizAttempt({
             onSubmit={handleAnswerSubmit}
             isSubmitting={false}
             disabled={feedback !== "none"}
-            textSize="md"
           />
         </Animated.View>
       </ScrollView>
@@ -352,50 +295,53 @@ export function QuizAttempt({
           <Animated.View entering={FadeIn.duration(300)}>
             {feedback === "correct" ? (
               // Minimal positive feedback for correct answers
-              <View className="rounded-2xl p-5 bg-green-50 border-2 border-green-500 shadow-sm">
+              <View className="rounded-2xl p-5 bg-green-50 border-2 border-green-500 shadow-sm dark:bg-green-900/30 dark:border-green-600">
                 <View className="flex-row items-center gap-3">
                   <CheckCircle2 size={28} color="#16A34A" strokeWidth={2.5} />
                   <View className="flex-1">
-                    <Text className="text-xl font-bold text-green-700 mb-1">
+                    <Text className="text-xl font-bold text-green-700 dark:text-green-200 mb-1">
                       Correto!
                     </Text>
-                    <Text className="text-base text-green-600">
+                    <Text className="text-base text-green-600 dark:text-green-300">
                       Ótimo trabalho! Continue assim.
                     </Text>
                   </View>
                 </View>
+
+                {/* The authored explanation is shown on a correct answer too,
+                    so it is not hidden from half the learners. */}
+                {quiz.showResults && currentQuestion.question.explanation && (
+                  <Text className="text-base leading-relaxed text-green-800 dark:text-green-100 mt-3">
+                    {currentQuestion.question.explanation}
+                  </Text>
+                )}
               </View>
             ) : (
               // Full feedback for incorrect answers
-              <View className="rounded-2xl p-5 bg-white border border-gray-200 shadow-sm">
+              <View className="rounded-2xl p-5 bg-white border border-gray-200 shadow-sm dark:bg-gray-900 dark:border-gray-800">
                 <View className="flex-row items-center gap-3 mb-3">
                   <XCircle size={28} color="#EF4444" strokeWidth={2.5} />
-                  <Text className="text-xl font-bold text-red-700">
+                  <Text className="text-xl font-bold text-red-700 dark:text-red-200">
                     Incorreto
                   </Text>
                 </View>
 
                 {currentQuestion.question.explanation && quiz.showCorrectAnswers && (
-                  <Text className="text-lg leading-relaxed text-gray-900">
+                  <Text className="text-lg leading-relaxed text-gray-900 dark:text-gray-50">
                     {currentQuestion.question.explanation}
                   </Text>
                 )}
 
-                {currentQuestion.question.correctAnswer &&
-                  currentQuestion.question.correctAnswer !== undefined &&
-                  quiz.showCorrectAnswers && (
-                    <View className="mt-3">
-                      <Text className="text-sm font-semibold text-gray-600 tracking-wide mb-1">
-                        Resposta correta
-                      </Text>
-                      <Text className="text-base text-gray-900 leading-relaxed">
-                        {formatInlineCorrect(
-                          currentQuestion.question.correctAnswer,
-                          currentQuestion.question,
-                        )}
-                      </Text>
-                    </View>
-                  )}
+                {quiz.showCorrectAnswers && correctAnswerText && (
+                  <View className="mt-3">
+                    <Text className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide mb-1">
+                      Resposta correta
+                    </Text>
+                    <Text className="text-base text-gray-900 dark:text-gray-50 leading-relaxed">
+                      {correctAnswerText}
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
           </Animated.View>
@@ -403,13 +349,13 @@ export function QuizAttempt({
       )}
 
       {/* Bottom Action Button */}
-      <View className="bg-white border-t border-gray-200 px-5 py-4 pb-8">
+      <View className="bg-white border-t border-gray-200 px-5 py-4 pb-8 dark:bg-gray-900 dark:border-gray-800">
         <TouchableOpacity
           onPress={handleContinue}
           disabled={!currentAnswer || isSubmitting}
           className={`rounded-2xl py-5 ${
             !currentAnswer || isSubmitting
-              ? "bg-gray-300"
+              ? "bg-gray-300 dark:bg-gray-700"
               : feedback === "correct"
                 ? "bg-green-500"
                 : feedback === "incorrect"

@@ -1,4 +1,4 @@
-import puppeteer, { type Browser } from "puppeteer";
+import type { Browser } from "puppeteer";
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import * as fs from "fs";
@@ -6,6 +6,19 @@ import * as path from "path";
 import * as os from "os";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import { BRAND_BOT_NAME } from "../../../emails/brand";
+
+/**
+ * puppeteer is imported lazily.
+ *
+ * Its postinstall downloads a browser, and a failed or interrupted download
+ * leaves the package unusable. A top-level import made that a boot failure for
+ * the entire API (`ENOENT reading .../node_modules/puppeteer`) rather than a
+ * failure of the two features that actually need a browser.
+ */
+async function loadPuppeteer() {
+  const mod = await import("puppeteer");
+  return mod.default ?? (mod as unknown as typeof import("puppeteer").default);
+}
 
 interface ScrapeResult {
   success: boolean;
@@ -33,6 +46,7 @@ class ContentScraperService {
    */
   private async getBrowser(): Promise<Browser> {
     if (!this.browser) {
+      const puppeteer = await loadPuppeteer();
       this.browser = await puppeteer.launch({
         headless: true,
         args: [

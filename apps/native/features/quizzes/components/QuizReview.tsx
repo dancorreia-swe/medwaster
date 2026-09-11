@@ -23,7 +23,7 @@ export function QuizReview({ results, onClose }: QuizReviewProps) {
   // Helper function to get option text by ID
   const getOptionText = (question: Question, optionId: number): string => {
     const option = question.options?.find((opt) => opt.id === optionId);
-    return (option as any)?.content || option?.optionText || "";
+    return option?.content || "";
   };
 
   // Helper function to render user's answer

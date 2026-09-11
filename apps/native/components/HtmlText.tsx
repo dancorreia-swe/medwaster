@@ -4,7 +4,10 @@ import RenderHtml from "react-native-render-html";
 import { useColorScheme } from "@/lib/use-color-scheme";
 
 interface HtmlTextProps {
-  html: string;
+  // Callers often pass `question.prompt || question.questionText`, and
+  // `questionText` is optional on the API payload, so accept undefined here
+  // instead of forcing every call site to coerce.
+  html?: string;
   className?: string;
   baseStyle?: any;
 }
