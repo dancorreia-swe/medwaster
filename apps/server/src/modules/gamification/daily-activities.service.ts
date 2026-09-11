@@ -94,15 +94,36 @@ export class DailyActivitiesService {
     const today = this.formatDate(new Date());
 
     const dedupeKey = this.dedupeKey(activity);
+    let eventId: number | undefined;
     if (dedupeKey) {
-      const inserted = await db
+      const [inserted] = await db
         .insert(userActivityEvents)
         .values({ userId, activityDate: today, type: activity.type, dedupeKey })
         .onConflictDoNothing()
         .returning({ id: userActivityEvents.id });
-      if (!inserted.length) return this.getTodayActivity(userId);
+      if (!inserted) return this.getTodayActivity(userId);
+      eventId = inserted.id;
     }
 
+    try {
+      return await this.recordActivityUnchecked(userId, activity, today);
+    } catch (error) {
+      // The idempotency key must not turn a transient downstream failure into
+      // a permanently lost activity. Only this request can own eventId.
+      if (eventId) {
+        await db
+          .delete(userActivityEvents)
+          .where(eq(userActivityEvents.id, eventId));
+      }
+      throw error;
+    }
+  }
+
+  private static async recordActivityUnchecked(
+    userId: string,
+    activity: RecordActivityBody,
+    today: string,
+  ): Promise<DailyActivityResponse> {
     // Get or create today's activity
     let dailyActivity = await db.query.userDailyActivities.findFirst({
       where: and(
