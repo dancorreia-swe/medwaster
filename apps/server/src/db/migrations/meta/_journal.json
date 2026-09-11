@@ -162,6 +162,13 @@
       "when": 1789099626568,
       "tag": "0022_shocking_corsair",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1789100000000,
+      "tag": "0023_singleton_certificate_design_revision",
+      "breakpoints": true
     }
   ]
 }

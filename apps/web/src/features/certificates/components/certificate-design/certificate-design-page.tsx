@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useBlocker } from "@tanstack/react-router";
 import { ArrowLeft, Loader2, RotateCcw } from "lucide-react";
@@ -22,9 +22,12 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   certificateDesignQueryOptions,
+  CertificateDesignConflictError,
   certificatesApi,
   certificatesQueryKeys,
+  type CertificateDesignCurrent,
   type CertificateDesignPayload,
+  type CertificateDesignSavePayload,
   type CertificateDesignSettings,
 } from "../../api";
 import { CertificatePreviewPanel } from "./certificate-preview-panel";
@@ -64,6 +67,17 @@ function isSameDraft(a: CertificateDesignPayload, b: CertificateDesignPayload) {
   );
 }
 
+type EditorState = {
+  draft: CertificateDesignPayload;
+  baseline: CertificateDesignPayload;
+  revision: number;
+};
+
+type ConflictState = {
+  current: CertificateDesignCurrent | null;
+  message: string;
+};
+
 export function CertificateDesignPage() {
   const query = useQuery(certificateDesignQueryOptions());
 
@@ -95,29 +109,44 @@ function CertificateDesignEditor({
 }) {
   const queryClient = useQueryClient();
   const { options, defaults } = settings;
-  const saved = useMemo(
+  const initialDraft = useMemo(
     () => toDraft(settings.title, settings.design),
     [settings.title, settings.design],
   );
-  const [draft, setDraft] = useState<CertificateDesignPayload>(saved);
+  const [editorState, setEditorState] = useState<EditorState>(() => ({
+    draft: initialDraft,
+    baseline: initialDraft,
+    revision: settings.revision,
+  }));
+  const [conflict, setConflict] = useState<ConflictState | null>(null);
+  const previousSettings = useRef(settings);
 
-  // Adopt a newer saved design (e.g. from a background refetch) unless the
-  // draft was edited, so the page never shows phantom unsaved changes or
-  // saves a stale design over someone else's.
-  const [syncedSaved, setSyncedSaved] = useState(saved);
-  if (syncedSaved !== saved) {
-    setSyncedSaved(saved);
-    if (isSameDraft(draft, syncedSaved)) {
-      setDraft(saved);
-    }
-  }
+  // A clean editor follows a newer server response. Once the draft is dirty,
+  // its original baseline (including revision) remains stable until save,
+  // discard, or an explicit conflict action changes it.
+  useEffect(() => {
+    if (previousSettings.current === settings) return;
+    previousSettings.current = settings;
+    const nextDraft = toDraft(settings.title, settings.design);
+    setEditorState((current) =>
+      isSameDraft(current.draft, current.baseline)
+        ? {
+            draft: nextDraft,
+            baseline: nextDraft,
+            revision: settings.revision,
+          }
+        : current,
+    );
+  }, [settings]);
+
+  const { draft, baseline, revision } = editorState;
 
   const trimmedTitle = draft.title.trim();
   const titleError =
     trimmedTitle.length < TITLE_MIN_LENGTH
       ? `Use pelo menos ${TITLE_MIN_LENGTH} caracteres.`
       : null;
-  const isDirty = !isSameDraft(draft, saved);
+  const isDirty = !isSameDraft(draft, baseline);
   const isDefault = isSameDraft(draft, toDraft(defaults.title, defaults.design));
 
   const previewDesign = useMemo(
@@ -127,17 +156,34 @@ function CertificateDesignEditor({
   const preview = useCertificatePreview(previewDesign, !titleError);
 
   const saveMutation = useMutation({
-    mutationFn: (payload: CertificateDesignPayload) =>
+    mutationFn: (payload: CertificateDesignSavePayload) =>
       certificatesApi.saveCertificateDesign(payload),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      const nextBaseline = toDraft(data.title, data.design);
       queryClient.setQueryData(certificatesQueryKeys.design(), data);
       queryClient.invalidateQueries({
         queryKey: certificatesQueryKeys.settings(),
       });
-      setDraft(toDraft(data.title, data.design));
+      setEditorState((current) => ({
+        baseline: nextBaseline,
+        revision: data.revision,
+        // The form is disabled while saving, but keep this comparison as a
+        // guard against edits made by another event source during the request.
+        draft: isSameDraft(current.draft, variables)
+          ? nextBaseline
+          : current.draft,
+      }));
+      setConflict(null);
       toast.success("Design do certificado salvo");
     },
     onError: (error) => {
+      if (error instanceof CertificateDesignConflictError) {
+        setConflict({
+          current: error.current,
+          message: error.message,
+        });
+        return;
+      }
       toast.error(
         error instanceof Error
           ? error.message
@@ -145,6 +191,50 @@ function CertificateDesignEditor({
       );
     },
   });
+
+  const applyCurrent = (current: CertificateDesignCurrent) => {
+    const nextDraft = toDraft(current.title ?? draft.title, current.design);
+    setEditorState({
+      draft: nextDraft,
+      baseline: nextDraft,
+      revision: current.revision,
+    });
+    setConflict(null);
+  };
+
+  const loadCurrent = async () => {
+    if (!conflict) return;
+    if (conflict.current && conflict.current.title !== null) {
+      applyCurrent(conflict.current);
+      return;
+    }
+
+    try {
+      const current = await certificatesApi.getCertificateDesign();
+      queryClient.setQueryData(certificatesQueryKeys.design(), current);
+      applyCurrent({
+        title: current.title,
+        design: current.design,
+        revision: current.revision,
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar o design atual",
+      );
+    }
+  };
+
+  const overwriteCurrent = () => {
+    if (!conflict?.current || titleError || saveMutation.isPending) return;
+    const submittedDraft = { ...draft, title: trimmedTitle };
+    setConflict(null);
+    saveMutation.mutate({
+      ...submittedDraft,
+      expectedRevision: conflict.current.revision,
+    });
+  };
 
   const blocker = useBlocker({
     shouldBlockFn: () => isDirty,
@@ -161,8 +251,18 @@ function CertificateDesignEditor({
   );
   const canSave = isDirty && !titleError && !saveMutation.isPending;
 
+  const updateDraft = (
+    update: (current: CertificateDesignPayload) => CertificateDesignPayload,
+  ) => {
+    setConflict(null);
+    setEditorState((current) => ({
+      ...current,
+      draft: update(current.draft),
+    }));
+  };
+
   const setElement = (key: ElementKey, checked: boolean) =>
-    setDraft((current: CertificateDesignPayload) => ({
+    updateDraft((current) => ({
       ...current,
       elements: { ...current.elements, [key]: checked },
     }));
@@ -170,7 +270,12 @@ function CertificateDesignEditor({
   const handleSave = (event?: React.FormEvent) => {
     event?.preventDefault();
     if (!canSave) return;
-    saveMutation.mutate({ ...draft, title: trimmedTitle });
+    setConflict(null);
+    saveMutation.mutate({
+      ...draft,
+      title: trimmedTitle,
+      expectedRevision: revision,
+    });
   };
 
   return (
@@ -213,7 +318,13 @@ function CertificateDesignEditor({
           <Button
             type="button"
             variant="outline"
-            onClick={() => setDraft(saved)}
+            onClick={() => {
+              setEditorState((current) => ({
+                ...current,
+                draft: current.baseline,
+              }));
+              setConflict(null);
+            }}
             disabled={!isDirty || saveMutation.isPending}
           >
             Descartar
@@ -225,8 +336,33 @@ function CertificateDesignEditor({
         </div>
       </header>
 
+      {conflict && (
+        <Alert variant="destructive">
+          <AlertTitle>O design foi alterado no servidor</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+            <span>{conflict.message} Suas alterações foram preservadas.</span>
+            <span className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={loadCurrent}>
+                Carregar dados atuais
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={overwriteCurrent}
+                disabled={
+                  !conflict.current || Boolean(titleError) || saveMutation.isPending
+                }
+              >
+                Substituir com minhas alterações
+              </Button>
+            </span>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid gap-10 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start xl:gap-12">
         <form id={FORM_ID} onSubmit={handleSave} className="flex flex-col gap-8">
+          <fieldset disabled={saveMutation.isPending} className="contents">
           <fieldset className="space-y-3">
             <legend className="text-sm font-semibold">Layout</legend>
             <div className="grid grid-cols-3 gap-3">
@@ -238,7 +374,7 @@ function CertificateDesignEditor({
                     value={layout.id}
                     checked={draft.layout === layout.id}
                     onChange={() =>
-                      setDraft((current: CertificateDesignPayload) => ({ ...current, layout: layout.id }))
+                      updateDraft((current) => ({ ...current, layout: layout.id }))
                     }
                     className="peer sr-only"
                   />
@@ -274,7 +410,7 @@ function CertificateDesignEditor({
                       value={palette.id}
                       checked={checked}
                       onChange={() =>
-                        setDraft((current: CertificateDesignPayload) => ({
+                        updateDraft((current) => ({
                           ...current,
                           palette: palette.id,
                         }))
@@ -366,7 +502,7 @@ function CertificateDesignEditor({
               aria-invalid={titleError ? true : undefined}
               aria-describedby="certificate-title-help"
               onChange={(event) =>
-                setDraft((current: CertificateDesignPayload) => ({
+                updateDraft((current) => ({
                   ...current,
                   title: event.target.value,
                 }))
@@ -389,7 +525,9 @@ function CertificateDesignEditor({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setDraft(toDraft(defaults.title, defaults.design))}
+              onClick={() =>
+                updateDraft(() => toDraft(defaults.title, defaults.design))
+              }
               disabled={isDefault || saveMutation.isPending}
             >
               <RotateCcw />
@@ -400,6 +538,7 @@ function CertificateDesignEditor({
               {defaults.title}". Nada é salvo até você clicar em Salvar design.
             </p>
           </div>
+          </fieldset>
         </form>
 
         <div className="lg:sticky lg:top-6">
@@ -409,6 +548,7 @@ function CertificateDesignEditor({
             error={preview.error}
             paused={Boolean(titleError)}
             onRetry={preview.retry}
+            onUrlRemoved={preview.releaseUrl}
           />
         </div>
       </div>

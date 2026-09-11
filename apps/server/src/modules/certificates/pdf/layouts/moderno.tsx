@@ -2,6 +2,7 @@ import { Image, Page, Text, View } from "@react-pdf/renderer";
 import { SANS, SERIF } from "../fonts";
 import {
   Avatar,
+  breakLongText,
   Caption,
   fitFontSize,
   keepWordsWhole,
@@ -20,7 +21,7 @@ export function ModernoLayout({ content, theme }: CertificateLayoutProps) {
   const nameWidth = bodyWidth - (content.photo ? PHOTO_SIZE + PHOTO_GAP : 0);
   const nameSize = fitFontSize(content.userName, {
     max: 46,
-    min: 24,
+    min: 10,
     width: nameWidth,
     emPerChar: 0.46,
   });
@@ -78,21 +79,22 @@ export function ModernoLayout({ content, theme }: CertificateLayoutProps) {
 
           <View>
             <Text
+              hyphenationCallback={keepWordsWhole}
               style={{
                 fontFamily: SERIF,
                 fontWeight: 600,
-                fontSize: 30,
+                fontSize: fitFontSize(content.title, { max: 30, min: 8, width: bodyWidth, emPerChar: 0.5 }),
                 lineHeight: 1.1,
               }}
             >
-              {content.title}
+              {breakLongText(content.title)}
             </Text>
 
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                marginTop: 28,
+                marginTop: 16,
               }}
             >
               {content.photo && (
@@ -117,7 +119,7 @@ export function ModernoLayout({ content, theme }: CertificateLayoutProps) {
                     lineHeight: 1.1,
                   }}
                 >
-                  {content.userName}
+                  {breakLongText(content.userName)}
                 </Text>
                 <Text
                   style={{
@@ -136,8 +138,8 @@ export function ModernoLayout({ content, theme }: CertificateLayoutProps) {
               <View
                 style={{
                   flexDirection: "row",
-                  marginTop: 30,
-                  paddingTop: 18,
+                  marginTop: 16,
+                  paddingTop: 12,
                   borderTop: `0.75 solid ${theme.hairline}`,
                 }}
               >

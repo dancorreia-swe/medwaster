@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { certificatesApi, type CertificateDesignPayload } from "../../api";
 
 const PREVIEW_DEBOUNCE_MS = 400;
@@ -8,7 +8,7 @@ export type CertificatePreviewStatus = "loading" | "ready" | "error";
 /**
  * Server-rendered PDF preview of an unsaved Certificate Design.
  * Re-renders 400ms after the design stops changing, aborts in-flight
- * requests and revokes object URLs it no longer shows.
+ * requests and revokes object URLs after the preview panel removes them.
  */
 export function useCertificatePreview(
   design: CertificateDesignPayload,
@@ -18,15 +18,20 @@ export function useCertificatePreview(
   const [status, setStatus] = useState<CertificatePreviewStatus>("loading");
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const urlRef = useRef<string | null>(null);
+  const urlsRef = useRef(new Set<string>());
   const hasRequested = useRef(false);
   const requestKey = JSON.stringify(design);
+
+  const releaseUrl = useCallback((urlToRelease: string) => {
+    if (!urlsRef.current.delete(urlToRelease)) return;
+    URL.revokeObjectURL(urlToRelease);
+  }, []);
 
   useEffect(() => {
     if (!enabled) {
       // A pending re-render was cancelled: the last PDF is current again.
       setStatus((current) =>
-        current === "loading" && urlRef.current ? "ready" : current,
+        current === "loading" && urlsRef.current.size > 0 ? "ready" : current,
       );
       return;
     }
@@ -45,8 +50,7 @@ export function useCertificatePreview(
         if (controller.signal.aborted) return;
 
         const nextUrl = URL.createObjectURL(blob);
-        if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-        urlRef.current = nextUrl;
+        urlsRef.current.add(nextUrl);
         setUrl(nextUrl);
         setError(null);
         setStatus("ready");
@@ -69,7 +73,10 @@ export function useCertificatePreview(
 
   useEffect(
     () => () => {
-      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+      for (const previewUrl of urlsRef.current) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      urlsRef.current.clear();
     },
     [],
   );
@@ -78,6 +85,7 @@ export function useCertificatePreview(
     url,
     status,
     error,
+    releaseUrl,
     retry: () => setRetryCount((count) => count + 1),
   };
 }

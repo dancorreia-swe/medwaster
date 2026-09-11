@@ -3,10 +3,11 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Names and titles. */
-export const SERIF = "Cormorant Garamond";
+/** Primary typography first; fallbacks supply scripts absent from the primary. */
+export const SERIF = ["Cormorant Garamond", "Noto Sans Arabic", "Noto Sans CJK SC", "Noto Emoji"];
 /** Everything else. */
-export const SANS = "Geist";
+export const SANS = ["Geist", "Noto Sans Arabic", "Noto Sans CJK SC", "Noto Emoji"];
+export type CertificateFontFamily = string | string[];
 
 const PROBE_FILE = "Geist-Regular.ttf";
 
@@ -54,7 +55,7 @@ export function registerCertificateFonts() {
   const file = (name: string) => path.join(dir, name);
 
   Font.register({
-    family: SERIF,
+    family: "Cormorant Garamond",
     fonts: [
       { src: file("CormorantGaramond-Medium.ttf"), fontWeight: 500 },
       { src: file("CormorantGaramond-SemiBold.ttf"), fontWeight: 600 },
@@ -67,11 +68,39 @@ export function registerCertificateFonts() {
   });
 
   Font.register({
-    family: SANS,
+    family: "Geist",
     fonts: [
       { src: file("Geist-Regular.ttf"), fontWeight: 400 },
       { src: file("Geist-Medium.ttf"), fontWeight: 500 },
       { src: file("Geist-SemiBold.ttf"), fontWeight: 600 },
+    ],
+  });
+
+  Font.register({
+    family: "Noto Sans Arabic",
+    fonts: [
+      { src: file("NotoSansArabic-Regular.ttf"), fontWeight: 400 },
+      { src: file("NotoSansArabic-Medium.ttf"), fontWeight: 500 },
+      { src: file("NotoSansArabic-SemiBold.ttf"), fontWeight: 600 },
+      { src: file("NotoSansArabic-Medium.ttf"), fontWeight: 500, fontStyle: "italic" },
+    ],
+  });
+  Font.register({
+    family: "Noto Sans CJK SC",
+    fonts: [
+      { src: file("NotoSansCJKsc-Regular.otf"), fontWeight: 400 },
+      { src: file("NotoSansCJKsc-Regular.otf"), fontWeight: 500 },
+      { src: file("NotoSansCJKsc-Regular.otf"), fontWeight: 600 },
+      { src: file("NotoSansCJKsc-Regular.otf"), fontWeight: 500, fontStyle: "italic" },
+    ],
+  });
+  Font.register({
+    family: "Noto Emoji",
+    fonts: [
+      { src: file("NotoEmoji.ttf"), fontWeight: 400 },
+      { src: file("NotoEmoji.ttf"), fontWeight: 500 },
+      { src: file("NotoEmoji.ttf"), fontWeight: 500, fontStyle: "italic" },
+      { src: file("NotoEmoji.ttf"), fontWeight: 600 },
     ],
   });
 

@@ -4,7 +4,8 @@ import {
   systemConfig,
   type SystemConfig,
 } from "@/db/schema/system-config";
-import { eq } from "drizzle-orm";
+import { ConflictError } from "@/lib/errors";
+import { and, eq, sql } from "drizzle-orm";
 import {
   DEFAULT_CERTIFICATE_DESIGN,
   DEFAULT_CERTIFICATE_TITLE,
@@ -23,6 +24,12 @@ export interface AppConfig {
   certificateMaxStudyHours: number;
   certificateDesign: CertificateDesign;
 }
+
+export interface CertificateDesignConfig extends AppConfig {
+  revision: number;
+}
+
+const SYSTEM_CONFIG_SINGLETON_KEY = 1;
 
 const DEFAULT_CONFIG: AppConfig = {
   autoApproveCertificates: false,
@@ -44,81 +51,120 @@ function toAppConfig(row: SystemConfig): AppConfig {
   };
 }
 
-function toRowValues(config: AppConfig) {
+function toCertificateDesignConfig(row: SystemConfig): CertificateDesignConfig {
   return {
-    autoApproveCertificates: config.autoApproveCertificates,
-    certificateTitle: config.certificateTitle,
-    certificateUnlockRequirement: config.certificateUnlockRequirement,
-    certificateMinStudyHours: config.certificateMinStudyHours,
-    certificateMaxStudyHours: config.certificateMaxStudyHours,
-    certificateDesign: config.certificateDesign,
+    ...toAppConfig(row),
+    revision: row.certificateDesignRevision,
   };
 }
 
 export abstract class ConfigService {
+  private static async getConfigRow(): Promise<SystemConfig> {
+    const [existing] = await db
+      .select()
+      .from(systemConfig)
+      .where(eq(systemConfig.singletonKey, SYSTEM_CONFIG_SINGLETON_KEY))
+      .limit(1);
+
+    if (existing) {
+      return existing;
+    }
+
+    const [created] = await db
+      .insert(systemConfig)
+      .values({ singletonKey: SYSTEM_CONFIG_SINGLETON_KEY })
+      .onConflictDoNothing({ target: systemConfig.singletonKey })
+      .returning();
+
+    if (created) {
+      return created;
+    }
+
+    const [afterConflict] = await db
+      .select()
+      .from(systemConfig)
+      .where(eq(systemConfig.singletonKey, SYSTEM_CONFIG_SINGLETON_KEY))
+      .limit(1);
+
+    if (!afterConflict) {
+      throw new Error("System configuration could not be created or read");
+    }
+
+    return afterConflict;
+  }
+
   /**
    * Ensure there is always a single config row and return config.
    */
   static async getConfig(): Promise<AppConfig> {
-    const existing = await db.query.systemConfig.findFirst();
+    return toAppConfig(await this.getConfigRow());
+  }
 
-    if (!existing) {
-      const [created] = await db
-        .insert(systemConfig)
-        .values({})
-        .returning();
-
-      return toAppConfig(created);
-    }
-
-    return toAppConfig(existing);
+  /**
+   * Return the saved Certificate Design and its optimistic concurrency revision.
+   */
+  static async getCertificateDesign(): Promise<CertificateDesignConfig> {
+    return toCertificateDesignConfig(await this.getConfigRow());
   }
 
   /**
    * Update global configuration.
    */
   static async updateConfig(data: Partial<AppConfig>): Promise<AppConfig> {
-    const current = await this.getConfig();
-    const newValues: AppConfig = {
-      ...current,
-      ...data,
-    };
+    await this.getConfigRow();
 
-    newValues.certificateTitle =
-      newValues.certificateTitle.trim() || DEFAULT_CONFIG.certificateTitle;
-    newValues.certificateMinStudyHours = Math.max(
-      0,
-      Math.round(newValues.certificateMinStudyHours),
-    );
-    newValues.certificateMaxStudyHours = Math.max(
-      0,
-      Math.round(newValues.certificateMaxStudyHours),
-    );
-    newValues.certificateDesign = normalizeCertificateDesign(
-      newValues.certificateDesign,
-    );
-
-    const existing = await db.query.systemConfig.findFirst();
-
-    if (existing) {
-      // Write only the fields this call changed, so a PATCH from the settings
-      // panel and a PUT from the design page can't revert each other.
-      const changedValues = Object.fromEntries(
-        Object.entries(toRowValues(newValues)).filter(([key]) => key in data),
-      ) as Partial<ReturnType<typeof toRowValues>>;
-
-      await db
-        .update(systemConfig)
-        .set({
-          ...changedValues,
-          updatedAt: new Date(),
-        })
-        .where(eq(systemConfig.id, existing.id));
-    } else {
-      await db.insert(systemConfig).values(toRowValues(newValues));
+    const changedValues: Partial<typeof systemConfig.$inferInsert> = {};
+    if (data.autoApproveCertificates !== undefined) {
+      changedValues.autoApproveCertificates = data.autoApproveCertificates;
+    }
+    if (data.certificateTitle !== undefined) {
+      changedValues.certificateTitle =
+        data.certificateTitle.trim() || DEFAULT_CONFIG.certificateTitle;
+    }
+    if (data.certificateUnlockRequirement !== undefined) {
+      changedValues.certificateUnlockRequirement =
+        data.certificateUnlockRequirement;
+    }
+    if (data.certificateMinStudyHours !== undefined) {
+      changedValues.certificateMinStudyHours = Math.max(
+        0,
+        Math.round(data.certificateMinStudyHours),
+      );
+    }
+    if (data.certificateMaxStudyHours !== undefined) {
+      changedValues.certificateMaxStudyHours = Math.max(
+        0,
+        Math.round(data.certificateMaxStudyHours),
+      );
+    }
+    if (data.certificateDesign !== undefined) {
+      changedValues.certificateDesign = normalizeCertificateDesign(
+        data.certificateDesign,
+      );
     }
 
-    return newValues;
+    const shouldAdvanceDesignRevision =
+      data.certificateTitle !== undefined || data.certificateDesign !== undefined;
+
+    const [updated] = await db
+      .update(systemConfig)
+      .set({
+        ...changedValues,
+        ...(shouldAdvanceDesignRevision
+          ? {
+              certificateDesignRevision: sql`${systemConfig.certificateDesignRevision} + 1`,
+            }
+          : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(systemConfig.singletonKey, SYSTEM_CONFIG_SINGLETON_KEY))
+      .returning();
+
+    if (!updated) {
+      throw new Error("System configuration could not be updated");
+    }
+
+    return toAppConfig(updated);
   }
 
   /**
@@ -128,10 +174,44 @@ export abstract class ConfigService {
   static async updateCertificateDesign(input: {
     title: string;
     design: CertificateDesign;
-  }): Promise<AppConfig> {
-    return this.updateConfig({
-      certificateTitle: input.title,
-      certificateDesign: normalizeCertificateDesign(input.design),
-    });
+    expectedRevision: number;
+  }): Promise<CertificateDesignConfig> {
+    await this.getConfigRow();
+
+    const [updated] = await db
+      .update(systemConfig)
+      .set({
+        certificateTitle:
+          input.title.trim() || DEFAULT_CONFIG.certificateTitle,
+        certificateDesign: normalizeCertificateDesign(input.design),
+        certificateDesignRevision: sql`${systemConfig.certificateDesignRevision} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(systemConfig.singletonKey, SYSTEM_CONFIG_SINGLETON_KEY),
+          eq(systemConfig.certificateDesignRevision, input.expectedRevision),
+        ),
+      )
+      .returning();
+
+    if (!updated) {
+      const current = toCertificateDesignConfig(await this.getConfigRow());
+
+      throw new ConflictError(
+        "Certificate Design revision conflict; reload the current design before saving",
+        {
+          reason: "CERTIFICATE_DESIGN_VERSION_CONFLICT",
+          expectedRevision: input.expectedRevision,
+          current: {
+            title: current.certificateTitle,
+            design: current.certificateDesign,
+            revision: current.revision,
+          },
+        },
+      );
+    }
+
+    return toCertificateDesignConfig(updated);
   }
 }

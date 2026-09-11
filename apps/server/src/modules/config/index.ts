@@ -24,10 +24,11 @@ const certificateDesignBody = t.Object({
   ),
 });
 
-function toCertificateDesignResponse(config: AppConfig) {
+function toCertificateDesignResponse(config: AppConfig & { revision: number }) {
   return {
     title: config.certificateTitle,
     design: config.certificateDesign,
+    revision: config.revision,
     defaults: {
       title: DEFAULT_CERTIFICATE_TITLE,
       design: DEFAULT_CERTIFICATE_DESIGN,
@@ -111,7 +112,7 @@ export const adminConfig = new Elysia({ prefix: "/admin/config" })
       .get(
         "/certificate-design",
         async () => {
-          const config = await ConfigService.getConfig();
+          const config = await ConfigService.getCertificateDesign();
           return toCertificateDesignResponse(config);
         },
         {
@@ -138,11 +139,22 @@ export const adminConfig = new Elysia({ prefix: "/admin/config" })
               palette: body.palette,
               elements: body.elements,
             },
+            expectedRevision: body.expectedRevision,
           });
           return toCertificateDesignResponse(config);
         },
         {
-          body: certificateDesignBody,
+          body: t.Object({
+            title: t.String({ minLength: 3, maxLength: 150 }),
+            layout: t.UnionEnum(CERTIFICATE_LAYOUT_IDS),
+            palette: t.UnionEnum(CERTIFICATE_PALETTE_IDS),
+            elements: t.Object(
+              Object.fromEntries(
+                OPTIONAL_ELEMENT_KEYS.map((key) => [key, t.Boolean()]),
+              ) as Record<OptionalElementKey, ReturnType<typeof t.Boolean>>,
+            ),
+            expectedRevision: t.Integer({ minimum: 1 }),
+          }),
           detail: {
             tags: ["Admin", "Config", "Certificates"],
             summary: "Save the Certificate Design",

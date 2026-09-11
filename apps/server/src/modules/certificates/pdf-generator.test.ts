@@ -46,7 +46,7 @@ const baseData: CertificateRenderData = {
 
 /** Lowercase and strip whitespace, so letter-spaced captions still match. */
 const normalize = (value: string) =>
-  value.toLocaleLowerCase("pt-BR").replace(/\s+/g, "");
+  value.toLocaleLowerCase("pt-BR").replace(/[\s-]+/g, "");
 
 async function inspectPdf(buffer: Buffer) {
   const document = await pdfjsLib.getDocument({
@@ -158,6 +158,61 @@ describe("renderCertificatePdf", { timeout: 30_000 }, () => {
       expect(pdf.text).toContain(normalize("Trilhas e artigos concluídos"));
     });
   });
+
+  it.each(CERTIFICATE_LAYOUT_IDS)(
+    "%s stays on one page at the API text limits, for every Optional Element combination",
+    async (layout) => {
+      const title = "T".repeat(150);
+      const names = [
+        "  " + "Nome longo ".repeat(22) + "final  \n",
+        "N".repeat(255),
+      ];
+
+      for (const userName of names) {
+        for (let mask = 0; mask < 1 << OPTIONAL_ELEMENT_KEYS.length; mask++) {
+          const elements = Object.fromEntries(
+            OPTIONAL_ELEMENT_KEYS.map((key, index) => [
+              key,
+              Boolean(mask & (1 << index)),
+            ]),
+          ) as CertificateDesignElements;
+          const pdf = await inspectPdf(
+            await renderCertificatePdf(
+              { ...baseData, title, userName, userImageUrl: PNG_PIXEL },
+              designWith(layout, elements),
+            ),
+          );
+
+          expect(pdf.numPages).toBe(1);
+          expect(pdf.text).toContain(normalize(title));
+          expect(pdf.text).toContain(normalize(userName));
+          for (const marker of alwaysPrinted.slice(2)) {
+            expect(pdf.text).toContain(marker);
+          }
+        }
+      }
+    },
+  );
+
+  it.each(CERTIFICATE_LAYOUT_IDS)(
+    "%s preserves representative Unicode names without replacement glyphs",
+    async (layout) => {
+      for (const userName of ["ليلى أحمد", "山田太郎", "Jose\u0301 Silva", "Ana 😀"]) {
+        const pdf = await inspectPdf(
+          await renderCertificatePdf(
+            { ...baseData, userName },
+            designWith(layout, allOff),
+          ),
+        );
+        expect(pdf.numPages).toBe(1);
+        for (const character of userName.replace(/\p{M}|\p{Extended_Pictographic}/gu, "")) {
+          expect(pdf.text).toContain(normalize(character));
+        }
+        if (userName.includes("😀")) expect(pdf.text).toContain("ana");
+        expect(pdf.text).not.toContain("�");
+      }
+    },
+  );
 
   it.each(OPTIONAL_ELEMENT_KEYS)(
     "hides only %s when it alone is switched off",

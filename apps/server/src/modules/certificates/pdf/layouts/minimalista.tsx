@@ -2,6 +2,7 @@ import { Image, Page, Text, View } from "@react-pdf/renderer";
 import { SANS } from "../fonts";
 import {
   Avatar,
+  breakLongText,
   Caption,
   fitFontSize,
   keepWordsWhole,
@@ -12,7 +13,7 @@ import {
 export function MinimalistaLayout({ content, theme }: CertificateLayoutProps) {
   const nameSize = fitFontSize(content.userName, {
     max: 54,
-    min: 28,
+    min: 10,
     width: 660,
     emPerChar: 0.5,
   });
@@ -43,8 +44,8 @@ export function MinimalistaLayout({ content, theme }: CertificateLayoutProps) {
           flexGrow: 1,
           paddingLeft: 92,
           paddingRight: 72,
-          paddingTop: 54,
-          paddingBottom: 48,
+          paddingTop: 44,
+          paddingBottom: 38,
           justifyContent: "space-between",
         }}
       >
@@ -74,8 +75,8 @@ export function MinimalistaLayout({ content, theme }: CertificateLayoutProps) {
               />
             </View>
           )}
-          <Text style={{ fontSize: 14, fontWeight: 500, color: theme.muted }}>
-            {content.title}
+          <Text hyphenationCallback={keepWordsWhole} style={{ fontSize: fitFontSize(content.title, { max: 14, min: 9, width: 680, emPerChar: 0.5 }), fontWeight: 500, color: theme.muted }}>
+            {breakLongText(content.title)}
           </Text>
           <Text
             hyphenationCallback={keepWordsWhole}
@@ -84,18 +85,18 @@ export function MinimalistaLayout({ content, theme }: CertificateLayoutProps) {
               fontWeight: 600,
               letterSpacing: -nameSize * 0.025,
               lineHeight: 1.08,
-              marginTop: 10,
+              marginTop: 6,
               maxWidth: 680,
             }}
           >
-            {content.userName}
+            {breakLongText(content.userName)}
           </Text>
           <Text
             style={{
               fontSize: 13,
               lineHeight: 1.5,
               color: theme.muted,
-              marginTop: 14,
+              marginTop: 8,
               maxWidth: 460,
             }}
           >
@@ -103,7 +104,7 @@ export function MinimalistaLayout({ content, theme }: CertificateLayoutProps) {
           </Text>
 
           {content.stats.length > 0 && (
-            <View style={{ flexDirection: "row", marginTop: 34 }}>
+            <View style={{ flexDirection: "row", marginTop: 18 }}>
               {content.stats.map((stat, index) => (
                 <View key={stat.key} style={{ marginLeft: index > 0 ? 52 : 0 }}>
                   <Caption theme={theme}>{stat.label}</Caption>

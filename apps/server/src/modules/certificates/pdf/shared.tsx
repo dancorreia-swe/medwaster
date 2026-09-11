@@ -3,7 +3,7 @@ import { Image, Text, View, type Styles } from "@react-pdf/renderer";
 import QRCode from "qrcode";
 import { BRAND_DISPLAY_NAME, BRAND_TAGLINE } from "../../../emails/brand";
 import type { CertificateDesign, CertificateTheme } from "../design/catalog";
-import { SANS } from "./fonts";
+import { SANS, type CertificateFontFamily } from "./fonts";
 
 type Style = Styles[string];
 
@@ -103,8 +103,18 @@ export function getCompletedLabel(
   return "Trilhas concluídas";
 }
 
-/** Names wrap between words only, never mid-word with a hyphen. */
-export const keepWordsWhole = (word: string) => [word];
+/** Keep words intact, while making very long tokens breakable for react-pdf. */
+export const keepWordsWhole = (word: string) => {
+  const pieces: string[] = [];
+  for (let offset = 0; offset < word.length; offset += 18) {
+    pieces.push(word.slice(offset, offset + 18));
+  }
+  return pieces.length ? pieces : [""];
+};
+
+/** Inserts soft whitespace only into an otherwise unbreakable token. */
+export const breakLongText = (text: string) =>
+  text.replace(/\S{19,}/g, (word) => keepWordsWhole(word).join(" "));
 
 export function getInitials(name: string) {
   const parts = name.split(/\s+/).filter(Boolean);
@@ -271,7 +281,7 @@ export function Avatar({
   fill: string;
   /** Ring color around the circle. */
   ring: string;
-  initialsFont: string;
+  initialsFont: CertificateFontFamily;
 }) {
   const ringWidth = Math.max(1.25, size * 0.028);
   const circle: Style = {

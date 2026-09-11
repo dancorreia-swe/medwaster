@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ExternalLink, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export function CertificatePreviewPanel({
   error,
   paused,
   onRetry,
+  onUrlRemoved,
 }: {
   url: string | null;
   status: CertificatePreviewStatus;
@@ -24,11 +25,15 @@ export function CertificatePreviewPanel({
   /** True while the draft is invalid and the preview is not re-rendering. */
   paused: boolean;
   onRetry: () => void;
+  /** Releases a preview URL after its iframe has left the document. */
+  onUrlRemoved?: (url: string) => void;
 }) {
   // Keep the last loaded PDF on screen until the next one has loaded in a
   // hidden iframe, so each update swaps in place instead of flashing.
   const [shownUrl, setShownUrl] = useState<string | null>(null);
   const incomingUrl = url && url !== shownUrl ? url : null;
+  const previousShownUrl = useRef<string | null>(null);
+  const previousIncomingUrl = useRef<string | null>(null);
 
   useEffect(() => {
     if (!incomingUrl) return;
@@ -38,6 +43,26 @@ export function CertificatePreviewPanel({
     );
     return () => window.clearTimeout(timer);
   }, [incomingUrl]);
+
+  useEffect(() => {
+    const previousUrl = previousShownUrl.current;
+    if (previousUrl && previousUrl !== shownUrl) {
+      onUrlRemoved?.(previousUrl);
+    }
+    previousShownUrl.current = shownUrl;
+  }, [shownUrl, onUrlRemoved]);
+
+  useEffect(() => {
+    const previousUrl = previousIncomingUrl.current;
+    if (
+      previousUrl &&
+      previousUrl !== incomingUrl &&
+      previousUrl !== shownUrl
+    ) {
+      onUrlRemoved?.(previousUrl);
+    }
+    previousIncomingUrl.current = incomingUrl;
+  }, [incomingUrl, shownUrl, onUrlRemoved]);
 
   const frames = [shownUrl, incomingUrl].filter(
     (frameUrl): frameUrl is string => Boolean(frameUrl),

@@ -3,6 +3,7 @@ import type { CertificateTheme } from "../../design/catalog";
 import { SANS, SERIF } from "../fonts";
 import {
   Avatar,
+  breakLongText,
   Caption,
   fitFontSize,
   keepWordsWhole,
@@ -47,7 +48,7 @@ function SignatureLine({
 export function ClassicoLayout({ content, theme }: CertificateLayoutProps) {
   const nameSize = fitFontSize(content.userName, {
     max: 50,
-    min: 26,
+    min: 10,
     width: 620,
     emPerChar: 0.46,
   });
@@ -122,20 +123,20 @@ export function ClassicoLayout({ content, theme }: CertificateLayoutProps) {
             style={{
               fontFamily: SERIF,
               fontWeight: 600,
-              fontSize: 34,
+              fontSize: fitFontSize(content.title, { max: 34, min: 15, width: 620, emPerChar: 0.5 }),
               lineHeight: 1.15,
               marginTop: 6,
               textAlign: "center",
             }}
           >
-            {content.title}
+            {breakLongText(content.title)}
           </Text>
 
           {content.photo && (
             <View style={{ marginTop: 18 }}>
               <Avatar
                 photo={content.photo}
-                size={60}
+                size={52}
                 theme={theme}
                 fill={theme.paper}
                 ring={theme.accent}
@@ -151,7 +152,7 @@ export function ClassicoLayout({ content, theme }: CertificateLayoutProps) {
               fontWeight: 500,
               fontSize: 15,
               color: theme.muted,
-              marginTop: content.photo ? 12 : 22,
+              marginTop: content.photo ? 8 : 12,
             }}
           >
             Certificamos que
@@ -167,7 +168,7 @@ export function ClassicoLayout({ content, theme }: CertificateLayoutProps) {
               textAlign: "center",
             }}
           >
-            {content.userName}
+            {breakLongText(content.userName)}
           </Text>
           <View
             style={{

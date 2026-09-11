@@ -1,5 +1,6 @@
 import {
   boolean,
+  check,
   integer,
   jsonb,
   pgEnum,
@@ -7,8 +8,9 @@ import {
   serial,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   DEFAULT_CERTIFICATE_DESIGN,
   type CertificateDesign,
@@ -31,6 +33,7 @@ export const certificateUnlockRequirementEnum = pgEnum(
 
 export const systemConfig = pgTable("system_config", {
   id: serial("id").primaryKey(),
+  singletonKey: integer("singleton_key").notNull().default(1),
   autoApproveCertificates: boolean("auto_approve_certificates")
     .notNull()
     .default(false),
@@ -54,13 +57,23 @@ export const systemConfig = pgTable("system_config", {
     .$type<CertificateDesign>()
     .notNull()
     .default(DEFAULT_CERTIFICATE_DESIGN),
+  certificateDesignRevision: integer("certificate_design_revision")
+    .notNull()
+    .default(1),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  unique("system_config_singleton_key_unique").on(table.singletonKey),
+  check("system_config_singleton_key_check", sql`${table.singletonKey} = 1`),
+  check(
+    "system_config_certificate_design_revision_positive",
+    sql`${table.certificateDesignRevision} > 0`,
+  ),
+]);
 
 export const systemConfigRelations = relations(systemConfig, () => ({}));
 
