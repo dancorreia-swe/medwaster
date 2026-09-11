@@ -1,0 +1,169 @@
+name: Build Production APK
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+
+    env:
+      # EXPO_PUBLIC_* values are inlined into the JS bundle at build time, so these
+      # decide which servers the APK talks to. Set them under Settings → Variables.
+      EXPO_PUBLIC_SERVER_URL: ${{ vars.PROD_SERVER_URL }}
+      EXPO_PUBLIC_WEB_URL: ${{ vars.PROD_WEB_URL }}
+      APK_PATH: apps/native/android/app/build/outputs/apk/release/app-release.apk
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate production configuration
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          failed=0
+
+          check_url() {
+            local variable="$1" value="$2"
+            if [[ -z "$value" ]]; then
+              echo "::error::Repository variable $variable is not set"
+              failed=1
+            elif [[ ! "$value" =~ ^https://[^/]+$ ]]; then
+              echo "::error::$variable must be a bare https:// origin with no path or trailing slash (got '$value')"
+              failed=1
+            fi
+          }
+          check_url PROD_SERVER_URL "$EXPO_PUBLIC_SERVER_URL"
+          check_url PROD_WEB_URL "$EXPO_PUBLIC_WEB_URL"
+
+          for secret in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!secret}" ]]; then
+              echo "::error::Repository secret $secret is not set"
+              failed=1
+            fi
+          done
+
+          exit $failed
+
+      - name: Resolve app version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            name="${GITHUB_REF_NAME#v}"
+          else
+            name="$(jq -r .expo.version apps/native/app.json)-${GITHUB_SHA::7}"
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          # Android refuses to install an APK over one with a higher versionCode, so it
+          # has to grow with every build; the workflow run number always does.
+          echo "code=$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp version into app.json
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          jq --arg name "$VERSION_NAME" --argjson code "$VERSION_CODE" \
+            '.expo.version = $name | .expo.android.versionCode = $code' \
+            apps/native/app.json > "$RUNNER_TEMP/app.json"
+          mv "$RUNNER_TEMP/app.json" apps/native/app.json
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Decode upload keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+
+      - name: Generate Android project
+        working-directory: apps/native
+        run: bunx expo prebuild --platform android --clean --no-install
+
+      - name: Build release APK
+        working-directory: apps/native/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        # x86 ABIs only matter for emulators; dropping them roughly halves native build time.
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
+
+      - name: Verify APK signature and server URL
+        run: |
+          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)"
+          "$apksigner" verify --print-certs "$APK_PATH" | tee "$RUNNER_TEMP/certs.txt"
+          if grep -q "CN=Android Debug" "$RUNNER_TEMP/certs.txt"; then
+            echo "::error::APK is signed with the debug keystore"
+            exit 1
+          fi
+
+          # Extract to a file first: under pipefail, grep -q exiting early would SIGPIPE unzip.
+          unzip -p "$APK_PATH" assets/index.android.bundle > "$RUNNER_TEMP/index.android.bundle"
+          if ! grep -aqF "$EXPO_PUBLIC_SERVER_URL" "$RUNNER_TEMP/index.android.bundle"; then
+            echo "::error::JS bundle does not contain $EXPO_PUBLIC_SERVER_URL"
+            exit 1
+          fi
+
+      - name: Name APK
+        id: apk
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+        run: |
+          file="educonecta-${VERSION_NAME}.apk"
+          cp "$APK_PATH" "$file"
+          sha256sum "$file" > "$file.sha256"
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.file }}
+          path: |
+            ${{ steps.apk.outputs.file }}
+            ${{ steps.apk.outputs.file }}.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ steps.apk.outputs.file }}
+            ${{ steps.apk.outputs.file }}.sha256
+          generate_release_notes: true
