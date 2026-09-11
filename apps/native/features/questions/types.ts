@@ -17,36 +17,37 @@ export type QuestionStatus = "draft" | "active" | "inactive" | "archived";
 // Question Option (for multiple choice and true/false)
 // ============================================================================
 
+// Mirrors `question_options`. For `true_false` questions the admin editor always
+// writes exactly two rows labelled "Verdadeiro" and "Falso"; `label` is the
+// authoritative discriminator, `content` is the display text.
 export interface QuestionOption {
   id: number;
   label: string | null;
-  content: string;  // Database field name (was optionText)
-  optionText?: string;  // Keep for backward compatibility
+  content: string;
   isCorrect: boolean;
-  sequence?: number;  // Optional - database doesn't have this field
 }
 
 // ============================================================================
 // Fill in the Blank
 // ============================================================================
 
+// Mirrors `question_fill_blank_answers`: one row per blank, holding the single
+// canonical `answer` plus (optionally) the multiple-choice options offered for it.
 export interface FillBlankAnswer {
   id: number;
   sequence: number;
-  placeholder: string;
-  acceptedAnswers: string[]; // JSON array of acceptable answers
-  isCaseSensitive: boolean;
-  options?: FillBlankOption[]; // Optional multiple choice options for blank
+  placeholder: string | null;
+  answer: string; // Canonical accepted answer (resolved server-side on create)
+  options?: FillBlankOption[]; // Multiple choice options for this blank
 }
 
+// Mirrors `question_fill_blank_options`. The table has no `sequence` column, so
+// display order falls back to `id`.
 export interface FillBlankOption {
   id: number;
-  fillBlankId: number;
-  text: string;  // Database field name - primary
-  content?: string;  // Alias for compatibility
-  optionText?: string;  // Keep for backward compatibility
+  blankId: number;
+  text: string;
   isCorrect: boolean;
-  sequence: number;
 }
 
 // ============================================================================

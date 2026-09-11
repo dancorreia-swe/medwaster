@@ -53,8 +53,11 @@ export function QuizResults({
   // Animated props for score text
   const animatedProps = useAnimatedProps(() => {
     return {
+      // `text` is not part of TextInputProps — driving it directly is the
+      // documented Reanimated pattern for animating text off the UI thread, so
+      // the cast is required.
       text: `${Math.round(animatedScore.value)}%`,
-    };
+    } as any;
   });
 
   // Format time spent

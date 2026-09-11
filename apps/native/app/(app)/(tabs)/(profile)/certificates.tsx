@@ -28,7 +28,7 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { useColorScheme } from "@/lib/use-color-scheme";
-import Pdf from "react-native-pdf";
+import { PdfViewer } from "@/components/pdf-viewer";
 
 export default function CertificatesScreen() {
   const router = useRouter();
@@ -468,7 +468,7 @@ export default function CertificatesScreen() {
               </TouchableOpacity>
             </View>
             {previewUrl && (
-              <Pdf
+              <PdfViewer
                 source={{ uri: previewUrl }}
                 style={{ width, height: height - 90, flex: 1 }}
                 renderActivityIndicator={() => (

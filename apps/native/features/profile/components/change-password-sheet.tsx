@@ -8,7 +8,7 @@ import BottomSheet, {
 import { useCallback, useMemo, forwardRef, type Ref, useState } from "react";
 import type { BottomSheetBackdropProps } from "@gorhom/bottom-sheet";
 import { useColorScheme } from "@/lib/use-color-scheme";
-import { api } from "@/lib/eden";
+import { client as api } from "@/lib/eden";
 import { toast } from "sonner-native";
 
 interface ChangePasswordSheetProps {

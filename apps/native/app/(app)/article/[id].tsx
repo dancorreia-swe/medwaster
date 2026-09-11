@@ -12,7 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMarkdown } from "react-native-marked";
 import { WebView } from "react-native-webview";
-import Pdf from "react-native-pdf";
+import { PdfViewer } from "@/components/pdf-viewer";
 import { ExternalLink } from "lucide-react-native";
 import { useArticleStore } from "@/lib/stores/article-store";
 import { useColorScheme } from "@/lib/use-color-scheme";
@@ -686,7 +686,7 @@ export default function WikiArticle() {
                 className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm"
                 style={{ height: 720 }}
               >
-                <Pdf
+                <PdfViewer
                   trustAllCerts
                   source={pdfSource}
                   style={{ flex: 1, width: "100%" }}

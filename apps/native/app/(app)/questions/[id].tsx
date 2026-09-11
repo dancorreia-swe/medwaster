@@ -1,216 +1,143 @@
 import { Container } from "@/components/container";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, Check, X } from "lucide-react-native";
-import { useState, useEffect } from "react";
-import { HtmlText } from "@/components/HtmlText";
+import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { useMemo } from "react";
+import { useTrailContent } from "@/features/trails/hooks";
 
-// Mock data - Replace with actual data from API
-const questionsData = {
-  "3": {
-    id: "3",
-    type: "true-false",
-    question:
-      "Resíduos da Classe A (biológicos) devem ser descartados em sacos brancos leitosos?",
-    correctAnswer: true,
-    explanation:
-      "Sim! De acordo com a RDC 222/2018 da ANVISA, resíduos do Grupo A (biológicos) devem ser acondicionados em sacos brancos leitosos, que são identificados com o símbolo de substância infectante.",
-    trailId: "1",
-  },
-};
-
-export default function QuestionDetailsPage() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+/**
+ * Deep-link entry point for a single question.
+ *
+ * Inside the app every content type is opened through the trail content screen
+ * (see `handleModulePress` in `(tabs)/trails/[id].tsx`), so this route does not
+ * render a question itself — a second rendering path would drift from the
+ * canonical one. It exists because an external link (a notification, a shared
+ * URL) knows a *question* id, while the content screen is addressed by *content
+ * item* id. This resolves one to the other and hands off:
+ *
+ *   /questions/{questionId}?trailId={trailId}
+ *     -> /trails/{trailId}/content/{contentId}
+ *
+ * Questions are only fetchable and gradeable through trail-scoped endpoints, so
+ * the owning trail has to be part of the link.
+ */
+export default function QuestionDeepLinkScreen() {
+  const params = useLocalSearchParams<{ id: string; trailId?: string }>();
   const router = useRouter();
-  const [selectedAnswer, setSelectedAnswer] = useState<boolean | null>(null);
-  const [showResult, setShowResult] = useState(false);
 
-  const question = questionsData[id as keyof typeof questionsData];
+  const questionId = Number(params.id);
+  const trailId = Number(params.trailId);
+  const hasTrailContext = Number.isFinite(trailId) && trailId > 0;
+  const hasQuestionId = Number.isFinite(questionId) && questionId > 0;
 
-  if (!question) {
+  const {
+    data: content,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = useTrailContent(hasTrailContext && hasQuestionId ? trailId : 0);
+
+  const contentId = useMemo(() => {
+    if (!content) return undefined;
+    const match = (content as any[]).find(
+      (item) => item.questionId === questionId,
+    );
+    return match?.id as number | undefined;
+  }, [content, questionId]);
+
+  if (!hasQuestionId) {
+    return <MessageState message="Questão inválida." onBack={router.back} />;
+  }
+
+  if (!hasTrailContext) {
     return (
-      <Container className="flex-1 bg-white items-center justify-center">
-        <Text className="text-gray-600">Questão não encontrada</Text>
+      <MessageState
+        message="Abra esta questão a partir da trilha para respondê-la."
+        onBack={router.back}
+      />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center">
+        <ActivityIndicator size="large" color="#615FFF" />
+        <Text className="text-gray-600 dark:text-gray-300 mt-3">
+          Carregando...
+        </Text>
       </Container>
     );
   }
 
-  const handleAnswerSelect = (answer: boolean) => {
-    if (showResult) return;
-    setSelectedAnswer(answer);
-  };
+  if (isError) {
+    return (
+      <MessageState
+        message={
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar a questão."
+        }
+        onBack={router.back}
+        onRetry={() => refetch()}
+        isRetrying={isRefetching}
+      />
+    );
+  }
 
-  const handleSubmit = () => {
-    if (selectedAnswer === null) return;
-    setShowResult(true);
-  };
-
-  const handleContinue = () => {
-    const isCorrect = selectedAnswer === question.correctAnswer;
-    // Navigate back with unlock-next param if answer is correct
-    if (isCorrect) {
-      router.push(`/(app)/(tabs)/trails/${question.trailId}?unlock-next=true` as any);
-    } else {
-      router.push(`/(app)/(tabs)/trails/${question.trailId}` as any);
-    }
-  };
-
-  const isCorrect = selectedAnswer === question.correctAnswer;
+  if (!contentId) {
+    return (
+      <MessageState
+        message="Questão não encontrada nesta trilha."
+        onBack={() => router.replace(`/(app)/(tabs)/trails/${trailId}` as any)}
+      />
+    );
+  }
 
   return (
-    <Container className="flex-1 bg-white">
-      <ScrollView 
-        className="flex-1" 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ flexGrow: 1 }}
-      >
-        {/* Header */}
-        <View className="px-6 pt-4 pb-6">
+    <Redirect href={`/trails/${trailId}/content/${contentId}` as any} />
+  );
+}
+
+function MessageState({
+  message,
+  onBack,
+  onRetry,
+  isRetrying,
+}: {
+  message: string;
+  onBack: () => void;
+  onRetry?: () => void;
+  isRetrying?: boolean;
+}) {
+  return (
+    <Container className="flex-1 bg-gray-50 dark:bg-gray-950 items-center justify-center px-8">
+      <Text className="text-gray-600 dark:text-gray-300 text-center text-base">
+        {message}
+      </Text>
+      <View className="flex-row gap-3 mt-6">
+        {onRetry && (
           <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-11 h-11 rounded-xl border border-gray-200 items-center justify-center mb-8 mt-1"
+            onPress={onRetry}
+            disabled={isRetrying}
+            accessibilityRole="button"
+            className="bg-blue-500 px-6 py-3 rounded-full"
           >
-            <ChevronLeft size={24} color="#364153" strokeWidth={2} />
-          </TouchableOpacity>
-
-          <Text className="text-primary text-2xl font-bold tracking-wide text-center">
-            Verdadeiro ou Falso
-          </Text>
-        </View>
-
-        {/* Question Content */}
-        <View className="flex-1 px-6 justify-between pb-8">
-          {/* Question Text */}
-          <View className="flex-1 justify-center py-8">
-            <View className="px-4">
-              <HtmlText 
-                html={question.question} 
-                baseStyle={{ fontSize: 24, fontWeight: "700", color: "#111827", lineHeight: 36, textAlign: "center" }}
-              />
-            </View>
-          </View>
-
-          {/* Result Explanation - Shows after answering */}
-          {showResult && (
-            <View
-              className={`mx-4 mb-8 p-6 rounded-3xl ${
-                isCorrect ? "bg-green-50" : "bg-red-50"
-              }`}
-            >
-              <View className="flex-row items-center mb-3">
-                <View
-                  className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${
-                    isCorrect ? "bg-green-500" : "bg-red-500"
-                  }`}
-                >
-                  {isCorrect ? (
-                    <Check size={20} color="#FFFFFF" strokeWidth={3} />
-                  ) : (
-                    <X size={20} color="#FFFFFF" strokeWidth={3} />
-                  )}
-                </View>
-                <Text
-                  className={`text-lg font-bold ${
-                    isCorrect ? "text-green-900" : "text-red-900"
-                  }`}
-                >
-                  {isCorrect ? "Correto!" : "Incorreto"}
-                </Text>
-              </View>
-              <Text
-                className={`text-base leading-relaxed ${
-                  isCorrect ? "text-green-800" : "text-red-800"
-                }`}
-              >
-                {question.explanation}
-              </Text>
-            </View>
-          )}
-
-          {/* Answer Buttons - Side by Side with Icons */}
-          <View className="flex-row gap-4 px-4">
-            {/* Falso Button - Red */}
-            <TouchableOpacity
-              onPress={() => handleAnswerSelect(false)}
-              disabled={showResult}
-              className={`flex-1 rounded-3xl py-8 items-center justify-center border-2 ${
-                selectedAnswer === false
-                  ? showResult
-                    ? isCorrect
-                      ? "bg-green-500/20 border-green-500"
-                      : "bg-red-500/20 border-red-500"
-                    : "bg-red-500/20 border-red-500"
-                  : "bg-red-500/10 border-red-500/30"
-              }`}
-            >
-              <X 
-                size={48} 
-                color={selectedAnswer === false ? "#EF4444" : "#EF4444"} 
-                strokeWidth={3}
-              />
-              <Text className="text-red-600 text-lg font-bold mt-2">
-                Falso
-              </Text>
-            </TouchableOpacity>
-
-            {/* Verdadeiro Button - Green */}
-            <TouchableOpacity
-              onPress={() => handleAnswerSelect(true)}
-              disabled={showResult}
-              className={`flex-1 rounded-3xl py-8 items-center justify-center border-2 ${
-                selectedAnswer === true
-                  ? showResult
-                    ? isCorrect
-                      ? "bg-green-500/20 border-green-500"
-                      : "bg-red-500/20 border-red-500"
-                    : "bg-green-500/20 border-green-500"
-                  : "bg-green-500/10 border-green-500/30"
-              }`}
-            >
-              <Check 
-                size={48} 
-                color={selectedAnswer === true ? "#22C55E" : "#22C55E"} 
-                strokeWidth={3}
-              />
-              <Text className="text-green-600 text-lg font-bold mt-2">
-                Verdadeiro
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Submit/Continue Button */}
-          <View className="mt-6">
-            {!showResult ? (
-              <TouchableOpacity
-                onPress={handleSubmit}
-                disabled={selectedAnswer === null}
-                className={`rounded-full py-5 items-center ${
-                  selectedAnswer === null
-                    ? "bg-gray-300"
-                    : "bg-primary"
-                }`}
-              >
-                <Text
-                  className={`text-lg font-bold ${
-                    selectedAnswer === null ? "text-gray-500" : "text-white"
-                  }`}
-                >
-                  Confirmar Resposta
-                </Text>
-              </TouchableOpacity>
+            {isRetrying ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <TouchableOpacity
-                onPress={handleContinue}
-                className="bg-primary rounded-full py-5 items-center"
-              >
-                <Text className="text-white text-lg font-bold">
-                  Continuar
-                </Text>
-              </TouchableOpacity>
+              <Text className="text-white font-semibold">Tentar novamente</Text>
             )}
-          </View>
-        </View>
-      </ScrollView>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          onPress={onBack}
+          accessibilityRole="button"
+          className="bg-primary px-6 py-3 rounded-full"
+        >
+          <Text className="text-white font-semibold">Voltar</Text>
+        </TouchableOpacity>
+      </View>
     </Container>
   );
 }
