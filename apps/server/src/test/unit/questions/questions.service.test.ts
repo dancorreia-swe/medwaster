@@ -127,3 +127,43 @@ describe("QuestionsService.updateQuestion content integrity", () => {
     ).resolves.toEqual({ id: 1 });
   });
 });
+
+describe("QuestionsService.createQuestion native-rendering contract", () => {
+  const baseQuestion = {
+    prompt: "Prompt",
+    difficulty: "basic" as const,
+    status: "active" as const,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it.each([
+    ["multiple choice without a correct option", {
+      ...baseQuestion,
+      type: "multiple_choice" as const,
+      options: [
+        { label: "A", content: "One", isCorrect: false },
+        { label: "B", content: "Two", isCorrect: false },
+      ],
+    }],
+    ["true/false with only one option", {
+      ...baseQuestion,
+      type: "true_false" as const,
+      options: [{ label: "Verdadeiro", content: "Verdadeiro", isCorrect: true }],
+    }],
+    ["fill in the blank without selectable answers", {
+      ...baseQuestion,
+      type: "fill_in_the_blank" as const,
+      fillInBlanks: [{ sequence: 1, placeholder: "answer", options: [] }],
+    }],
+  ])("rejects %s before opening a transaction", async (_description, question) => {
+    await expect(QuestionsService.createQuestion(question, "author")).rejects.toMatchObject({
+      name: "ValidationError",
+      statusCode: 400,
+    });
+
+    expect(mockDb.transaction).not.toHaveBeenCalled();
+  });
+});
