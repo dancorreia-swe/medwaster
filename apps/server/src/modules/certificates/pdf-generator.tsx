@@ -1,348 +1,80 @@
-import React from "react";
-import { pdf, Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
-import QRCode from "qrcode";
+import type { ReactElement } from "react";
+import { Document, pdf } from "@react-pdf/renderer";
 import { CertificateStorageService } from "./storage.service";
-import { BRAND_COLORS, BRAND_DISPLAY_NAME, BRAND_TAGLINE } from "../../emails/brand";
+import { BRAND_DISPLAY_NAME } from "../../emails/brand";
+import {
+  buildCertificateTheme,
+  getCertificatePalette,
+  normalizeCertificateDesign,
+  type CertificateDesign,
+  type CertificateLayoutId,
+} from "./design/catalog";
+import { registerCertificateFonts } from "./pdf/fonts";
+import {
+  buildCertificateContent,
+  type CertificateLayoutProps,
+  type CertificateRenderData,
+} from "./pdf/shared";
+import { ClassicoLayout } from "./pdf/layouts/classico";
+import { MinimalistaLayout } from "./pdf/layouts/minimalista";
+import { ModernoLayout } from "./pdf/layouts/moderno";
 
-interface CertificateData {
+export type { CertificateRenderData } from "./pdf/shared";
+
+export interface CertificateData extends CertificateRenderData {
   id: number;
-  userName: string;
-  averageScore: number;
-  totalTrailsCompleted: number;
-  totalTimeMinutes: number;
-  completionDate: Date;
-  verificationCode: string;
-  userImageUrl?: string | null;
-  title: string;
-  unlockRequirement: "trails" | "articles" | "trails_and_articles";
 }
 
-const VERIFY_BASE_URL =
-  process.env.CERTIFICATE_VERIFY_URL ||
-  process.env.PUBLIC_APP_URL ||
-  process.env.APP_ORIGIN ||
-  process.env.CORS_ORIGIN?.split(",")[0]?.trim() ||
-  "https://medwaster.com";
-const VERIFY_PATH = process.env.CERTIFICATE_VERIFY_PATH || "/verify/certificate";
-
-const styles = StyleSheet.create({
-  page: {
-    backgroundColor: BRAND_COLORS.navy,
-    padding: 24,
-  },
-  card: {
-    flexGrow: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 28,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-    border: `3 solid ${BRAND_COLORS.blue}`,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  badge: {
-    fontSize: 12,
-    letterSpacing: 4,
-    color: "#6B7280",
-  },
-  title: {
-    fontSize: 28,
-    color: "#111827",
-    fontWeight: 700,
-    marginTop: 8,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginTop: 4,
-  },
-  profileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    border: `3 solid ${BRAND_COLORS.green}`,
-  },
-  nameBlock: {
-    flexGrow: 1,
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: 700,
-    color: BRAND_COLORS.navy,
-  },
-  achievement: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginTop: 4,
-  },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 28,
-    paddingVertical: 16,
-    borderTop: "1 solid #E5E7EB",
-    borderBottom: "1 solid #E5E7EB",
-  },
-  stat: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 10,
-    color: "#9CA3AF",
-    marginBottom: 6,
-    textTransform: "uppercase",
-  },
-  statValue: {
-    fontSize: 22,
-    color: "#111827",
-    fontWeight: 700,
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 24,
-    marginBottom: 12,
-  },
-  infoBlock: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 10,
-    textTransform: "uppercase",
-    color: "#9CA3AF",
-    marginBottom: 4,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: "#111827",
-    fontWeight: 600,
-  },
-  qrBlock: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
-    marginTop: 16,
-  },
-  qrImage: {
-    width: 96,
-    height: 96,
-  },
-  verificationUrl: {
-    fontSize: 9,
-    color: "#4B5563",
-  },
-  footer: {
-    alignItems: "center",
-    marginTop: 12,
-  },
-  footerText: {
-    fontSize: 10,
-    color: "#6B7280",
-    letterSpacing: 2,
-  },
-});
-
-async function getImageDataUrl(imageUrl?: string | null, name?: string) {
-  if (!imageUrl) {
-    return generateInitialsAvatar(name || "");
-  }
-
-  try {
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      throw new Error("Failed to fetch user image");
-    }
-    const contentType = response.headers.get("content-type") || "image/png";
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
-    return `data:${contentType};base64,${base64}`;
-  } catch (error) {
-    console.warn("Falling back to initials avatar:", error);
-    return generateInitialsAvatar(name || "");
-  }
-}
-
-function generateInitialsAvatar(name: string) {
-  const initials = name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-
-  const svg = `<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-  <rect width="200" height="200" rx="100" fill="#E8F3E5"/>
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="80" font-family="Arial" fill="${BRAND_COLORS.navy}">${initials ||
-    "EC"}</text>
-</svg>`;
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
-}
-
-function formatMinutes(minutes: number) {
-  const hours = Math.floor(minutes / 60);
-  const remaining = minutes % 60;
-  const parts = [];
-  if (hours > 0) parts.push(`${hours}h`);
-  if (remaining > 0 || parts.length === 0) parts.push(`${remaining}min`);
-  return parts.join(" ");
-}
-
-const formatDate = (date: Date) =>
-  new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(date);
-
-const CertificateDocument = ({
-  userName,
-  averageScore,
-  totalTrailsCompleted,
-  totalTimeMinutes,
-  completionDate,
-  verificationCode,
-  verificationUrl,
-  userImage,
-  qrCode,
-  title,
-  unlockRequirement,
-}: {
-  userName: string;
-  averageScore: number;
-  totalTrailsCompleted: number;
-  totalTimeMinutes: number;
-  completionDate: Date;
-  verificationCode: string;
-  verificationUrl: string;
-  userImage: string;
-  qrCode: string;
-  title: string;
-  unlockRequirement: "trails" | "articles" | "trails_and_articles";
-}) => {
-  const completedLabel =
-    unlockRequirement === "articles"
-      ? "Artigos Concluídos"
-      : unlockRequirement === "trails_and_articles"
-        ? "Trilhas e Artigos Concluídos"
-        : "Trilhas Concluídas";
-
-  return (
-    <Document>
-      <Page size="A4" orientation="landscape" style={styles.page}>
-        <View style={styles.card}>
-          <View>
-            <View style={styles.header}>
-              <Text style={styles.badge}>CERTIFICADO</Text>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.subtitle}>{BRAND_DISPLAY_NAME} Plataforma Educacional</Text>
-            </View>
-
-            <View style={styles.profileRow}>
-              <Image src={userImage} style={styles.avatar} />
-              <View style={styles.nameBlock}>
-                <Text style={styles.name}>{userName}</Text>
-                <Text style={styles.achievement}>
-                  {unlockRequirement === "articles"
-                    ? "Concluiu todos os artigos de aprendizado com excelência"
-                    : unlockRequirement === "trails_and_articles"
-                      ? "Concluiu todas as trilhas e artigos de aprendizado com excelência"
-                      : "Concluiu todas as trilhas de aprendizado com excelência"}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.statsRow}>
-              <View style={styles.stat}>
-                <Text style={styles.statLabel}>Média Geral</Text>
-                <Text style={styles.statValue}>{Math.round(averageScore)}%</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statLabel}>{completedLabel}</Text>
-                <Text style={styles.statValue}>{totalTrailsCompleted}</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statLabel}>Tempo de Estudo</Text>
-                <Text style={styles.statValue}>{formatMinutes(totalTimeMinutes)}</Text>
-              </View>
-            </View>
-
-            <View style={styles.infoRow}>
-              <View style={styles.infoBlock}>
-                <Text style={styles.infoLabel}>Data de Conclusão</Text>
-                <Text style={styles.infoValue}>{formatDate(completionDate)}</Text>
-              </View>
-              <View style={styles.infoBlock}>
-                <Text style={styles.infoLabel}>Código de Verificação</Text>
-                <Text style={styles.infoValue}>{verificationCode}</Text>
-              </View>
-            </View>
-
-            <View style={styles.qrBlock}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.infoLabel}>Verifique a autenticidade</Text>
-                <Text style={styles.verificationUrl}>{verificationUrl}</Text>
-              </View>
-              <Image src={qrCode} style={styles.qrImage} />
-            </View>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>{BRAND_DISPLAY_NAME} • {BRAND_TAGLINE}</Text>
-          </View>
-        </View>
-      </Page>
-    </Document>
-  );
+const LAYOUTS: Record<
+  CertificateLayoutId,
+  (props: CertificateLayoutProps) => ReactElement
+> = {
+  moderno: ModernoLayout,
+  classico: ClassicoLayout,
+  minimalista: MinimalistaLayout,
 };
 
+/**
+ * Render a certificate PDF with the given Certificate Design. Pure: no upload.
+ * Both the admin preview and real issuance go through this function.
+ */
+export async function renderCertificatePdf(
+  data: CertificateRenderData,
+  design: CertificateDesign,
+): Promise<Buffer> {
+  registerCertificateFonts();
+
+  const resolvedDesign = normalizeCertificateDesign(design);
+  const theme = buildCertificateTheme(
+    getCertificatePalette(resolvedDesign.palette),
+  );
+  const content = await buildCertificateContent(data, resolvedDesign, theme);
+  const Layout = LAYOUTS[resolvedDesign.layout];
+
+  const pdfInstance = pdf(
+    <Document
+      title={`Certificado - ${content.userName}`}
+      author={BRAND_DISPLAY_NAME}
+      creator={BRAND_DISPLAY_NAME}
+      producer={BRAND_DISPLAY_NAME}
+      language="pt-BR"
+    >
+      <Layout content={content} theme={theme} />
+    </Document>,
+  );
+
+  return ensureBufferFromReactPdf(await pdfInstance.toBuffer());
+}
+
+/** Render a certificate PDF and upload it, returning its public URL. */
 export async function generateCertificatePDF(
   data: CertificateData,
+  design: CertificateDesign,
 ): Promise<string> {
   try {
-    const verificationUrl = `${VERIFY_BASE_URL.replace(/\/$/, "")}${VERIFY_PATH}/${data.verificationCode}`;
-    const qrCode = await QRCode.toDataURL(verificationUrl, {
-      width: 256,
-      margin: 1,
-      color: { dark: "#111827", light: "#FFFFFF" },
-    });
-    const userImage = await getImageDataUrl(data.userImageUrl, data.userName);
-
-    const pdfInstance = pdf(
-      <CertificateDocument
-        userName={data.userName}
-        averageScore={data.averageScore}
-        totalTrailsCompleted={data.totalTrailsCompleted}
-        totalTimeMinutes={data.totalTimeMinutes}
-        completionDate={new Date(data.completionDate)}
-        verificationCode={data.verificationCode}
-        verificationUrl={verificationUrl}
-        userImage={userImage}
-        qrCode={qrCode}
-        title={data.title}
-        unlockRequirement={data.unlockRequirement}
-      />,
-    );
-
-    const pdfStreamOrBuffer = await pdfInstance.toBuffer();
-    const pdfBuffer = await ensureBufferFromReactPdf(pdfStreamOrBuffer);
-
+    const pdfBuffer = await renderCertificatePdf(data, design);
     const key = `certificate-${data.id}-${data.verificationCode}.pdf`;
-    const url = await CertificateStorageService.uploadPdf(key, pdfBuffer);
-
-    return url;
+    return await CertificateStorageService.uploadPdf(key, pdfBuffer);
   } catch (error) {
     console.error("Failed to generate certificate PDF:", error);
     throw error;

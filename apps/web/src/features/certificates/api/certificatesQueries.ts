@@ -6,6 +6,7 @@ export const certificatesQueryKeys = {
 	pending: () => [...certificatesQueryKeys.all, "pending"] as const,
 	stats: () => [...certificatesQueryKeys.all, "stats"] as const,
 	settings: () => [...certificatesQueryKeys.all, "settings"] as const,
+	design: () => [...certificatesQueryKeys.all, "design"] as const,
 	verification: (code: string) => [...certificatesQueryKeys.all, "verification", code] as const,
 };
 
@@ -36,6 +37,14 @@ export function certificateVerificationQueryOptions(code: string) {
 		queryKey: certificatesQueryKeys.verification(code),
 		queryFn: async () => certificatesApi.verifyCertificate(code),
 		staleTime: 5 * 60_000,
+	});
+}
+
+export function certificateDesignQueryOptions() {
+	return queryOptions({
+		queryKey: certificatesQueryKeys.design(),
+		queryFn: async () => certificatesApi.getCertificateDesign(),
+		staleTime: 60_000,
 	});
 }
 
