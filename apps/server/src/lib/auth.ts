@@ -11,8 +11,13 @@ import { EmailService } from "./email-service";
 import { AuditService } from "../modules/audit/audit.service";
 import { ForbiddenError, UnauthorizedError } from "./errors";
 import { RateLimitMonitor } from "./rate-limit-monitor";
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { trackFirstLogin } from "../modules/achievements/trackers";
+import {
+  CertificateNameError,
+  normalizeCertificateName,
+  CERTIFICATE_NAME_ERROR,
+} from "../modules/certificates/certificate-name";
 import { eq } from "drizzle-orm";
 
 export const ROLES = {
@@ -157,6 +162,50 @@ export const auth = betterAuth({
       },
     }),
   ],
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (newUser) => {
+          try {
+            return {
+              data: {
+                ...newUser,
+                name: normalizeCertificateName(newUser.name),
+              },
+            };
+          } catch (error) {
+            if (error instanceof CertificateNameError) {
+              throw new APIError("BAD_REQUEST", {
+                message: CERTIFICATE_NAME_ERROR,
+              });
+            }
+            throw error;
+          }
+        },
+      },
+      update: {
+        before: async (updatedUser) => {
+          if (updatedUser.name === undefined) return;
+
+          try {
+            return {
+              data: {
+                ...updatedUser,
+                name: normalizeCertificateName(updatedUser.name),
+              },
+            };
+          } catch (error) {
+            if (error instanceof CertificateNameError) {
+              throw new APIError("BAD_REQUEST", {
+                message: CERTIFICATE_NAME_ERROR,
+              });
+            }
+            throw error;
+          }
+        },
+      },
+    },
+  },
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
       const isSignIn =

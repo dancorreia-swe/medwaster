@@ -30,6 +30,16 @@ import { BRAND_TAGLINE } from "../../emails/brand";
 
 const PNG_PIXEL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+const CORRUPT_FRAMED_PNG = `data:image/png;base64,${Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+  0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+  0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x01, 0x00, 0x49, 0x44, 0x41, 0x54,
+  0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44,
+  0x00, 0x00, 0x00, 0x00,
+]).toString("base64")}`;
 
 // Avoid "fi"/"fl" in fixtures: the fonts' ligatures extract as a single "f".
 const baseData: CertificateRenderData = {
@@ -214,6 +224,48 @@ describe("renderCertificatePdf", { timeout: 30_000 }, () => {
     },
   );
 
+  it.each(CERTIFICATE_LAYOUT_IDS)(
+    "%s canonicalizes hostile Unicode whitespace and image payloads",
+    async (layout) => {
+      const longToken = "👩‍🔬e\u0301".repeat(40);
+      const pdf = await inspectPdf(
+        await renderCertificatePdf(
+          {
+            ...baseData,
+            title: "Título\ncom\u00a0espaços\tseguros",
+            userName: ` \n\t${longToken}\u00a0 `,
+            userImageUrl: CORRUPT_FRAMED_PNG,
+          },
+          designWith(layout, { ...allOff, studentPhoto: true }),
+        ),
+      );
+      expect(pdf.numPages).toBe(1);
+      expect(pdf.imageCount).toBe(0);
+      expect(pdf.text).toContain(normalize("Título com espaços seguros"));
+      expect(pdf.text).not.toContain("�");
+
+      const canonicalName = await inspectPdf(
+        await renderCertificatePdf(
+          { ...baseData, userName: "\n\u00a0\tAna" },
+          designWith(layout, allOff),
+        ),
+      );
+      expect(canonicalName.text).toContain("ana");
+    },
+  );
+
+  it.each(CERTIFICATE_LAYOUT_IDS)(
+    "%s rejects a legacy row with an unsupported certificate name",
+    async (layout) => {
+      await expect(
+        renderCertificatePdf(
+          { ...baseData, userName: "אדם" },
+          designWith(layout, allOff),
+        ),
+      ).rejects.toThrow("Certificate name contains unsupported characters");
+    },
+  );
+
   it.each(OPTIONAL_ELEMENT_KEYS)(
     "hides only %s when it alone is switched off",
     async (key) => {
@@ -251,6 +303,18 @@ describe("renderCertificatePdf", { timeout: 30_000 }, () => {
 
     expect(allOn.imageCount).toBe(2);
     expect(noPhoto.imageCount).toBe(1);
+  });
+
+  it("falls back to initials when the image decoder rejects a framed payload", async () => {
+    const pdf = await inspectPdf(
+      await renderCertificatePdf(
+        { ...baseData, userImageUrl: CORRUPT_FRAMED_PNG },
+        DEFAULT_CERTIFICATE_DESIGN,
+      ),
+    );
+
+    expect(pdf.imageCount).toBe(1); // The QR code remains enabled.
+    expect(pdf.text).toContain(normalize("ZQ"));
   });
 
   it("uses the articles wording when the unlock requirement is articles", async () => {

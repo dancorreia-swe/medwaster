@@ -28,6 +28,10 @@ import type {
 	UpdateUserBody,
 	UserResponse,
 } from "./model";
+import {
+	CertificateNameError,
+	normalizeCertificateName,
+} from "../certificates/certificate-name";
 
 function mapUserRecord(record: UserEntity): UserResponse {
 	return {
@@ -158,7 +162,16 @@ export abstract class UsersService {
 		// Build update data (only include provided fields)
 		const updateData: Partial<UpdateUserBody> = {};
 
-		if (updates.name !== undefined) updateData.name = updates.name;
+		if (updates.name !== undefined) {
+			try {
+				updateData.name = normalizeCertificateName(updates.name);
+			} catch (error) {
+				if (error instanceof CertificateNameError) {
+					throw new BadRequestError(error.message);
+				}
+				throw error;
+			}
+		}
 		if (updates.email !== undefined) updateData.email = updates.email;
 		if (updates.role !== undefined) updateData.role = updates.role;
 		if (updates.banned !== undefined) updateData.banned = updates.banned;

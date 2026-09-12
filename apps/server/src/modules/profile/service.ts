@@ -11,6 +11,10 @@ import type {
 import { v4 as uuid } from "uuid";
 import { EmailService } from "@/lib/email-service";
 import { AvatarStorageService } from "./s3-storage.service";
+import {
+  CertificateNameError,
+  normalizeCertificateName,
+} from "../certificates/certificate-name";
 
 export abstract class ProfileService {
   /**
@@ -28,7 +32,14 @@ export abstract class ProfileService {
     const updateData: Partial<UpdateProfileBody> = {};
 
     if (updates.name !== undefined) {
-      updateData.name = updates.name;
+      try {
+        updateData.name = normalizeCertificateName(updates.name);
+      } catch (error) {
+        if (error instanceof CertificateNameError) {
+          throw new BadRequestError(error.message);
+        }
+        throw error;
+      }
     }
 
     if (updates.image !== undefined) {

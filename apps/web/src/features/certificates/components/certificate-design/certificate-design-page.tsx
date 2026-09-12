@@ -67,6 +67,40 @@ function isSameDraft(a: CertificateDesignPayload, b: CertificateDesignPayload) {
   );
 }
 
+function highestRevision<T extends { revision: number }>(
+  candidates: readonly (T | null | undefined)[],
+) {
+  return candidates.reduce<T | null>(
+    (highest, candidate) =>
+      candidate && (!highest || candidate.revision > highest.revision)
+        ? candidate
+        : highest,
+    null,
+  );
+}
+
+function toCurrent(
+  settings: CertificateDesignSettings,
+): CertificateDesignCurrent {
+  return {
+    title: settings.title,
+    design: settings.design,
+    revision: settings.revision,
+  };
+}
+
+function mergeCurrent(
+  settings: CertificateDesignSettings,
+  current: CertificateDesignCurrent,
+): CertificateDesignSettings {
+  return {
+    ...settings,
+    title: current.title ?? settings.title,
+    design: current.design,
+    revision: current.revision,
+  };
+}
+
 type EditorState = {
   draft: CertificateDesignPayload;
   baseline: CertificateDesignPayload;
@@ -120,33 +154,143 @@ function CertificateDesignEditor({
   }));
   const [conflict, setConflict] = useState<ConflictState | null>(null);
   const previousSettings = useRef(settings);
+  const pendingSettings = useRef<CertificateDesignSettings | null>(null);
+  const latestSettings = useRef(settings);
+  const editorStateRef = useRef(editorState);
+  const conflictRef = useRef(conflict);
+
+  // Refs are deliberately only advanced. A query response can arrive after a
+  // save or another refetch has already given us a newer server revision.
+  if (settings.revision > latestSettings.current.revision) {
+    latestSettings.current = settings;
+  }
+  editorStateRef.current = editorState;
+  conflictRef.current = conflict;
+
+  const { draft, baseline, revision } = editorState;
+  const isDirty = !isSameDraft(draft, baseline);
+
+  const getHighestKnownSettings = () => {
+    const cached = queryClient.getQueryData<CertificateDesignSettings>(
+      certificatesQueryKeys.design(),
+    );
+    const highest =
+      highestRevision([
+        cached,
+        pendingSettings.current,
+        latestSettings.current,
+        settings,
+      ]) ?? settings;
+    const conflictCurrent = conflictRef.current?.current;
+
+    return conflictCurrent && conflictCurrent.revision >= highest.revision
+      ? mergeCurrent(highest, conflictCurrent)
+      : highest;
+  };
+
+  const rememberPendingSettings = (candidate: CertificateDesignSettings) => {
+    const pending = pendingSettings.current;
+    const minimumRevision = Math.max(
+      editorStateRef.current.revision,
+      latestSettings.current.revision,
+      pending?.revision ?? Number.NEGATIVE_INFINITY,
+    );
+
+    if (candidate.revision < minimumRevision) return;
+    if (!pending || candidate.revision > pending.revision) {
+      pendingSettings.current = candidate;
+    }
+  };
+
+  const cacheSettings = (candidate: CertificateDesignSettings) => {
+    const highest =
+      highestRevision([candidate, getHighestKnownSettings()]) ?? candidate;
+    latestSettings.current = highest;
+
+    queryClient.setQueryData<CertificateDesignSettings>(
+      certificatesQueryKeys.design(),
+      (cached: CertificateDesignSettings | undefined) => {
+        const cacheHighest =
+          highestRevision([
+            candidate,
+            cached,
+            pendingSettings.current,
+            latestSettings.current,
+            settings,
+          ]) ?? highest;
+        const conflictCurrent = conflictRef.current?.current;
+        const adopted =
+          conflictCurrent && conflictCurrent.revision >= cacheHighest.revision
+            ? mergeCurrent(cacheHighest, conflictCurrent)
+            : cacheHighest;
+
+        return adopted.revision >= highest.revision ? adopted : highest;
+      },
+    );
+  };
 
   // A clean editor follows a newer server response. Once the draft is dirty,
   // its original baseline (including revision) remains stable until save,
   // discard, or an explicit conflict action changes it.
   useEffect(() => {
-    if (previousSettings.current === settings) return;
-    previousSettings.current = settings;
-    const nextDraft = toDraft(settings.title, settings.design);
-    setEditorState((current) =>
-      isSameDraft(current.draft, current.baseline)
-        ? {
-            draft: nextDraft,
-            baseline: nextDraft,
-            revision: settings.revision,
-          }
-        : current,
-    );
-  }, [settings]);
+    const previous = previousSettings.current;
+    if (settings.revision < previous.revision) {
+      const highest = getHighestKnownSettings();
+      if (highest.revision > settings.revision) cacheSettings(highest);
+      return;
+    }
 
-  const { draft, baseline, revision } = editorState;
+    if (previousSettings.current === settings) {
+      if (!pendingSettings.current || isDirty) return;
+
+      const nextSettings = getHighestKnownSettings();
+      if (nextSettings.revision < editorStateRef.current.revision) return;
+      pendingSettings.current = null;
+      const nextDraft = toDraft(nextSettings.title, nextSettings.design);
+      setEditorState((current) => {
+        const highestKnownRevision = Math.max(
+          current.revision,
+          getHighestKnownSettings().revision,
+        );
+        if (nextSettings.revision < highestKnownRevision) return current;
+        return {
+          draft: nextDraft,
+          baseline: nextDraft,
+          revision: nextSettings.revision,
+        };
+      });
+      return;
+    }
+
+    previousSettings.current = settings;
+    if (isDirty) {
+      rememberPendingSettings(settings);
+      return;
+    }
+
+    const nextSettings = getHighestKnownSettings();
+    if (nextSettings.revision < editorStateRef.current.revision) return;
+    pendingSettings.current = null;
+    const nextDraft = toDraft(nextSettings.title, nextSettings.design);
+    setEditorState((current) => {
+      const highestKnownRevision = Math.max(
+        current.revision,
+        getHighestKnownSettings().revision,
+      );
+      if (nextSettings.revision < highestKnownRevision) return current;
+      return {
+        draft: nextDraft,
+        baseline: nextDraft,
+        revision: nextSettings.revision,
+      };
+    });
+  }, [isDirty, settings]);
 
   const trimmedTitle = draft.title.trim();
   const titleError =
     trimmedTitle.length < TITLE_MIN_LENGTH
       ? `Use pelo menos ${TITLE_MIN_LENGTH} caracteres.`
       : null;
-  const isDirty = !isSameDraft(draft, baseline);
   const isDefault = isSameDraft(draft, toDraft(defaults.title, defaults.design));
 
   const previewDesign = useMemo(
@@ -159,28 +303,85 @@ function CertificateDesignEditor({
     mutationFn: (payload: CertificateDesignSavePayload) =>
       certificatesApi.saveCertificateDesign(payload),
     onSuccess: (data, variables) => {
+      const knownRevision = getHighestKnownSettings().revision;
+      const currentRevision = editorStateRef.current.revision;
+      const pendingRevision = pendingSettings.current?.revision;
+      const canAdopt =
+        data.revision >= knownRevision && data.revision >= currentRevision;
+
+      cacheSettings(data);
+      if (pendingRevision !== undefined && data.revision >= pendingRevision) {
+        pendingSettings.current = null;
+      }
+      if (
+        !canAdopt &&
+        !isSameDraft(
+          editorStateRef.current.draft,
+          editorStateRef.current.baseline,
+        )
+      ) {
+        rememberPendingSettings(getHighestKnownSettings());
+      }
+
       const nextBaseline = toDraft(data.title, data.design);
-      queryClient.setQueryData(certificatesQueryKeys.design(), data);
       queryClient.invalidateQueries({
         queryKey: certificatesQueryKeys.settings(),
       });
-      setEditorState((current) => ({
-        baseline: nextBaseline,
-        revision: data.revision,
-        // The form is disabled while saving, but keep this comparison as a
-        // guard against edits made by another event source during the request.
-        draft: isSameDraft(current.draft, variables)
-          ? nextBaseline
-          : current.draft,
-      }));
-      setConflict(null);
+      if (canAdopt) {
+        setEditorState((current) => {
+          const highestKnownRevision = Math.max(
+            current.revision,
+            getHighestKnownSettings().revision,
+          );
+          if (data.revision < highestKnownRevision) return current;
+
+          return {
+            baseline: nextBaseline,
+            revision: data.revision,
+            // The form is disabled while saving, but keep this comparison as a
+            // guard against edits made by another event source during the request.
+            draft: isSameDraft(current.draft, variables)
+              ? nextBaseline
+              : current.draft,
+          };
+        });
+      }
+      setConflict((current) =>
+        current?.current && current.current.revision > data.revision
+          ? current
+          : current &&
+              !current.current &&
+              data.revision < getHighestKnownSettings().revision
+            ? current
+            : null,
+      );
       toast.success("Design do certificado salvo");
     },
     onError: (error) => {
       if (error instanceof CertificateDesignConflictError) {
-        setConflict({
-          current: error.current,
-          message: error.message,
+        if (error.current) {
+          cacheCurrent(error.current);
+        }
+
+        const knownRevision = getHighestKnownSettings().revision;
+        setConflict((current) => {
+          if (
+            current?.current &&
+            (!error.current ||
+              error.current.revision < current.current.revision)
+          ) {
+            return current;
+          }
+          if (error.current && error.current.revision < knownRevision) {
+            return current ?? {
+              current: null,
+              message: error.message,
+            };
+          }
+          return {
+            current: error.current,
+            message: error.message,
+          };
         });
         return;
       }
@@ -193,31 +394,88 @@ function CertificateDesignEditor({
   });
 
   const applyCurrent = (current: CertificateDesignCurrent) => {
+    if (!cacheCurrent(current)) return false;
+    if (current.revision < getHighestKnownSettings().revision) return false;
+    if (current.revision < editorStateRef.current.revision) return false;
+
+    const pendingRevision = pendingSettings.current?.revision;
+    if (pendingRevision !== undefined && current.revision < pendingRevision) {
+      return false;
+    }
+
     const nextDraft = toDraft(current.title ?? draft.title, current.design);
-    setEditorState({
-      draft: nextDraft,
-      baseline: nextDraft,
-      revision: current.revision,
+    if (pendingRevision !== undefined && current.revision >= pendingRevision) {
+      pendingSettings.current = null;
+    }
+    setEditorState((currentState) => {
+      const highestKnownRevision = Math.max(
+        currentState.revision,
+        getHighestKnownSettings().revision,
+      );
+      if (current.revision < highestKnownRevision) return currentState;
+      return {
+        draft: nextDraft,
+        baseline: nextDraft,
+        revision: current.revision,
+      };
     });
-    setConflict(null);
+    setConflict((existing) =>
+      existing?.current && existing.current.revision > current.revision
+        ? existing
+        : null,
+    );
+    return true;
+  };
+
+  const cacheCurrent = (current: CertificateDesignCurrent) => {
+    const source = getHighestKnownSettings();
+    if (
+      current.revision < source.revision ||
+      current.revision < editorStateRef.current.revision
+    ) {
+      return false;
+    }
+
+    const nextSettings = mergeCurrent(source, current);
+    latestSettings.current = nextSettings;
+    queryClient.setQueryData<CertificateDesignSettings>(
+      certificatesQueryKeys.design(),
+      (cached: CertificateDesignSettings | undefined) => {
+        const highestKnown = getHighestKnownSettings();
+        if (current.revision < highestKnown.revision) return highestKnown;
+        const cachedSource =
+          cached && cached.revision >= current.revision ? cached : nextSettings;
+        return mergeCurrent(cachedSource, current);
+      },
+    );
+    return true;
   };
 
   const loadCurrent = async () => {
     if (!conflict) return;
-    if (conflict.current && conflict.current.title !== null) {
-      applyCurrent(conflict.current);
-      return;
-    }
+    const conflictAtStart = conflictRef.current;
 
     try {
-      const current = await certificatesApi.getCertificateDesign();
-      queryClient.setQueryData(certificatesQueryKeys.design(), current);
-      applyCurrent({
-        title: current.title,
-        design: current.design,
-        revision: current.revision,
-      });
+      const fetchedSettings = await certificatesApi.getCertificateDesign();
+      if (!conflictRef.current) return;
+      cacheSettings(fetchedSettings);
+      const highestCurrent = highestRevision([
+        toCurrent(fetchedSettings),
+        conflictRef.current.current,
+        pendingSettings.current && toCurrent(pendingSettings.current),
+        toCurrent(getHighestKnownSettings()),
+      ]);
+      if (highestCurrent) applyCurrent(highestCurrent);
     } catch (error) {
+      if (!conflictRef.current) return;
+      if (conflictAtStart?.current) {
+        const highestCurrent = highestRevision([
+          conflictAtStart.current,
+          pendingSettings.current && toCurrent(pendingSettings.current),
+          toCurrent(getHighestKnownSettings()),
+        ]);
+        if (highestCurrent && applyCurrent(highestCurrent)) return;
+      }
       toast.error(
         error instanceof Error
           ? error.message
@@ -227,12 +485,14 @@ function CertificateDesignEditor({
   };
 
   const overwriteCurrent = () => {
-    if (!conflict?.current || titleError || saveMutation.isPending) return;
+    const current = conflictRef.current?.current;
+    if (!current || titleError || saveMutation.isPending) return;
+    if (current.revision < getHighestKnownSettings().revision) return;
     const submittedDraft = { ...draft, title: trimmedTitle };
     setConflict(null);
     saveMutation.mutate({
       ...submittedDraft,
-      expectedRevision: conflict.current.revision,
+      expectedRevision: current.revision,
     });
   };
 
@@ -319,10 +579,20 @@ function CertificateDesignEditor({
             type="button"
             variant="outline"
             onClick={() => {
-              setEditorState((current) => ({
-                ...current,
-                draft: current.baseline,
-              }));
+              const nextSettings = getHighestKnownSettings();
+              if (nextSettings.revision < editorStateRef.current.revision) return;
+              pendingSettings.current = null;
+              const nextDraft = toDraft(nextSettings.title, nextSettings.design);
+              setEditorState((current) => {
+                if (nextSettings.revision < current.revision) return current;
+                const highestKnownRevision = getHighestKnownSettings().revision;
+                if (nextSettings.revision < highestKnownRevision) return current;
+                return {
+                  draft: nextDraft,
+                  baseline: nextDraft,
+                  revision: nextSettings.revision,
+                };
+              });
               setConflict(null);
             }}
             disabled={!isDirty || saveMutation.isPending}

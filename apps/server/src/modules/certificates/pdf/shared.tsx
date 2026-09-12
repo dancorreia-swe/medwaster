@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 import { Image, Text, View, type Styles } from "@react-pdf/renderer";
+import resolveImage from "@react-pdf/image";
+import { fileTypeFromBuffer } from "file-type";
 import QRCode from "qrcode";
 import { BRAND_DISPLAY_NAME, BRAND_TAGLINE } from "../../../emails/brand";
 import type { CertificateDesign, CertificateTheme } from "../design/catalog";
+import { normalizeCertificateName } from "../certificate-name";
 import { SANS, type CertificateFontFamily } from "./fonts";
 
 type Style = Styles[string];
@@ -103,23 +106,46 @@ export function getCompletedLabel(
   return "Trilhas concluídas";
 }
 
-/** Keep words intact, while making very long tokens breakable for react-pdf. */
+/** Canonical text keeps layout deterministic without changing visible content. */
+export function canonicalizeCertificateText(value: string, fallback: string) {
+  const text = value
+    .normalize("NFC")
+    .replace(/[\p{White_Space}\p{Cc}]+/gu, " ")
+    .trim();
+  return text || fallback;
+}
+
+/** Keep grapheme clusters intact while giving long tokens invisible breaks. */
 export const keepWordsWhole = (word: string) => {
+  const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
   const pieces: string[] = [];
-  for (let offset = 0; offset < word.length; offset += 18) {
-    pieces.push(word.slice(offset, offset + 18));
+  let piece = "";
+  let count = 0;
+  for (const { segment } of segmenter.segment(word)) {
+    piece += segment;
+    if (++count === 18) {
+      pieces.push(piece);
+      piece = "";
+      count = 0;
+    }
   }
+  if (piece) pieces.push(piece);
   return pieces.length ? pieces : [""];
 };
 
-/** Inserts soft whitespace only into an otherwise unbreakable token. */
+/** Inserts zero-width break opportunities, never visible whitespace. */
 export const breakLongText = (text: string) =>
-  text.replace(/\S{19,}/g, (word) => keepWordsWhole(word).join(" "));
+  text.replace(/\S{19,}/gu, (word) => keepWordsWhole(word).join("\u200B"));
 
 export function getInitials(name: string) {
   const parts = name.split(/\s+/).filter(Boolean);
-  const first = parts[0]?.[0] ?? "";
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
+  const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  const first = parts[0]
+    ? segmenter.segment(parts[0])[Symbol.iterator]().next().value?.segment ?? ""
+    : "";
+  const last = parts.length > 1
+    ? segmenter.segment(parts[parts.length - 1])[Symbol.iterator]().next().value?.segment ?? ""
+    : "";
   return (first + last).toUpperCase() || "EC";
 }
 
@@ -137,14 +163,49 @@ export function fitFontSize(
   return Math.max(options.min, Math.min(options.max, rounded));
 }
 
-function sniffImageType(bytes: Uint8Array) {
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e) {
-    return "image/png";
+export const MAX_CERTIFICATE_AVATAR_BYTES = 5 * 1024 * 1024;
+
+async function readResponseBytes(response: Response): Promise<Uint8Array> {
+  const contentLength = Number(
+    response.headers?.get?.("content-length"),
+  );
+  if (Number.isFinite(contentLength) && contentLength > MAX_CERTIFICATE_AVATAR_BYTES) {
+    throw new Error("User image exceeds the maximum allowed size");
   }
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
-    return "image/jpeg";
+
+  if (!response.body) {
+    const buffer = new Uint8Array(await response.arrayBuffer());
+    if (buffer.byteLength > MAX_CERTIFICATE_AVATAR_BYTES) {
+      throw new Error("User image exceeds the maximum allowed size");
+    }
+    return buffer;
   }
-  return null;
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const result = await reader.read();
+      if (result.done) break;
+      total += result.value.byteLength;
+      if (total > MAX_CERTIFICATE_AVATAR_BYTES) {
+        await reader.cancel();
+        throw new Error("User image exceeds the maximum allowed size");
+      }
+      chunks.push(result.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
 }
 
 /** react-pdf only embeds PNG and JPEG; anything else gets initials. */
@@ -165,14 +226,30 @@ async function loadPhoto(
     if (!response.ok) {
       throw new Error(`Failed to fetch user image (${response.status})`);
     }
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const type = sniffImageType(bytes);
-    if (!type) {
+    const bytes = await readResponseBytes(response);
+    const detected = await fileTypeFromBuffer(bytes);
+    if (!detected || !["image/png", "image/jpeg"].includes(detected.mime)) {
       throw new Error("Unsupported user image format");
     }
+
+    const format = detected.mime === "image/png" ? "png" : "jpeg";
+    const parsed = await resolveImage(
+      { data: Buffer.from(bytes), format },
+      { cache: false },
+    );
+    if (
+      !parsed ||
+      !Number.isFinite(parsed.width) ||
+      !Number.isFinite(parsed.height) ||
+      parsed.width <= 0 ||
+      parsed.height <= 0
+    ) {
+      throw new Error("User image decoder probe failed");
+    }
+
     return {
       kind: "image",
-      src: `data:${type};base64,${Buffer.from(bytes).toString("base64")}`,
+      src: `data:${detected.mime};base64,${Buffer.from(bytes).toString("base64")}`,
     };
   } catch (error) {
     console.warn("Falling back to initials avatar:", error);
@@ -186,6 +263,7 @@ export async function buildCertificateContent(
   theme: CertificateTheme,
 ): Promise<CertificateContent> {
   const { elements } = design;
+  const userName = normalizeCertificateName(data.userName);
 
   let verification: CertificateContent["verification"] = null;
   if (elements.qrCode) {
@@ -222,15 +300,16 @@ export async function buildCertificateContent(
     });
   }
 
+  const title = canonicalizeCertificateText(data.title, "Certificado");
   return {
     brand: BRAND_DISPLAY_NAME,
-    title: data.title,
-    userName: data.userName.trim(),
+    title,
+    userName,
     achievement: getAchievementSentence(data.unlockRequirement),
     completionDate: formatDate(new Date(data.completionDate)),
     verificationCode: data.verificationCode,
     photo: elements.studentPhoto
-      ? await loadPhoto(data.userImageUrl, data.userName)
+      ? await loadPhoto(data.userImageUrl, userName)
       : null,
     stats,
     verification,
