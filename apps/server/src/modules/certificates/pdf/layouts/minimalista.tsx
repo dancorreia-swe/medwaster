@@ -44,8 +44,8 @@ export function MinimalistaLayout({ content, theme }: CertificateLayoutProps) {
           flexGrow: 1,
           paddingLeft: 92,
           paddingRight: 72,
-          paddingTop: 44,
-          paddingBottom: 38,
+          paddingTop: 54,
+          paddingBottom: 48,
           justifyContent: "space-between",
         }}
       >
@@ -85,7 +85,7 @@ export function MinimalistaLayout({ content, theme }: CertificateLayoutProps) {
               fontWeight: 600,
               letterSpacing: -nameSize * 0.025,
               lineHeight: 1.08,
-              marginTop: 6,
+              marginTop: 10,
               maxWidth: 680,
             }}
           >
@@ -96,7 +96,7 @@ export function MinimalistaLayout({ content, theme }: CertificateLayoutProps) {
               fontSize: 13,
               lineHeight: 1.5,
               color: theme.muted,
-              marginTop: 8,
+              marginTop: 14,
               maxWidth: 460,
             }}
           >
@@ -104,7 +104,7 @@ export function MinimalistaLayout({ content, theme }: CertificateLayoutProps) {
           </Text>
 
           {content.stats.length > 0 && (
-            <View style={{ flexDirection: "row", marginTop: 18 }}>
+            <View style={{ flexDirection: "row", marginTop: 34 }}>
               {content.stats.map((stat, index) => (
                 <View key={stat.key} style={{ marginLeft: index > 0 ? 52 : 0 }}>
                   <Caption theme={theme}>{stat.label}</Caption>

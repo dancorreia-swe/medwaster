@@ -11,11 +11,6 @@ export const CERTIFICATE_FONT_FILES = [
   "Geist-Regular.ttf",
   "Geist-Medium.ttf",
   "Geist-SemiBold.ttf",
-  "NotoSansArabic-Regular.ttf",
-  "NotoSansArabic-Medium.ttf",
-  "NotoSansArabic-SemiBold.ttf",
-  "NotoSansCJKsc-Regular.otf",
-  "NotoEmoji.ttf",
 ] as const;
 
 const PROBE_FILE = "Geist-Regular.ttf";
@@ -58,9 +53,8 @@ export function resolveCertificateFontsDir(): string {
 let cachedCertificateFontCoverage: ReadonlySet<number> | undefined;
 
 /**
- * Return the union of the actual cmap entries in all bundled certificate
- * fonts. Loading is intentionally cached: fontkit parsing the CJK font is
- * comparatively expensive and the name validator is used on auth paths.
+ * Union of the cmap entries of every bundled certificate font. Cached because
+ * fontkit parsing runs on each certificate render.
  */
 export function getCertificateFontCoverage(): ReadonlySet<number> {
   if (cachedCertificateFontCoverage) return cachedCertificateFontCoverage;
@@ -69,9 +63,13 @@ export function getCertificateFontCoverage(): ReadonlySet<number> {
   const fontsDir = resolveCertificateFontsDir();
 
   for (const file of CERTIFICATE_FONT_FILES) {
-    const font = fontkit.openSync(path.join(fontsDir, file));
-    for (const codePoint of font.characterSet) {
-      coverage.add(codePoint);
+    const opened = fontkit.openSync(path.join(fontsDir, file));
+    // A .ttc opens as a collection; the bundled faces are single fonts.
+    const faces = "fonts" in opened ? opened.fonts : [opened];
+    for (const face of faces) {
+      for (const codePoint of face.characterSet) {
+        coverage.add(codePoint);
+      }
     }
   }
 

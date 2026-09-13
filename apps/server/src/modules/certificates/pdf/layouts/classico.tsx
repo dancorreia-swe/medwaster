@@ -136,7 +136,7 @@ export function ClassicoLayout({ content, theme }: CertificateLayoutProps) {
             <View style={{ marginTop: 18 }}>
               <Avatar
                 photo={content.photo}
-                size={52}
+                size={60}
                 theme={theme}
                 fill={theme.paper}
                 ring={theme.accent}
@@ -152,7 +152,7 @@ export function ClassicoLayout({ content, theme }: CertificateLayoutProps) {
               fontWeight: 500,
               fontSize: 15,
               color: theme.muted,
-              marginTop: content.photo ? 8 : 12,
+              marginTop: content.photo ? 12 : 22,
             }}
           >
             Certificamos que

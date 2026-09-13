@@ -94,7 +94,7 @@ export function ModernoLayout({ content, theme }: CertificateLayoutProps) {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                marginTop: 16,
+                marginTop: 28,
               }}
             >
               {content.photo && (
@@ -138,8 +138,8 @@ export function ModernoLayout({ content, theme }: CertificateLayoutProps) {
               <View
                 style={{
                   flexDirection: "row",
-                  marginTop: 16,
-                  paddingTop: 12,
+                  marginTop: 30,
+                  paddingTop: 18,
                   borderTop: `0.75 solid ${theme.hairline}`,
                 }}
               >

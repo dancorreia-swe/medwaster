@@ -5,7 +5,7 @@ import { fileTypeFromBuffer } from "file-type";
 import QRCode from "qrcode";
 import { BRAND_DISPLAY_NAME, BRAND_TAGLINE } from "../../../emails/brand";
 import type { CertificateDesign, CertificateTheme } from "../design/catalog";
-import { normalizeCertificateName } from "../certificate-name";
+import { sanitizeCertificateName } from "../certificate-name";
 import { SANS, type CertificateFontFamily } from "./fonts";
 
 type Style = Styles[string];
@@ -263,7 +263,7 @@ export async function buildCertificateContent(
   theme: CertificateTheme,
 ): Promise<CertificateContent> {
   const { elements } = design;
-  const userName = normalizeCertificateName(data.userName);
+  const userName = sanitizeCertificateName(data.userName);
 
   let verification: CertificateContent["verification"] = null;
   if (elements.qrCode) {
