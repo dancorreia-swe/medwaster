@@ -110,6 +110,13 @@ export abstract class ProfileService {
     const token = uuid();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
+    // Drop any previous request for this user. verifyEmailChange looks the
+    // record up with findFirst, so leftover rows would shadow the token we are
+    // about to send and make the newest code unusable.
+    await db
+      .delete(verification)
+      .where(eq(verification.identifier, `email-change:${userId}`));
+
     // Store verification token
     await db.insert(verification).values({
       id: uuid(),
