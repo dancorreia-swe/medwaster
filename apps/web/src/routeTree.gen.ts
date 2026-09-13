@@ -27,6 +27,7 @@ import { Route as VerifyCertificateCodeRouteImport } from './routes/verify/certi
 import { Route as AuthTrailsCreateRouteImport } from './routes/_auth/trails/create'
 import { Route as AuthQuizzesCreateRouteImport } from './routes/_auth/quizzes/create'
 import { Route as AuthQuestionsNewRouteImport } from './routes/_auth/questions/new'
+import { Route as AuthCertificatesDesignRouteImport } from './routes/_auth/certificates/design'
 import { Route as AuthAdminProfileRouteImport } from './routes/_auth/admin/profile'
 import { Route as AuthWikiArticleIdIndexRouteImport } from './routes/_auth/wiki/$articleId/index'
 import { Route as AuthTrailsTrailIdIndexRouteImport } from './routes/_auth/trails/$trailId/index'
@@ -130,6 +131,11 @@ const AuthQuestionsNewRoute = AuthQuestionsNewRouteImport.update({
   path: '/questions/new',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthCertificatesDesignRoute = AuthCertificatesDesignRouteImport.update({
+  id: '/certificates/design',
+  path: '/certificates/design',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthAdminProfileRoute = AuthAdminProfileRouteImport.update({
   id: '/admin/profile',
   path: '/admin/profile',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/wiki': typeof AuthWikiRouteRouteWithChildren
   '/': typeof AuthIndexRoute
   '/admin/profile': typeof AuthAdminProfileRoute
+  '/certificates/design': typeof AuthCertificatesDesignRoute
   '/questions/new': typeof AuthQuestionsNewRoute
   '/quizzes/create': typeof AuthQuizzesCreateRoute
   '/trails/create': typeof AuthTrailsCreateRoute
@@ -240,6 +247,7 @@ export interface FileRoutesByTo {
   '/wiki': typeof AuthWikiRouteRouteWithChildren
   '/': typeof AuthIndexRoute
   '/admin/profile': typeof AuthAdminProfileRoute
+  '/certificates/design': typeof AuthCertificatesDesignRoute
   '/questions/new': typeof AuthQuestionsNewRoute
   '/quizzes/create': typeof AuthQuizzesCreateRoute
   '/trails/create': typeof AuthTrailsCreateRoute
@@ -274,6 +282,7 @@ export interface FileRoutesById {
   '/_auth/wiki': typeof AuthWikiRouteRouteWithChildren
   '/_auth/': typeof AuthIndexRoute
   '/_auth/admin/profile': typeof AuthAdminProfileRoute
+  '/_auth/certificates/design': typeof AuthCertificatesDesignRoute
   '/_auth/questions/new': typeof AuthQuestionsNewRoute
   '/_auth/quizzes/create': typeof AuthQuizzesCreateRoute
   '/_auth/trails/create': typeof AuthTrailsCreateRoute
@@ -308,6 +317,7 @@ export interface FileRouteTypes {
     | '/wiki'
     | '/'
     | '/admin/profile'
+    | '/certificates/design'
     | '/questions/new'
     | '/quizzes/create'
     | '/trails/create'
@@ -340,6 +350,7 @@ export interface FileRouteTypes {
     | '/wiki'
     | '/'
     | '/admin/profile'
+    | '/certificates/design'
     | '/questions/new'
     | '/quizzes/create'
     | '/trails/create'
@@ -373,6 +384,7 @@ export interface FileRouteTypes {
     | '/_auth/wiki'
     | '/_auth/'
     | '/_auth/admin/profile'
+    | '/_auth/certificates/design'
     | '/_auth/questions/new'
     | '/_auth/quizzes/create'
     | '/_auth/trails/create'
@@ -535,6 +547,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthQuestionsNewRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/certificates/design': {
+      id: '/_auth/certificates/design'
+      path: '/certificates/design'
+      fullPath: '/certificates/design'
+      preLoaderRoute: typeof AuthCertificatesDesignRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/admin/profile': {
       id: '/_auth/admin/profile'
       path: '/admin/profile'
@@ -645,6 +664,7 @@ interface AuthRouteChildren {
   AuthWikiRouteRoute: typeof AuthWikiRouteRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
   AuthAdminProfileRoute: typeof AuthAdminProfileRoute
+  AuthCertificatesDesignRoute: typeof AuthCertificatesDesignRoute
   AuthQuestionsNewRoute: typeof AuthQuestionsNewRoute
   AuthQuizzesCreateRoute: typeof AuthQuizzesCreateRoute
   AuthTrailsCreateRoute: typeof AuthTrailsCreateRoute
@@ -672,6 +692,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthWikiRouteRoute: AuthWikiRouteRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
   AuthAdminProfileRoute: AuthAdminProfileRoute,
+  AuthCertificatesDesignRoute: AuthCertificatesDesignRoute,
   AuthQuestionsNewRoute: AuthQuestionsNewRoute,
   AuthQuizzesCreateRoute: AuthQuizzesCreateRoute,
   AuthTrailsCreateRoute: AuthTrailsCreateRoute,

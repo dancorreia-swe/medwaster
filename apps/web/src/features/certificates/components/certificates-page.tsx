@@ -25,7 +25,8 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import { CheckCheck, ChevronsUpDown, BadgeCheck } from "lucide-react";
+import { CheckCheck, ChevronsUpDown, BadgeCheck, Palette } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -180,10 +181,6 @@ export function CertificatesPage() {
     settingsForm?.autoApproveCertificates ??
     settingsQuery.data?.autoApproveCertificates ??
     false;
-  const certificateTitle =
-    settingsForm?.certificateTitle ??
-    settingsQuery.data?.certificateTitle ??
-    "";
   const unlockRequirement =
     settingsForm?.certificateUnlockRequirement ??
     settingsQuery.data?.certificateUnlockRequirement ??
@@ -245,7 +242,7 @@ export function CertificatesPage() {
               <ItemContent>
                 <ItemTitle>Configurações do certificado</ItemTitle>
                 <ItemDescription>
-                  Ajuste aprovação, título, critério e limites de estudo.
+                  Ajuste aprovação, critério, limites de estudo e design.
                 </ItemDescription>
               </ItemContent>
               <ItemActions>
@@ -287,80 +284,57 @@ export function CertificatesPage() {
               </Item>
 
               <Item variant="outline">
-                <ItemContent className="gap-3">
-                  <ItemTitle>Nome e critério</ItemTitle>
+                <ItemMedia variant="icon">
+                  <Palette />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>Design do certificado</ItemTitle>
                   <ItemDescription>
-                    Ajuste o título exibido no PDF e escolha o gatilho de
-                    liberação do certificado.
+                    Layout, paleta, título e elementos exibidos no PDF.
                   </ItemDescription>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Input
-                        value={certificateTitle}
-                        onChange={(event) =>
-                          setSettingsForm((prev) =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  certificateTitle: event.target.value,
-                                }
-                              : prev,
-                          )
-                        }
-                        placeholder="Ex: Certificado de Conclusão"
-                        disabled={
-                          settingsLoading || updateSettingsMutation.isPending
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Select
-                        value={unlockRequirement}
-                        onValueChange={(value) =>
-                          handleSettingsUpdate({
-                            certificateUnlockRequirement:
-                              value as CertificateSettings["certificateUnlockRequirement"],
-                          })
-                        }
-                        disabled={
-                          settingsLoading || updateSettingsMutation.isPending
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o critério" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="trails">
-                            Concluir todas as trilhas
-                          </SelectItem>
-                          <SelectItem value="articles">
-                            Ler todos os artigos publicados
-                          </SelectItem>
-                          <SelectItem value="trails_and_articles">
-                            Concluir trilhas e artigos publicados
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() =>
+                </ItemContent>
+                <ItemActions>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/certificates/design">Personalizar design</Link>
+                  </Button>
+                </ItemActions>
+              </Item>
+
+              <Item variant="outline">
+                <ItemContent className="gap-3">
+                  <ItemTitle>Critério de liberação</ItemTitle>
+                  <ItemDescription>
+                    Escolha o que o aluno precisa concluir para liberar o
+                    certificado. A alteração é salva automaticamente.
+                  </ItemDescription>
+                  <div className="md:max-w-sm">
+                    <Select
+                      value={unlockRequirement}
+                      onValueChange={(value) =>
                         handleSettingsUpdate({
-                          certificateTitle: certificateTitle,
-                          certificateUnlockRequirement: unlockRequirement,
+                          certificateUnlockRequirement:
+                            value as CertificateSettings["certificateUnlockRequirement"],
                         })
                       }
                       disabled={
-                        settingsLoading ||
-                        updateSettingsMutation.isPending ||
-                        !certificateTitle.trim()
+                        settingsLoading || updateSettingsMutation.isPending
                       }
                     >
-                      Salvar título e critério
-                    </Button>
+                      <SelectTrigger aria-label="Critério de liberação">
+                        <SelectValue placeholder="Selecione o critério" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="trails">
+                          Concluir todas as trilhas
+                        </SelectItem>
+                        <SelectItem value="articles">
+                          Ler todos os artigos publicados
+                        </SelectItem>
+                        <SelectItem value="trails_and_articles">
+                          Concluir trilhas e artigos publicados
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </ItemContent>
               </Item>

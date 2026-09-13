@@ -14,12 +14,22 @@ import {
   NotFoundError,
   BusinessLogicError,
   ForbiddenError,
+  BadRequestError,
 } from "@/lib/errors";
 import crypto from "crypto";
 import { trackCertificateEarned } from "../achievements/trackers";
 import { generateCertificatePDF } from "./pdf-generator";
 import { ConfigService, type AppConfig } from "../config/config.service";
 import { userArticleReads, wikiArticles } from "@/db/schema/wiki";
+import { preflightCertificateName } from "./certificate-name";
+
+function requireCertificateNameForIssuance(name: string): string {
+  const preflight = preflightCertificateName(name);
+  if (!preflight.ok) {
+    throw new BadRequestError(preflight.guidance);
+  }
+  return preflight.normalizedName;
+}
 
 export abstract class CertificateService {
   /**
@@ -381,7 +391,7 @@ export abstract class CertificateService {
     try {
       if (config.autoApproveCertificates) {
         console.log("  🤖 Auto-approving certificate (config enabled)...");
-        await this.autoApproveCertificate(certificate.id, config);
+        return await this.autoApproveCertificate(certificate.id, config);
       }
     } catch (error) {
       console.error("  ✗ Failed to auto-approve certificate:", error);
@@ -450,10 +460,11 @@ export abstract class CertificateService {
     }
 
     const config = await ConfigService.getConfig();
+    const userName = requireCertificateNameForIssuance(certificate.user.name);
 
     const certificateUrl = await generateCertificatePDF({
       id: certificate.id,
-      userName: certificate.user.name,
+      userName,
       averageScore: certificate.averageScore,
       totalTrailsCompleted: certificate.totalTrailsCompleted,
       totalTimeMinutes: certificate.totalTimeMinutes,
@@ -462,7 +473,7 @@ export abstract class CertificateService {
       userImageUrl: certificate.user.image,
       title: config.certificateTitle,
       unlockRequirement: config.certificateUnlockRequirement,
-    });
+    }, config.certificateDesign);
 
     const [updated] = await db
       .update(certificates)
@@ -525,11 +536,12 @@ export abstract class CertificateService {
     }
 
     const config = await ConfigService.getConfig();
+    const userName = requireCertificateNameForIssuance(certificate.user.name);
 
     // Generate PDF certificate
     const certificateUrl = await generateCertificatePDF({
       id: certificate.id,
-      userName: certificate.user.name,
+      userName,
       averageScore: certificate.averageScore,
       totalTrailsCompleted: certificate.totalTrailsCompleted,
       totalTimeMinutes: certificate.totalTimeMinutes,
@@ -538,7 +550,7 @@ export abstract class CertificateService {
       userImageUrl: certificate.user.image,
       title: config.certificateTitle,
       unlockRequirement: config.certificateUnlockRequirement,
-    });
+    }, config.certificateDesign);
 
     // Update certificate status
     const [updated] = await db
@@ -589,10 +601,26 @@ export abstract class CertificateService {
     }
 
     const currentConfig = config ?? (await ConfigService.getConfig());
+    const namePreflight = preflightCertificateName(certificate.user.name);
+    if (!namePreflight.ok) {
+      const [updated] = await db
+        .update(certificates)
+        .set({
+          reviewNotes: namePreflight.guidance,
+          updatedAt: new Date(),
+        })
+        .where(eq(certificates.id, certificateId))
+        .returning();
+
+      return updated ?? {
+        ...certificate,
+        reviewNotes: namePreflight.guidance,
+      };
+    }
 
     const certificateUrl = await generateCertificatePDF({
       id: certificate.id,
-      userName: certificate.user.name,
+      userName: namePreflight.normalizedName,
       averageScore: certificate.averageScore,
       totalTrailsCompleted: certificate.totalTrailsCompleted,
       totalTimeMinutes: certificate.totalTimeMinutes,
@@ -601,7 +629,7 @@ export abstract class CertificateService {
       userImageUrl: certificate.user.image,
       title: currentConfig.certificateTitle,
       unlockRequirement: currentConfig.certificateUnlockRequirement,
-    });
+    }, currentConfig.certificateDesign);
 
     const [updated] = await db
       .update(certificates)

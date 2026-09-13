@@ -1,0 +1,1 @@
+ALTER TABLE "system_config" ADD COLUMN "certificate_design" jsonb DEFAULT '{"layout":"moderno","palette":"educonecta","elements":{"studentPhoto":true,"averageScore":true,"completedCount":true,"studyTime":true,"qrCode":true,"footerSlogan":true}}'::jsonb NOT NULL;
