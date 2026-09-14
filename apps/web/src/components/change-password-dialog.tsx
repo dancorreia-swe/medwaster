@@ -1,4 +1,4 @@
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
   Dialog,
   DialogClose,
@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,8 +36,14 @@ export function ChangePasswordDialog({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<PasswordChangeErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [isPending, startTransition] = useTransition();
+
+  // Bumped on every close. An in-flight request compares the generation it
+  // started with against this one, so a response arriving after the user
+  // dismissed the dialog cannot repopulate the form it just cleared.
+  const generation = useRef(0);
 
   const resetForm = () => {
     setCurrentPassword("");
@@ -46,10 +53,12 @@ export function ChangePasswordDialog({
     setShowNewPassword(false);
     setShowConfirmPassword(false);
     setErrors({});
+    setFormError(null);
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
+      generation.current += 1;
       resetForm();
     }
 
@@ -57,6 +66,7 @@ export function ChangePasswordDialog({
   };
 
   const clearError = (field: keyof PasswordChangeErrors) => {
+    setFormError(null);
     setErrors((current) =>
       current[field] ? { ...current, [field]: undefined } : current,
     );
@@ -72,10 +82,13 @@ export function ChangePasswordDialog({
     });
 
     setErrors(validationErrors);
+    setFormError(null);
 
     if (Object.values(validationErrors).some(Boolean)) {
       return;
     }
+
+    const submittedAt = generation.current;
 
     startTransition(async () => {
       try {
@@ -97,7 +110,12 @@ export function ChangePasswordDialog({
           error instanceof Error
             ? error.message
             : "Erro ao alterar senha. Verifique sua senha atual.";
-        setErrors({ currentPassword: message });
+
+        // The server does not say which field was at fault, so this is shown
+        // at form level instead of being blamed on "senha atual".
+        if (submittedAt === generation.current) {
+          setFormError(message);
+        }
         toast.error(message);
       }
     });
@@ -114,6 +132,13 @@ export function ChangePasswordDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {formError ? (
+            <Alert variant="destructive">
+              <AlertTitle>Não foi possível alterar a senha</AlertTitle>
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          ) : null}
+
           {/* Current Password */}
           <div className="space-y-2">
             <Label htmlFor="current-password">Senha atual</Label>
