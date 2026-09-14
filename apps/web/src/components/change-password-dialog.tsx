@@ -1,6 +1,7 @@
 import { useState, useTransition } from "react";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -47,9 +48,12 @@ export function ChangePasswordDialog({
     setErrors({});
   };
 
-  const handleClose = () => {
-    resetForm();
-    onOpenChange(false);
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      resetForm();
+    }
+
+    onOpenChange(nextOpen);
   };
 
   const clearError = (field: keyof PasswordChangeErrors) => {
@@ -86,7 +90,7 @@ export function ChangePasswordDialog({
         }
 
         toast.success("Senha alterada com sucesso!");
-        handleClose();
+        handleOpenChange(false);
       } catch (error) {
         console.error("Error changing password:", error);
         const message =
@@ -100,7 +104,7 @@ export function ChangePasswordDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Alterar senha</DialogTitle>
@@ -278,14 +282,11 @@ export function ChangePasswordDialog({
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isPending}>
+                Cancelar
+              </Button>
+            </DialogClose>
             <Button type="submit" disabled={isPending}>
               {isPending ? (
                 <>
