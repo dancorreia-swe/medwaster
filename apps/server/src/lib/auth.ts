@@ -23,6 +23,11 @@ export const ROLES = {
 
 type Roles = (typeof ROLES)[keyof typeof ROLES];
 
+const trustedWebOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 /**
  * Centralized Access Control configuration for better-auth admin plugin.
  * Keeps role capabilities explicit so the admin API and guards stay in sync.
@@ -57,7 +62,7 @@ export const auth = betterAuth({
     schema: schema,
   }),
   trustedOrigins: [
-    process.env.CORS_ORIGIN || "",
+    ...trustedWebOrigins,
     "medwaster://",
     "medwaster://reset-password",
     "exp://",

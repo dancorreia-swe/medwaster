@@ -9,6 +9,7 @@ import type {
   DeleteAccountBody,
 } from "./model";
 import { v4 as uuid } from "uuid";
+import { hashPassword, verifyPassword } from "better-auth/crypto";
 import { EmailService } from "@/lib/email-service";
 import { AvatarStorageService } from "./s3-storage.service";
 
@@ -87,11 +88,11 @@ export abstract class ProfileService {
       );
     }
 
-    // Verify current password using Bun's built-in password verification
-    const passwordMatches = await Bun.password.verify(
-      data.password,
-      passwordAccount.password
-    );
+    // Credential hashes are created by Better Auth (scrypt), not Bun.password.
+    const passwordMatches = await verifyPassword({
+      password: data.password,
+      hash: passwordAccount.password,
+    });
 
     if (!passwordMatches) {
       throw new UnauthorizedError("Invalid password");
@@ -215,17 +216,17 @@ export abstract class ProfileService {
     }
 
     // Verify current password
-    const passwordMatches = await Bun.password.verify(
-      data.currentPassword,
-      passwordAccount.password
-    );
+    const passwordMatches = await verifyPassword({
+      password: data.currentPassword,
+      hash: passwordAccount.password,
+    });
 
     if (!passwordMatches) {
       throw new UnauthorizedError("Current password is incorrect");
     }
 
     // Hash new password
-    const hashedPassword = await Bun.password.hash(data.newPassword);
+    const hashedPassword = await hashPassword(data.newPassword);
 
     // Update password
     await db
@@ -260,10 +261,10 @@ export abstract class ProfileService {
 
     // If user has password account, verify password
     if (passwordAccount && passwordAccount.password) {
-      const passwordMatches = await Bun.password.verify(
-        data.password,
-        passwordAccount.password
-      );
+      const passwordMatches = await verifyPassword({
+        password: data.password,
+        hash: passwordAccount.password,
+      });
 
       if (!passwordMatches) {
         throw new UnauthorizedError("Invalid password");
