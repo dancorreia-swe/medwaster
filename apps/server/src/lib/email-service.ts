@@ -36,6 +36,26 @@ export interface EmailResult {
   error?: string;
 }
 
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+/**
+ * Escape a value before interpolating it into an HTML email body.
+ *
+ * `userName` reaches these templates straight from `user.name`, which any
+ * authenticated user can set via `PATCH /profile` with no sanitisation. Without
+ * escaping, a display name can inject markup (including links) into mail sent
+ * from our own domain.
+ */
+export function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]!);
+}
+
 export abstract class EmailService {
   private static config: EmailServiceConfig | null = null;
   private static transporter: nodemailer.Transporter | null = null;
@@ -107,7 +127,9 @@ export abstract class EmailService {
         throw new Error('Email service not properly initialized');
       }
 
-      // Simple HTML email for now - you can create a React Email template later
+      // Simple HTML email for now - you can create a React Email template later.
+      // Every interpolated value must go through escapeHtml: userName is
+      // attacker-controlled via PATCH /profile.
       const emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -117,10 +139,10 @@ export abstract class EmailService {
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2 style="color: ${BRAND_COLORS.navy};">Verify Your New Email Address</h2>
-            <p>Hello ${params.userName},</p>
+            <p>Hello ${escapeHtml(params.userName)},</p>
             <p>You requested to change your email address for your ${BRAND_DISPLAY_NAME} account. To complete this process, please use the verification code below:</p>
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 1px solid ${BRAND_COLORS.green};">
-              <code style="font-size: 24px; font-weight: bold; letter-spacing: 2px; color: ${BRAND_COLORS.blue};">${params.token}</code>
+              <code style="font-size: 24px; font-weight: bold; letter-spacing: 2px; color: ${BRAND_COLORS.blue};">${escapeHtml(params.token)}</code>
             </div>
             <p>This verification code will expire in 1 hour.</p>
             <p>If you didn't request this email change, please ignore this email and your account will remain unchanged.</p>

@@ -13,6 +13,7 @@ import { ForbiddenError, UnauthorizedError } from "./errors";
 import { RateLimitMonitor } from "./rate-limit-monitor";
 import { createAuthMiddleware } from "better-auth/api";
 import { trackFirstLogin } from "../modules/achievements/trackers";
+import { parseOriginList } from "./origins";
 import { eq } from "drizzle-orm";
 
 export const ROLES = {
@@ -23,10 +24,7 @@ export const ROLES = {
 
 type Roles = (typeof ROLES)[keyof typeof ROLES];
 
-const trustedWebOrigins = (process.env.CORS_ORIGIN || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const trustedWebOrigins = parseOriginList(process.env.CORS_ORIGIN);
 
 /**
  * Centralized Access Control configuration for better-auth admin plugin.
