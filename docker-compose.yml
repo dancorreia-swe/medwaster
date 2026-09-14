@@ -63,17 +63,29 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # Local-only email capture for password resets and email-change verification.
-  # Mailpit receives SMTP from the server at mailpit:1025 and exposes its inbox
-  # to the host at http://localhost:${MAILPIT_WEB_PORT:-8025}.
+  # Development-only email capture. NOT started by default: Mailpit ships with
+  # no SMTP auth and no UI auth, and its inbox holds password-reset links and
+  # email-change codes, so it must never run in a deployed environment.
+  #   docker compose --profile mailpit up -d
+  # Then set SMTP_HOST=mailpit / SMTP_PORT=1025 in .env.
+  # The regular local dev stack (apps/server/docker-compose.yml) has its own
+  # Mailpit and does not need this one.
   mailpit:
     image: axllent/mailpit:v1.27
     container_name: medwaster-mailpit
+    profiles: ["mailpit"]
     ports:
-      - "${MAILPIT_SMTP_PORT:-1025}:1025"
-      - "${MAILPIT_WEB_PORT:-8025}:8025"
+      # Loopback-only: never expose the inbox beyond the host.
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_WEB_PORT:-8025}:8025"
     networks:
       - medwaster-network
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
     restart: unless-stopped
 
   ollama:
