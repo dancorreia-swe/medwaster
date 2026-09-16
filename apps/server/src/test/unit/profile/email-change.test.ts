@@ -11,28 +11,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   mockDb,
-  mockTx,
   mockEmailService,
   mockRateLimit,
   mockVerifyPassword,
   insertedRows,
   deletes,
   schema,
-} = vi.hoisted(() => {
-  const tx = { delete: vi.fn(), insert: vi.fn() };
-
-  return {
-    mockDb: {
-      query: {
-        user: { findFirst: vi.fn() },
-        account: { findFirst: vi.fn() },
-        verification: { findFirst: vi.fn() },
-      },
-      update: vi.fn(),
-      delete: vi.fn(),
-      transaction: vi.fn(async (cb: (t: typeof tx) => unknown) => cb(tx)),
+} = vi.hoisted(() => ({
+  mockDb: {
+    query: {
+      user: { findFirst: vi.fn() },
+      account: { findFirst: vi.fn() },
+      verification: { findFirst: vi.fn() },
     },
-    mockTx: tx,
+    insert: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
     mockEmailService: { sendEmailChangeVerification: vi.fn() },
     mockRateLimit: {
       checkExcessiveAttempts: vi.fn(),
@@ -57,8 +52,7 @@ const {
       },
       session: { id: "session.id", userId: "session.userId" },
     },
-  };
-});
+}));
 
 vi.mock("@/db", () => ({ db: mockDb }),
   // @ts-ignore The installed Vitest type declarations omit the virtual option.
@@ -168,8 +162,7 @@ beforeEach(() => {
   });
   mockDb.query.verification.findFirst.mockResolvedValue(VALID_RECORD);
 
-  mockTx.delete.mockReturnValue({ where: vi.fn(async () => undefined) });
-  mockTx.insert.mockReturnValue({
+  mockDb.insert.mockReturnValue({
     values: vi.fn(async (row: Record<string, unknown>) => {
       insertedRows.push(row);
     }),
@@ -188,12 +181,47 @@ beforeEach(() => {
 describe("requestEmailChange", () => {
   const body = { newEmail: "ana@new.example", password: "pw" };
 
-  it("replaces prior requests and inserts exactly one row, atomically", async () => {
+  it("inserts the new code, then prunes only the older rows", async () => {
     await ProfileService.requestEmailChange(USER.id, body);
 
-    expect(mockDb.transaction).toHaveBeenCalledTimes(1);
-    expect(mockTx.delete).toHaveBeenCalledTimes(1);
     expect(insertedRows).toHaveLength(1);
+
+    // The prune must exclude the row just written, otherwise the code that
+    // was emailed is deleted along with the stale ones.
+    const prune = deletes.find(
+      (entry) => entry.table === schema.verification,
+    );
+    expect(prune).toBeDefined();
+    expect(JSON.stringify(prune?.filter)).toContain('"op":"ne"');
+    expect(JSON.stringify(prune?.filter)).toContain(
+      String(insertedRows[0].id),
+    );
+  });
+
+  it("never leaves the user without a redeemable code", async () => {
+    // Insert precedes the prune: a delete-first ordering opens a window in
+    // which no code exists at all.
+    const order: string[] = [];
+    mockDb.insert.mockImplementation(() => {
+      order.push("insert");
+      return {
+        values: vi.fn(async (row: Record<string, unknown>) => {
+          insertedRows.push(row);
+        }),
+      };
+    });
+    mockDb.delete.mockImplementation((table: unknown) => {
+      order.push("delete");
+      return {
+        where: vi.fn(async (filter: unknown) => {
+          deletes.push({ table, filter });
+        }),
+      };
+    });
+
+    await ProfileService.requestEmailChange(USER.id, body);
+
+    expect(order).toEqual(["insert", "delete"]);
   });
 
   it("normalises the new address before storing and sending", async () => {
@@ -232,10 +260,21 @@ describe("requestEmailChange", () => {
       () => undefined,
     );
 
+    // Two deletes now: the prune of older rows, then the rollback of the row
+    // whose code never reached the user. The rollback must target that row by
+    // id so nothing else is collateral.
     const removed = deletes.filter(
       (entry) => entry.table === schema.verification,
     );
-    expect(removed).toHaveLength(1);
+    expect(removed).toHaveLength(2);
+
+    const insertedId = String(insertedRows[0].id);
+    const rollback = removed[removed.length - 1];
+    expect(rollback.filter).toEqual({
+      op: "eq",
+      column: schema.verification.id,
+      value: insertedId,
+    });
   });
 
   it("rejects an address already used by someone else", async () => {

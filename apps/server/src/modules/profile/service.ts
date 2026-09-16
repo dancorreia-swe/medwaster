@@ -201,17 +201,27 @@ export abstract class ProfileService {
     const identifier = `email-change:${userId}`;
     const recordId = uuid();
 
-    // Replace any previous request atomically: two live rows for one user would
-    // make which code works depend on row order.
-    await db.transaction(async (tx) => {
-      await tx.delete(verification).where(eq(verification.identifier, identifier));
-      await tx.insert(verification).values({
-        id: recordId,
-        identifier,
-        value: JSON.stringify({ newEmail, token }),
-        expiresAt,
-      });
+    // Insert first, then prune older requests. Ordering matters: a
+    // delete-then-insert leaves a window with no redeemable code at all, and
+    // wrapping both in db.transaction() makes TypeScript instantiate the whole
+    // relational schema for the transaction handle (TS2589). verifyEmailChange
+    // resolves the newest row, so extra rows are never ambiguous — this is
+    // cleanup, not correctness.
+    await db.insert(verification).values({
+      id: recordId,
+      identifier,
+      value: JSON.stringify({ newEmail, token }),
+      expiresAt,
     });
+
+    await db
+      .delete(verification)
+      .where(
+        and(
+          eq(verification.identifier, identifier),
+          ne(verification.id, recordId)
+        )
+      );
 
     const sent = await EmailService.sendEmailChangeVerification({
       to: newEmail,
