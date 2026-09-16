@@ -1,13 +1,18 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { EmailService } from "../../lib/email-service";
 
-// Mock nodemailer
+// EmailService caches its transporter after the first initialize(), so the
+// per-test hook has to be a stable `sendMail` reference rather than a fresh
+// createTransport return value. The previous version reassigned
+// createTransport through a CommonJS `require`, which does not exist here and
+// would have been ignored by the cached transporter anyway.
+const { sendMail, verify } = vi.hoisted(() => ({
+  sendMail: vi.fn(),
+  verify: vi.fn(),
+}));
+
 vi.mock("nodemailer", () => ({
   default: {
-    createTransport: vi.fn(() => ({
-      sendMail: vi.fn().mockResolvedValue({ messageId: "test-message-id" }),
-      verify: vi.fn().mockResolvedValue(true),
-    })),
+    createTransport: vi.fn(() => ({ sendMail, verify })),
   },
 }));
 
@@ -16,10 +21,14 @@ vi.mock("@react-email/render", () => ({
   render: vi.fn().mockResolvedValue("<html><body>Test email</body></html>"),
 }));
 
+import { EmailService } from "../../lib/email-service";
+
 describe("EmailService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+    sendMail.mockResolvedValue({ messageId: "test-message-id" });
+    verify.mockResolvedValue(true);
+
     // Set test environment variables
     process.env.SMTP_HOST = "localhost";
     process.env.SMTP_PORT = "1025";
@@ -49,12 +58,7 @@ describe("EmailService", () => {
   });
 
   test("should handle email delivery failures gracefully", async () => {
-    // Mock nodemailer to throw an error
-    const mockSendMail = vi.fn().mockRejectedValue(new Error("SMTP Error"));
-    vi.mocked(require("nodemailer").default.createTransport).mockReturnValue({
-      sendMail: mockSendMail,
-      verify: vi.fn().mockResolvedValue(true),
-    });
+    sendMail.mockRejectedValue(new Error("SMTP Error"));
 
     const result = await EmailService.sendPasswordReset({
       to: "user@example.com",

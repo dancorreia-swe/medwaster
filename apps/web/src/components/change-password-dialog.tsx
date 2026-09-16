@@ -1,16 +1,22 @@
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import {
+  validatePasswordChange,
+  type PasswordChangeErrors,
+} from "@/features/profile/lib/validation";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
@@ -29,8 +35,15 @@ export function ChangePasswordDialog({
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errors, setErrors] = useState<PasswordChangeErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [isPending, startTransition] = useTransition();
+
+  // Bumped on every close. An in-flight request compares the generation it
+  // started with against this one, so a response arriving after the user
+  // dismissed the dialog cannot repopulate the form it just cleared.
+  const generation = useRef(0);
 
   const resetForm = () => {
     setCurrentPassword("");
@@ -39,52 +52,43 @@ export function ChangePasswordDialog({
     setShowCurrentPassword(false);
     setShowNewPassword(false);
     setShowConfirmPassword(false);
+    setErrors({});
+    setFormError(null);
   };
 
-  const handleClose = () => {
-    resetForm();
-    onOpenChange(false);
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      generation.current += 1;
+      resetForm();
+    }
+
+    onOpenChange(nextOpen);
   };
 
-  const validatePassword = (password: string): string | null => {
-    if (password.length < 8) {
-      return "A senha deve ter pelo menos 8 caracteres";
-    }
-    if (!/[A-Z]/.test(password)) {
-      return "A senha deve conter pelo menos uma letra maiúscula";
-    }
-    if (!/[a-z]/.test(password)) {
-      return "A senha deve conter pelo menos uma letra minúscula";
-    }
-    if (!/[0-9]/.test(password)) {
-      return "A senha deve conter pelo menos um número";
-    }
-    return null;
+  const clearError = (field: keyof PasswordChangeErrors) => {
+    setFormError(null);
+    setErrors((current) =>
+      current[field] ? { ...current, [field]: undefined } : current,
+    );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error("Por favor, preencha todos os campos");
+    const validationErrors = validatePasswordChange({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+
+    setErrors(validationErrors);
+    setFormError(null);
+
+    if (Object.values(validationErrors).some(Boolean)) {
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      toast.error("As senhas não correspondem");
-      return;
-    }
-
-    const validationError = validatePassword(newPassword);
-    if (validationError) {
-      toast.error(validationError);
-      return;
-    }
-
-    if (currentPassword === newPassword) {
-      toast.error("A nova senha deve ser diferente da senha atual");
-      return;
-    }
+    const submittedAt = generation.current;
 
     startTransition(async () => {
       try {
@@ -99,40 +103,61 @@ export function ChangePasswordDialog({
         }
 
         toast.success("Senha alterada com sucesso!");
-        handleClose();
+        handleOpenChange(false);
       } catch (error) {
         console.error("Error changing password:", error);
-        toast.error(
+        const message =
           error instanceof Error
             ? error.message
-            : "Erro ao alterar senha. Verifique sua senha atual.",
-        );
+            : "Erro ao alterar senha. Verifique sua senha atual.";
+
+        // The server does not say which field was at fault, so this is shown
+        // at form level instead of being blamed on "senha atual".
+        if (submittedAt === generation.current) {
+          setFormError(message);
+        }
+        toast.error(message);
       }
     });
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Alterar Senha</DialogTitle>
+          <DialogTitle>Alterar senha</DialogTitle>
           <DialogDescription>
-            Digite sua senha atual e escolha uma nova senha segura.
+            Digite sua senha atual e escolha uma nova senha segura. As outras
+            sessões serão encerradas.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {formError ? (
+            <Alert variant="destructive">
+              <AlertTitle>Não foi possível alterar a senha</AlertTitle>
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          ) : null}
+
           {/* Current Password */}
           <div className="space-y-2">
-            <Label htmlFor="current-password">Senha Atual</Label>
+            <Label htmlFor="current-password">Senha atual</Label>
             <div className="relative">
               <Input
                 id="current-password"
                 type={showCurrentPassword ? "text" : "password"}
                 value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Digite sua senha atual"
+                onChange={(e) => {
+                  setCurrentPassword(e.target.value);
+                  clearError("currentPassword");
+                }}
                 disabled={isPending}
                 autoComplete="current-password"
+                className="pr-10"
+                aria-invalid={errors.currentPassword ? true : undefined}
+                aria-describedby={
+                  errors.currentPassword ? "current-password-error" : undefined
+                }
               />
               <Button
                 type="button"
@@ -141,28 +166,53 @@ export function ChangePasswordDialog({
                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                 disabled={isPending}
+                aria-label={
+                  showCurrentPassword ? "Ocultar senha" : "Mostrar senha"
+                }
               >
                 {showCurrentPassword ? (
-                  <EyeOff className="h-4 w-4 text-slate-500" />
+                  <EyeOff
+                    className="h-4 w-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <Eye className="h-4 w-4 text-slate-500" />
+                  <Eye
+                    className="h-4 w-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 )}
               </Button>
             </div>
+            {errors.currentPassword ? (
+              <p
+                id="current-password-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
+                {errors.currentPassword}
+              </p>
+            ) : null}
           </div>
 
           {/* New Password */}
           <div className="space-y-2">
-            <Label htmlFor="new-password">Nova Senha</Label>
+            <Label htmlFor="new-password">Nova senha</Label>
             <div className="relative">
               <Input
                 id="new-password"
                 type={showNewPassword ? "text" : "password"}
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Digite sua nova senha"
+                onChange={(e) => {
+                  setNewPassword(e.target.value);
+                  clearError("newPassword");
+                }}
                 disabled={isPending}
                 autoComplete="new-password"
+                className="pr-10"
+                aria-invalid={errors.newPassword ? true : undefined}
+                aria-describedby={
+                  errors.newPassword ? "new-password-error" : "new-password-hint"
+                }
               />
               <Button
                 type="button"
@@ -171,31 +221,55 @@ export function ChangePasswordDialog({
                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                 onClick={() => setShowNewPassword(!showNewPassword)}
                 disabled={isPending}
+                aria-label={showNewPassword ? "Ocultar senha" : "Mostrar senha"}
               >
                 {showNewPassword ? (
-                  <EyeOff className="h-4 w-4 text-slate-500" />
+                  <EyeOff
+                    className="h-4 w-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <Eye className="h-4 w-4 text-slate-500" />
+                  <Eye
+                    className="h-4 w-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 )}
               </Button>
             </div>
-            <p className="text-xs text-slate-500">
-              Mínimo 8 caracteres, incluindo maiúsculas, minúsculas e números
-            </p>
+            {errors.newPassword ? (
+              <p
+                id="new-password-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
+                {errors.newPassword}
+              </p>
+            ) : (
+              <p id="new-password-hint" className="text-xs text-muted-foreground">
+                Mínimo 8 caracteres, incluindo maiúsculas, minúsculas e números
+              </p>
+            )}
           </div>
 
           {/* Confirm Password */}
           <div className="space-y-2">
-            <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
+            <Label htmlFor="confirm-password">Confirmar nova senha</Label>
             <div className="relative">
               <Input
                 id="confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirme sua nova senha"
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  clearError("confirmPassword");
+                }}
                 disabled={isPending}
                 autoComplete="new-password"
+                className="pr-10"
+                aria-invalid={errors.confirmPassword ? true : undefined}
+                aria-describedby={
+                  errors.confirmPassword ? "confirm-password-error" : undefined
+                }
               />
               <Button
                 type="button"
@@ -204,25 +278,40 @@ export function ChangePasswordDialog({
                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 disabled={isPending}
+                aria-label={
+                  showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
+                }
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="h-4 w-4 text-slate-500" />
+                  <EyeOff
+                    className="h-4 w-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <Eye className="h-4 w-4 text-slate-500" />
+                  <Eye
+                    className="h-4 w-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 )}
               </Button>
             </div>
+            {errors.confirmPassword ? (
+              <p
+                id="confirm-password-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
+                {errors.confirmPassword}
+              </p>
+            ) : null}
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isPending}>
+                Cancelar
+              </Button>
+            </DialogClose>
             <Button type="submit" disabled={isPending}>
               {isPending ? (
                 <>
@@ -230,7 +319,7 @@ export function ChangePasswordDialog({
                   Alterando...
                 </>
               ) : (
-                "Alterar Senha"
+                "Alterar senha"
               )}
             </Button>
           </DialogFooter>

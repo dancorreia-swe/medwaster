@@ -1,9 +1,17 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ForgotPasswordForm } from "../features/auth/components/forgot-password-form";
+import type { AnchorHTMLAttributes, ReactNode } from "react";
 
-// Mock the auth client
-const mockRequestPasswordReset = vi.fn();
+/** Shape the component actually uses from TanStack Router's Link. */
+type LinkProps = { children?: ReactNode; to: string } &
+  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href">;
+
+// Hoisted: vi.mock factories are lifted above top-level bindings, so a plain
+// `const` would still be in its TDZ when the factory runs.
+const { mockRequestPasswordReset } = vi.hoisted(() => ({
+  mockRequestPasswordReset: vi.fn(),
+}));
 vi.mock("@/lib/auth-client", () => ({
   authClient: {
     requestPasswordReset: mockRequestPasswordReset,
@@ -18,9 +26,14 @@ vi.mock("sonner", () => ({
   },
 }));
 
-// Mock router
+// Mock router. TanStack's Link takes `to`, but an <a> without `href` has no
+// "link" role, so the prop has to be translated for role-based queries.
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, ...props }: any) => <a {...props}>{children}</a>,
+  Link: ({ children, to, ...props }: LinkProps) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 describe("ForgotPasswordForm", () => {
@@ -80,7 +93,11 @@ describe("ForgotPasswordForm", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Verifique seu email!")).toBeInTheDocument();
-      expect(screen.getByText(/enviamos um link mágico/i)).toBeInTheDocument();
+      // Copy changed in 9753282: it is a password-reset link, not a magic
+      // sign-in link. This assertion is what pins that wording.
+      expect(
+        screen.getByText(/enviamos um link para redefinir/i),
+      ).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /reenviar email/i })).toBeInTheDocument();
     });
   });
