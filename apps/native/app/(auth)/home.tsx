@@ -3,31 +3,18 @@ import { BUTTON_HEIGHT } from "@/components/styles/buttons";
 import { Container } from "@/components/container";
 import { Image } from "expo-image";
 import { LandingHeroImage } from "@/components/landing-hero-image";
-import {
-  AuthBottomSheet,
-  type AuthBottomSheetRef,
-} from "@/components/auth-bottom-sheet";
-import { useRef, useCallback } from "react";
+import { AuthBottomSheet } from "@/components/auth-bottom-sheet";
+import { useState, useCallback } from "react";
 import { BRAND_LOGO_EXTENDED, BRAND_NAME } from "@/lib/brand";
 
 export default function Landing() {
-  const authBottomSheetRef = useRef<AuthBottomSheetRef>(null);
+  const [authMode, setAuthMode] = useState<"signin" | "signup" | null>(null);
   const { width } = useWindowDimensions();
   const logoSize = Math.min(400, Math.max(240, width - 48));
 
-  const handleOpenSignIn = useCallback(() => {
-    authBottomSheetRef.current?.switchToSignIn();
-    authBottomSheetRef.current?.expand();
-  }, []);
-
-  const handleOpenSignUp = useCallback(() => {
-    authBottomSheetRef.current?.switchToSignUp();
-    authBottomSheetRef.current?.expand();
-  }, []);
-
-  const handleClose = useCallback(() => {
-    authBottomSheetRef.current?.close();
-  }, []);
+  const handleOpenSignIn = useCallback(() => setAuthMode("signin"), []);
+  const handleOpenSignUp = useCallback(() => setAuthMode("signup"), []);
+  const handleClose = useCallback(() => setAuthMode(null), []);
 
   return (
     <Container>
@@ -87,7 +74,9 @@ export default function Landing() {
         </TouchableOpacity>
       </View>
 
-      <AuthBottomSheet ref={authBottomSheetRef} onClose={handleClose} />
+      {authMode && (
+        <AuthBottomSheet initialMode={authMode} onClose={handleClose} />
+      )}
     </Container>
   );
 }
