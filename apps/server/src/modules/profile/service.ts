@@ -1,7 +1,14 @@
 import { db } from "@/db";
-import { user, account, verification } from "@/db/schema/auth";
-import { eq, and } from "drizzle-orm";
-import { BadRequestError, NotFoundError, UnauthorizedError } from "@/lib/errors";
+import { user, account, verification, session } from "@/db/schema/auth";
+import { eq, and, ne, desc } from "drizzle-orm";
+import {
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+  ServiceUnavailableError,
+  TooManyRequestsError,
+  UnauthorizedError,
+} from "@/lib/errors";
 import type {
   UpdateProfileBody,
   RequestEmailChangeBody,
@@ -9,8 +16,70 @@ import type {
   DeleteAccountBody,
 } from "./model";
 import { v4 as uuid } from "uuid";
+import { hashPassword, verifyPassword } from "better-auth/crypto";
 import { EmailService } from "@/lib/email-service";
+import { RateLimitMonitor } from "@/lib/rate-limit-monitor";
 import { AvatarStorageService } from "./s3-storage.service";
+
+/**
+ * Postgres unique-violation (SQLSTATE 23505), as surfaced by the pg driver.
+ *
+ * Narrowed at runtime rather than asserted: the value reaching a `catch` is
+ * `unknown`, and a driver error is not guaranteed to carry `code` at all.
+ */
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "23505"
+  );
+}
+
+/**
+ * Verify a credential password, mapping every failure to 401.
+ *
+ * Better Auth stores scrypt hashes as `salt:key`; its `verifyPassword` *throws*
+ * `BetterAuthError("Invalid password hash")` on anything else rather than
+ * returning false. A malformed stored hash is a bad credential, not a server
+ * fault, so it must not escape as a 500.
+ */
+async function assertPasswordMatches(
+  password: string,
+  hash: string,
+  message: string
+): Promise<void> {
+  let matches = false;
+
+  try {
+    matches = await verifyPassword({ password, hash });
+  } catch {
+    throw new UnauthorizedError(message);
+  }
+
+  if (!matches) {
+    throw new UnauthorizedError(message);
+  }
+}
+
+/**
+ * Drop every session for a user except the one making the request.
+ *
+ * Changing a login credential (password or email address) must not leave old
+ * sessions authenticated. Mirrors Better Auth's `revokeOtherSessions`.
+ */
+async function revokeOtherSessions(
+  userId: string,
+  currentSessionId?: string
+): Promise<void> {
+  await db
+    .delete(session)
+    .where(
+      currentSessionId
+        ? and(eq(session.userId, userId), ne(session.id, currentSessionId))
+        : eq(session.userId, userId)
+    );
+}
 
 export abstract class ProfileService {
   /**
@@ -87,19 +156,39 @@ export abstract class ProfileService {
       );
     }
 
-    // Verify current password using Bun's built-in password verification
-    const passwordMatches = await Bun.password.verify(
+    await assertPasswordMatches(
       data.password,
-      passwordAccount.password
+      passwordAccount.password,
+      "Invalid password"
     );
 
-    if (!passwordMatches) {
-      throw new UnauthorizedError("Invalid password");
+    // Each call sends mail to a caller-supplied address, so this is throttled
+    // per user regardless of whether the target address is valid.
+    if (await RateLimitMonitor.checkExcessiveAttempts(userId, "email-change")) {
+      await RateLimitMonitor.generateAlert(
+        userId,
+        "email-change",
+        await RateLimitMonitor.getAttemptCount(userId, "email-change")
+      );
+      throw new TooManyRequestsError(
+        "Too many email change requests. Try again later."
+      );
     }
 
-    // Check if new email is already in use
+    await RateLimitMonitor.trackRequest(userId, "email-change");
+
+    // `user.email` is compared byte-exact here and by the unique index, so the
+    // address is normalised once, up front, and that value is what we store.
+    const newEmail = data.newEmail.trim().toLowerCase();
+
+    if (newEmail === existingUser.email.trim().toLowerCase()) {
+      throw new BadRequestError(
+        "New email must be different from the current one"
+      );
+    }
+
     const emailExists = await db.query.user.findFirst({
-      where: eq(user.email, data.newEmail),
+      where: eq(user.email, newEmail),
     });
 
     if (emailExists) {
@@ -109,24 +198,48 @@ export abstract class ProfileService {
     // Generate verification token
     const token = uuid();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const identifier = `email-change:${userId}`;
+    const recordId = uuid();
 
-    // Store verification token
+    // Insert first, then prune older requests. Ordering matters: a
+    // delete-then-insert leaves a window with no redeemable code at all, and
+    // wrapping both in db.transaction() makes TypeScript instantiate the whole
+    // relational schema for the transaction handle (TS2589). verifyEmailChange
+    // resolves the newest row, so extra rows are never ambiguous — this is
+    // cleanup, not correctness.
     await db.insert(verification).values({
-      id: uuid(),
-      identifier: `email-change:${userId}`,
-      value: JSON.stringify({
-        newEmail: data.newEmail,
-        token,
-      }),
+      id: recordId,
+      identifier,
+      value: JSON.stringify({ newEmail, token }),
       expiresAt,
     });
 
-    // Send verification email
-    await EmailService.sendEmailChangeVerification({
-      to: data.newEmail,
+    await db
+      .delete(verification)
+      .where(
+        and(
+          eq(verification.identifier, identifier),
+          ne(verification.id, recordId)
+        )
+      );
+
+    const sent = await EmailService.sendEmailChangeVerification({
+      to: newEmail,
       userName: existingUser.name,
       token,
     });
+
+    // sendEmailChangeVerification reports failure by return value, never by
+    // throwing. Without this check the caller is told a code was sent when the
+    // SMTP hop failed, and the row above has already replaced the previous,
+    // still-deliverable code.
+    if (!sent.success) {
+      await db.delete(verification).where(eq(verification.id, recordId));
+      console.error("Email change verification send failed:", sent.error);
+      throw new ServiceUnavailableError(
+        "Could not send the verification email. Try again shortly."
+      );
+    }
 
     return { success: true };
   }
@@ -136,11 +249,16 @@ export abstract class ProfileService {
    */
   static async verifyEmailChange(
     userId: string,
-    token: string
+    token: string,
+    currentSessionId?: string
   ): Promise<{ success: boolean }> {
-    // Find verification record
+    // Newest row wins. requestEmailChange keeps only one row per user, but
+    // ordering makes that an optimisation rather than a correctness
+    // requirement: an unordered findFirst would let a stale row shadow the
+    // code the user was actually sent.
     const verificationRecord = await db.query.verification.findFirst({
       where: eq(verification.identifier, `email-change:${userId}`),
+      orderBy: desc(verification.createdAt),
     });
 
     if (!verificationRecord) {
@@ -169,19 +287,43 @@ export abstract class ProfileService {
       throw new BadRequestError("Invalid verification token");
     }
 
-    // Update user email
-    await db
-      .update(user)
-      .set({
-        email: storedData.newEmail,
-        emailVerified: true,
-      })
-      .where(eq(user.id, userId));
+    // Uniqueness was last checked when the code was issued, up to an hour ago.
+    // Re-check, and still guard the write: only the unique index closes the
+    // window between this read and the update.
+    const emailExists = await db.query.user.findFirst({
+      where: eq(user.email, storedData.newEmail),
+    });
+
+    if (emailExists && emailExists.id !== userId) {
+      await db
+        .delete(verification)
+        .where(eq(verification.id, verificationRecord.id));
+      throw new ConflictError("Email already in use");
+    }
+
+    try {
+      await db
+        .update(user)
+        .set({
+          email: storedData.newEmail,
+          emailVerified: true,
+        })
+        .where(eq(user.id, userId));
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictError("Email already in use");
+      }
+      throw error;
+    }
 
     // Clean up verification token
     await db
       .delete(verification)
       .where(eq(verification.id, verificationRecord.id));
+
+    // The login identifier changed; anything already signed in with the old
+    // one must re-authenticate.
+    await revokeOtherSessions(userId, currentSessionId);
 
     return { success: true };
   }
@@ -191,7 +333,8 @@ export abstract class ProfileService {
    */
   static async changePassword(
     userId: string,
-    data: ChangePasswordBody
+    data: ChangePasswordBody,
+    currentSessionId?: string
   ): Promise<{ success: boolean }> {
     // Get user's password account
     const passwordAccount = await db.query.account.findFirst({
@@ -207,24 +350,25 @@ export abstract class ProfileService {
       );
     }
 
-    // Verify current password
-    const passwordMatches = await Bun.password.verify(
+    await assertPasswordMatches(
       data.currentPassword,
-      passwordAccount.password
+      passwordAccount.password,
+      "Current password is incorrect"
     );
 
-    if (!passwordMatches) {
-      throw new UnauthorizedError("Current password is incorrect");
-    }
-
-    // Hash new password
-    const hashedPassword = await Bun.password.hash(data.newPassword);
+    // Hash new password. Must use Better Auth's hasher: sign-in verifies with
+    // it, so any other algorithm locks the account out.
+    const hashedPassword = await hashPassword(data.newPassword);
 
     // Update password
     await db
       .update(account)
       .set({ password: hashedPassword })
       .where(eq(account.id, passwordAccount.id));
+
+    // Matches the web client, which calls Better Auth with
+    // `revokeOtherSessions: true`, and the promise both UIs make to the user.
+    await revokeOtherSessions(userId, currentSessionId);
 
     return { success: true };
   }
@@ -253,14 +397,11 @@ export abstract class ProfileService {
 
     // If user has password account, verify password
     if (passwordAccount && passwordAccount.password) {
-      const passwordMatches = await Bun.password.verify(
+      await assertPasswordMatches(
         data.password,
-        passwordAccount.password
+        passwordAccount.password,
+        "Invalid password"
       );
-
-      if (!passwordMatches) {
-        throw new UnauthorizedError("Invalid password");
-      }
     }
 
     // Get user to clean up avatar

@@ -79,8 +79,8 @@ export function ForgotPasswordForm({ onEmailSent }: ForgotPasswordFormProps) {
               Verifique seu email!
             </h2>
             <p className="text-base text-muted-foreground leading-relaxed">
-              Enviamos um link mágico{"\n"}
-              para você fazer login na sua conta.
+              Enviamos um link para redefinir{"\n"}
+              a senha da sua conta.
             </p>
           </div>
 

@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { AuditService } from "../../modules/audit/audit.service";
+import type { Mock } from "vitest";
 
 // Mock ulid
 vi.mock("ulid", () => ({
@@ -15,25 +15,21 @@ vi.mock("crypto", () => ({
   }),
 }));
 
-// Mock database
-const mockDb = {
-  insert: vi.fn().mockReturnValue({
-    values: vi.fn().mockResolvedValue(undefined),
-  }),
-  select: vi.fn().mockReturnValue({
-    from: vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        limit: vi.fn().mockResolvedValue([]),
-      }),
-    }),
-  }),
-};
-
-vi.mock("../db", () => ({
-  db: mockDb,
+// Declared through vi.hoisted: vi.mock factories are lifted above top-level
+// bindings, so a plain `const mockDb` would be in its TDZ when they run.
+const { mockDb } = vi.hoisted(() => ({
+  mockDb: {
+    insert: vi.fn(),
+    select: vi.fn(),
+  },
 }));
 
-vi.mock("../db/schema/audit", () => ({
+// Paths resolve relative to *this* file, not to the module under test. This
+// previously read "../db", which pointed at src/test/db and matched nothing,
+// so every test here ran against a real Postgres connection.
+vi.mock("@/db", () => ({ db: mockDb }));
+
+vi.mock("@/db/schema/audit", () => ({
   auditLog: {
     id: "id",
     eventType: "eventType",
@@ -51,9 +47,30 @@ vi.mock("../db/schema/audit", () => ({
   },
 }));
 
+import { AuditService } from "../../modules/audit/audit.service";
+
+/** Rebuilds the insert chain; returns the `values` leaf for assertions. */
+function resetDbChains() {
+  const values = vi.fn().mockResolvedValue(undefined);
+  mockDb.insert.mockReturnValue({ values });
+  mockDb.select.mockReturnValue({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([]),
+      }),
+    }),
+  });
+  return values;
+}
+
 describe("AuditService", () => {
+  // The `values` leaf of the insert chain. Rebuilt every test because
+  // clearAllMocks() drops return values.
+  let insertedValues: Mock;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    insertedValues = resetDbChains();
     process.env.AUDIT_CHECKSUM_SECRET = "test-secret";
   });
 
@@ -71,6 +88,7 @@ describe("AuditService", () => {
 
     expect(logId).toBe("test-ulid-123");
     expect(mockDb.insert).toHaveBeenCalled();
+    expect(insertedValues).toHaveBeenCalledTimes(1);
   });
 
   test("should generate proper checksum for tamper detection", async () => {
@@ -82,10 +100,13 @@ describe("AuditService", () => {
       userAgent: "Test Agent",
     });
 
-    const insertCall = mockDb.insert.mock.calls[0];
-    const valuesCall = insertCall[0].values?.mock?.calls?.[0]?.[0];
-    
-    expect(valuesCall?.checksum).toBe("test-checksum-hash");
+    // Previously read `insertCall[0].values`, i.e. a property of the schema
+    // object passed to insert(), which is always undefined.
+    const written = insertedValues.mock.calls[0][0];
+
+    expect(written.checksum).toBe("test-checksum-hash");
+    expect(written.eventType).toBe("user_created");
+    expect(written.userId).toBe("user_456");
   });
 
   test("should extract client IP from request headers", () => {
