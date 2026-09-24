@@ -1,16 +1,9 @@
 import { authClient } from "@/lib/auth-client";
 import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetView,
+  BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import React, {
-  useState,
-  useCallback,
-  forwardRef,
-  useMemo,
-  useImperativeHandle,
-  useEffect,
-} from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -39,22 +32,21 @@ const PASSWORD_RESET_REDIRECT =
 const PASSWORD_RESET_COOLDOWN_MS = 30_000;
 
 interface AuthBottomSheetProps {
-  onClose?: () => void;
+  initialMode: "signin" | "signup";
+  /** Called once the sheet has finished closing; the parent should unmount it. */
+  onClose: () => void;
 }
 
-export interface AuthBottomSheetRef {
-  expand: () => void;
-  close: () => void;
-  switchToSignIn: () => void;
-  switchToSignUp: () => void;
-}
-
-export const AuthBottomSheet = forwardRef<
-  AuthBottomSheetRef,
-  AuthBottomSheetProps
->(({ onClose }, ref) => {
+/**
+ * Mounted only while open (see app/(auth)/home.tsx). A hidden, always-mounted
+ * sheet left the landing screen dead on some Android devices: its backdrop
+ * starts out full-screen and touchable and only becomes pass-through after an
+ * async callback, and `expand()` silently no-ops until the sheet has finished
+ * measuring itself.
+ */
+export function AuthBottomSheet({ initialMode, onClose }: AuthBottomSheetProps) {
   const bottomSheetRef = React.useRef<BottomSheet>(null);
-  const [mode, setMode] = useState<AuthMode>("signin");
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -90,22 +82,9 @@ export const AuthBottomSheet = forwardRef<
     return () => clearInterval(interval);
   }, [forgotCooldownEndsAt]);
 
-  useImperativeHandle(ref, () => ({
-    expand: () => bottomSheetRef.current?.expand(),
-    close: () => {
-      resetForgotState();
-      setMode("signin");
-      bottomSheetRef.current?.close();
-    },
-    switchToSignIn: () => {
-      resetForgotState();
-      setMode("signin");
-    },
-    switchToSignUp: () => {
-      resetForgotState();
-      setMode("signup");
-    },
-  }));
+  const closeSheet = useCallback(() => {
+    bottomSheetRef.current?.close();
+  }, []);
 
   const handleSocialLogin = async () => {
     // keep sheet visible and announce loading for accessibility
@@ -129,7 +108,7 @@ export const AuthBottomSheet = forwardRef<
         },
         onSuccess: () => {
           setIsGoogleLoading(false);
-          onClose?.();
+          closeSheet();
         },
       },
     );
@@ -156,7 +135,7 @@ export const AuthBottomSheet = forwardRef<
         onSuccess: () => {
           setEmail("");
           setPassword("");
-          onClose?.();
+          closeSheet();
         },
         onFinished: () => {
           setIsLoading(false);
@@ -188,7 +167,7 @@ export const AuthBottomSheet = forwardRef<
           setName("");
           setEmail("");
           setPassword("");
-          onClose?.();
+          closeSheet();
         },
         onFinished: () => {
           setIsLoading(false);
@@ -212,11 +191,7 @@ export const AuthBottomSheet = forwardRef<
   const isSignIn = mode === "signin";
   const isForgotPassword = mode === "forgot-password";
 
-  const handleRequestClose = () => {
-    resetForgotState();
-    setMode("signin");
-    onClose?.();
-  };
+  const handleRequestClose = closeSheet;
 
   const handleForgotPasswordPress = () => {
     setForgotEmail(email);
@@ -280,20 +255,28 @@ export const AuthBottomSheet = forwardRef<
   return (
     <BottomSheet
       ref={bottomSheetRef}
-      index={-1}
+      index={0}
       snapPoints={snapPoints}
+      // Fixed 90% detent; with dynamic sizing the sheet can't open until the
+      // content reports its height, which a scroll view never does.
+      enableDynamicSizing={false}
+      onClose={onClose}
       enablePanDownToClose
+      // A content pan that activates (finger drifting past touch slop) makes
+      // gesture-handler cancel in-flight RN presses, so a slightly imprecise
+      // tap on a form button gets dropped. Dragging is limited to the handle.
+      enableContentPanningGesture={false}
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: sheetBackground }}
       handleIndicatorStyle={{ backgroundColor: indicatorColor }}
     >
-      <BottomSheetView
-        style={{
-          flex: 1,
-          paddingHorizontal: 20,
-          backgroundColor: sheetBackground,
-        }}
-        accessible
+      <BottomSheetScrollView
+        style={{ flex: 1, backgroundColor: sheetBackground }}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
+        // Without this, the first tap while the keyboard is up only dismisses
+        // the keyboard instead of pressing the button.
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View className="flex-row justify-between items-center py-3" accessible accessibilityRole="header">
           <Pressable
@@ -569,9 +552,7 @@ export const AuthBottomSheet = forwardRef<
             </>
           )}
         </View>
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </BottomSheet>
   );
-});
-
-AuthBottomSheet.displayName = "AuthBottomSheet";
+}
