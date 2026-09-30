@@ -20,6 +20,13 @@ const DEFAULT_CONFIGS: Record<string, RateLimitConfig> = {
     windowDuration: 3600, // 1 hour
     alertThreshold: 20,
   },
+  // Each request sends mail to a caller-supplied address, so this is an
+  // outbound-spam vector as much as a credential-guessing one.
+  'email-change': {
+    maxAttempts: 5,
+    windowDuration: 3600, // 1 hour
+    alertThreshold: 10,
+  },
 };
 
 export abstract class RateLimitMonitor {

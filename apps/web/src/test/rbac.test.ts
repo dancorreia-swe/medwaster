@@ -18,6 +18,7 @@ const createMockUser = (role: string): User => ({
   image: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  banned: false,
 });
 
 describe("RBAC System", () => {
@@ -102,13 +103,18 @@ describe("RBAC System", () => {
   });
 
   describe("getRoleDisplayName", () => {
+    // "user" is a mobile-only role (see WEB_ROLE_HIERARCHY): the web app
+    // labels it as such rather than as a plain user.
     test("should return proper Portuguese names", () => {
-      expect(getRoleDisplayName("user")).toBe("Usuário");
+      expect(getRoleDisplayName("user")).toBe("Usuário (Mobile)");
       expect(getRoleDisplayName("admin")).toBe("Administrador");
       expect(getRoleDisplayName("super-admin")).toBe("Super Administrador");
-      expect(getRoleDisplayName(null)).toBe("Sem permissão");
-      expect(getRoleDisplayName(undefined)).toBe("Sem permissão");
-      expect(getRoleDisplayName("invalid")).toBe("Sem permissão");
+    });
+
+    test("should reject anything that is not a known role", () => {
+      expect(getRoleDisplayName(null)).toBe("Acesso negado");
+      expect(getRoleDisplayName(undefined)).toBe("Acesso negado");
+      expect(getRoleDisplayName("invalid")).toBe("Acesso negado");
     });
   });
 
@@ -118,14 +124,14 @@ describe("RBAC System", () => {
       expect(roles).toEqual(["user", "admin", "super-admin"]);
     });
 
-    test("should return limited roles for admin", () => {
-      const roles = getAvailableRoles("admin");
-      expect(roles).toEqual(["user", "admin"]);
+    // Role management is a super-admin capability. An admin holds no
+    // grantable roles at all, so the picker renders empty for them.
+    test("should return nothing for admin", () => {
+      expect(getAvailableRoles("admin")).toEqual([]);
     });
 
-    test("should return only user role for regular user", () => {
-      const roles = getAvailableRoles("user");
-      expect(roles).toEqual(["user"]);
+    test("should return nothing for a mobile user", () => {
+      expect(getAvailableRoles("user")).toEqual([]);
     });
 
     test("should return empty array for invalid role", () => {
@@ -140,16 +146,11 @@ describe("RBAC System", () => {
   });
 
   describe("Role Hierarchy", () => {
+    // The web hierarchy is admin < super-admin. "user" is deliberately not a
+    // member (WEB_ROLE_HIERARCHY), so it is never a valid minimum to ask for
+    // and is covered by the escalation test below instead.
     test("should maintain proper hierarchy order", () => {
-      // User can access user-level resources
-      expect(hasMinimumRole("user", "user")).toBe(true);
-      
-      // Admin can access user and admin resources
-      expect(hasMinimumRole("admin", "user")).toBe(true);
       expect(hasMinimumRole("admin", "admin")).toBe(true);
-      
-      // Super-admin can access all resources
-      expect(hasMinimumRole("super-admin", "user")).toBe(true);
       expect(hasMinimumRole("super-admin", "admin")).toBe(true);
       expect(hasMinimumRole("super-admin", "super-admin")).toBe(true);
     });

@@ -1,5 +1,9 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { ContentProcessor } from '../services/content-processor';
+import {
+  ContentProcessor,
+  ensureUniqueSlug,
+  generateSlug,
+} from '../services/content-processor';
 
 const mockBlockNoteContent = [
   {
@@ -147,23 +151,17 @@ describe('ArticleService Integration Tests', () => {
 
 describe('Slug Generation', () => {
   test('should generate URL-friendly slugs', () => {
-    const { generateSlug } = require('../services/content-processor');
-    
     expect(generateSlug('Descarte de Resíduos Médicos')).toBe('descarte-de-residuos-medicos');
     expect(generateSlug('Procedimento Básico: Segurança')).toBe('procedimento-basico-seguranca');
     expect(generateSlug('COVID-19 & Equipamentos')).toBe('covid-19-equipamentos');
   });
 
   test('should handle Portuguese characters', () => {
-    const { generateSlug } = require('../services/content-processor');
-    
     expect(generateSlug('Gestão de Resíduos Químicos')).toBe('gestao-de-residuos-quimicos');
     expect(generateSlug('Proteção Individual')).toBe('protecao-individual');
   });
 
   test('should ensure slug uniqueness', () => {
-    const { ensureUniqueSlug } = require('../services/content-processor');
-    
     const existingSlugs = ['descarte-residuos', 'descarte-residuos-1'];
     const unique = ensureUniqueSlug('descarte-residuos', existingSlugs);
     

@@ -100,10 +100,11 @@ export const profileModule = new Elysia({
         // Verify email change
         .post(
           "/email/verify-change",
-          async ({ user, body, status }) => {
+          async ({ user, session, body, status }) => {
             const result = await ProfileService.verifyEmailChange(
               user!.id,
-              body.token
+              body.token,
+              session!.id
             );
             return status(200, success(result));
           },
@@ -120,8 +121,12 @@ export const profileModule = new Elysia({
         // Change password
         .post(
           "/password/change",
-          async ({ user, body, status }) => {
-            const result = await ProfileService.changePassword(user!.id, body);
+          async ({ user, session, body, status }) => {
+            const result = await ProfileService.changePassword(
+              user!.id,
+              body,
+              session!.id
+            );
             return status(200, success(result));
           },
           {

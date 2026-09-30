@@ -22,14 +22,11 @@ import { gamification } from "./modules/gamification";
 import { adminCertificates, studentCertificates } from "./modules/certificates";
 import { adminConfig } from "./modules/config";
 import { initializeCronJobs } from "./lib/cron";
+import { parseOriginList } from "./lib/origins";
 
 const isDev = process.env.NODE_ENV === "development";
 
-const envCorsOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(",")
-      .map((origin) => origin.trim())
-      .filter(Boolean)
-  : [];
+const envCorsOrigins = parseOriginList(process.env.CORS_ORIGIN);
 
 const corsOrigin = envCorsOrigins.includes("*")
   ? true

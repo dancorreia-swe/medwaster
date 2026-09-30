@@ -1,188 +1,231 @@
-import { TagsService } from "@/modules/tags/service";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-  vi,
-} from "bun:test";
-import { drizzle } from "drizzle-orm/node-postgres";
-import type { CreateTagBody } from "@/modules/tags/model";
-import * as schema from "@/db/schema/questions";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as drizzleOrm from "drizzle-orm";
-import type { tagsInsertSchema } from "@/db/schema/questions";
+import * as schema from "@/db/schema/questions";
+import type { CreateTagBody } from "@/modules/tags/model";
 
-const mockDb = drizzle.mock({ schema });
+/**
+ * These tests previously asserted an older TagsService: `db.select()` for
+ * getAll and `tagsInsertSchema.parse` for createTag. The service now reads
+ * through the relational API (`db.query.tags.findMany`) and validates with
+ * `Value.Parse`, so the expectations are written against that.
+ */
 
-mock.module("@/db", () => ({
-  db: mockDb,
+// The service reaches for db.query.tags.findMany, db.select and db.insert.
+// A plain object covers all three; the previous `drizzle.mock({ schema })`
+// stood up a real driver, and `pg` is not resolvable from the test runtime.
+const { mockDb } = vi.hoisted(() => ({
+  mockDb: {
+    query: { tags: { findMany: vi.fn() } },
+    select: () => undefined,
+    insert: () => undefined,
+  },
 }));
 
-let parseMock: ReturnType<typeof vi.fn>;
+vi.mock("@/db", () => ({ db: mockDb }));
+
+// Re-export drizzle-orm through a fresh object: a real ES module namespace is
+// frozen, so vi.spyOn cannot redefine `ilike`/`or` on it.
+vi.mock("drizzle-orm", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+}));
+
+import { TagsService } from "@/modules/tags/service";
+
+// `randomColor` is private; the tests drive it deliberately. Named rather than
+// asserted inline so the reason for reaching past the visibility is explicit.
+const serviceInternals = TagsService as unknown as {
+  randomColor: () => { hex: () => string };
+};
+
+function tagRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 1,
+    name: "Safety",
+    slug: "safety",
+    color: "#ff0000",
+    questionTags: [],
+    wikiArticleTags: [],
+    quizTags: [],
+    ...overrides,
+  };
+}
 
 beforeEach(() => {
-  parseMock = vi.fn((input) => input);
-  (schema.tagsInsertSchema as any).parse = parseMock;
-});
-
-afterEach(() => {
   vi.restoreAllMocks();
-  delete (schema.tagsInsertSchema as any).parse;
+  mockDb.query.tags.findMany.mockReset();
+  mockDb.query.tags.findMany.mockResolvedValue([]);
 });
 
-describe("Tags Service", () => {
-  it("returns all tags from the database", async () => {
-    const sampleTags = [
-      { id: 1, name: "Safety", slug: "safety", color: "#ff0000" },
-      { id: 2, name: "Recycling", slug: "recycling", color: "#00ff00" },
-    ];
+describe("TagsService.getAll", () => {
+  it("flattens the junction tables onto each tag", async () => {
+    mockDb.query.tags.findMany.mockResolvedValue([
+      tagRow({
+        questionTags: [{ question: { id: 10, status: "active" } }],
+        wikiArticleTags: [{ article: { id: 20, status: "published" } }],
+        quizTags: [{ quiz: { id: 30, status: "active" } }],
+      }),
+    ]);
 
-    const fromMock = vi.fn().mockResolvedValue(sampleTags);
-    vi.spyOn(mockDb, "select").mockReturnValue({ from: fromMock } as any);
+    const [tag] = await TagsService.getAll();
 
-    const result = await TagsService.getAll();
-
-    expect(mockDb.select).toHaveBeenCalledTimes(1);
-    expect(fromMock).toHaveBeenCalledWith(schema.tags);
-    expect(result).toEqual(sampleTags);
+    expect(tag.questions).toEqual([{ id: 10, status: "active" }]);
+    expect(tag.wikiArticles).toEqual([{ id: 20, status: "published" }]);
+    expect(tag.quizzes).toEqual([{ id: 30, status: "active" }]);
   });
 
-  it("searches tags across name and slug by default", async () => {
-    const expectedTags = [
-      { id: 3, name: "Hazardous", slug: "hazardous" },
-      { id: 4, name: "Sharps", slug: "hazardous-sharps" },
-    ];
+  it("hides archived related content", async () => {
+    mockDb.query.tags.findMany.mockResolvedValue([
+      tagRow({
+        questionTags: [
+          { question: { id: 10, status: "archived" } },
+          { question: { id: 11, status: "active" } },
+        ],
+        wikiArticleTags: [{ article: { id: 20, status: "archived" } }],
+        quizTags: [{ quiz: { id: 30, status: "archived" } }],
+      }),
+    ]);
 
-    const whereMock = vi.fn().mockReturnValue(Promise.resolve(expectedTags));
-    const fromMock = vi.fn().mockReturnValue({ where: whereMock });
-    vi.spyOn(mockDb, "select").mockReturnValue({ from: fromMock } as any);
+    const [tag] = await TagsService.getAll();
 
+    expect(tag.questions).toEqual([{ id: 11, status: "active" }]);
+    expect(tag.wikiArticles).toEqual([]);
+    expect(tag.quizzes).toEqual([]);
+  });
+
+  it("applies no filter when there is no search term", async () => {
+    await TagsService.getAll();
+    expect(mockDb.query.tags.findMany.mock.calls[0][0].where).toBeUndefined();
+
+    await TagsService.getAll({ search: "   " });
+    expect(mockDb.query.tags.findMany.mock.calls[1][0].where).toBeUndefined();
+  });
+
+  it("searches name and slug by default", async () => {
     const ilikeSpy = vi.spyOn(drizzleOrm, "ilike");
     const orSpy = vi.spyOn(drizzleOrm, "or");
 
-    const result = await TagsService.getAll({ search: "haz" });
+    await TagsService.getAll({ search: "haz" });
 
-    expect(mockDb.select).toHaveBeenCalledTimes(1);
-    expect(fromMock).toHaveBeenCalledWith(schema.tags);
     expect(ilikeSpy).toHaveBeenCalledWith(schema.tags.name, "%haz%");
     expect(ilikeSpy).toHaveBeenCalledWith(schema.tags.slug, "%haz%");
     expect(orSpy).toHaveBeenCalledTimes(1);
-    expect(whereMock).toHaveBeenCalledWith(orSpy.mock.results[0]?.value);
-    expect(result).toEqual(expectedTags);
+    expect(mockDb.query.tags.findMany.mock.calls[0][0].where).toBe(
+      orSpy.mock.results[0]?.value,
+    );
   });
 
-  it("searches tags using provided query keys", async () => {
-    const expectedTags = [{ id: 5, name: "General", slug: "general-haz" }];
-
-    const whereResult = Promise.resolve(expectedTags);
-    const whereMock = vi.fn().mockReturnValue(whereResult);
-    const fromMock = vi.fn().mockReturnValue({ where: whereMock });
-    vi.spyOn(mockDb, "select").mockReturnValue({ from: fromMock } as any);
-
+  it("uses a single condition, not OR, when one key is requested", async () => {
     const ilikeSpy = vi.spyOn(drizzleOrm, "ilike");
     const orSpy = vi.spyOn(drizzleOrm, "or");
 
-    const result = await TagsService.getAll({ search: "haz", keys: ["slug"] });
+    await TagsService.getAll({ search: "haz", keys: ["slug"] });
 
-    expect(mockDb.select).toHaveBeenCalledTimes(1);
-    expect(fromMock).toHaveBeenCalledWith(schema.tags);
+    expect(ilikeSpy).toHaveBeenCalledTimes(1);
     expect(ilikeSpy).toHaveBeenCalledWith(schema.tags.slug, "%haz%");
     expect(orSpy).not.toHaveBeenCalled();
-    expect(whereMock).toHaveBeenCalledWith(ilikeSpy.mock.results[0]?.value);
-    expect(result).toEqual(expectedTags);
+    expect(mockDb.query.tags.findMany.mock.calls[0][0].where).toBe(
+      ilikeSpy.mock.results[0]?.value,
+    );
   });
 
-  it("filters tags by name", async () => {
-    const expectedTags = [
-      { id: 3, name: "Hazardous", slug: "hazardous", color: "#0000ff" },
-    ];
+  // `%` is a LIKE wildcard; leaving it in would let a search term widen its
+  // own pattern.
+  it("strips wildcards out of the search term", async () => {
+    const ilikeSpy = vi.spyOn(drizzleOrm, "ilike");
 
-    const executeMock = vi.fn().mockResolvedValue(expectedTags);
+    await TagsService.getAll({ search: "%haz%", keys: ["name"] });
+
+    expect(ilikeSpy).toHaveBeenCalledWith(schema.tags.name, "%haz%");
+  });
+});
+
+describe("TagsService.getByName", () => {
+  it("filters on the exact name", async () => {
+    const expected = [{ id: 3, name: "Hazardous", slug: "hazardous" }];
+    const executeMock = vi.fn().mockResolvedValue(expected);
     const whereMock = vi.fn().mockReturnValue({ execute: executeMock });
     const fromMock = vi.fn().mockReturnValue({ where: whereMock });
-    vi.spyOn(mockDb, "select").mockReturnValue({ from: fromMock } as any);
+    const selectSpy = vi
+      .spyOn(mockDb, "select")
+      .mockReturnValue({ from: fromMock } as never);
 
     const eqSpy = vi.spyOn(drizzleOrm, "eq");
 
     const result = await TagsService.getByName("Hazardous");
 
-    expect(mockDb.select).toHaveBeenCalledTimes(1);
+    expect(selectSpy).toHaveBeenCalledTimes(1);
     expect(fromMock).toHaveBeenCalledWith(schema.tags);
     expect(eqSpy).toHaveBeenCalledWith(schema.tags.name, "Hazardous");
     expect(whereMock).toHaveBeenCalledWith(eqSpy.mock.results[0]?.value);
-    expect(executeMock).toHaveBeenCalledTimes(1);
-    expect(result).toEqual(expectedTags);
+    expect(result).toEqual(expected);
   });
+});
 
-  it("creates a tag when a color is provided", async () => {
-    const payload = {
+describe("TagsService.createTag", () => {
+  function stubInsert(rows: unknown[]) {
+    const returningMock = vi.fn().mockResolvedValue(rows);
+    const valuesMock = vi.fn().mockReturnValue({ returning: returningMock });
+    vi.spyOn(mockDb, "insert").mockReturnValue({
+      values: valuesMock,
+    } as never);
+    return { valuesMock, returningMock };
+  }
+
+  it("keeps a caller-supplied colour", async () => {
+    const payload: CreateTagBody = {
       name: "Composting",
       slug: "composting",
       color: "#123456",
       description: "Organic waste",
     };
-    const createdRows = [{ id: 4, ...payload }];
-
-    const returningMock = vi.fn().mockResolvedValue(createdRows);
-    const valuesMock = vi.fn().mockReturnValue({ returning: returningMock });
-    vi.spyOn(mockDb, "insert").mockReturnValue({ values: valuesMock } as any);
-
-    const randomColorSpy = vi.spyOn(TagsService as any, "randomColor");
+    const { valuesMock } = stubInsert([{ id: 4, ...payload }]);
+    const randomColorSpy = vi.spyOn(serviceInternals, "randomColor");
 
     const result = await TagsService.createTag({ ...payload });
 
     expect(randomColorSpy).not.toHaveBeenCalled();
-    expect(parseMock).toHaveBeenCalledWith(expect.objectContaining(payload));
-    expect(mockDb.insert).toHaveBeenCalledWith(schema.tags);
     expect(valuesMock).toHaveBeenCalledWith(expect.objectContaining(payload));
-    expect(returningMock).toHaveBeenCalledTimes(1);
-    expect(result).toEqual(createdRows);
+    expect(result).toEqual({ id: 4, ...payload });
   });
 
-  it("creates a tag and generates a color when one is missing", async () => {
+  it("generates a colour when none is supplied", async () => {
     const payload = {
       name: "Sharps",
       slug: "sharps",
       description: "Needle disposal",
     } as CreateTagBody;
+    const generated = "#abcdef";
+    const { valuesMock } = stubInsert([{ id: 5, ...payload, color: generated }]);
 
-    const generatedHex = "#abcdef";
-    const createdRows = [
-      { id: 5, ...payload, color: generatedHex },
-    ] as (typeof tagsInsertSchema.static)[];
-
-    const returningMock = vi.fn().mockResolvedValue(createdRows);
-    const valuesMock = vi.fn().mockReturnValue({ returning: returningMock });
-    vi.spyOn(mockDb, "insert").mockReturnValue({ values: valuesMock } as any);
-
-    const mockColor = { hex: vi.fn().mockReturnValue(generatedHex) };
+    const hex = vi.fn().mockReturnValue(generated);
     const randomColorSpy = vi
-      .spyOn(TagsService as any, "randomColor")
-      .mockReturnValue(mockColor as any);
+      .spyOn(serviceInternals, "randomColor")
+      .mockReturnValue({ hex });
 
-    const result = await TagsService.createTag(payload);
+    await TagsService.createTag(payload);
 
     expect(randomColorSpy).toHaveBeenCalledTimes(1);
-    expect(mockColor.hex).toHaveBeenCalledTimes(1);
-    expect(payload.color).toBe(generatedHex);
-    expect(parseMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: payload.name,
-        slug: payload.slug,
-        color: generatedHex,
-      }),
-    );
+    expect(hex).toHaveBeenCalledTimes(1);
     expect(valuesMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: payload.name,
-        slug: payload.slug,
-        color: generatedHex,
+        name: "Sharps",
+        slug: "sharps",
+        color: generated,
       }),
     );
-    expect(returningMock).toHaveBeenCalledTimes(1);
+  });
 
-    expect(result).toEqual(createdRows);
+  it("returns the first inserted row", async () => {
+    stubInsert([{ id: 6, name: "A" }, { id: 7, name: "B" }]);
+    vi.spyOn(serviceInternals, "randomColor").mockReturnValue({
+      hex: () => "#000000",
+    });
+
+    const result = await TagsService.createTag({
+      name: "A",
+      slug: "a",
+    } as CreateTagBody);
+
+    expect(result).toEqual({ id: 6, name: "A" });
   });
 });
