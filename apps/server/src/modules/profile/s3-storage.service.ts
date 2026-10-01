@@ -1,11 +1,23 @@
 import {
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
+  NoSuchKey,
 } from "@aws-sdk/client-s3";
 import { s3Client, S3_BUCKETS, S3_CONFIG } from "@/lib/s3-client";
 import { v4 as uuid } from "uuid";
-import { BadRequestError, InternalServerError } from "@/lib/errors";
+import {
+  BadRequestError,
+  InternalServerError,
+  NotFoundError,
+} from "@/lib/errors";
 import { ensureBucketWithPolicy } from "@/lib/s3-bucket-manager";
+import {
+  avatarKeyFor,
+  buildAvatarUrl,
+  extractAvatarKey,
+  isValidAvatarKey,
+} from "./avatar-url";
 
 // Configuration
 const BUCKET_NAME = S3_BUCKETS.AVATARS;
@@ -46,23 +58,22 @@ export class AvatarStorageService {
   }
 
   /**
-   * Generates a unique filename with the original extension
+   * Uploads an avatar image to S3/MinIO.
+   *
+   * `publicOrigin` is the API origin the client reached; the returned URL is
+   * served by `GET /api/profile/avatar/:key`, so it never depends on MinIO
+   * being reachable from the client.
    */
-  private static generateFilename(originalName: string): string {
-    const extension = originalName.split(".").pop() || "";
-    const uniqueId = uuid();
-    return extension ? `${uniqueId}.${extension}` : uniqueId;
-  }
-
-  /**
-   * Uploads an avatar image to S3/MinIO
-   */
-  static async uploadAvatar(file: File): Promise<{ url: string; filename: string; key: string }> {
+  static async uploadAvatar(
+    file: File,
+    publicOrigin: string
+  ): Promise<{ url: string; filename: string; key: string }> {
     this.validateImage(file);
     await this.ensureBucket();
 
-    const filename = this.generateFilename(file.name);
-    const key = filename; // Don't add prefix since bucket name is already "avatars"
+    // Bucket name is already "avatars", so the key carries no prefix
+    const key = avatarKeyFor(uuid(), file.type);
+    const filename = key;
 
     try {
       const buffer = Buffer.from(await file.arrayBuffer());
@@ -77,10 +88,7 @@ export class AvatarStorageService {
 
       await s3Client.send(command);
 
-      // Generate the public MinIO URL
-      // Use PUBLIC_S3_ENDPOINT if available (for external access), otherwise fall back to S3_ENDPOINT
-      const publicEndpoint = process.env.PUBLIC_S3_ENDPOINT || S3_CONFIG.ENDPOINT;
-      const url = `${publicEndpoint}/${BUCKET_NAME}/${key}`;
+      const url = buildAvatarUrl(publicOrigin, key);
 
       return {
         url,
@@ -90,6 +98,39 @@ export class AvatarStorageService {
     } catch (error) {
       console.error("S3 avatar upload failed:", error);
       throw new InternalServerError("Avatar upload failed");
+    }
+  }
+
+  /**
+   * Reads an avatar object for the public avatar route.
+   */
+  static async getAvatar(
+    key: string
+  ): Promise<{ body: ReadableStream; contentType: string; contentLength?: number }> {
+    if (!isValidAvatarKey(key)) {
+      throw new NotFoundError("Avatar");
+    }
+
+    try {
+      const object = await s3Client.send(
+        new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key })
+      );
+
+      if (!object.Body) {
+        throw new NotFoundError("Avatar");
+      }
+
+      return {
+        body: object.Body.transformToWebStream(),
+        contentType: object.ContentType || "application/octet-stream",
+        contentLength: object.ContentLength,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundError || error instanceof NoSuchKey) {
+        throw new NotFoundError("Avatar");
+      }
+      console.error("S3 avatar read failed:", error);
+      throw new InternalServerError("Avatar unavailable");
     }
   }
 
@@ -111,23 +152,15 @@ export class AvatarStorageService {
   }
 
   /**
-   * Extracts the S3 key from a full URL
+   * Extracts the S3 key from a stored avatar URL (API or legacy MinIO form)
    */
   static extractKeyFromUrl(url: string): string | null {
-    try {
-      // Support both internal and public endpoints
-      const publicEndpoint = process.env.PUBLIC_S3_ENDPOINT || S3_CONFIG.ENDPOINT;
-
-      // Try public endpoint first, then internal
-      for (const endpoint of [publicEndpoint, S3_CONFIG.ENDPOINT]) {
-        const urlPattern = new RegExp(`${endpoint.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/${BUCKET_NAME}/(.+)`);
-        const match = url.match(urlPattern);
-        if (match) return match[1];
-      }
-
-      return null;
-    } catch {
-      return null;
-    }
+    return extractAvatarKey(url, {
+      bucket: BUCKET_NAME,
+      legacyEndpoints: [
+        process.env.PUBLIC_S3_ENDPOINT ?? "",
+        S3_CONFIG.ENDPOINT,
+      ],
+    });
   }
 }
