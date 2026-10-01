@@ -2,6 +2,7 @@ import Elysia, { t } from "elysia";
 import { betterAuthMacro } from "@/lib/auth";
 import { success, successResponseSchema } from "@/lib/responses";
 import { AvatarStorageService } from "./s3-storage.service";
+import { publicOriginFromRequest } from "./avatar-url";
 import { ProfileService } from "./service";
 import {
   updateProfileBody,
@@ -29,6 +30,33 @@ export const profileModule = new Elysia({
   },
 })
   .use(betterAuthMacro)
+  // Serve profile pictures. Public on purpose: avatars were previously
+  // world-readable straight from the public-read MinIO bucket, and image
+  // elements (RN <Image>, <img>) cannot attach the session cookie anyway.
+  .get(
+    "/avatar/:key",
+    async ({ params }) => {
+      const avatar = await AvatarStorageService.getAvatar(params.key);
+      const headers: Record<string, string> = {
+        "Content-Type": avatar.contentType,
+        // Keys are random UUIDs and never rewritten, so the bytes are immutable
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+      };
+      if (avatar.contentLength !== undefined) {
+        headers["Content-Length"] = String(avatar.contentLength);
+      }
+      return new Response(avatar.body, { headers });
+    },
+    {
+      params: t.Object({ key: t.String() }),
+      detail: {
+        summary: "Get profile picture",
+        description: "Serve a profile picture stored in S3/MinIO",
+        tags: ["Profile"],
+      },
+    }
+  )
   .guard(
     {
       auth: true,
@@ -41,8 +69,11 @@ export const profileModule = new Elysia({
         // Upload profile picture
         .post(
           "/avatar/upload",
-          async ({ body, status }) => {
-            const result = await AvatarStorageService.uploadAvatar(body.image);
+          async ({ body, request, status }) => {
+            const result = await AvatarStorageService.uploadAvatar(
+              body.image,
+              publicOriginFromRequest(request)
+            );
             return status(200, success(result));
           },
           {
