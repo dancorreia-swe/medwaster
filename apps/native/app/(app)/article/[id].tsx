@@ -118,6 +118,13 @@ export default function WikiArticle() {
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfText, setPdfText] = useState<string | null>(null);
   const [pdfTextLoading, setPdfTextLoading] = useState(false);
+  // The metadata sheet is mounted only while open. A hidden, always-mounted
+  // sheet left the whole screen dead on some devices: BottomSheetBackdrop
+  // starts out full-screen with pointerEvents "auto" and only turns
+  // pass-through after an async runOnJS callback that can be dropped before
+  // mount, so the invisible layer swallowed every scroll and tap (same root
+  // cause as the landing screen auth sheet).
+  const [isMetadataOpen, setIsMetadataOpen] = useState(false);
   const metadataSheetRef = useRef<BottomSheet>(null);
 
   const { isReading, isPaused, handleAudioReading, handlePauseResume } =
@@ -657,7 +664,7 @@ export default function WikiArticle() {
         articleIsFavorite={articleIsFavorite}
         onToggleFavorite={handleFavoriteToggle}
         showMetadataButton={isExternalArticle && hasMetadata}
-        onOpenMetadata={() => metadataSheetRef.current?.expand()}
+        onOpenMetadata={() => setIsMetadataOpen(true)}
       />
 
       <Animated.ScrollView
@@ -815,73 +822,79 @@ export default function WikiArticle() {
         onPress={handlePauseResume}
       />
 
-      <BottomSheet
-        ref={metadataSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        backdropComponent={renderBackdrop}
-        enablePanDownToClose
-      >
-        <BottomSheetView className="px-6 py-4 bg-white dark:bg-gray-900">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-              Detalhes do artigo
-            </Text>
-            <TouchableOpacity
-              onPress={() => metadataSheetRef.current?.close()}
-              className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800"
-            >
-              <Text className="text-sm text-gray-700 dark:text-gray-200">
-                Fechar
+      {isMetadataOpen && (
+        <BottomSheet
+          ref={metadataSheetRef}
+          index={0}
+          snapPoints={snapPoints}
+          // Fixed detents; with dynamic sizing the sheet can't open until the
+          // content has reported its height.
+          enableDynamicSizing={false}
+          onClose={() => setIsMetadataOpen(false)}
+          backdropComponent={renderBackdrop}
+          enablePanDownToClose
+        >
+          <BottomSheetView className="px-6 py-4 bg-white dark:bg-gray-900">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                Detalhes do artigo
               </Text>
-            </TouchableOpacity>
-          </View>
-
-          {article?.externalAuthors && article.externalAuthors.length > 0 && (
-            <View className="mb-3">
-              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Autores
-              </Text>
-              <Text className="text-base text-gray-800 dark:text-gray-100 leading-6">
-                {article.externalAuthors.join(", ")}
-              </Text>
+              <TouchableOpacity
+                onPress={() => metadataSheetRef.current?.close()}
+                className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800"
+              >
+                <Text className="text-sm text-gray-700 dark:text-gray-200">
+                  Fechar
+                </Text>
+              </TouchableOpacity>
             </View>
-          )}
 
-          {article?.publicationSource && (
-            <View className="mb-3">
-              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Fonte
-              </Text>
-              <Text className="text-base text-gray-800 dark:text-gray-100 leading-6">
-                {article.publicationSource}
-              </Text>
-            </View>
-          )}
+            {article?.externalAuthors && article.externalAuthors.length > 0 && (
+              <View className="mb-3">
+                <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Autores
+                </Text>
+                <Text className="text-base text-gray-800 dark:text-gray-100 leading-6">
+                  {article.externalAuthors.join(", ")}
+                </Text>
+              </View>
+            )}
 
-          {publishedDate && (
-            <View className="mb-3">
-              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Publicado em
-              </Text>
-              <Text className="text-base text-gray-800 dark:text-gray-100 leading-6">
-                {publishedDate}
-              </Text>
-            </View>
-          )}
+            {article?.publicationSource && (
+              <View className="mb-3">
+                <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Fonte
+                </Text>
+                <Text className="text-base text-gray-800 dark:text-gray-100 leading-6">
+                  {article.publicationSource}
+                </Text>
+              </View>
+            )}
 
-          {externalUrl && (
-            <TouchableOpacity
-              onPress={handleOpenExternalUrl}
-              className="flex-row items-center gap-2 px-4 py-3 bg-primary rounded-xl mt-2"
-              activeOpacity={0.85}
-            >
-              <ExternalLink size={18} color="white" />
-              <Text className="text-white font-semibold">Abrir no navegador</Text>
-            </TouchableOpacity>
-          )}
-        </BottomSheetView>
-      </BottomSheet>
+            {publishedDate && (
+              <View className="mb-3">
+                <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Publicado em
+                </Text>
+                <Text className="text-base text-gray-800 dark:text-gray-100 leading-6">
+                  {publishedDate}
+                </Text>
+              </View>
+            )}
+
+            {externalUrl && (
+              <TouchableOpacity
+                onPress={handleOpenExternalUrl}
+                className="flex-row items-center gap-2 px-4 py-3 bg-primary rounded-xl mt-2"
+                activeOpacity={0.85}
+              >
+                <ExternalLink size={18} color="white" />
+                <Text className="text-white font-semibold">Abrir no navegador</Text>
+              </TouchableOpacity>
+            )}
+          </BottomSheetView>
+        </BottomSheet>
+      )}
     </Container>
   );
 }
