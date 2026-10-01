@@ -24,7 +24,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SentryTestCard } from "@/components/sentry-test-card";
 import { authClient } from "@/lib/auth-client";
+import { canAccessSuperAdmin } from "@/lib/rbac";
 import { profileApi, profileQueryKeys } from "../api";
 import {
   normalizeEmail,
@@ -412,6 +414,8 @@ export function AccountSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {canAccessSuperAdmin(user) && <SentryTestCard />}
     </div>
   );
 }

@@ -1,9 +1,11 @@
+import "./instrument";
 import logixlysia from "logixlysia";
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { join } from "path";
 import { betterAuthMacro as betterAuth, OpenAPI } from "./lib/auth";
-import { globalErrorHandler } from "./lib/errors";
+import { globalErrorHandler, HttpError } from "./lib/errors";
+import { Sentry } from "./lib/sentry";
 import { adminTags } from "./modules/tags";
 import { audit } from "./modules/audit";
 import { auditMiddleware } from "./middleware/audit";
@@ -21,6 +23,7 @@ import { profileModule } from "./modules/profile";
 import { gamification } from "./modules/gamification";
 import { adminCertificates, studentCertificates } from "./modules/certificates";
 import { adminConfig } from "./modules/config";
+import { adminDebug } from "./modules/debug";
 import { initializeCronJobs } from "./lib/cron";
 import { parseOriginList } from "./lib/origins";
 
@@ -32,7 +35,31 @@ const corsOrigin = envCorsOrigins.includes("*")
   ? true
   : [...envCorsOrigins, /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 
-export const app = new Elysia({ name: "medwaster-api", prefix: "/api" })
+// Elysia's built-in codes for client mistakes (bad body, unknown route, ...).
+const CLIENT_ERROR_CODES = new Set([
+  "VALIDATION",
+  "PARSE",
+  "NOT_FOUND",
+  "INVALID_COOKIE_SIGNATURE",
+  "INVALID_FILE_TYPE",
+]);
+
+export const app = Sentry.withElysia(
+  new Elysia({ name: "medwaster-api", prefix: "/api" }),
+  {
+    // Sentry's hook runs before globalErrorHandler sets the status, so decide
+    // from the error itself: report server faults only, never 4xx noise.
+    shouldHandleError: (context) => {
+      const { code, error } = context as typeof context & {
+        code: string | number;
+        error: unknown;
+      };
+      if (error instanceof HttpError) return error.statusCode >= 500;
+      if (typeof code === "number") return code >= 500;
+      return !CLIENT_ERROR_CODES.has(code);
+    },
+  },
+)
   .use(
     logixlysia({
       config: {
@@ -82,7 +109,8 @@ export const app = new Elysia({ name: "medwaster-api", prefix: "/api" })
     cors({
       origin: corsOrigin,
       methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS", "HEAD"],
-      allowedHeaders: ["Content-Type", "Authorization"],
+      // sentry-trace/baggage link web traces to API traces (distributed tracing).
+      allowedHeaders: ["Content-Type", "Authorization", "sentry-trace", "baggage"],
       credentials: true,
     }),
   )
@@ -112,6 +140,7 @@ export const app = new Elysia({ name: "medwaster-api", prefix: "/api" })
   .use(profileModule)
   .use(gamification)
   .use(adminConfig)
+  .use(adminDebug)
   .use(adminCertificates)
   .use(studentCertificates)
   .use(audit)

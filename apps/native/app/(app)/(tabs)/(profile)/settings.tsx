@@ -13,6 +13,7 @@ import { client as api } from "@/lib/eden";
 import { toast } from "sonner-native";
 import { useRouter } from "expo-router";
 import { authClient } from "@/lib/auth-client";
+import { SentryTestButton } from "@/features/diagnostics/sentry-test-button";
 
 export default function SettingsScreen() {
   const { data: session, refetch: refetchSession } = authClient.useSession();
@@ -259,6 +260,8 @@ export default function SettingsScreen() {
               </Text>
             </View>
           </View>
+
+          <SentryTestButton />
         </ScrollView>
       </Container>
 

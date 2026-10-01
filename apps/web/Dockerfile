@@ -28,9 +28,18 @@ RUN bun install --no-optional
 # Copy pruned source code (includes server types and tsconfig for @server/* imports)
 COPY --from=pruner /app/out/full/ .
 
-# Build web application
+# Build web application.
+# Sentry: the release (git sha) is baked into the bundle; source maps are only
+# uploaded when the sentry_auth_token build secret is provided (skipped otherwise).
+ARG SENTRY_RELEASE=""
+ARG SENTRY_ORG=""
+ARG SENTRY_PROJECT=""
+ENV VITE_SENTRY_RELEASE=$SENTRY_RELEASE \
+    SENTRY_ORG=$SENTRY_ORG \
+    SENTRY_PROJECT=$SENTRY_PROJECT
 WORKDIR /app/apps/web
-RUN bun run build
+RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
+    bun run build
 
 # Production stage
 FROM nginx:alpine
@@ -44,7 +53,10 @@ COPY <<'EOF' /docker-entrypoint.d/40-env-config.sh
 echo "Generating env-config.js..."
 cat > /usr/share/nginx/html/env-config.js << ENVJS
 window.__ENV__ = {
-  VITE_SERVER_URL: "${VITE_SERVER_URL:-http://localhost:4000}"
+  VITE_SERVER_URL: "${VITE_SERVER_URL:-http://localhost:4000}",
+  VITE_SENTRY_DSN: "${VITE_SENTRY_DSN:-}",
+  VITE_SENTRY_ENVIRONMENT: "${VITE_SENTRY_ENVIRONMENT:-production}",
+  VITE_SENTRY_TRACES_SAMPLE_RATE: "${VITE_SENTRY_TRACES_SAMPLE_RATE:-0.1}"
 };
 ENVJS
 echo "env-config.js generated with VITE_SERVER_URL=${VITE_SERVER_URL:-http://localhost:4000}"

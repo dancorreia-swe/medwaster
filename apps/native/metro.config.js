@@ -1,12 +1,14 @@
 // Learn more https://docs.expo.io/guides/customizing-metro
-const { getDefaultConfig } = require("expo/metro-config");
+// getSentryExpoConfig wraps expo's getDefaultConfig and adds Debug IDs so
+// uploaded source maps match the bundle.
+const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 const { FileStore } = require("metro-cache");
 const { withNativeWind } = require("nativewind/metro");
 const path = require("node:path");
 
 const config = withTurborepoManagedCache(
   withMonorepoPaths(
-    withNativeWind(getDefaultConfig(__dirname), {
+    withNativeWind(getSentryExpoConfig(__dirname), {
       input: "./global.css",
     }),
   ),

@@ -4,6 +4,7 @@ import { AIService } from "@/modules/ai/service";
 import { embeddings as embeddingsTable } from "@/db/schema/embeddings";
 import { eq } from "drizzle-orm";
 import { QUEUE_NAMES } from "@/lib/queue";
+import { Sentry, captureJobFailure } from "@/lib/sentry";
 import { contentScraperService } from "@/modules/wiki/services/content-scraper";
 
 export type RAGJobData =
@@ -131,8 +132,10 @@ ragWorker.on("completed", (job) => {
 
 ragWorker.on("failed", (job, err) => {
   console.error(`[RAG Worker] Job ${job?.id} failed:`, err.message);
+  captureJobFailure("rag", job, err);
 });
 
 ragWorker.on("error", (err) => {
   console.error("[RAG Worker] Worker error:", err);
+  Sentry.captureException(err, { tags: { queue: "rag" } });
 });

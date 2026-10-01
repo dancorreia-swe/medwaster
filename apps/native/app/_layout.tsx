@@ -1,4 +1,5 @@
-import { Stack } from "expo-router";
+import { Sentry, navigationIntegration } from "@/lib/sentry";
+import { Stack, useNavigationContainerRef } from "expo-router";
 import {
   DarkTheme,
   DefaultTheme,
@@ -33,8 +34,14 @@ export const unstable_settings = {
   initialRouteName: "(auth)",
 };
 
-export default function RootLayout() {
+function RootLayout() {
   const hasMounted = useRef(false);
+  const navigationRef = useNavigationContainerRef();
+
+  React.useEffect(() => {
+    navigationIntegration.registerNavigationContainer(navigationRef);
+  }, [navigationRef]);
+
   const { colorScheme, isDarkColorScheme } = useColorScheme();
   const [isColorSchemeLoaded, setIsColorSchemeLoaded] = React.useState(false);
   const [queryClient] = useState(() => new QueryClient());
@@ -85,6 +92,10 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+// Sentry.wrap adds the error boundary and touch/performance tracking; it is a
+// pass-through when Sentry is not initialised.
+export default Sentry.wrap(RootLayout);
 
 const useIsomorphicLayoutEffect =
   Platform.OS === "web" && typeof window === "undefined"

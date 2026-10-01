@@ -242,6 +242,12 @@ services:
       LOCALAI_API_KEY: ${LOCALAI_API_KEY}
       WHISPER_BASE_URL: ${WHISPER_BASE_URL:-http://whisper:8081/v1}
       WHISPER_API_KEY: ${WHISPER_API_KEY}
+
+      # Sentry (optional; disabled when SENTRY_DSN is empty). The release is
+      # baked into the image by CI. The worker reports to the same project.
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
     # Coolify exposes this service through its proxy once a domain is configured.
     volumes:
       # Corrected path for uploads to match app working directory
@@ -307,6 +313,10 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ADMIN_NAME: ${ADMIN_NAME}
+      # Sentry (same project as the API; events are tagged service=worker)
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
     networks:
       - medwaster-network
     depends_on:
@@ -331,6 +341,10 @@ services:
       - "80"
     environment:
       VITE_SERVER_URL: ${VITE_SERVER_URL:-http://localhost:4000}
+      # Sentry (optional; injected into env-config.js at container start)
+      VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+      VITE_SENTRY_ENVIRONMENT: ${VITE_SENTRY_ENVIRONMENT:-production}
+      VITE_SENTRY_TRACES_SAMPLE_RATE: ${VITE_SENTRY_TRACES_SAMPLE_RATE:-0.1}
     # Coolify exposes this service through its proxy once a domain is configured.
     networks:
       - medwaster-network

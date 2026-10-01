@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
 import { canAccessWebApp, ROLE_ERRORS } from "@/lib/rbac";
+import { setSentryUser } from "@/lib/sentry";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { useTheme } from "@/components/theme-provider";
 import {
@@ -28,11 +29,14 @@ export const Route = createFileRoute("/_auth")({
               redirect: location.href,
             };
 
+      setSentryUser(null);
       throw redirect({
         to: "/login",
         ...(redirectSearch ? { search: redirectSearch } : {}),
       });
     }
+
+    setSentryUser(session.user.id);
 
     if (!canAccessWebApp(session.user)) {
       throw redirect({

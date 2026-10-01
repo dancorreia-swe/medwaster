@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { setSentryUser } from "@/lib/sentry";
 import Color from "color";
 
 export function cn(...inputs: ClassValue[]) {
@@ -17,6 +18,7 @@ export function cn(...inputs: ClassValue[]) {
 export async function signOut(): Promise<void> {
   try {
     await authClient.signOut();
+    setSentryUser(null);
     toast.success("Deslogado com sucesso");
   } catch (error) {
     console.error("Error during sign out:", error);

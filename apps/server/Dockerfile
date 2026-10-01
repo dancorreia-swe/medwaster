@@ -35,6 +35,10 @@ RUN apk add --no-cache \
     ttf-freefont \
     curl
 
+# Sentry release (git sha), set by CI. Used by the API and the worker.
+ARG SENTRY_RELEASE=""
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
+
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
