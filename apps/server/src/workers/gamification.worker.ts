@@ -2,6 +2,7 @@ import { Worker, Job } from "bullmq";
 import { MissionsService } from "@/modules/gamification/missions.service";
 import { StreaksService } from "@/modules/gamification/streaks.service";
 import { QUEUE_NAMES } from "@/lib/queue";
+import { Sentry, captureJobFailure } from "@/lib/sentry";
 
 export type GamificationJobData =
   | {
@@ -79,8 +80,10 @@ gamificationWorker.on("completed", (job) => {
 
 gamificationWorker.on("failed", (job, err) => {
   console.error(`[Gamification Worker] Job ${job?.id} failed:`, err.message);
+  captureJobFailure("gamification", job, err);
 });
 
 gamificationWorker.on("error", (err) => {
   console.error("[Gamification Worker] Worker error:", err);
+  Sentry.captureException(err, { tags: { queue: "gamification" } });
 });

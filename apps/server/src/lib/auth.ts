@@ -15,6 +15,7 @@ import { createAuthMiddleware } from "better-auth/api";
 import { trackFirstLogin } from "../modules/achievements/trackers";
 import { parseOriginList } from "./origins";
 import { eq } from "drizzle-orm";
+import { setSentryUser } from "./sentry";
 
 export const ROLES = {
   SUPER_ADMIN: "super-admin",
@@ -201,6 +202,8 @@ export const betterAuthMacro = new Elysia({
         if (!session) {
           throw new UnauthorizedError("Authentication required");
         }
+
+        setSentryUser(session.user.id);
 
         return {
           user: session.user,

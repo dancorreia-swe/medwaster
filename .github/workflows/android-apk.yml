@@ -27,6 +27,14 @@ jobs:
       # decide which servers the APK talks to. Set them under Settings → Variables.
       EXPO_PUBLIC_SERVER_URL: ${{ vars.PROD_SERVER_URL }}
       EXPO_PUBLIC_WEB_URL: ${{ vars.PROD_WEB_URL }}
+      # Sentry (optional). Without SENTRY_NATIVE_DSN the app reports nothing;
+      # without the SENTRY_AUTH_TOKEN secret (or the org/project variables),
+      # source map upload is skipped: app.config.js only adds the Sentry plugin
+      # when all three are present.
+      EXPO_PUBLIC_SENTRY_DSN: ${{ vars.SENTRY_NATIVE_DSN }}
+      EXPO_PUBLIC_SENTRY_ENVIRONMENT: production
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_NATIVE_PROJECT }}
       APK_PATH: apps/native/android/app/build/outputs/apk/release/app-release.apk
 
     steps:
@@ -118,7 +126,13 @@ jobs:
 
       - name: Generate Android project
         working-directory: apps/native
-        run: bunx expo prebuild --platform android --clean --no-install
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          if [[ -z "$SENTRY_AUTH_TOKEN" || -z "$SENTRY_ORG" || -z "$SENTRY_PROJECT" ]]; then
+            echo "::notice::SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_NATIVE_PROJECT not all set; skipping Sentry source map upload"
+          fi
+          bunx expo prebuild --platform android --clean --no-install
 
       - name: Build release APK
         working-directory: apps/native/android
@@ -126,6 +140,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         # x86 ABIs only matter for emulators; dropping them roughly halves native build time.
         run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
 

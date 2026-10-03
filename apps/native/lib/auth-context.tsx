@@ -1,4 +1,5 @@
 import { authClient } from "@/lib/auth-client";
+import { setSentryUser } from "@/lib/sentry";
 import { useRouter, useSegments } from "expo-router";
 import React, { useEffect, type PropsWithChildren } from "react";
 import { View } from "react-native";
@@ -8,6 +9,11 @@ function useProtectedRoute() {
   const router = useRouter();
 
   const { data: session, isPending } = authClient.useSession();
+  const userId = session?.user.id;
+
+  useEffect(() => {
+    if (!isPending) setSentryUser(userId);
+  }, [userId, isPending]);
 
   useEffect(() => {
     if (isPending) return;

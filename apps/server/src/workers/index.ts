@@ -1,6 +1,7 @@
-import "dotenv/config";
+import "./instrument";
 import { ragWorker } from "./rag.worker";
 import { gamificationWorker } from "./gamification.worker";
+import { Sentry } from "@/lib/sentry";
 
 console.log("[Workers] Starting BullMQ workers...");
 console.log(
@@ -13,6 +14,7 @@ const shutdown = async () => {
   console.log("[Workers] Shutting down gracefully...");
   await ragWorker.close();
   await gamificationWorker.close();
+  await Sentry.close(2000);
   process.exit(0);
 };
 
